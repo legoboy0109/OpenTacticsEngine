@@ -59,10 +59,15 @@ export class Session {
     await this.page.waitForTimeout(pause);
   }
 
-  // Logical game pixels (default view 480x270) -> page CSS pixels, assuming the
-  // picture is letterboxed (centered, aspect kept) inside the canvas.
+  // Logical game pixels (default view 480x270) -> page CSS pixels. The player shows its picture at a whole multiple of the view, centred
+  // (the "Whole-number scaling" setting, default on: docs/GRAPHICS.md), measured in the canvas's own (device) pixels; below 1x, or
+  // with `s.wholeScale = false` (a run with --integer-scale off), it is letterboxed (centred, aspect kept) instead.
   async toPage(lx, ly, lw = 480, lh = 270) {
     const c = await this.canvasInfo();
+    const [bw, bh] = c.backing, d = bw / c.css[0];  // backing pixels per CSS pixel
+    const whole = Math.min(Math.floor(bw / lw), Math.floor(bh / lh));
+    if (this.wholeScale !== false && whole >= 1)
+      return [(Math.floor((bw - lw * whole) / 2) + lx * whole) / d, (Math.floor((bh - lh * whole) / 2) + ly * whole) / d];
     const k = Math.min(c.css[0] / lw, c.css[1] / lh);
     return [(c.css[0] - lw * k) / 2 + lx * k, (c.css[1] - lh * k) / 2 + ly * k];
   }

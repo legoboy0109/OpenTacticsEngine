@@ -94,20 +94,25 @@ export async function run(env) {
     // below 1, and with a devicePixelRatio, as a browser at 125% or 150% has).
     const cases = [[720, 405, 1], [400, 225, 1], [1317, 741, 1], [1801, 900, 1], [1920, 1081, 1], [1366, 700, 1.5], [1000, 600, 1.25],
                    [2561, 1305, 1], [960, 540, 1]];
+    // Each case runs with whole-number scaling on (the default: the picture is a whole multiple, so no seam is possible by construction;
+    // the sparse sheet is drawn 1.5x its cells, so this also shows the whole multiple is what is on screen) and off (the fractional
+    // scale, where pixel_snap.h keeps the seams away).
+    for (const mode of ['on', 'off'])
     for (const [w, h, dpr] of cases) {
       const { page, close } = await env.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: dpr });
       const s = new Session(page, env.out, 'k');
-      await s.goto(`${srv.url}/player/embed.html?project=tiles-sparse&map=sparse&noaudio=1`);
+      await s.goto(`${srv.url}/player/embed.html?project=tiles-sparse&map=sparse&noaudio=1&integerscale=${mode}`);
       await s.waitReady();
       await s.keys(['Enter'], 600);  // skip the turn banner
       await page.waitForTimeout(400);
-      const png = await s.shot(`${w}x${h}@${dpr}`);
+      const png = await s.shot(`${mode}-${w}x${h}@${dpr}`);
       const info = await s.canvasInfo();
-      const k = Math.min(info.backing[0] / 480, info.backing[1] / 270);
+      const k0 = Math.min(info.backing[0] / 480, info.backing[1] / 270);
+      const k = mode === 'on' && k0 >= 1 ? Math.floor(k0) : k0;
       const r = await thinLines(env.analysisPage, png);
-      C.check(`tiles ${w}x${h} @${dpr} (scale ${k.toFixed(3)}): no dark seams between tile squares`,
+      C.check(`tiles [${mode}] ${w}x${h} @${dpr} (scale ${k.toFixed(3)}): no dark seams between tile squares`,
         r.w > 100 && r.vertical === 0 && r.horizontal === 0, `map ${r.w}x${r.h}px, ${r.vertical} vertical and ${r.horizontal} horizontal dark line pieces`);
-      C.noErrors(s, `tiles ${w}x${h} @${dpr}: no console errors`);
+      C.noErrors(s, `tiles [${mode}] ${w}x${h} @${dpr}: no console errors`);
       await close();
     }
   } finally {

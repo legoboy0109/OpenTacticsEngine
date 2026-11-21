@@ -46,9 +46,9 @@ export async function run(env) {
     await pointerFlow(env, s, true, 'touch');
     // (Home fills its bars with its own background colour; the battle's bars are black.)
     const box = await contentBox(env.analysisPage, await s.shot('portrait-battle'));
-    // The 16:9 picture is as wide as the screen and centered vertically.
-    C.check('touch portrait: picture fully visible and letterboxed (full width, ~16:9, centered)',
-      box.x0 <= 1 && box.x1 >= 1168 && Math.abs((box.y0 + box.y1) / 2 - 1266) < 12 &&
+    // Whole-number scaling (default on, docs/GRAPHICS.md): 1170 device pixels hold 2x the 480 x 270 view (960 x 540), centred both ways.
+    C.check('touch portrait: picture fully visible, 2x (960 wide), ~16:9, centered',
+      Math.abs((box.x1 - box.x0 + 1) - 960) <= 2 && Math.abs((box.x0 + box.x1) / 2 - 585) < 3 && Math.abs((box.y0 + box.y1) / 2 - 1266) < 3 &&
       Math.abs((box.x1 - box.x0 + 1) / (box.y1 - box.y0 + 1) - 16 / 9) < 0.03, JSON.stringify(box));
 
     // Drag and pinch must not scroll or zoom the page.
@@ -70,10 +70,10 @@ export async function run(env) {
     info = await s.canvasInfo();
     C.check('touch landscape: canvas fills the screen', info.css[0] === 844 && info.css[1] === 390, JSON.stringify(info));
     const lbox = await contentBox(env.analysisPage, land);
-    // Height-limited: full height, width = 390 * 16/9 = 693 css px, centered.
+    // Height-limited: 1170 device pixels of height hold 4x the view's 270 (1080 high, 1920 wide), centred both ways.
     const k = info.dpr;
-    C.check('touch landscape: picture fully visible, height-limited and centered',
-      lbox.y0 <= 1 && lbox.y1 >= 390 * k - 2 && Math.abs((lbox.x0 + lbox.x1) / 2 - 422 * k) < 12 &&
+    C.check('touch landscape: picture fully visible, 4x (1080 high), height-limited and centered',
+      Math.abs((lbox.y1 - lbox.y0 + 1) - 1080) <= 2 && Math.abs((lbox.x0 + lbox.x1) / 2 - 422 * k) < 3 && Math.abs((lbox.y0 + lbox.y1) / 2 - 195 * k) < 3 &&
       Math.abs((lbox.x1 - lbox.x0 + 1) / (lbox.y1 - lbox.y0 + 1) - 16 / 9) < 0.03, JSON.stringify(lbox));
     C.noErrors(s, 'touch flow: no console errors');
     await close();

@@ -48,10 +48,13 @@ export async function run(env) {
     // [viewport w, h, devicePixelRatio, iframe w x h in CSS pixels (null = embed.html is the page)]
     const cases = [[2560, 1401, 1, [2559.6, 1400.6]], [1700, 900, 1.1, [1500.3, 820.7]], [1700, 900, 1.1, [1500.3, 820.7]], [2560, 1401, 1, null], [2560, 1401, 1, [2559, 1400]], [1000, 600, 1.25, null], [1366, 700, 1.5, null],
                    [1317, 741, 1, null], [1801, 900, 1, [1799, 899]], [720, 405, 1, null], [900, 512, 1, null], [400, 225, 1, null]];
-    for (const [w, h, dpr, frame] of cases) {
+    // Whole-number scaling on (the default: whole multiples, seam-free by construction) for every case; off (the fractional scale, kept
+    // seam-free by pixel_snap.h) for the cases that are really fractional.
+    const jobs = [...cases.map((c) => ['on', c]), ...[0, 1, 3, 5, 6, 7].map((i) => ['off', cases[i]])];
+    for (const [mode, [w, h, dpr, frame]] of jobs) {
       const { page, close } = await env.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: dpr });
       const s = new Session(page, env.out, 'l');
-      const q = 'project=tiles-sparse&map=scroll&noaudio=1';
+      const q = `project=tiles-sparse&map=scroll&noaudio=1&integerscale=${mode}`;
       if (frame) {
         await s.goto(`${srv.url}/host.html?embed=${encodeURIComponent(q)}`);
         await page.evaluate(([fw, fh]) => { const f = document.getElementById('f'); f.removeAttribute('width'); f.removeAttribute('height'); f.style.width = fw + 'px'; f.style.height = fh + 'px'; }, frame);
@@ -67,10 +70,11 @@ export async function run(env) {
       const info = frame ? await page.frames().find((f) => f.url().includes('embed.html')).evaluate(() => {
         const c = document.getElementById('canvas'); return { backing: [c.width, c.height] };
       }) : await s.canvasInfo();
-      const k = Math.min(info.backing[0] / 480, info.backing[1] / 270);
-      const label = `${w}x${h}@${dpr}${frame ? 'f' : ''}`;
+      const k0 = Math.min(info.backing[0] / 480, info.backing[1] / 270);
+      const k = mode === 'on' && k0 >= 1 ? Math.floor(k0) : k0;
+      const label = `${mode}-${w}x${h}@${dpr}${frame ? 'f' : ''}`;
       const r = await walk(s, page, env, label, 14);
-      C.check(`scroll ${label} (scale ${k.toFixed(3)}): no dark seams in ${r.shots} frames of a scrolling map`,
+      C.check(`scroll [${mode}] ${label} (scale ${k.toFixed(3)}): no dark seams in ${r.shots} frames of a scrolling map`,
         r.vertical === 0 && r.horizontal === 0, `${r.vertical} vertical, ${r.horizontal} horizontal line pieces${r.worst ? ' first at ' + r.worst : ''}`);
       C.noErrors(s, `scroll ${label}: no console errors`);
       await close();
