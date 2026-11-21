@@ -101,6 +101,10 @@ void SdlRenderer::refreshMap() {
     map_.offX = std::floor(rc.x);
     map_.offY = std::floor(rc.y);
     map_.known = true;
+    // SDL's software renderer (a browser that gave no WebGL) truncates the scaled rectangle numbers to ints, so its snapped
+    // rectangles need the nudge (pixel_snap.h); the GPU renderers place real floats and must not get one.
+    const char* name = SDL_GetRendererName(r_);
+    map_.nudge = name && SDL_strcmp(name, "software") == 0 ? 1.0f / 32 : 0.0f;
   } else {
     map_ = OutputMap();
   }

@@ -78,3 +78,41 @@ TEST(pixel_snap_keeps_pixel_centres_off_the_edges) {
     CHECK(std::fabs(std::fabs(y1 - std::floor(y1)) - 0.5) > 0.25);
   }
 }
+
+namespace {
+// What SDL's software renderer does with the snapped numbers: float multiply by the scale, then position and size each
+// truncated to an int on its own (SW_QueueCopy / SW_QueueFillRects). Gives the whole-device-pixel edges it ends up with.
+void truncatedEdges(const OutputMap& m, int x, int w, int& left, int& right) {
+  float fx, fy, fw, fh;
+  snapRect(m, x, 0, w, 1, fx, fy, fw, fh);
+  const int px = (int)(fx * m.scaleX), pw = (int)(fw * m.scaleX);
+  left = px;
+  right = px + pw;
+}
+// How many squares of a row end up with an edge other than the ideal one: floor(pos * k + off + 0.5) - off.
+int misplaced(const OutputMap& m) {
+  int bad = 0;
+  for (int x = -90; x < 520; x += 24) {  // some squares are partly left of the picture
+    int l, r;
+    truncatedEdges(m, x, 24, l, r);
+    const int wantL = (int)std::floor((double)x * m.scaleX + m.offX + 0.5) - (int)m.offX;
+    const int wantR = (int)std::floor((double)(x + 24) * m.scaleX + m.offX + 0.5) - (int)m.offX;
+    if (l != wantL || r != wantR) ++bad;
+  }
+  return bad;
+}
+}  // namespace
+
+TEST(pixel_snap_survives_a_renderer_that_truncates) {
+  // The browser's software renderer (a browser with no WebGL) cuts (x * k) and (w * k) down to ints separately: without the
+  // nudge, neighbouring squares came out one pixel apart at some edges (full-length dark lines across the map).
+  const float scales[] = {1.5f, 1.875f, 2.45417f, 2.744f, 3.06875f, 3.68125f, 4.833f, 0.833f};
+  int withoutNudge = 0;
+  for (float k : scales) {
+    OutputMap m = map(k, k, 0, 27);
+    withoutNudge += misplaced(m);
+    m.nudge = 1.0f / 32;
+    CHECK(misplaced(m) == 0);
+  }
+  CHECK(withoutNudge > 0);  // only worth anything if the trouble is real
+}
