@@ -6,6 +6,7 @@
 
 #include "core/base/fileio.h"
 #include "core/base/log.h"
+#include "platform/common/whole_scale.h"
 #include "platform/sdl2/sdl2_pixels.h"
 #ifdef OTE_NXDK
 #include "platform/nxdk/nxdk_present.h"
@@ -117,9 +118,10 @@ class SdlRenderer::Target : public TextTarget {
       offsetX = offsetY = 0;
       return;
     }
-    // SDL2's letterbox: uniform scale, content centred (integer-scale mode is off by default).
+    // SDL2's letterbox: uniform scale, content centred (or the whole multiple, with whole-number scaling).
     float sx = (float)ow / (float)*lw_, sy = (float)oh / (float)*lh_;
     scale = sx < sy ? sx : sy;
+    if (owner_->integerActive_) scale = std::floor(scale);
     offsetX = std::floor(((float)ow - (float)*lw_ * scale) / 2.0f);
     offsetY = std::floor(((float)oh - (float)*lh_ * scale) / 2.0f);
   }
@@ -162,7 +164,32 @@ void SdlRenderer::setLogicalSize(int width, int height) {
 // SDL2's logical-size letterbox (SDL_RenderSetLogicalSize): the scale per axis is the viewport's size over the logical size (read
 // back with SDL_RenderGetScale), and the viewport sits at ((output - size) / 2, whole-number division). Checked against
 // SDL_RenderLogicalToWindow on SDL 2.32 for wide, tall and exact-fit windows.
+// Whole-number scaling on a desktop window. SDL2's integer mode has no fallback below 1x (it would shrink the picture to nothing),
+// so it is switched on only while the output holds at least 1x the logical size, by the same arithmetic as the SDL3 backend.
+// Headless output is a whole multiple of the logical size already: it stays as it was.
+void SdlRenderer::applyIntegerScale() {
+#if SDL_VERSION_ATLEAST(2, 0, 5)
+  if (fixed_ || headless_ || w_ < 1 || h_ < 1) return;
+  int ow = 0, oh = 0;
+  SDL_GetRendererOutputSize(r_, &ow, &oh);
+  const bool want = integerScale_ && wholeScaleRect(w_, h_, ow, oh).k >= 1;
+  if (want == integerActive_) return;
+  integerActive_ = want;
+  SDL_RenderSetIntegerScale(r_, want ? SDL_TRUE : SDL_FALSE);  // (SDL recomputes the logical rectangle itself)
+#endif
+}
+
+void SdlRenderer::setIntegerScale(bool on) {
+  if (on == integerScale_) return;
+  integerScale_ = on;
+  if (!fixed_) {
+    applyIntegerScale();
+    refreshMap();
+  }
+}
+
 void SdlRenderer::refreshMap() {
+  applyIntegerScale();  // the window may have been resized since the last frame
   map_ = OutputMap();
 #if SDL_VERSION_ATLEAST(2, 0, 10)
   if (fixed_ || w_ < 1 || h_ < 1) return;
@@ -343,6 +370,14 @@ void SdlRenderer::displaySize(int& width, int& height) const {
     width = w_;
     height = h_;
     return;
+  }
+  if (integerActive_) {  // whole-number scaling: the whole multiple that SDL's integer mode uses (whole_scale.h)
+    const WholeScaleRect r = wholeScaleRect(w_, h_, ow, oh);
+    if (r.k >= 1) {
+      width = r.w;
+      height = r.h;
+      return;
+    }
   }
   // The letterboxed rectangle: uniform scale (as in Target::outputTransform).
   float sx = (float)ow / (float)w_, sy = (float)oh / (float)h_, k = sx < sy ? sx : sy;

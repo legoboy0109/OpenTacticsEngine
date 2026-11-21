@@ -92,6 +92,12 @@ class Renderer {
   // platform's default. Only the original Xbox backend acts on it (docs/XBOX_OG.md "Picture"); everywhere else it is ignored.
   virtual void setSafeArea(int /*percent*/) {}
 
+  // Whole-number scaling (docs/GRAPHICS.md): true (the default) shows the picture at the largest whole multiple of the logical size
+  // that fits the output, centred with a plain border (when the output is smaller than 1x, it is fitted as before so nothing is
+  // cut off); false fits it to the output at any size. Only the desktop / web windows act on it; fixed-screen ports and headless
+  // runs ignore it.
+  virtual void setIntegerScale(bool /*on*/) {}
+
   // Selects the font for all following text calls. On failure returns false,
   // logs why, and falls back to the built-in pixel font.
   virtual bool setFont(const FontRequest& font) = 0;

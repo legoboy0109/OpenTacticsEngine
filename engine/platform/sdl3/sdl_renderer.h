@@ -26,6 +26,7 @@ class SdlRenderer : public Renderer {
   void fillRect(int x, int y, int w, int h, Color c) override;
   void drawRect(int x, int y, int w, int h, Color c) override;
   void setLogicalSize(int width, int height) override;
+  void setIntegerScale(bool on) override;
   bool setFont(const FontRequest& font) override { return text_->setFont(font); }
   void drawText(int x, int y, const char* text, Color c, int scale = 1) override {
     text_->drawText(x, y, text, c, scale);
@@ -52,12 +53,16 @@ class SdlRenderer : public Renderer {
  private:
   class Target;  // TextTarget on top of SDL textures
   void setColor(Color c);
+  void applyPresentation();  // letterbox or whole-number scaling, by the setting and the output size
   void refreshMap();  // re-reads the logical -> output mapping (pixel_snap.h); once per frame and when the logical size changes
   SDL_Window* window_;
   SDL_Renderer* r_;
   int w_, h_;
   bool headless_;
   int headlessScale_;
+  bool integerScale_ = true;  // setIntegerScale (whole_scale.h)
+  SDL_RendererLogicalPresentation mode_ = SDL_LOGICAL_PRESENTATION_LETTERBOX;  // what is set on the SDL renderer now (sdl_app.cpp starts with the letterbox)
+  int presentedW_ = 0, presentedH_ = 0;  // the logical size that mode_ was set for (0 = not yet: the first call sets it)
   OutputMap map_;  // where the logical frame sits in the output, for placing rectangles on whole device pixels
   bool additive_ = false;  // setAdditiveBlend: the sheets are drawn with SDL_BLENDMODE_ADD
   std::vector<SDL_Texture*> images_;  // TextureId n lives at images_[n - 1]; null = free slot
