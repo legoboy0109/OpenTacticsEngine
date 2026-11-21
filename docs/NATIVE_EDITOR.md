@@ -37,8 +37,9 @@ RTTI; only plain non-polymorphic types (`ote::Json`, `ote_editor_core` functions
 editor/core/        ote_editor_core (static): validateProject, audio check, safe paths, revision hash, log. No HTTP.
                     Linked by ote-editor (the HTTP shell, behaviour unchanged) and by the native editor.
 editor/schema/        hand-written schemas of the data files (milestones 2, 3 and 3b); also compiled into the program
-                    _common.json, _skills.json, _map.json, _story.json, _scene.json: shared definitions only ("defs", pulled in
-                    with "use"): the story language (conditions, triggers, commands) is _story.json, a campaign scene's is _scene.json
+                    _common.json, _skills.json, _map.json, _story.json, _scene.json, _battle.json: shared definitions only ("defs",
+                    pulled in with "use"): the story language (conditions, triggers, commands) is _story.json, a campaign scene's is
+                    _scene.json, the battle scene's art (graphics.json "battle") is _battle.json
 editor/native/
   names.h           every user-visible name (product, window title, settings identity)
   model/            QtCore/QtGui only, no widgets
@@ -53,6 +54,7 @@ editor/native/
   ui/               item models (table, tree), editors, dialogs, main window, prompter, settings;
                     form_context (the one way a form edits), form_fields (leaf widgets), form_view (lifecycle, sync, focus),
                     form_build (objects, blocks, paged lists, maps, variants; lazy containers), form_other (the Other keys box),
+                    form_drag (the grip of a list item, dragging, moving items with the form's memory kept in step),
                     variant_picker_dialog (the "which kind?" chooser of a list's Add button)
   tests/            QtTest programs (below)
 ```
@@ -91,7 +93,7 @@ What a user sees:
   required keys of a new block are filled in, so enabling is a valid first step where possible.
 - A form shows the raw key as the label (required keys get a `*`) and the schema's one-line help under the field. Id fields are
   combo boxes filled from the project's live data (unsaved edits included) and refilled when the referenced file changes;
-  lists have add / remove / move up / move down; maps keyed by ids (stats, damage types, resources) show one row per id; a small
+  lists have add / remove / move up / move down / **drag by the grip** (below); maps keyed by ids (stats, damage types, resources) show one row per id; a small
   `x` removes a key (the game then uses its default).
 - **Nothing is ever lost or blocked.** A key the schema does not know stays in the file untouched and appears under
   **Other keys (n)** at the bottom of its object: read-only JSON, "Edit as JSON..." (one undo step) and "Show in tree view". A value
@@ -134,13 +136,14 @@ A **node** (`type` defaults to `object` when `fields` is present, otherwise `jso
 | `fields` | `{ "key": node, ... }` of an `object`, in display order |
 | `block` | an `object` that may be absent as a whole: shown with an Enable checkbox |
 | `expand` | table: one column per member of this object / per id of this map |
-| `alt` | `"string"`, `"number"` or `"bool"`: another JSON kind the loader also takes as it is; shown as raw JSON without a warning (no schema uses it any more: a `variant` gives a real form) |
+| `alt` | `"string"`, `"number"`, `"bool"` or `"null"`: another JSON kind the loader also takes as it is; shown as raw JSON without a warning (a `variant` gives a real form instead; `null` is used by the battle scene's animation slots, where `"attack": null` means none) |
 | `sample` | a valid value for the conformance test when the generated one would not do (also what a variant writes when picked) |
+| `enable` | exactly what a new value of this node starts with: a block's Enable switch, a new list item (`rangeStep`: the engine needs one of two keys), a required list that must not start empty (`frames`: `[[0, 0]]`) |
+| `tuple` | on a `list`: a fixed list whose items differ by position, `[column, row, "sheet"]` as `[int, int, ref]`; `length` is its size and `of` stays unset (read item nodes with `itemNode(i)`) |
 | `when` | `{ "kind": ["usable", "staff"] }`: the field applies only while the sibling key `kind` (or its `default`) has one of the words |
 | `type: "variant"` + `variants` | one of several shapes, see below |
 | `free` | a `map` whose keys are the user's own names (no `ref`) |
 | `needs` | `{ "ref": "game.json#resources", "hint": "..." }` on a `block`: Enable is offered only while those ids exist; otherwise the hint is shown |
-| `enable` | on a `block`: exactly what Enable writes |
 | `excludes` | `["until"]`: setting this key removes those siblings in the same undo step (`turns` / `until`) |
 | `min` on a `map` | at least that many entries (a research bonus needs one stat) |
 | `use` | pull in a named definition (below) |
@@ -148,7 +151,8 @@ A **node** (`type` defaults to `object` when `fields` is present, otherwise `jso
 
 **Variants.** `"variants": [ { "name": "hp", "key": "hp", "node": {...} }, { "name": "plain id", "kind": "string", "node": {...} },
 { "name": "sides", "value": "sides" } ]`. A variant matches an object that has the key `key`, or a value of JSON kind `kind`
-(`string`, `number`, `bool`, `array`, `object`), or exactly `value` (no `node`; `null` is a value too). A constant beats the rest;
+(`string`, `number`, `bool`, `array`, `object`; an `array` may be narrowed by `length` (exactly that many items) and `first` (the JSON kind
+of its first item): a cell `[0, 0]` against a list of cells `[[0, 0], [1, 0]]`, `[c, r]` against `[c, r, "sheet"]`), or exactly `value` (no `node`; `null` is a value too). A constant beats the rest;
 otherwise **the first variant in the list that fits wins**, so a catch-all `kind` goes after the `key` variants. The picker lists the
 `name`s; a variant's `sample` is what picking it writes.
 
@@ -182,6 +186,16 @@ array of sources is allowed (unit ids and tags). One resolver (`resolveSources`)
 **Long lists** are built one page of 50 items at a time: a bar above and below shows "Items 51 to 100 of 300" with previous / next, the
 page is remembered, and focusing a key on another page (a problem that names it, "Show in form") switches to it. Every list item
 of an object (not a plain value) has move up / down, **duplicate** (the copy goes right after it) and remove, all single undo steps.
+**Reordering by drag and drop.** Every list item has a grip (`≡`) at its left. Press it and move: the item dims, a copy of its title floats
+with the pointer and a line shows where it would land (near the top or bottom edge the form scrolls by itself); release to drop. The
+drag is made of plain mouse events, not `QDrag`, so tests can press, look and release. An item moves within its list, or into another
+list of the same file whose items are of the same kind (the same command variants, the same object keys): from one event's commands
+into another's, out of or into an `if` branch or a choice's answers, even into an empty list; never into itself or into something inside
+it. Plain value lists (ids, numbers) reorder only. One drop is ONE undo step (a single move, or a macro of insert and erase); the items
+that were open stay open (the form's per-path memory is moved with them), the shown page of a long list follows the item, and the keyboard
+focus goes with it: to its field, or back to the grip or the up / down button that moved it. Keyboard: Tab to a grip, Alt+Up / Alt+Down
+(or the up / down buttons); Escape cancels a drag. Code: `form_drag.*`, `FormContext::transferItem`, `FormView::moveListItem`.
+
 A list whose items are one of several shapes (commands, conditions) asks **which kind** when you press Add: a filterable list of the
 variant names with their help lines; the new item starts as that kind and is opened for filling in. A collapsed item shows its
 number, its kind in bold and its summary on one line.
@@ -193,7 +207,8 @@ number, its kind in bold and its summary on one line.
    refuses with a valid sample, every enum word or range end the loader refuses, and every key in a `tests/fixtures` game
    that the schema does not know. Add the key to a context in `editor/native/tests/test_conformance.cpp` (`contexts()`: which
    fixture, which prerequisite edits, which key prefixes it claims, and `overrides` for keys that need a special sample).
-   A key that really cannot be sampled goes into `skipped()` / `extraSkips()` with the reason.
+   A key that really cannot be sampled goes into `skipped()` / `extraSkips()` with the reason. To iterate on one section run the test
+   with `OTE_CONFORMANCE_ONLY=graphics:battle` (only the keys that start so are tried).
 
 ### One schema engine, shared with `ote-mcp`
 The Qt-free core of the schema logic lives in `editor/core` (`schema_engine.*`: the node types, the loader of the schema files,
@@ -213,6 +228,10 @@ sample must actually land in the file (a sample that does not is a failure, neve
 `tests/fixtures` file that has a schema and fails on any key the schema does not know, except where a schema is partial on
 purpose (top level of `game.json`, keys directly under `rules`, older map unit keys, top level of the core data files); the
 reasons are in the test. Cross-key rules (a power costs at most the meter's max, ranks must rise ...) are listed with the reason.
+
+The battle scene's keys (`conformance_battle.cpp`) are tried in copies of demo-srpg with a small valid `battle` section; `tests/fixtures/battle-art`
+holds every key for the reverse check. A key that only makes sense next to another (`speed` needs a travel effect and a fixed stage, `order` a
+screen layer, `farRight` a `far`) is claimed by a context whose base has it.
 
 Milestone 3b additions: contexts may claim by the start of a variant's name (`maps:events[].do[]{setVariable`), and the
 test's id lookup reads the very file it is building (`@sides`, `@storyUnits`, `keys:@music` ...), so a sample names a side, unit or
@@ -246,7 +265,7 @@ raw parts of a map's tile grid (`tiles`, `tileLayer`, `heights`), listed with re
 | maps: `events[]` | covered | 9 triggers, 16 conditions, 62 command shapes (54 command keys) as variants; see below |
 | `data/campaign.json` | covered | rules, free battles, parties, chapters; a scene is a list of 25 command kinds (setVariable / addVariable in 4 shapes each) or `{ music, commands }`, with 9 conditions |
 | `data/audio.json` | covered | music, sounds, the standard set (`use`, the 24 sound cues, jingles, phase music, few enemies, promotion sounds); the `sounds` of weapons, units, items and move types are real objects whose values are sound ids of this file |
-| `data/graphics.json`, `art/*.style.json` | mostly | sheets, `unitMarker`, backgrounds, tilesets (+ animations), terrain / unit / structure looks (cell, variants, frames, join, walk, sides, models, standing things), portraits, `styles` (flat and 3D). Raw: `battle` and `battleBackground` (the battle scene's art), and the `join` / stand `variants` values that are either one cell or a list. The style files are the same shape as graphics.json (the engine never reads them: a tool merges them) |
+| `data/graphics.json`, `art/*.style.json` | covered | sheets, `unitMarker`, backgrounds, tilesets (+ animations), terrain / unit / structure looks (cell, variants, frames, join, walk, sides, models, standing things), portraits, `styles` (flat and 3D), and the battle scene's art `battle` (`_battle.json`: sets with the twelve animation slots, effects with timing / hide / fade / flash / shake / range steps, assignments, backgrounds, platforms, the fixed stage with range bands and camera pans, scene timing). `join` and a standing thing's `variants` are variants (one block / animation; cells / model files). Raw: a `null` animation slot is shown as `null` (the loader's "none"). The style files are the same shape as graphics.json (the engine never reads them: a tool merges them). `battleBackground` is a key of a map file, not of graphics.json (the loader refuses it there) |
 
 ### Story commands
 Every command the loader knows has a shape (`native_test_form_story` checks the list against the loader's tables): say, narrate,
@@ -295,6 +314,16 @@ QT_QPA_PLATFORM=offscreen OTE_SHOT_DIR=/some/folder ./editor/native/native_test_
   nested three levels deep (one past the loaded schema tree) opens and edits through undo, a 120-command script is paged and
   duplicate / move / delete / undo work, Add asks which kind (every kind has a help line), and a 300-command event is shown in
   ~40 ms, opened in ~5 ms and paged to its last page in ~45 ms (bound: 3 s together).
+- `native_test_form_battle`: on `tests/fixtures/battle-art` (every key of the loader's battle section): the form shows all of it without a
+  warning mark and with nothing under "Other keys" (the one `null` slot is the only raw value), numbers / words / yes-no / points write exact
+  JSON, blocks, frame times (one number or a list), frames of another sheet, assignments, `effects` / `byType`, `join` and standing-thing
+  variants, a wrong value is kept and marked.
+- `native_test_form_drag`: the drag simulated with mouse events on a shown form: one undo step per drop, no write for a drop that changes
+  nothing, open items stay open (and shift with their index), focus follows the item (field, grip, button), a command moves to another
+  event / into an `if` branch / into an empty branch and out again, never into itself or a list of another kind, Escape cancels, the
+  buttons and Alt+Up / Alt+Down still work, a plain value list reorders, a long list scrolls while dragging and its page follows the item.
+- `native_test_form_screenshots_battle`: the battle forms (sets, effects, effect lists, stage) and a command list mid-drag and after the
+  drop, at 1280x720.
 - `native_test_form_screenshots3b`: an event with a long command list collapsed (and paged), one command opened, a `choice` with its
   answers, objectives, the preparation screen, the campaign, the audio file and a style file, at 1280x720 and 1920x1080.
 - `native_test_form_screenshots3`: skills, an item with kind-specific fields, characters, the campaign and a map's events (still the
@@ -305,8 +334,10 @@ QT_QPA_PLATFORM=offscreen OTE_SHOT_DIR=/some/folder ./editor/native/native_test_
   nested-JSON dialog, a refused edit, and a dark palette, at 1280x720 and 1920x1080 where it matters.
 
 ## Not there yet
-- A map painter for the tile grid (`tiles`, `tileLayer`, `heights` stay raw JSON), the battle scene's art in graphics.json (`battle`,
-  `battleBackground`), pickers that show the sound or the picture, and the table-level help of a column beyond its tooltip.
+- A map painter for the tile grid (`tiles`, `tileLayer`, `heights` stay raw JSON), pickers that show the sound or the picture
+  (the battle scene's frames are cell numbers, not a preview), and the table-level help of a column beyond its tooltip.
+- Drag and drop moves list items inside one file; it does not carry an item to another file, and it does not drag keys of a map (a
+  free map's entries have no order).
 - Which skill effect or condition is allowed in which kind of block is not filtered in the picker (the help line says, the engine's
   check refuses).
 - Lua tooling (editing scripts, formula checks inline, debugging).
