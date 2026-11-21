@@ -17,6 +17,33 @@ my-game/
 Ids are lowercase strings unique within their list. Every reference to an
 id that does not exist is a load error.
 
+## Strict files
+
+Every JSON object the loader reads **refuses a key it does not know**, so a typo (`"rnage"`, `"descripton"`) is never silently ignored.
+The message names the file, the entry and the key and, when a known key is a slip away (a letter more, less, wrong or two
+neighbours swapped), says which: `data/weapons.json: weapon "sword": unknown key "rnage" - did you mean "range"?`. A list of the keys
+the object takes follows when it is short. This holds for `game.json` (the root and every block of it: `view`, `font`, `roles`, `formulas`,
+`rules` and each block inside it, the entries of `stats`, `resources`, `moveTypes`, `switches`, `variables`, `maps` and `styles`), the root and every
+row of every file in `data/`, `data/graphics.json` (sheets, looks, portraits, styles, battle sets, animations, effects, assignments, backgrounds,
+platforms), and the root of a map with its grid, sides, structures, units and unit item lists. (A map's root is judged last: a more specific
+message of a reader that looks at a key wins when both apply.)
+
+Keys the loader itself does not read but something else does are accepted (and never listed in a message):
+
+| Key | Where | Read by |
+| --- | --- | --- |
+| `editor` | root of `game.json` | the web editor, which keeps the formula presets of its text boxes there (`editor/web/src/model/formulas.ts`) |
+| `sounds` | rows of `weapons.json`, `units.json`, `items.json`, entries of `moveTypes` | the player's audio loader (docs/SOUND.md) |
+| `music`, `playerTurnMusic`, `enemyTurnMusic`, `prepMusic`, `phaseMusic`, `fewEnemies` | root of a map | the player's audio loader (docs/SOUND.md) |
+| `layout` | `grid` of a map | nobody: it belongs to `game.json` `grid`; a hexagon map that repeats it is tolerated and ignored |
+| `refill` | entries of `resources` | the loader of resource refills (docs/ECONOMY.md) |
+
+`//` comments in the files are comments of the JSON reader, not keys. Numbers that mean nothing are refused with the range in the message:
+`view` width / height 1 to 16384 and `tileSize` 1 to 1024, `formulas.critMultiplier` 0 to 1000, `rules.progression` `xpPerLevel` up to 1000000
+and `maxLevel` up to 9999, a move cost 0 to 9999 (0 = cannot enter), a stat or growth number (unit types, characters, items, jobs, ranks)
+-99999 to 99999, a skill block's number `chance` 0 to 100, a support bonus -1000 to 1000. To check a game folder without starting anything
+or writing anything: `ote-editor --validate <game folder>` (docs/EDITOR_API.md).
+
 ## game.json
 
 ```jsonc
@@ -206,7 +233,7 @@ without this file simply has no structures. Full rules: docs/STRUCTURES.md.
     "moveCost": { "tread": 2, "ship": 0 },        // optional: replaces the terrain's cost for
                                                    // the listed move types; 0 = cannot enter
     "props": { "defense": 3 },                    // optional: replaces / adds to the terrain's numbers
-    "capturePoints": 20,                           // > 0 = can be captured
+    "capturePoints": 20,                           // > 0 = can be captured; 0 or left out = not capturable (the same); negative is refused
     "income": { "funds": 1000 },                  // per turn to the owner, once per structure
     "produces": ["infantry", "tank"],             // unit types the owner can build on its squares
     "sells": ["salve"],                       // optional: a shop; each item needs a price (docs/ITEMS.md)

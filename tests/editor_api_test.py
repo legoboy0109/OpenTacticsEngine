@@ -67,6 +67,7 @@ from editor_api_actionpoints_checks import run_actionpoints_checks
 from editor_api_speed_checks import run_speed_checks
 from editor_api_height_checks import run_height_checks
 from editor_api_facing_checks import run_facing_checks
+from editor_api_strict_checks import run_strict_checks
 from editor_api_unitranks_checks import run_unitranks_checks
 from editor_api_jobs_checks import run_jobs_checks
 from editor_api_merit_checks import run_merit_checks
@@ -236,6 +237,7 @@ def main():
         run_speed_checks(api, tmp, games, templates, check, get_project, put_project)
         run_height_checks(api, tmp, games, templates, check, get_project, put_project)
         run_facing_checks(api, tmp, games, templates, check, get_project, put_project)
+        run_strict_checks(api, tmp, games, templates, check, get_project, put_project)
         run_unitranks_checks(api, tmp, games, templates, check, get_project, put_project)
         run_jobs_checks(api, tmp, games, templates, check, get_project, put_project)
         run_merit_checks(api, tmp, games, templates, check, get_project, put_project)

@@ -26,7 +26,7 @@ bool readSquareVision(const LoadCtx& c, const Database& db, const Json& e, const
   const Json& o = e["visionBonus"];
   const std::string at = where + ".visionBonus";
   for (const Json::Member& m : o.members())
-    if (m.first != "amount" && m.first != "units") return c.fail(at, "unknown key \"" + m.first + "\" (it has \"amount\" and \"units\")");
+    if (m.first != "amount" && m.first != "units") return c.fail(at, "unknown key \"" + m.first + "\" (it has \"amount\" and \"units\")" + didYouMean(m.first, {"amount", "units"}));
   if (!o.has("amount")) return c.fail(at, "needs \"amount\"");
   if (!o.has("units")) return c.fail(at, "needs \"units\" (leave the object out for a bonus that is for every unit)");
   if (!c.integerFrom(o, "amount", at, 0, kMaxVisionBonus, visionBonus)) return false;
@@ -49,7 +49,7 @@ bool readItemLight(const LoadCtx& c, const Json& e, const std::string& where, It
   if (!l.isObject()) return c.fail(where, "\"light\" must be { \"radius\": 3, \"turns\": 3 } (radius 1 to " + std::to_string(kMaxStaffRadius) + ", turns 1 to " + std::to_string(kMaxStaffLightTurns) + ")");
   for (const Json::Member& m : l.members())
     if (m.first != "radius" && m.first != "turns" && m.first != "shrink")
-      return c.fail(at, "unknown key \"" + m.first + "\" (it has \"radius\", \"turns\" and \"shrink\")");
+      return c.fail(at, "unknown key \"" + m.first + "\" (it has \"radius\", \"turns\" and \"shrink\")" + didYouMean(m.first, {"radius", "turns", "shrink"}));
   if (!l.has("radius")) return c.fail(at, "needs \"radius\"");
   if (!c.integerFrom(l, "radius", at, 1, kMaxStaffRadius, it.lightRadius) || !c.integerFrom(l, "turns", at, 1, kMaxStaffLightTurns, it.lightTurns) ||
       !c.integerFrom(l, "shrink", at, 1, kMaxStaffRadius, it.lightShrink))

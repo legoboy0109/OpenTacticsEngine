@@ -52,7 +52,8 @@ def run_fog_checks(api, tmp, games, templates, check, get_project, put_project):
     # The first PUT lets the server write its own layout; later saves must not change a byte.
     st, res = put_project(api, pid, d, d["revision"], units=units, terrain=terrain, structures=structures, maps={mid: m})
     check("fog: PUT of fog keys -> 200", st == 200 and "revision" in res, (st, res))
-    check("fog: the real loader accepts them", problems() == [], problems())
+    # (the loader names the unknown key "futureKey" of the structure and has nothing else to say)
+    check("fog: the real loader accepts them", [p["message"] for p in problems()] == ['structure "city": unknown key "futureKey"'], problems())
 
     files = [mfile, "data/units.json", "data/terrain.json", "data/structures.json"]
     before = {f: raw(f) for f in files}
@@ -65,6 +66,12 @@ def run_fog_checks(api, tmp, games, templates, check, get_project, put_project):
     after = {f: raw(f) for f in files}
     check("fog: open + save keeps every file byte for byte", st == 200 and after == before, [f for f in files if after[f] != before[f]])
     check("fog: unknown key on a structure survives", b'"futureKey"' in after["data/structures.json"])
+    st, d = get_project(api, pid)
+    d["structures"][0].pop("futureKey")
+    structures[0].pop("futureKey")
+    st, res = put_project(api, pid, d, d["revision"], structures=d["structures"])
+    check("fog: without the unknown key the files load", st == 200 and problems() == [], problems())
+    st, d = get_project(api, pid)
     check("fog: the object form of visionBonus is written as it came (terrain and structure)",
           json.loads(after["data/terrain.json"])["terrain"][1]["visionBonus"] == terrain[1]["visionBonus"]
           and json.loads(after["data/structures.json"])["structures"][1]["visionBonus"] == structures[1]["visionBonus"]

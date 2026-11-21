@@ -26,6 +26,7 @@ bool readItemGrants(const LoadCtx& c, const Database& db, const Json& o, const c
     bool hasUses = false;
     if (e.isString()) id = e.asString();
     else if (e.isObject()) {
+      if (!c.onlyKeys(e, {"item", "uses", "drop"}, where + ", " + at)) return false;
       if (!c.str(e, "item", where, id, true)) return c.fail(where, at + " needs an \"item\"");
       hasUses = e.has("uses");
       if (hasUses && (!LoadCtx::isWhole(e["uses"]) || e["uses"].asInt() < 1 || e["uses"].asInt() > 999))
@@ -57,6 +58,7 @@ bool loadItems(const std::string& path, Database& db, std::string& err) {
   if (!loadObjectFile(path, root, err)) return false;
   LoadCtx c(err, path);
   const Json* list;
+  if (!c.onlyKeys(root, {"items"}, "")) return false;
   if (!c.array(root, "items", "", list, true)) return false;
   for (size_t i = 0; i < list->size(); ++i) {
     const Json& e = (*list)[i];
@@ -102,6 +104,12 @@ bool loadItems(const std::string& path, Database& db, std::string& err) {
     for (const Amount& a : it.price)
       if (a.amount < 0) return c.fail(where, "\"price\" must not be negative");
 
+    // A staff checks its own keys (readStaffItem, which has a longer list). "sounds": read by the player's audio loader (docs/SOUND.md).
+    if (it.kind != ItemKind::Staff &&
+        !c.onlyKeys(e, {"id", "name", "description", "kind", "uses", "repairable", "stealable", "sellable", "price", "props", "target", "heal", "raise",
+                        "weapon", "bonus", "promotes", "skills", "cure", "inflict", "opens", "light", "sounds"},
+                    where))
+      return false;
     // Each kind has its own fields; one of another kind is a mistake worth pointing out.
     auto only = [&](const char* key, ItemKind k, const char* kindName) {
       if (!e.has(key) || it.kind == k) return true;

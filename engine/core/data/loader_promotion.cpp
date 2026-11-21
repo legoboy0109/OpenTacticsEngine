@@ -24,7 +24,7 @@ bool readPromotion(const LoadCtx& c, const Database& db, const Json& p, size_t i
   const std::string at = "\"promotions\" entry " + std::to_string(index + 1);
   if (!p.isObject()) return c.fail(where, at + " must be an object");
   for (const Json::Member& m : p.members())
-    if (!knownKey(m.first)) return c.fail(where, at + ": unknown key " + quoted(m.first));
+    if (!knownKey(m.first)) return c.fail(where, at + ": " + unknownKeyText(m.first, {"to", "fromLevel", "items", "atLevel", "levelAfter", "gains", "fromLevelFor"}));
   if (!c.str(p, "to", where + ": " + at, d.toId, true)) return false;
 
   if (p.has("fromLevel")) {

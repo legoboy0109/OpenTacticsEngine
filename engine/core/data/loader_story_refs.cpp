@@ -44,15 +44,7 @@ bool parseOp(const std::string& t, CmpOp& op) {
 }  // namespace
 
 bool StoryLoader::onlyKeys(const Json& o, std::initializer_list<const char*> keys, const std::string& where) const {
-  for (const Json::Member& m : o.members()) {
-    bool known = false;
-    for (const char* k : keys) known = known || m.first == k;
-    if (known) continue;
-    std::string list;
-    for (const char* k : keys) list += (list.empty() ? "" : ", ") + quoted(k);
-    return fail(where, "unknown key " + quoted(m.first) + " (expected " + list + ")");
-  }
-  return true;
+  return c_.onlyKeys(o, keys, where);
 }
 
 bool StoryLoader::sideIndex(const std::string& id, const std::string& where, const char* what, int& out) const {
@@ -94,7 +86,11 @@ bool StoryLoader::filter(const Json& j, const std::string& where, const char* wh
     return fail(where, w + " must be a unit filter: { \"unit\": id }, { \"side\": id }, { \"team\": name }, "
                            "{ \"type\": id }, { \"tag\": text } or {} for any unit");
   if (j.size() == 0) return true;
-  if (j.size() > 1) return fail(where, w + " names more than one thing; a unit filter has one of unit, side, team, type, tag");
+  if (j.size() > 1) {
+    std::string keys;
+    for (const Json::Member& m : j.members()) keys += (keys.empty() ? "\"" : ", \"") + m.first + "\"";
+    return fail(where, w + " names more than one thing (" + keys + "); a unit filter has one of unit, side, team, type, tag");
+  }
   const Json::Member& m = j.members()[0];
   const Json& v = m.second;
   if (m.first == "unit") {
@@ -108,7 +104,7 @@ bool StoryLoader::filter(const Json& j, const std::string& where, const char* wh
     return true;
   }
   if (m.first != "side" && m.first != "team" && m.first != "type")
-    return fail(where, w + ": unknown key " + quoted(m.first) + " (expected unit, side, team, type or tag)");
+    return fail(where, w + ": " + unknownKeyText(m.first, {"unit", "side", "team", "type", "tag"}));
   if (!v.isString()) return fail(where, w + "." + m.first + " must be text");
   if (m.first == "side") {
     out.kind = UnitFilter::Kind::Side;

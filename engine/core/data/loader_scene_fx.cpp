@@ -59,15 +59,7 @@ bool SceneFxReader::isCommandIn(const Json& e, const char* key) {
 }
 
 bool SceneFxReader::onlyKeys(const Json& o, std::initializer_list<const char*> keys, const std::string& at) const {
-  for (const Json::Member& m : o.members()) {
-    bool known = false;
-    for (const char* k : keys) known = known || m.first == k;
-    if (known) continue;
-    std::string list;
-    for (const char* k : keys) list += (list.empty() ? "" : ", ") + quoted(k);
-    return c.fail(at, "unknown key " + quoted(m.first) + " (expected " + list + ")");
-  }
-  return true;
+  return c.onlyKeys(o, keys, at);
 }
 
 bool SceneFxReader::ms(const Json& o, const char* key, const std::string& at, int lo, int hi, int& out) const {

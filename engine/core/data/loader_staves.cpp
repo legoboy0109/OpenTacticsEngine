@@ -20,7 +20,7 @@ bool onlyKeys(const LoadCtx& c, const Json& o, const std::string& where) {
   for (const Json::Member& m : o.members()) {
     bool known = false;
     for (const char* k : keys) known = known || m.first == k;
-    if (!known) return c.fail(where, "unknown key " + q(m.first) + " of a staff");
+    if (!known) return c.fail(where, "unknown key " + q(m.first) + " of a staff" + didYouMean(m.first, std::vector<std::string>(std::begin(keys), std::end(keys))));
   }
   return true;
 }
@@ -64,7 +64,7 @@ bool readTargetAndArea(const LoadCtx& c, const Json& e, const std::string& where
   else if (a.isString() && a.asString() == "all") d.area = StaffArea::All;
   else if (a.isObject()) {
     for (const Json::Member& m : a.members())
-      if (m.first != "radius") return c.fail(where, "\"area\": unknown key " + q(m.first) + " (expected \"radius\")");
+      if (m.first != "radius") return c.fail(where, "\"area\": unknown key " + q(m.first) + " (expected \"radius\")" + didYouMean(m.first, {"radius"}));
     if (!a.has("radius") || !LoadCtx::isWhole(a["radius"]) || a["radius"].asInt() < 1 || a["radius"].asInt() > kMaxStaffRadius)
       return c.fail(where, "\"area\": \"radius\" must be a whole number from 1 to " + std::to_string(kMaxStaffRadius));
     d.area = StaffArea::Radius;
@@ -83,7 +83,7 @@ bool readWarpRange(const LoadCtx& c, Database& db, const Json& v, const std::str
                           ", a list [min, max] or a formula (text)";
   if (!v.isObject()) return c.fail(where, at + ": \"warp\" must be { \"range\": n } (how far from the user the destination may be)");
   for (const Json::Member& m : v.members())
-    if (m.first != "range") return c.fail(where, at + ": \"warp\": unknown key " + q(m.first) + " (expected \"range\")");
+    if (m.first != "range") return c.fail(where, at + ": \"warp\": unknown key " + q(m.first) + " (expected \"range\")" + didYouMean(m.first, {"range"}));
   if (!v.has("range")) return c.fail(where, at + ": \"warp\" needs \"range\" (how far from the user the destination may be)");
   const Json& r = v["range"];
   out.kind = StaffEffect::Kind::Warp;
@@ -115,7 +115,7 @@ bool readHeal(const LoadCtx& c, Database& db, const Json& h, const std::string& 
     out.value = h.asInt();
   } else if (h.isObject()) {
     for (const Json::Member& m : h.members())
-      if (m.first != "percent") return c.fail(where, at + ": \"heal\": unknown key " + q(m.first) + " (expected \"percent\")");
+      if (m.first != "percent") return c.fail(where, at + ": \"heal\": unknown key " + q(m.first) + " (expected \"percent\")" + didYouMean(m.first, {"percent"}));
     if (!h.has("percent") || !LoadCtx::isWhole(h["percent"]) || h["percent"].asInt() < 1 || h["percent"].asInt() > 100)
       return c.fail(where, at + ": \"heal\": \"percent\" must be a whole number from 1 to 100");
     out.amount = StaffEffect::Amount::Percent;
@@ -144,7 +144,7 @@ bool readLight(const LoadCtx& c, const Json& v, const std::string& where, const 
   if (!v.isObject()) return c.fail(where, at + ": \"light\" must be { \"radius\": n, \"turns\": n }");
   for (const Json::Member& m : v.members())
     if (m.first != "radius" && m.first != "turns" && m.first != "shrink")
-      return c.fail(where, at + ": \"light\": unknown key " + q(m.first) + " (expected \"radius\", \"turns\" or \"shrink\")");
+      return c.fail(where, at + ": \"light\": unknown key " + q(m.first) + " (expected \"radius\", \"turns\" or \"shrink\")" + didYouMean(m.first, {"radius", "turns", "shrink"}));
   if (!v.has("radius") || !LoadCtx::isWhole(v["radius"]) || v["radius"].asInt() < 1 || v["radius"].asInt() > kMaxStaffRadius)
     return c.fail(where, at + ": \"light\": \"radius\" must be a whole number from 1 to " + std::to_string(kMaxStaffRadius));
   out.radius = v["radius"].asInt();

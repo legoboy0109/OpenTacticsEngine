@@ -37,12 +37,19 @@ bool loadWeapons(const std::string& path, Database& db, std::string& err) {
   if (!loadObjectFile(path, root, err)) return false;
   LoadCtx c(err, path);
   const Json* list;
+  if (!c.onlyKeys(root, {"weapons"}, "")) return false;
   if (!c.array(root, "weapons", "", list, true)) return false;
   for (size_t i = 0; i < list->size(); ++i) {
     const Json& e = (*list)[i];
     WeaponDef w;
     std::string where;
     if (!readEntryHead(c, e, "weapon", i, db.weapons, w, where)) return false;
+    // "sounds": read by the player's audio loader (docs/SOUND.md); every other key is read below or by the readers it calls.
+    if (!c.onlyKeys(e, {"id", "name", "range", "counter", "afterMove", "props", "versus", "versusDefault", "damage", "group", "damageKind",
+                        "damageType", "ammo", "fire", "area", "apCost", "chargeSpeed", "chargeTargets", "interruptedBy", "heightRange",
+                        "skills", "inflict", "rank", "rankXp", "wieldedBy", "wieldedByTypes", "sounds"},
+                    where))
+      return false;
 
     if (e.has("range")) {
       const Json& r = e["range"];
@@ -86,6 +93,7 @@ bool loadUnitTypes(const std::string& path, Database& db, std::string& err) {
   if (!loadObjectFile(path, root, err)) return false;
   LoadCtx c(err, path);
   const Json* list;
+  if (!c.onlyKeys(root, {"units"}, "")) return false;
   if (!c.array(root, "units", "", list, true)) return false;
   if (list->size() == 0) return c.fail("", "\"units\" must not be empty");
   for (size_t i = 0; i < list->size(); ++i) {
@@ -93,6 +101,12 @@ bool loadUnitTypes(const std::string& path, Database& db, std::string& err) {
     UnitTypeDef u;
     std::string where;
     if (!readEntryHead(c, e, "unit", i, db.unitTypes, u, where)) return false;
+    // "sounds": read by the player's audio loader (docs/SOUND.md).
+    if (!c.onlyKeys(e, {"id", "name", "glyph", "moveType", "stats", "growths", "maxLevel", "weapons", "wields", "items", "cost", "tags", "resist",
+                        "canCapture", "fuel", "fuelPerTurn", "supplies", "vision", "ap", "jump", "skills", "learns", "abilities", "promotions",
+                        "pairBonus", "ranks", "caps", "sounds"},
+                    where))
+      return false;
 
     std::string glyph;
     if (!c.str(e, "glyph", where, glyph)) return false;
@@ -176,6 +190,7 @@ bool loadTerrain(const std::string& path, Database& db, std::string& err) {
   if (!loadObjectFile(path, root, err)) return false;
   LoadCtx c(err, path);
   const Json* list;
+  if (!c.onlyKeys(root, {"terrain"}, "")) return false;
   if (!c.array(root, "terrain", "", list, true)) return false;
   if (list->size() == 0) return c.fail("", "\"terrain\" must not be empty");
   for (size_t i = 0; i < list->size(); ++i) {
@@ -183,6 +198,10 @@ bool loadTerrain(const std::string& path, Database& db, std::string& err) {
     TerrainDef t;
     std::string where;
     if (!readEntryHead(c, e, "terrain", i, db.terrains, t, where)) return false;
+    // The four quiet keys are the settings that moved to structures: they are accepted here so that the check below can say where they went.
+    if (!c.onlyKeys(e, {"id", "name", "color", "glyph", "moveCost", "weatherCost", "props", "tags", "visionBonus", "hides", "blocksSight"}, where,
+                    {"capture", "capturePoints", "income", "produces"}))
+      return false;
 
     std::string color, glyph;
     if (!c.str(e, "color", where, color)) return false;
@@ -203,6 +222,8 @@ bool loadTerrain(const std::string& path, Database& db, std::string& err) {
       if (k < 0) return c.fail(where, "\"moveCost\" names unknown move type \"" + m.first + "\"");
       if (!LoadCtx::isWhole(m.second))
         return c.fail(where, "\"moveCost\".\"" + m.first + "\" must be a whole number");
+      if (m.second.asInt() < 0 || m.second.asInt() > 9999)
+        return c.fail(where, "\"moveCost\".\"" + m.first + "\" must be a whole number from 0 (cannot enter) to 9999");
       t.moveCost[static_cast<size_t>(k)] = m.second.asInt();
     }
 
@@ -236,12 +257,19 @@ bool loadStructures(const std::string& path, Database& db, std::string& err) {
   if (!loadObjectFile(path, root, err)) return false;
   LoadCtx c(err, path);
   const Json* list;
+  if (!c.onlyKeys(root, {"structures"}, "")) return false;
   if (!c.array(root, "structures", "", list, true)) return false;
   for (size_t i = 0; i < list->size(); ++i) {
     const Json& e = (*list)[i];
     StructureDef s;
     std::string where;
     if (!readEntryHead(c, e, "structure", i, db.structures, s, where)) return false;
+    // "capture" is the old name of "capturePoints": accepted here so that the check below can say so.
+    if (!c.onlyKeys(e, {"id", "name", "color", "glyph", "width", "height", "rings", "moveCost", "props", "capturePoints", "income", "produces", "sells",
+                        "tags", "research", "repairs", "light", "blocksSight", "visionBonus", "hides", "upgrades", "door", "chest", "visit",
+                        "weapon", "uses", "by", "ignoreRank", "becomes"},
+                    where, {"capture"}))
+      return false;
 
     std::string color, glyph;
     if (!c.str(e, "color", where, color)) return false;
@@ -275,8 +303,8 @@ bool loadStructures(const std::string& path, Database& db, std::string& err) {
     for (const Json::Member& m : mc->members()) {
       int k = db.findMoveType(m.first);
       if (k < 0) return c.fail(where, "\"moveCost\" names unknown move type \"" + m.first + "\"");
-      if (!LoadCtx::isWhole(m.second) || m.second.asInt() < 0)
-        return c.fail(where, "\"moveCost\".\"" + m.first + "\" must be a whole number, 0 or more (0 = cannot enter)");
+      if (!LoadCtx::isWhole(m.second) || m.second.asInt() < 0 || m.second.asInt() > 9999)
+        return c.fail(where, "\"moveCost\".\"" + m.first + "\" must be a whole number, 0 or more (0 = cannot enter), at most 9999");
       s.moveCost[static_cast<size_t>(k)] = m.second.asInt();
     }
 

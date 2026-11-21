@@ -27,7 +27,7 @@ bool readMapTileLayer(const LoadCtx& c, const Database& db, const Json& root, Ma
   const std::string where = "tileLayer";
   if (!j.isObject()) return c.fail(where, "must be an object: { \"tileset\": \"<tileset id>\", \"cells\": [ one row per map row ] }");
   for (const Json::Member& k : j.members())
-    if (k.first != "tileset" && k.first != "cells") return c.fail(where, "unknown key " + q(k.first) + " (use tileset and cells)");
+    if (k.first != "tileset" && k.first != "cells") return c.fail(where, "unknown key " + q(k.first) + " (use tileset and cells)" + didYouMean(k.first, {"tileset", "cells"}));
   if (db.gridType == GridType::Hex)
     return c.fail(where, "tile layers are not supported on hexagon games (a hexagon map is drawn from its terrain's looks)");
   std::string id;

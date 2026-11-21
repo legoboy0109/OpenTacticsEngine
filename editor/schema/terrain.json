@@ -7,7 +7,7 @@
       "name": { "type": "string", "help": "Display name." },
       "color": { "type": "string", "sample": "#102030", "help": "Placeholder colour as #rrggbb." },
       "glyph": { "type": "string", "help": "Placeholder letter." },
-      "moveCost": { "type": "map", "ref": "game.json#moveTypes", "expand": true, "of": { "type": "int", "min": 0 }, "help": "Cost per move type (missing = 1; 0 = cannot enter)." },
+      "moveCost": { "type": "map", "ref": "game.json#moveTypes", "expand": true, "of": { "type": "int", "min": 0, "max": 9999 }, "help": "Cost per move type (missing = 1; 0 = cannot enter)." },
       "weatherCost": { "type": "object", "block": true, "enable": { "rain": { "foot": 2 } }, "help": "Cost per move type while it rains or snows (1 to 99, or blocked; docs/ECONOMY.md Weather).", "fields": {
         "rain": { "type": "map", "ref": "game.json#moveTypes", "of": { "type": "variant", "variants": [
           { "name": "cost", "kind": "number", "node": { "type": "int", "min": 1, "max": 99 } },

@@ -29,15 +29,7 @@ std::string firstChars(const std::string& s, size_t n) {
 }
 
 bool onlyKeys(const LoadCtx& c, const Json& o, std::initializer_list<const char*> keys, const std::string& where) {
-  for (const Json::Member& m : o.members()) {
-    bool known = false;
-    for (const char* k : keys) known = known || m.first == k;
-    if (known) continue;
-    std::string list;
-    for (const char* k : keys) list += (list.empty() ? "" : ", ") + q(k);
-    return c.fail(where, "unknown key " + q(m.first) + " (expected " + list + ")");
-  }
-  return true;
+  return c.onlyKeys(o, keys, where);
 }
 
 // The hidden skill that holds blocks: never in a unit's skill list, never found by id.

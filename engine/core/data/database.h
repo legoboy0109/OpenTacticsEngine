@@ -88,7 +88,7 @@ struct StructureDef {
   // Per move type: -1 = not set (use the terrain's), 0 = cannot enter, > 0 = cost to enter.
   std::vector<int> moveCost;
   Props props;                 // only the numbers it sets
-  int capturePoints = 0;       // > 0 makes it capturable
+  int capturePoints = 0;       // > 0 makes it capturable; 0 (also: key absent) = not capturable (Battle checks <= 0)
   std::vector<Amount> income;  // per turn to the owner (economy module), once per structure
   std::vector<int> produces;   // unit type indices buildable on its squares
   std::vector<int> sells;      // item indices a unit standing here can buy (docs/ITEMS.md "Shops")

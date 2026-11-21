@@ -18,7 +18,7 @@ bool readStatChange(const LoadCtx& c, const Json& v, const std::string& stat, St
   if (v.isObject()) {
     for (const Json::Member& m : v.members())
       if (m.first != "percent")
-        return c.fail(where, "\"carrierStats\".\"" + stat + "\" has unknown key \"" + m.first + "\" (only \"percent\")");
+        return c.fail(where, "\"carrierStats\".\"" + stat + "\" has unknown key \"" + m.first + "\" (only \"percent\")" + didYouMean(m.first, {"percent"}));
     if (!v.has("percent") || !LoadCtx::isWhole(v["percent"]) || v["percent"].asInt() < 0 || v["percent"].asInt() > 1000)
       return c.fail(where, "\"carrierStats\".\"" + stat + "\".\"percent\" must be a whole number from 0 to 1000");
     out.percent = v["percent"].asInt();
@@ -50,7 +50,7 @@ bool loadRescueRules(const LoadCtx& c, const Json& rules, Database& db) {
   if (!j.isObject()) return c.fail(where, "must be an object");
   for (const Json::Member& m : j.members())
     if (m.first != "mode" && m.first != "canCarry" && m.first != "carrierStats" && m.first != "pairBonus")
-      return c.fail(where, "unknown key \"" + m.first + "\" (expected \"mode\", \"canCarry\", \"carrierStats\", \"pairBonus\")");
+      return c.fail(where, unknownKeyText(m.first, {"mode", "canCarry", "carrierStats", "pairBonus"}));
   if (!j.has("mode") || !j["mode"].isString() || (j["mode"].asString() != "carry" && j["mode"].asString() != "pairUp"))
     return c.fail(where, "\"mode\" must be \"carry\" or \"pairUp\"");
   r.mode = j["mode"].asString() == "carry" ? RescueMode::Carry : RescueMode::PairUp;
@@ -94,7 +94,7 @@ bool loadPromotionRules(const LoadCtx& c, const Json& rules, Database& db) {
   const Json& p = rules["promotion"];
   if (!p.isObject()) return c.fail("rules.promotion", "must be an object such as { \"levelAfter\": \"reset\" }");
   for (const Json::Member& m : p.members())
-    if (m.first != "levelAfter" && m.first != "classSkills") return c.fail("rules.promotion", "unknown key \"" + m.first + "\"");
+    if (m.first != "levelAfter" && m.first != "classSkills") return c.fail("rules.promotion", unknownKeyText(m.first, {"levelAfter", "classSkills"}));
   if (p.has("classSkills")) {
     const std::string v = p["classSkills"].isString() ? p["classSkills"].asString() : "";
     if (v != "keep" && v != "replace") return c.fail("rules.promotion", "\"classSkills\" must be \"keep\" (default) or \"replace\"");

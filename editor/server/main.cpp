@@ -14,6 +14,7 @@
 #include "learn.h"
 #include "log.h"
 #include "server.h"
+#include "validate.h"
 
 using namespace ote_editor;
 
@@ -24,7 +25,10 @@ static void usage() {
       "                  [--player DIR=build-web/engine/player]\n"
       "                  [--host 127.0.0.1] [--port 8765] [--allow-host NAME]...\n"
       "                  [--learn-file FILE=<user data>/OpenTacticsEngine/editor/learn.json]\n"
-      "                  (--learn-file \"\" keeps the tutorial state in memory only)\n");
+      "                  (--learn-file \"\" keeps the tutorial state in memory only)\n"
+      "       ote-editor --validate GAME_FOLDER\n"
+      "                  checks one game folder with the engine's own checks (the ones the editor's Problems list shows),\n"
+      "                  prints one problem per line; read-only, no server; exit 0 = no problems, 1 = problems, 2 = not a game\n");
 }
 
 static bool parseArgs(int argc, char** argv, Config& cfg, bool& help) {
@@ -67,7 +71,32 @@ static std::atomic<bool> g_stop{false};
 static void onSignal(int) { g_stop = true; }
 #endif
 
+// --validate: the editor's project check on one folder, for scripts and for trying a new engine version on a game before
+// it is used. Reads only: no server, nothing written (not even the tutorial file).
+static int validateFolder(const char* folder) {
+  fs::path dir(folder);
+  absolutize(dir);
+  std::error_code ec;
+  if (!fs::is_regular_file(dir / "game.json", ec)) {
+    std::fprintf(stderr, "ote-editor: %s has no game.json\n", dir.string().c_str());
+    return 2;
+  }
+  installEngineLogSink();
+  const std::vector<Problem> problems = validateProject(dir);
+  for (const Problem& p : problems)
+    std::printf("%s%s%s\n", p.file.c_str(), p.file.empty() || p.message.empty() ? "" : ": ", p.message.c_str());
+  std::printf("%s: %zu problem%s\n", dir.string().c_str(), problems.size(), problems.size() == 1 ? "" : "s");
+  return problems.empty() ? 0 : 1;
+}
+
 int main(int argc, char** argv) {
+  if (argc >= 2 && std::string(argv[1]) == "--validate") {
+    if (argc != 3) {
+      std::fprintf(stderr, "ote-editor: --validate needs one game folder\n");
+      return 2;
+    }
+    return validateFolder(argv[2]);
+  }
   Config cfg;
   bool help = false;
   if (!parseArgs(argc, argv, cfg, help)) { usage(); return 2; }

@@ -20,7 +20,7 @@ bool readSkillGrant(const LoadCtx& c, const Database& db, const Json& g, const s
   } else if (g.isObject()) {
     for (const Json::Member& m : g.members())
       if (m.first != "skill" && m.first != "filter")
-        return c.fail(at, "unknown key \"" + m.first + "\" (expected \"skill\", \"filter\")");
+        return c.fail(at, unknownKeyText(m.first, {"skill", "filter"}));
     if (!c.str(g, "skill", at, skillId, true)) return false;
     if (g.has("filter")) filter = &g["filter"];
   } else {
@@ -37,7 +37,11 @@ bool readGrantFilter(const LoadCtx& c, const Database& db, const Json& filter, c
   if (!filter.isObject())
     return c.fail(at, "\"filter\" must be { \"type\": id }, { \"tag\": text } or {} for every unit");
   if (filter.size() == 0) return true;
-  if (filter.size() > 1) return c.fail(at, "\"filter\" names more than one thing; use one of type, tag");
+  if (filter.size() > 1) {
+    std::string keys;
+    for (const Json::Member& m : filter.members()) keys += (keys.empty() ? "\"" : ", \"") + m.first + "\"";
+    return c.fail(at, "\"filter\" names more than one thing (" + keys + "); use one of type, tag");
+  }
   const Json::Member& m = filter.members()[0];
   if (!m.second.isString()) return c.fail(at, "\"filter\".\"" + m.first + "\" must be text");
   if (m.first == "type") {
@@ -49,7 +53,7 @@ bool readGrantFilter(const LoadCtx& c, const Database& db, const Json& filter, c
     for (const UnitTypeDef& u : db.unitTypes) used = used || std::find(u.tags.begin(), u.tags.end(), filterTag) != u.tags.end();
     if (!used) return c.fail(at, "\"filter\".\"tag\" \"" + filterTag + "\" is not a tag of any unit type");
   } else {
-    return c.fail(at, "\"filter\" has unknown key \"" + m.first + "\" (side-wide skills can filter by \"type\" or \"tag\")");
+    return c.fail(at, "\"filter\" has unknown key \"" + m.first + "\" (side-wide skills can filter by \"type\" or \"tag\")" + didYouMean(m.first, {"type", "tag"}));
   }
   return true;
 }
@@ -79,7 +83,7 @@ bool readBranchKeys(const LoadCtx& c, const Database& db, const Json& e, const s
     const Json* g;
     if (!c.object(e, "grants", where, g)) return false;
     for (const Json::Member& m : g->members())
-      if (m.first != "skills") return c.fail(where + ": \"grants\"", "unknown key \"" + m.first + "\" (expected \"skills\")");
+      if (m.first != "skills") return c.fail(where + ": \"grants\"", unknownKeyText(m.first, {"skills"}));
     const Json* list;
     if (!c.array(*g, "skills", where + ": \"grants\"", list, true)) return false;
     for (size_t i = 0; i < list->size(); ++i) {

@@ -33,7 +33,7 @@ def run_structures_checks(api, tmp, games, templates, check, get_project, put_pr
     check("structures: PUT null does not create the file", st == 200 and not os.path.exists(sfile), res)
 
     # round trip, including empty
-    lst = [{"id": "hq", "name": "Headquarters", "size": [2, 2]}, {"id": "city", "name": "City"}]
+    lst = [{"id": "hq", "name": "Headquarters", "width": 2, "height": 2}, {"id": "city", "name": "City"}]
     st, d = get_project(api, pid)
     st, res = put_project(api, pid, d, d["revision"], structures=lst)
     check("structures: PUT list -> 200", st == 200 and "revision" in res, (st, res))

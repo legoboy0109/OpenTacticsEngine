@@ -5,6 +5,7 @@
 
 #include "core/data/loader.h"
 #include "platform/platform.h"
+#include "json_text_edit.h"
 #include "save_helpers.h"
 
 namespace skilltest {
@@ -41,6 +42,13 @@ struct Copy {
     size_t at = text.find(from);
     if (at == std::string::npos) std::printf("  the test's text to replace is missing: %s\n", from.c_str());
     else put(rel, text.replace(at, from.size(), to));
+  }
+  // `rel` without the first `"key": <object or list>` (and the comma next to it): the feature that key switches on is simply
+  // not there. (Renaming the key would make it an unknown key, which the loader refuses.)
+  void dropValue(const std::string& rel, const std::string& key) {
+    std::string text = read(rel);
+    if (ote_test::dropJsonValue(text, key)) put(rel, text);
+    else std::printf("  the test's key to drop is missing: %s\n", key.c_str());
   }
   // data/skills.json with these skills (a JSON list body) added to the fixture's own: the fixture's units, weapons and
   // items name some of them.

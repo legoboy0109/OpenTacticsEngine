@@ -9,15 +9,7 @@ std::string q(const std::string& s) { return "\"" + s + "\""; }
 
 // Refuses a key the block does not know, listing the ones it takes.
 bool onlyThese(const LoadCtx& c, const Json& block, const std::string& at, std::initializer_list<const char*> keys) {
-  for (const Json::Member& m : block.members()) {
-    bool known = false;
-    for (const char* k : keys) known = known || m.first == k;
-    if (known) continue;
-    std::string list;
-    for (const char* k : keys) list += (list.empty() ? "" : ", ") + q(k);
-    return c.fail(at, "unknown key " + q(m.first) + " (expected " + list + ")");
-  }
-  return true;
+  return c.onlyKeys(block, keys, at);
 }
 
 }  // namespace

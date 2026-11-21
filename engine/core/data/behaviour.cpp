@@ -5,6 +5,7 @@
 #include <cmath>
 
 #include "core/data/database.h"
+#include "core/data/loader_util.h"
 
 namespace ote {
 
@@ -90,7 +91,8 @@ bool parseBehaviour(const Json& v, const Database& db, AiBehaviour& out, std::st
     for (const char* k : kKeys) known = known || m.first == k;
     if (!known)
       return no(err, "\"behaviour\" has an unknown key " + q(m.first) + " (it may have mode, wake, group, fromTurn, area, within, measure, unit, place, x, y, prefer, " +
-                         "order, weights, caution, retreat, idleTurns, route, ignores, heals)");
+                         "order, weights, caution, retreat, idleTurns, route, ignores, heals)" +
+                         didYouMean(m.first, {"mode", "wake", "group", "fromTurn", "area", "within", "measure", "unit", "place", "x", "y", "prefer", "order", "weights", "caution", "retreat", "idleTurns", "route", "ignores", "heals"}));
   }
   if (v.has("mode")) {
     if (!v["mode"].isString()) return no(err, "\"mode\" must be " + modes + patrolNote);
@@ -132,7 +134,7 @@ bool parseBehaviour(const Json& v, const Database& db, AiBehaviour& out, std::st
       if (!a.isObject()) return no(err, "\"area\" must be a rectangle { \"x\": 5, \"y\": 2, \"w\": 3, \"h\": 2 }");
       for (const Json::Member& m : a.members())
         if (m.first != "x" && m.first != "y" && m.first != "w" && m.first != "h")
-          return no(err, "\"area\" has an unknown key " + q(m.first) + " (a rectangle has x, y, w, h)");
+          return no(err, "\"area\" has an unknown key " + q(m.first) + " (a rectangle has x, y, w, h)" + didYouMean(m.first, {"x", "y", "w", "h"}));
       if (!a.has("x") || !a.has("y")) return no(err, "\"area\" needs \"x\" and \"y\" (its top-left square)");
       if (!intKey(a, "x", 0, 9999, b.ax, err) || !intKey(a, "y", 0, 9999, b.ay, err)) return false;
       if (a.has("w") && !intKey(a, "w", 1, 9999, b.aw, err)) return false;

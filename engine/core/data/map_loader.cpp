@@ -25,6 +25,9 @@ namespace {
 bool loadGrid(const LoadCtx& c, const Database& db, const Json& root, MapDef& m) {
   const Json* g;
   if (!c.object(root, "grid", "", g, true)) return false;
+  // "layout" belongs to game.json "grid" (docs/HEX.md); a map that repeats it (hand-made hexagon maps do) is not wrong, the game's counts, so it is
+  // accepted quietly.
+  if (!c.onlyKeys(*g, {"type", "width", "height"}, "grid", {"layout"})) return false;
   std::string type;
   if (!c.str(*g, "type", "grid", type, true)) return false;
   if (type != "square" && type != "hex")
@@ -107,6 +110,8 @@ bool loadSides(const LoadCtx& c, const Database& db, const Json& root, MapDef& m
     MapSideDef s;
     if (!c.str(e, "id", where, s.id, true) || s.id.empty()) return c.fail(where, "\"id\" is required");
     where = "side \"" + s.id + "\"";
+    if (!c.onlyKeys(e, {"id", "name", "team", "controller", "aiSeesAll", "color", "difficultyShift", "faction", "commander", "resources", "storage"}, where))
+      return false;
     for (const MapSideDef& o : m.sides)
       if (o.id == s.id) return c.fail(where, "duplicate id");
     s.name = s.id;
@@ -158,6 +163,7 @@ bool loadStructures(const LoadCtx& c, const Database& db, const Json& root, MapD
     std::string where = "structures[" + std::to_string(i) + "]";
     if (!e.isObject()) return c.fail(where, "must be an object");
     MapStructureDef s;
+    if (!c.onlyKeys(e, {"type", "x", "y", "side", "id", "contents", "locked", "visitSides", "visitUnits", "uses"}, where)) return false;
     std::string type, side;
     if (!c.str(e, "type", where, type, true) || !c.integer(e, "x", where, s.x, true) ||
         !c.integer(e, "y", where, s.y, true) || !c.str(e, "side", where, side))
@@ -211,6 +217,11 @@ bool readUnitHead(const LoadCtx& c, const Database& db, const MapDef& m, const J
   // story id is the character id, and type / name / level default to the character's. Nothing else downstream
   // needs to know about the "character" key (readUnitBody adds its stats and items).
   std::string type, side, character;
+  // (the keys of a unit that a story command adds are listed in loader_story_commands.cpp: the same without "facing")
+  if (!c.onlyKeys(e, {"character", "type", "side", "x", "y", "name", "level", "leader", "id", "job", "jobs", "equipped", "learned", "goesFor",
+                      "behaviour", "xp", "merit", "facing", "difficulty", "difficultyShift", "stats", "ranks", "skills", "items"},
+                  where))
+    return false;
   if (!c.str(e, "character", where, character)) return false;
   const bool isCharacter = e.has("character");
   const CharacterDef* ch = nullptr;
@@ -387,6 +398,15 @@ bool loadMap(const Database& db, const std::string& mapId, MapDef& out, std::str
       !readMapChanges(c, db, root, m) || !readMapDifficulty(c, db, root, m) ||
       !loadUnits(c, db, root, m, structureAt) || !checkPlaceVisitors(c, db, m) || !loadMapStory(db, root, m, path, err) ||
       !loadMapPrep(c, db, root, m, structureAt))
+    return false;
+  // Last, so that a more specific message of the readers above (a "tileLayer" that is not an object, ...) is the one a maker sees first; a
+  // typo in a key the readers never look at is what is left to find here.
+  // Every key a map may have. The audio loader (engine/player/sound/audio_data.cpp) reads "music", "playerTurnMusic", "enemyTurnMusic",
+  // "prepMusic", "phaseMusic" and "fewEnemies"; "owners" is the old list that older editors wrote empty (loadStructures refuses a full one).
+  if (!c.onlyKeys(root, {"name", "grid", "legend", "tiles", "heights", "tileLayer", "sides", "structures", "units", "owners", "fog", "fogVision", "aiSeesAll",
+                         "weather", "battleBackground", "battleBackgrounds", "battlePlatforms", "changes", "difficulty", "events", "objectives", "prep",
+                         "music", "playerTurnMusic", "enemyTurnMusic", "prepMusic", "phaseMusic", "fewEnemies"},
+                  ""))
     return false;
   out = m;
   err.clear();

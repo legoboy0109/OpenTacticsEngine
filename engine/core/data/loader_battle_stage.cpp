@@ -50,7 +50,7 @@ bool readRanges(const LoadCtx& c, const Json& st, BattleStage& s) {
     for (const Json::Member& e : j.members()) {
       const std::string& k = e.first;
       if (k != "from" && k != "feet" && k != "platform" && k != "view" && k != "pan")
-        return c.fail(where, "unknown key " + q(k) + " (expected \"from\", \"feet\", \"platform\", \"view\", \"pan\")");
+        return c.fail(where, unknownKeyText(k, {"from", "feet", "platform", "view", "pan"}));
     }
     StageBand b;
     if (!c.integer(j, "from", where, b.from, true)) return false;
@@ -79,7 +79,7 @@ bool readRanges(const LoadCtx& c, const Json& st, BattleStage& s) {
       if (!p.isObject()) return c.fail(pw, "must be { \"panMs\": 250, \"leftView\": x, \"rightView\": x }");
       for (const Json::Member& e : p.members())
         if (e.first != "panMs" && e.first != "leftView" && e.first != "rightView" && e.first != "backdrop" && e.first != "startMs")
-          return c.fail(pw, "unknown key " + q(e.first) + " (expected \"panMs\", \"leftView\", \"rightView\", \"backdrop\", \"startMs\")");
+          return c.fail(pw, unknownKeyText(e.first, {"panMs", "leftView", "rightView", "backdrop", "startMs"}));
       if (!c.integer(p, "panMs", pw, b.panMs) || !c.integer(p, "leftView", pw, b.leftView, true) || !c.integer(p, "rightView", pw, b.rightView, true)) return false;
       if (b.panMs < 0 || b.panMs > 5000) return c.fail(pw, "\"panMs\" must be between 0 and 5000 milliseconds (0 = the camera cuts)");
       if (b.leftView < 0 || b.leftView > 8191 || b.rightView < 0 || b.rightView > 8191)
@@ -121,8 +121,7 @@ bool readBattleStage(const LoadCtx& c, const Json& battle, BattleStage& out) {
     const std::string& k = e.first;
     if (k != "width" && k != "height" && k != "feet" && k != "feetFar" && k != "platform" && k != "platformFar" && k != "align" && k != "fit" && k != "rangeLine" &&
         k != "ranges")
-      return c.fail(where, "unknown key " + q(k) +
-                               " (expected \"width\", \"height\", \"feet\", \"feetFar\", \"platform\", \"platformFar\", \"align\", \"fit\", \"rangeLine\", \"ranges\")");
+      return c.fail(where, unknownKeyText(k, {"width", "height", "feet", "feetFar", "platform", "platformFar", "align", "fit", "rangeLine", "ranges"}));
   }
   BattleStage s;
   if (!c.integer(st, "width", where, s.width, true) || !c.integer(st, "height", where, s.height, true)) return false;

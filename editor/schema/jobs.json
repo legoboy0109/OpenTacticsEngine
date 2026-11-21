@@ -7,7 +7,7 @@
       "name": { "type": "string", "help": "Display name, 1 to 24 characters." },
       "description": { "type": "string", "help": "Text shown in the job menu." },
       "unitType": { "type": "ref", "ref": "data/units.json", "help": "Unit type the job turns the unit into; leave out for an overlay job that keeps the unit's class." },
-      "bonus": { "type": "map", "ref": "game.json#stats", "of": { "type": "int", "sample": 1 }, "help": "Stat bonus per stat while in this job." },
+      "bonus": { "type": "map", "ref": "game.json#stats", "of": { "type": "int", "min": -99999, "max": 99999, "sample": 1 }, "help": "Stat bonus per stat while in this job." },
       "requires": { "type": "list", "help": "Jobs (and levels) needed to unlock this one; no loops.", "of": { "type": "object", "fields": {
         "job": { "type": "ref", "ref": "data/jobs.json", "required": true, "help": "Required job." },
         "level": { "type": "int", "required": true, "min": 1, "max": 20, "help": "Level of that job needed." } } } },

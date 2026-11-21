@@ -5,6 +5,7 @@
 
 #include "core/data/behaviour.h"
 #include "core/data/database.h"
+#include "core/data/loader_util.h"
 
 namespace ote {
 
@@ -22,7 +23,7 @@ bool readRetreat(const Json& v, const Database& db, AiRetreat& r, std::string& e
   if (!v.isObject()) return no(err, hint);
   for (const Json::Member& m : v.members())
     if (m.first != "below" && m.first != "until" && m.first != "to" && m.first != "useItems")
-      return no(err, "\"retreat\" has an unknown key " + q(m.first) + " (it may have below, until, to, useItems)");
+      return no(err, "\"retreat\" has an unknown key " + q(m.first) + " (it may have below, until, to, useItems)" + didYouMean(m.first, {"below", "until", "to", "useItems"}));
   if (!v.has("below")) return no(err, "\"retreat\" needs \"below\" (the hit point percent that sends the unit back)");
   if (!whole(v["below"]) || v["below"].asInt() < 1 || v["below"].asInt() > 99) return no(err, "\"retreat\" \"below\" must be a whole number from 1 to 99 (percent of its hit points)");
   r.below = v["below"].asInt();
@@ -40,7 +41,7 @@ bool readRetreat(const Json& v, const Database& db, AiRetreat& r, std::string& e
     const Json& to = v["to"];
     if (!to.isObject()) return no(err, "\"retreat\" \"to\" must be { \"terrain\": [\"fort\"] }");
     for (const Json::Member& m : to.members())
-      if (m.first != "terrain") return no(err, "\"retreat\" \"to\" has an unknown key " + q(m.first) + " (it may have terrain)");
+      if (m.first != "terrain") return no(err, "\"retreat\" \"to\" has an unknown key " + q(m.first) + " (it may have terrain)" + didYouMean(m.first, {"terrain"}));
     if (!to["terrain"].isArray() || to["terrain"].size() == 0) return no(err, "\"retreat\" \"to\" needs \"terrain\": a list of terrain ids, such as [\"fort\"]");
     for (const Json& t : to["terrain"].items()) {
       if (!t.isString()) return no(err, "\"retreat\" \"to\" \"terrain\" must be a list of terrain ids");
@@ -60,7 +61,7 @@ bool readRoute(const Json& v, AiBehaviour& b, std::string& err) {
   for (const Json& s : v.items()) {
     if (!s.isObject()) return no(err, "every square of \"route\" must look like { \"x\": 3, \"y\": 4 }");
     for (const Json::Member& m : s.members())
-      if (m.first != "x" && m.first != "y") return no(err, "a square of \"route\" has an unknown key " + q(m.first) + " (it has x and y)");
+      if (m.first != "x" && m.first != "y") return no(err, "a square of \"route\" has an unknown key " + q(m.first) + " (it has x and y)" + didYouMean(m.first, {"x", "y"}));
     if (!whole(s["x"]) || !whole(s["y"]) || s["x"].asInt() < 0 || s["y"].asInt() < 0 || s["x"].asInt() > 9999 || s["y"].asInt() > 9999)
       return no(err, "every square of \"route\" needs a whole number \"x\" and \"y\" (0 or more)");
     b.route.push_back(std::make_pair(s["x"].asInt(), s["y"].asInt()));

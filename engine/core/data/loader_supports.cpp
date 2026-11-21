@@ -14,13 +14,10 @@ std::string quoted(const std::string& s) { return "\"" + s + "\""; }
 
 // An object may only have these keys; the message names the first stranger.
 bool onlyKeys(const LoadCtx& c, const Json& o, std::initializer_list<const char*> keys, const std::string& where) {
-  for (const Json::Member& m : o.members()) {
-    bool known = false;
-    for (const char* k : keys) known = known || m.first == k;
-    if (!known) return c.fail(where, "unknown key " + quoted(m.first));
-  }
-  return true;
+  return c.onlyKeys(o, keys, where);
 }
+
+constexpr int kMaxSupportBonus = 1000;
 
 bool readRules(const LoadCtx& c, const Json& root, SupportRules& r) {
   if (!root.has("rules")) return true;
@@ -55,14 +52,15 @@ bool readRules(const LoadCtx& c, const Json& root, SupportRules& r) {
 bool readBonus(const LoadCtx& c, const Database& db, const Json& e, const std::string& where, SupportBonus& b) {
   if (!e.isObject()) return c.fail(where, "must be an object");
   if (!onlyKeys(c, e, {"hit", "avoid", "crit", "critAvoid", "damage", "damageTaken", "stats"}, where)) return false;
-  const int lim = kMaxSupportPoints;
+  // Same range as the combat bonuses of a skill block ("hit", "damage", ... and a stat bonus: -1000 to 1000, loader_skill_blocks.cpp).
+  const int lim = kMaxSupportBonus;
   if (!c.integerIn(e, "hit", where, -lim, lim, b.hit) || !c.integerIn(e, "avoid", where, -lim, lim, b.avoid) ||
       !c.integerIn(e, "crit", where, -lim, lim, b.crit) || !c.integerIn(e, "critAvoid", where, -lim, lim, b.critAvoid) ||
       !c.integerIn(e, "damage", where, -lim, lim, b.damage) || !c.integerIn(e, "damageTaken", where, -lim, lim, b.damageTaken))
     return false;
   if (!e.has("stats")) return true;
   b.stats.assign(db.stats.size(), 0);
-  if (!c.statMap(db, e, "stats", where, b.stats)) return false;
+  if (!c.statMap(db, e, "stats", where, b.stats, kMaxSupportBonus)) return false;
   for (const Json::Member& m : e["stats"].members()) {
     const int s = db.findStat(m.first);
     if (s == db.rules.statHp || s == db.rules.statMove)

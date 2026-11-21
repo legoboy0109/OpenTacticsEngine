@@ -30,15 +30,7 @@ std::string q(const std::string& s) { return "\"" + s + "\""; }
 
 // An object may only have these keys: a typo must not pass silently (same as graphics.json).
 bool onlyKeys(const LoadCtx& c, const Json& o, const std::string& where, std::initializer_list<const char*> keys) {
-  for (const Json::Member& m : o.members()) {
-    bool known = false;
-    for (const char* k : keys) known = known || m.first == k;
-    if (known) continue;
-    std::string list;
-    for (const char* k : keys) list += (list.empty() ? "" : ", ") + q(k);
-    return c.fail(where, "unknown key " + q(m.first) + " (expected " + list + ")");
-  }
-  return true;
+  return c.onlyKeys(o, keys, where);
 }
 
 // Inside the game folder, forward slashes, .ogg or .wav.
@@ -210,9 +202,9 @@ bool readUse(const LoadCtx& c, const Json& root, AudioData& out) {
   for (const Json::Member& m : use["sounds"].members()) {
     Cue cue;
     if (!cueFromKey(m.first, cue)) {
-      std::string list;
-      for (int i = 0; i < kCueCount; ++i) list += (list.empty() ? "" : ", ") + q(cueKey((Cue)i));
-      return c.fail("use.sounds", "unknown key " + q(m.first) + " (expected " + list + ")");
+      std::vector<std::string> keys;
+      for (int i = 0; i < kCueCount; ++i) keys.push_back(cueKey((Cue)i));
+      return c.fail("use.sounds", unknownKeyText(m.first, keys));
     }
     if (!m.second.isString()) return c.fail("use.sounds", q(m.first) + " must be a sound id (or \"\" for none)");
     if (m.second.asString().empty()) continue;

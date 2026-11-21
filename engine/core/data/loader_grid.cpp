@@ -12,7 +12,7 @@ bool readGameGrid(const LoadCtx& c, const Json& root, Database& db) {
   if (!c.object(root, "grid", "", g)) return false;
   for (const Json::Member& m : g->members())
     if (m.first != "type" && m.first != "layout")
-      return c.fail("grid", "unknown key \"" + m.first + "\" (expected \"type\" and \"layout\")");
+      return c.fail("grid", unknownKeyText(m.first, {"type", "layout"}));
   std::string type = "square", layout;
   if (!c.str(*g, "type", "grid", type) || !c.str(*g, "layout", "grid", layout)) return false;
   if (type == "square") {

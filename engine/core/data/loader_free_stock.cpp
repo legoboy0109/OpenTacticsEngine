@@ -19,7 +19,7 @@ bool loadFreeBattleStock(const std::string& gameFile, Database& db, std::string&
   if (!c.object(*items, "freeBattleStorage", "rules.items", blk)) return false;
   for (const Json::Member& m : blk->members())
     if (m.first != "each" && m.first != "except" && m.first != "items" && m.first != "funds")
-      return c.fail(where, "unknown key \"" + m.first + "\" (expected \"each\", \"except\", \"items\" or \"funds\")");
+      return c.fail(where, unknownKeyText(m.first, {"each", "except", "items", "funds"}));
   FreeBattleStock& s = db.rules.items.freeStock;
   s = FreeBattleStock();
   s.given = true;
@@ -48,7 +48,7 @@ bool loadFreeBattleStock(const std::string& gameFile, Database& db, std::string&
       } else if (e.isObject()) {
         for (const Json::Member& m : e.members())
           if (m.first != "item" && m.first != "count" && m.first != "uses")
-            return c.fail(where, at + ": unknown key \"" + m.first + "\" (expected \"item\", \"count\" or \"uses\")");
+            return c.fail(where, at + ": " + unknownKeyText(m.first, {"item", "count", "uses"}));
         std::string id;
         if (!c.str(e, "item", where, id, true)) return false;
         n.grant.item = db.findItem(id);

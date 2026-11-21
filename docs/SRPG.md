@@ -78,8 +78,9 @@ data/campaign.json     new scene commands and conditions
 
 Ids follow the existing rule (lowercase strings unique within their list). Character ids are also story ids
 (letters, digits, `_`, `-`, up to 64). The four new files and every new sub-object **refuse unknown keys**, like the
-story and research loaders do; the new keys on unit types, weapons and items are read like their neighbours (those
-files do not refuse unknown keys today and that does not change).
+story and research loaders do; the new keys on unit types, weapons and items are read like their neighbours. Every file
+now refuses unknown keys, including `game.json`, the rows of `data/units.json`, `weapons.json`, `terrain.json`,
+`structures.json` and `items.json`, maps and `data/graphics.json` (docs/GAME_FORMAT.md "Strict files").
 
 **Load order** (`loader.cpp`): `game.json`, then `skills.json` and `abilities.json` (ids and shapes only), then
 weapons, items, units as today, then `characters.json`, research, structures, graphics, campaign, `supports.json`,
@@ -441,7 +442,8 @@ changes the **HP stat** in `always` may have no condition at all (a maximum that
 ### CHANCE (activation)
 
 `"chance": 30` or `"chance": "a.skl * 2"` (a formula: `a` = owner, `b` = foe): a percent, rounded down, kept within
-0..100. Allowed on `strike`, `struck`, `defeat`, `afterCombat` and `turnStart` blocks; refused on `always` and
+0..100. A number outside 0..100 is refused (`"chance" must be a percent from 0 to 100`); a formula cannot be checked by the loader, so
+its result is clamped when it is asked. Allowed on `strike`, `struck`, `defeat`, `afterCombat` and `turnStart` blocks; refused on `always` and
 `combat` (those must be the same every time they are asked). A block with a chance is an **activation**: it is
 rolled with `Battle::rng` at the moment it is judged, only if its conditions hold, and only when the chance is from
 1 to 99 (0 or less never applies and 100 or more always applies, **neither consumes a random number**, like the hit
@@ -1745,8 +1747,8 @@ fight better near each other.
   ] }
 ```
 
-- `bonus` keys: `hit`, `avoid`, `crit`, `critAvoid`, `damage`, `damageTaken` (whole numbers) and `stats` (not the HP
-  or move stat): the combat numbers of section 3. A level states its **whole** bonus (levels do not add up).
+- `bonus` keys: `hit`, `avoid`, `crit`, `critAvoid`, `damage`, `damageTaken` (whole numbers, **-1000 to 1000** like the same
+  effects of a skill block) and `stats` (not the HP or move stat; each number -1000 to 1000): the combat numbers of section 3. A level states its **whole** bonus (levels do not add up).
 - `talk` is a list of `say` commands exactly as in a campaign scene (`speaker` = a character id, or `speakerName`;
   optional `portrait`); nothing else is allowed in it. A level may have no `talk`.
 - Refusals (start `data/supports.json: `): `the game has no characters (data/characters.json)`; `pair 2: unknown

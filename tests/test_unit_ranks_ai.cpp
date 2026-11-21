@@ -17,7 +17,8 @@ TEST(a_unit_with_a_rank_is_worth_more_to_the_computer_up_to_a_limit) {
   CHECK_EQ((int)ai::unitValue(b, w.unit("elite")), 1300); // Hero
   // A game without the table values every unit at its type's value.
   skilltest::Copy p("urai_plain", "unit-ranks");
-  p.swap("game.json", "\"levels\": [", "\"xpPerLevel\": 15, \"ignored\": [");
+  p.dropValue("game.json", "levels");
+  p.swap("game.json", "\"xpKill\": \"30\"", "\"xpKill\": \"30\", \"xpPerLevel\": 15");
   skilltest::World v("field", p.dir, false);
   CHECK_EQ((int)ai::unitValue(v.b(), v.unit("sol")), 1000);
 }

@@ -13,16 +13,7 @@ const int kMaxMeter = 100000;
 const int kMaxRate = 1000;  // meter points per hit point (or per turn): a bigger number is surely a slip
 
 bool onlyKeys(const LoadCtx& c, const Json& o, std::initializer_list<const char*> keys, const std::string& where) {
-  for (const Json::Member& m : o.members()) {
-    bool known = false;
-    std::string list;
-    for (const char* k : keys) {
-      known = known || m.first == k;
-      list += (list.empty() ? "\"" : ", \"") + std::string(k) + "\"";
-    }
-    if (!known) return c.fail(where, "unknown key \"" + m.first + "\" (expected " + list + ")");
-  }
-  return true;
+  return c.onlyKeys(o, keys, where);
 }
 
 // A list of skill ids / { skill, filter } entries (the side-wide skill format), refusing the same skill and filter twice.

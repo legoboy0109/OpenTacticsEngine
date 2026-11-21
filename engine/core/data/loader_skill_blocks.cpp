@@ -52,15 +52,7 @@ bool parseOp(const std::string& t, CmpOp& op) {
 
 // A key list check: an object may only have these keys (a typo must not pass silently).
 bool onlyKeys(const LoadCtx& c, const Json& o, std::initializer_list<const char*> keys, const std::string& where) {
-  for (const Json::Member& m : o.members()) {
-    bool known = false;
-    for (const char* k : keys) known = known || m.first == k;
-    if (known) continue;
-    std::string list;
-    for (const char* k : keys) list += (list.empty() ? "" : ", ") + q(k);
-    return c.fail(where, "unknown key " + q(m.first) + " (expected " + list + ")");
-  }
-  return true;
+  return c.onlyKeys(o, keys, where);
 }
 
 bool readOp(const LoadCtx& c, const Json& o, const std::string& where, CmpOp& op) {
@@ -767,7 +759,8 @@ bool readSkillBlock(const LoadCtx& c, Database& db, const Json& e, const std::st
     const Json& ch = e["chance"];
     out.hasChance = true;
     if (ch.isString() && !ch.asString().empty()) out.chanceExpr = db.addExpr(ch.asString(), labelPrefix + where + ": \"chance\"");
-    else if (LoadCtx::isWhole(ch)) out.chance = ch.asInt();
+    else if (LoadCtx::isWhole(ch) && ch.asInt() >= 0 && ch.asInt() <= 100) out.chance = ch.asInt();
+    else if (LoadCtx::isWhole(ch)) return c.fail(where, "\"chance\" must be a percent from 0 to 100 (or a formula such as \"a.skl * 2\", which is kept within 0 to 100 when it is asked)");
     else return c.fail(where, "\"chance\" must be a percent or a formula such as \"a.skl * 2\"");
   }
 

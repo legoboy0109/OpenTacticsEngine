@@ -23,7 +23,7 @@ import subprocess
 import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
 from ote_testkit import (  # noqa: E402
-    Bmp, run_text, check, failures, inp, player_and_repo, player_cmd, read_json, shots_dir, summary, ticks, write_json)
+    Bmp, run_text, check, failures, inp, player_and_repo, player_cmd, read_json, read_jsonc, shots_dir, summary, ticks, write_json)
 from ote_testkit import scratch_dir  # noqa: E402
 
 sys.dont_write_bytecode = True
@@ -216,9 +216,24 @@ def test_standing_terrain():
         gr['styles'] = stand
         write_json(g + '/data/graphics.json', gr)
         if not with_layer:
+            # The map without its layer: the layer and every "tile" / "keepTile" of the changes and events go (the loader refuses unknown
+            # keys, so the layer cannot just be renamed away).
             path = g + '/maps/tiled.json'
-            text = open(path).read().replace('"tileLayer"', '"unusedLayer"').replace(', "tile": 5', '').replace(', "keepTile": true', '').replace(', "tile": 1', '')
-            open(path, 'w').write(text)
+            m = read_jsonc(path)
+            m.pop('tileLayer')
+
+            def strip(node):
+                if isinstance(node, dict):
+                    node.pop('tile', None)
+                    node.pop('keepTile', None)
+                    for v in node.values():
+                        strip(v)
+                elif isinstance(node, list):
+                    for v in node:
+                        strip(v)
+            strip(m['changes'])
+            strip(m['events'])
+            write_json(path, m)
     build('gstand_layer', True)
     build('gstand_plain', False)
     with_layer, _ = shot('iso3d_stand_with_layer', 'gstand_layer', inp(IDLE, 'wait:10'), 'iso3')

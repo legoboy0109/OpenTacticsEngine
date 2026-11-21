@@ -12,7 +12,7 @@ namespace {
 bool onlyKey(const LoadCtx& c, const Json& o, const std::string& where, const char* allowed) {
   for (const Json::Member& m : o.members())
     if (m.first != allowed)
-      return c.fail(where, "unknown key \"" + m.first + "\" (expected \"" + allowed + "\")");
+      return c.fail(where, unknownKeyText(m.first, {allowed}));
   return true;
 }
 
@@ -24,7 +24,7 @@ bool loadOptionRules(const LoadCtx& c, const Json& rules, Database& db) {
   if (rules.has("research")) {
     for (const Json::Member& m : blk->members())
       if (m.first != "needsStructure" && m.first != "cancelRefundPercent")
-        return c.fail("rules.research", "unknown key \"" + m.first + "\" (expected \"needsStructure\", \"cancelRefundPercent\")");
+        return c.fail("rules.research", unknownKeyText(m.first, {"needsStructure", "cancelRefundPercent"}));
     if (!c.boolean(*blk, "needsStructure", "rules.research", db.rules.researchNeedsStructure)) return false;
     // Share of the cost paid back when research under way is cancelled; 0 (nothing back) unless the game says.
     if (!c.integerIn(*blk, "cancelRefundPercent", "rules.research", 0, 100, db.rules.researchCancelRefundPercent)) return false;

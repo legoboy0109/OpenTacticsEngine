@@ -19,7 +19,7 @@ bool readSceneBackgrounds(const LoadCtx& c, Database& db, const Json& root) {
     if (!e.second.isObject()) return c.fail(where, "must be an object: { \"sheet\": \"id\" } or { \"sheet\": \"id\", \"cell\": [column, row] }");
     for (const Json::Member& k : e.second.members())
       if (k.first != "sheet" && k.first != "cell")
-        return c.fail(where, "unknown key \"" + k.first + "\" (a background has \"sheet\" and optionally \"cell\")");
+        return c.fail(where, "unknown key \"" + k.first + "\" (a background has \"sheet\" and optionally \"cell\")" + didYouMean(k.first, {"sheet", "cell"}));
     SceneBackground bg;
     bg.id = e.first;
     std::string sheetId;

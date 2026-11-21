@@ -80,7 +80,7 @@ TEST(a_game_without_jobs_json_has_no_jobs_and_a_unit_without_a_job_does_not_use_
   CHECK(plain.jobs.empty() && plain.jobEntries.empty());
   jobtest::Copy c("jd_empty");  // an empty list is the same game as no file
   c.put("data/jobs.json", "{ \"jobs\": [] }");
-  c.swap("game.json", "\"jobs\": {", "\"ignored\": {");
+  c.dropValue("game.json", "jobs");
   c.swap("data/characters.json", ", \"job\": \"squire\", \"jobs\": { \"squire\": { \"jp\": 30 } }", "");
   c.swap("data/characters.json", ", \"job\": \"squire\" }", " }");
   c.swap("data/characters.json", ",\n  { \"id\": \"cora\", \"name\": \"Cora\", \"type\": \"mage\", \"level\": 1, \"job\": \"mage\",\n    \"jobs\": { \"squire\": { \"jp\": 25, \"learned\": [\"guard\"] }, \"mage\": { \"jp\": 10 } }, \"equipped\": [\"guard\"] }", "");
@@ -241,7 +241,7 @@ TEST(a_character_or_unit_with_job_keys_is_checked_against_its_jobs) {
   jobtest::Copy none("jc10");
   none.drop("data/jobs.json");
   CHECK(saysIn(none.gameError(), "game.json: rules.jobs: needs data/jobs.json"));
-  none.swap("game.json", "\"jobs\": {", "\"ignored\": {");
+  none.dropValue("game.json", "jobs");
   CHECK(saysIn(none.gameError(), "character \"aldric\""));
   CHECK(saysIn(none.gameError(), "need jobs: data/jobs.json"));
   // Map units: the job decides the unit type; keys of a unit that has none are refused.

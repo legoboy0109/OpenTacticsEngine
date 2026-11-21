@@ -65,10 +65,21 @@ static bool readBlock(const LoadCtx& c, const Json& rules, const char* key, cons
   return c.boolean(*blk, "enabled", std::string("rules.") + key, enabled);
 }
 
+// readBlock plus the unknown-key check of the block (`keys` = every key it takes, "enabled" included).
+static bool readCheckedBlock(const LoadCtx& c, const Json& rules, const char* key, std::initializer_list<const char*> keys,
+                             const Json*& blk, bool& enabled) {
+  return readBlock(c, rules, key, blk, enabled) && c.onlyKeys(*blk, keys, std::string("rules.") + key);
+}
+
 static bool loadRules(const LoadCtx& c, const Json& root, Database& db) {
   RulesConfig& r = db.rules;
   const Json* rules;
   if (!c.object(root, "rules", "", rules)) return false;
+  if (!c.onlyKeys(*rules, {"counterAttacks", "defeat", "economy", "production", "capture", "items", "supply", "research", "fog", "display",
+                           "hitRoll", "rescue", "promotion", "places", "actionPoints", "turnOrder", "facing", "jobs", "height",
+                           "progression", "ranks", "ai"},
+                  "rules"))
+    return false;
 
   if (!c.boolean(*rules, "counterAttacks", "rules", r.counterAttacks)) return false;
 
@@ -86,16 +97,18 @@ static bool loadRules(const LoadCtx& c, const Json& root, Database& db) {
   }
 
   const Json* blk;
-  if (!readBlock(c, *rules, "economy", blk, r.economy)) return false;
-  if (!readBlock(c, *rules, "production", blk, r.production)) return false;
+  if (!readCheckedBlock(c, *rules, "economy", {"enabled"}, blk, r.economy)) return false;
+  if (!readCheckedBlock(c, *rules, "production", {"enabled", "builtUnitsCanAct"}, blk, r.production)) return false;
   if (!c.boolean(*blk, "builtUnitsCanAct", "rules.production", r.builtUnitsCanAct)) return false;
 
-  if (!readBlock(c, *rules, "capture", blk, r.capture)) return false;
+  if (!readCheckedBlock(c, *rules, "capture", {"enabled", "amount"}, blk, r.capture)) return false;
   if (r.capture) r.fCaptureAmount = "a.hp";
   if (!c.str(*blk, "amount", "rules.capture", r.fCaptureAmount)) return false;
 
   // Items (docs/ITEMS.md): no "enabled" flag; a game has items when data/items.json lists some.
   if (!c.object(*rules, "items", "rules", blk)) return false;
+  // ("freeBattleStorage" is read by loadFreeBattleStock, after the items exist.)
+  if (!c.onlyKeys(*blk, {"weapons", "storage", "inventorySize", "sellPercent", "freeBattleStorage"}, "rules.items")) return false;
   std::string weapons = "fixed", storage = "off";
   if (!c.str(*blk, "weapons", "rules.items", weapons) || !c.str(*blk, "storage", "rules.items", storage) ||
       !c.integer(*blk, "inventorySize", "rules.items", r.items.inventorySize))
@@ -125,7 +138,10 @@ static bool loadRules(const LoadCtx& c, const Json& root, Database& db) {
   if (!loadJobRules(c, *rules, db)) return false;  // "rules.jobs" (docs/JOBS.md); data/jobs.json is read after the unit types
   if (!loadHeightRules(c, *rules, db)) return false;  // "rules.height" (docs/SRPG.md "Height rules"); before the weapons and unit types that use its keys
 
-  if (!readBlock(c, *rules, "progression", blk, r.progression)) return false;
+  // ("levels" is the rank table, read by loadUnitRankRules; "computerGains" and "xpNoDamage" by loadProgressionExtras.)
+  if (!readCheckedBlock(c, *rules, "progression", {"enabled", "xpPerLevel", "maxLevel", "xpHit", "xpKill", "levels", "computerGains", "xpNoDamage"},
+                        blk, r.progression))
+    return false;
   if (r.progression) { r.fXpHit = "10"; r.fXpKill = "30"; }
   if (!c.integer(*blk, "xpPerLevel", "rules.progression", r.xpPerLevel)) return false;
   if (!c.integer(*blk, "maxLevel", "rules.progression", r.maxLevel)) return false;
@@ -135,15 +151,22 @@ static bool loadRules(const LoadCtx& c, const Json& root, Database& db) {
   if (!loadMeritRankRules(c, *rules, db)) return false;  // "rules.ranks": the same table on its own counter, beside levelling (refused with the table above)
   if (r.xpPerLevel < 1) return c.fail("rules.progression", "\"xpPerLevel\" must be at least 1");
   if (r.maxLevel < 1) return c.fail("rules.progression", "\"maxLevel\" must be at least 1");
+  if (r.xpPerLevel > 1000000) return c.fail("rules.progression", "\"xpPerLevel\" must be at most 1000000");
+  // Growth is rolled once per level a unit gains: the cap keeps a typo ("maxLevel": 100000000) from freezing a battle.
+  if (r.maxLevel > 9999) return c.fail("rules.progression", "\"maxLevel\" must be at most 9999");
 
   const Json* f;
   if (!c.object(root, "formulas", "", f)) return false;
+  if (!c.onlyKeys(*f, {"damage", "hit", "crit", "critMultiplier", "strikes"}, "formulas")) return false;
   if (!c.str(*f, "damage", "formulas", r.fDamage, true)) return false;
   if (r.fDamage.empty()) return c.fail("formulas", "\"damage\" must not be empty");
   if (!c.str(*f, "hit", "formulas", r.fHit)) return false;
   if (!c.str(*f, "crit", "formulas", r.fCrit)) return false;
   if (!c.str(*f, "strikes", "formulas", r.fStrikes)) return false;
-  return c.num(*f, "critMultiplier", "formulas", r.critMultiplier);
+  if (!c.num(*f, "critMultiplier", "formulas", r.critMultiplier)) return false;
+  if (r.critMultiplier < 0 || r.critMultiplier > 1000)
+    return c.fail("formulas", "\"critMultiplier\" must be a number from 0 to 1000 (what a critical hit multiplies the damage by)");
+  return true;
 }
 
 static bool loadGameFile(const std::string& path, Database& db, std::string& err) {
@@ -151,6 +174,14 @@ static bool loadGameFile(const std::string& path, Database& db, std::string& err
   if (!loadObjectFile(path, root, err)) return false;
   LoadCtx c(err, path);
 
+  // "editor": the web editor keeps its own bookkeeping there (which formula preset a text came from; editor/web model/formulas.ts);
+  // nothing in the game reads it. Quiet: accepted, never listed in a message.
+  if (!c.onlyKeys(root, {"formatVersion", "name", "description", "author", "saving", "battleScene", "battleBackgroundFrom", "battlePlatformFrom",
+                         "battleSceneSides", "battleSceneStaves", "menuUnavailable", "attackWeaponChoice", "grid", "view", "font", "stats",
+                         "resources", "moveTypes", "switches", "variables", "roles", "rules", "formulas", "damageTypes", "resistRange",
+                         "difficulties", "styles", "scripts", "maps"},
+                  "", {"editor"}))
+    return false;
   if (!root.has("formatVersion") || !root["formatVersion"].isNumber() ||
       root["formatVersion"].asNumber() != 1)
     return c.fail("", "\"formatVersion\" must be 1");
@@ -199,14 +230,18 @@ static bool loadGameFile(const std::string& path, Database& db, std::string& err
 
   const Json* view;
   if (!c.object(root, "view", "", view)) return false;
+  if (!c.onlyKeys(*view, {"width", "height", "tileSize"}, "view")) return false;
   if (!c.integer(*view, "width", "view", db.view.width)) return false;
   if (!c.integer(*view, "height", "view", db.view.height)) return false;
   if (!c.integer(*view, "tileSize", "view", db.view.tileSize)) return false;
   if (db.view.width < 1 || db.view.height < 1 || db.view.tileSize < 1)
     return c.fail("view", "width, height and tileSize must be positive");
+  if (db.view.width > 16384 || db.view.height > 16384 || db.view.tileSize > 1024)
+    return c.fail("view", "\"width\" and \"height\" must be at most 16384 and \"tileSize\" at most 1024 (logical pixels)");
 
   const Json* font;
   if (!c.object(root, "font", "", font)) return false;
+  if (!c.onlyKeys(*font, {"name", "file", "size", "smooth"}, "font")) return false;
   if (!c.str(*font, "name", "font", db.font.name)) return false;
   if (!c.str(*font, "file", "font", db.font.file)) return false;
   if (!c.integer(*font, "size", "font", db.font.size)) return false;
@@ -215,7 +250,7 @@ static bool loadGameFile(const std::string& path, Database& db, std::string& err
     if (!c.boolean(*font, "smooth", "font", smooth)) return false;
     db.font.smooth = smooth ? 1 : 0;
   }
-  if (db.font.size < 0 || db.font.size > 200) return c.fail("font", "\"size\" must be between 1 and 200");
+  if (db.font.size < 0 || db.font.size > 200) return c.fail("font", "\"size\" must be between 0 (the font's own size) and 200");
   if (font->has("name") && db.font.name.empty()) return c.fail("font", "\"name\" must not be empty");
   if (!db.font.file.empty()) {
     // Keep font paths inside the game folder so games stay self-contained.
@@ -227,9 +262,9 @@ static bool loadGameFile(const std::string& path, Database& db, std::string& err
   }
 
   if (!readIdList(c, root, "stats", true, db.stats)) return false;
-  if (!readIdList(c, root, "resources", false, db.resources)) return false;
+  if (!readIdList(c, root, "resources", false, db.resources, {"refill"})) return false;
   if (!loadResourceRefills(c, root, db)) return false;  // "refill" of a resource (docs/ECONOMY.md "Refilling resources")
-  if (!readIdList(c, root, "moveTypes", true, db.moveTypes)) return false;
+  if (!readIdList(c, root, "moveTypes", true, db.moveTypes, {"sounds"})) return false;
   // Story switches and variables (docs/EVENTS.md); ids are what events refer to.
   if (!readIdList(c, root, "switches", false, db.switches)) return false;
   if (!readIdList(c, root, "variables", false, db.variables)) return false;
@@ -240,6 +275,7 @@ static bool loadGameFile(const std::string& path, Database& db, std::string& err
 
   const Json* roles;
   if (!c.object(root, "roles", "", roles, true)) return false;
+  if (!c.onlyKeys(*roles, {"hp", "move"}, "roles")) return false;
   struct Role { const char* key; int* target; };
   Role list[] = {{"hp", &db.rules.statHp}, {"move", &db.rules.statMove}};
   for (const Role& role : list) {
@@ -265,6 +301,7 @@ static bool loadGameFile(const std::string& path, Database& db, std::string& err
     if (!c.str(m, "id", where, ref.id, true) || ref.id.empty()) return c.fail(where, "\"id\" is required");
     where = "map \"" + ref.id + "\"";
     if (db.findMap(ref.id) >= 0) return c.fail(where, "duplicate id");
+    if (!c.onlyKeys(m, {"id", "name", "file"}, where)) return false;
     ref.name = ref.id;
     if (!c.str(m, "name", where, ref.name)) return false;
     if (!c.str(m, "file", where, ref.file, true)) return false;
@@ -300,6 +337,7 @@ static bool loadStyles(const std::string& path, Database& db, std::string& err) 
     if (st.id.empty()) return c.fail(where, "\"id\" must not be empty");
     where = "style \"" + st.id + "\"";
     if (db.findStyle(st.id) >= 0) return c.fail(where, "duplicate id");
+    if (!c.onlyKeys(j, {"id", "name", "background", "largeArt", "view", "isometric", "showGlyphs", "terrainColors", "structureColors"}, where)) return false;
     st.name = st.id;
     if (!c.str(j, "name", where, st.name)) return false;
     std::string bg;
@@ -324,6 +362,7 @@ static bool loadStyles(const std::string& path, Database& db, std::string& err) 
     if (!c.object(j, "isometric", where, iso)) return false;
     if (j.has("isometric")) {
       std::string iw = where + " \"isometric\"";
+      if (!c.onlyKeys(*iso, {"tileWidth", "tileHeight", "heightStep", "unitWidth"}, iw)) return false;
       if (!c.integer(*iso, "tileWidth", iw, st.iso.tileWidth) || !c.integer(*iso, "tileHeight", iw, st.iso.tileHeight) ||
           !c.integer(*iso, "heightStep", iw, st.iso.heightStep) || !c.integer(*iso, "unitWidth", iw, st.iso.unitWidth))
         return false;

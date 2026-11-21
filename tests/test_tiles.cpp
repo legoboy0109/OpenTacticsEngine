@@ -2,6 +2,7 @@
 // map changes, the layer's state in a battle and its save. Game: tests/fixtures/tiles (10 x 7, tileset "test" of 8 x 4 tiles, tile 8
 // animated; squares 4..6,2..4 are river with tile 8; change "dry" turns 4,3 into plain with tile 5, 5,3 into plain with no tile given,
 // 6,3 into plain keeping its tile; the turn 2 event applies it and sets 4,2 to a bridge with tile 1).
+#include "json_text_edit.h"
 #include "posix_compat.h"
 
 #include <cstdio>
@@ -60,6 +61,11 @@ struct TCopy {
     if (at == std::string::npos) std::printf("  the test's text to replace is missing: %s\n", from.c_str());
     else writeTextFile(dir + "/" + rel, text.replace(at, from.size(), to));
   }
+  void dropValue(const std::string& rel, const std::string& key) {
+    std::string text = read(rel);
+    if (ote_test::dropJsonValue(text, key)) writeTextFile(dir + "/" + rel, text);
+    else std::printf("  the test's key to drop is missing: %s\n", key.c_str());
+  }
   // "" = the game and its map load; else the message.
   std::string loadError(const char* map = "tiled") const {
     Database db;
@@ -73,7 +79,7 @@ struct TCopy {
 
 // The map with no layer: the layer is renamed away and the changes' tile keys removed.
 void stripLayer(TCopy& c) {
-  c.swap("maps/tiled.json", "\"tileLayer\"", "\"unusedLayer\"");
+  c.dropValue("maps/tiled.json", "tileLayer");
   c.swap("maps/tiled.json", ", \"tile\": 5", "");
   c.swap("maps/tiled.json", ", \"keepTile\": true", "");
   c.swap("maps/tiled.json", ", \"tile\": 1", "");
@@ -229,11 +235,11 @@ TEST(tiles_loader_refuses_bad_tiles_in_changes_and_commands) {
   CHECK(has(bad("tl_c5", m, "\"tile\": 1 }", "\"tile\": 1, \"keepTile\": \"yes\" }"), "keepTile"));
   // On a map with no layer a tile is refused with the reason.
   TCopy c("tl_c6");
-  c.swap("maps/tiled.json", "\"tileLayer\"", "\"unusedLayer\"");
+  c.dropValue("maps/tiled.json", "tileLayer");
   CHECK(has(c.loadError(), "needs a tile layer: the map has no \"tileLayer\""));
   // ... and so is a setTerrain tile.
   TCopy d("tl_c7");
-  d.swap("maps/tiled.json", "\"tileLayer\"", "\"unusedLayer\"");
+  d.dropValue("maps/tiled.json", "tileLayer");
   d.swap("maps/tiled.json", "\"terrain\": \"plain\", \"tile\": 5", "\"terrain\": \"plain\"");
   CHECK(has(d.loadError(), "\"tile\" needs a tile layer"));
 }

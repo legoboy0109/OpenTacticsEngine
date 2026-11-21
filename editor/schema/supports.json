@@ -19,13 +19,13 @@
         "levels": { "type": "list", "required": true, "help": "Levels, rising in points (1 to 5).", "of": { "type": "object", "fields": {
           "points": { "type": "int", "required": true, "min": 0, "max": 1000000, "help": "Points needed (rising)." },
           "bonus": { "type": "object", "block": true, "help": "Bonus while the pair fights near each other.", "fields": {
-            "hit": { "type": "int", "min": -1000000, "max": 1000000, "help": "Hit chance bonus." },
-            "avoid": { "type": "int", "min": -1000000, "max": 1000000, "help": "Avoid bonus." },
-            "crit": { "type": "int", "min": -1000000, "max": 1000000, "help": "Critical chance bonus." },
-            "critAvoid": { "type": "int", "min": -1000000, "max": 1000000, "help": "Critical avoid bonus." },
-            "damage": { "type": "int", "min": -1000000, "max": 1000000, "help": "Damage bonus." },
-            "damageTaken": { "type": "int", "min": -1000000, "max": 1000000, "help": "Damage taken change." },
-            "stats": { "type": "map", "ref": "game.json#stats", "of": { "type": "int" }, "help": "Stat bonus." } } },
+            "hit": { "type": "int", "min": -1000, "max": 1000, "help": "Hit chance bonus." },
+            "avoid": { "type": "int", "min": -1000, "max": 1000, "help": "Avoid bonus." },
+            "crit": { "type": "int", "min": -1000, "max": 1000, "help": "Critical chance bonus." },
+            "critAvoid": { "type": "int", "min": -1000, "max": 1000, "help": "Critical avoid bonus." },
+            "damage": { "type": "int", "min": -1000, "max": 1000, "help": "Damage bonus." },
+            "damageTaken": { "type": "int", "min": -1000, "max": 1000, "help": "Damage taken change." },
+            "stats": { "type": "map", "ref": "game.json#stats", "of": { "type": "int", "min": -1000, "max": 1000 }, "help": "Stat bonus." } } },
           "talk": { "type": "list", "of": { "use": "_common#sayLine" }, "help": "The conversation at this level." } } } } } } }
     }
   }

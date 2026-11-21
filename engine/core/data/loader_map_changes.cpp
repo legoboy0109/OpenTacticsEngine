@@ -18,12 +18,7 @@ namespace {
 std::string q(const std::string& s) { return "\"" + s + "\""; }
 
 bool onlyKeys(const LoadCtx& c, const Json& o, std::initializer_list<const char*> keys, const std::string& where) {
-  for (const Json::Member& m : o.members()) {
-    bool ok = false;
-    for (const char* k : keys) ok = ok || m.first == k;
-    if (!ok) return c.fail(where, "unknown key " + q(m.first));
-  }
-  return true;
+  return c.onlyKeys(o, keys, where);
 }
 
 // A change's "tile" (a tile number of the map's tileset, or -1 / null = no tile).

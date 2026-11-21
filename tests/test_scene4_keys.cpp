@@ -184,7 +184,7 @@ TEST(scene4_at_range_load) {
   if (!load("range_plain", one("\"hitAtMs\":0"), plain)) return;
   CHECK(plain.graphics.battle.effects[0].atRange.empty() && plain.graphics.battle.effects[0].delayAt(5) == 0);
   Database none;
-  if (!load("range_none", one("\"x\":0"), none)) return;
+  if (!load("range_none", one("\"mode\":\"target\""), none)) return;
   CHECK(!none.graphics.battle.effects[0].extended);
   // A travel effect takes it too.
   Database tr;

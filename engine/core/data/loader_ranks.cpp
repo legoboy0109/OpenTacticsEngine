@@ -21,7 +21,7 @@ bool loadRanks(const std::string& path, Database& db, std::string& err) {
   if (!loadObjectFile(path, root, err)) return false;
   LoadCtx c(err, path);
   for (const Json::Member& m : root.members())
-    if (m.first != "growth" && m.first != "ranks") return c.fail("", "unknown key \"" + m.first + "\"");
+    if (m.first != "growth" && m.first != "ranks") return c.fail("", unknownKeyText(m.first, {"growth", "ranks"}));
   std::string growth = "fixed";
   if (!c.str(root, "growth", "", growth)) return false;
   if (growth != "fixed" && growth != "use") return c.fail("", "\"growth\" must be \"fixed\" or \"use\"");
@@ -42,7 +42,7 @@ bool loadRanks(const std::string& path, Database& db, std::string& err) {
       if (!idChar(ch)) return c.fail(where, "\"id\" must be lowercase letters, digits, \"_\" and \"-\" (got \"" + r.id + "\")");
     where = "rank \"" + r.id + "\"";
     for (const Json::Member& m : e.members())
-      if (m.first != "id" && m.first != "name" && m.first != "xp") return c.fail(where, "unknown key \"" + m.first + "\"");
+      if (m.first != "id" && m.first != "name" && m.first != "xp") return c.fail(where, unknownKeyText(m.first, {"id", "name", "xp"}));
     if (rules.findRank(r.id) >= 0) return c.fail(where, "duplicate id");
     r.name = r.id;
     if (!c.str(e, "name", where, r.name) || !c.integer(e, "xp", where, r.xp, true)) return false;
@@ -66,7 +66,7 @@ bool loadStatCaps(const std::string& path, Database& db, std::string& err) {
   if (!loadObjectFile(path, root, err)) return false;
   LoadCtx c(err, path);
   for (const Json::Member& m : root.members())
-    if (m.first != "caps" && m.first != "computerCaps") return c.fail("", "unknown key \"" + m.first + "\" (expected \"caps\", \"computerCaps\")");
+    if (m.first != "caps" && m.first != "computerCaps") return c.fail("", unknownKeyText(m.first, {"caps", "computerCaps"}));
   const Json* caps;
   if (!c.object(root, "caps", "", caps, true)) return false;
   // One map of stat id -> cap, from "caps" or "computerCaps"; empty when it names nothing.
