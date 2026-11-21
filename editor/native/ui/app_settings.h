@@ -31,6 +31,14 @@ class AppSettings {
   int tableViewMode(const QString& kind) const { return s_->value("view/table/" + kind, 1).toInt(); }
   void setTableViewMode(const QString& kind, int mode) { s_->setValue("view/table/" + kind, mode); }
 
+  // The map painter: zoom (1.0 = 100%), the chosen tool (map_tool.h key) and which overlays are shown.
+  double mapZoom() const { return s_->value("map/zoom", 1.0).toDouble(); }
+  void setMapZoom(double z) { s_->setValue("map/zoom", z); }
+  QString mapTool() const { return s_->value("map/tool", "paint").toString(); }
+  void setMapTool(const QString& key) { s_->setValue("map/tool", key); }
+  bool mapOverlay(const QString& name, bool def = true) const { return s_->value("map/overlay/" + name, def).toBool(); }
+  void setMapOverlay(const QString& name, bool on) { s_->setValue("map/overlay/" + name, on); }
+
   void sync() { s_->sync(); }
 
  private:

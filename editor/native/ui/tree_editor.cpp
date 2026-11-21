@@ -16,6 +16,7 @@
 #include "form_context.h"
 #include "form_view.h"
 #include "json_tree_model.h"
+#include "map_page.h"
 #include "project.h"
 
 namespace ote_native {
@@ -80,24 +81,41 @@ TreeEditor::TreeEditor(Project* project, JsonDocument* doc, QWidget* parent, con
   layout->addWidget(view_, 1);
   auto* root = new QVBoxLayout(this);
   root->setContentsMargins(0, 0, 0, 0);
-  if (!schema_) {
+  // A map file also gets the painter as its first page, with or without a schema.
+  const bool isMap = doc->relPath().startsWith(QLatin1String("maps/")) && doc->root()["tiles"].isArray();
+  if (!schema_ && !isMap) {
     root->addWidget(treePage_);
   } else {
-    formCtx_ = new FormContext(project, doc, ids, this);
-    form_ = new FormView(formCtx_, schema_->root.get(), this);
-    form_->setTarget({});
     pages_ = new QTabWidget(this);
     pages_->setObjectName("treePages");
     pages_->setTabPosition(QTabWidget::South);
     pages_->setDocumentMode(true);
-    const QString title = schema_->title.empty() ? tr("Form") : QString::fromStdString(schema_->title);
-    pages_->addTab(form_, title);
+    if (isMap) {
+      mapPage_ = new MapPage(project, doc, this);
+      pages_->addTab(mapPage_, tr("Painter"));  // the form page of a map is already called "Map"
+    }
+    if (schema_) {
+      formCtx_ = new FormContext(project, doc, ids, this);
+      form_ = new FormView(formCtx_, schema_->root.get(), this);
+      form_->setTarget({});
+      const QString title = schema_->title.empty() ? tr("Form") : QString::fromStdString(schema_->title);
+      pages_->addTab(form_, title);
+      connect(form_, &FormView::showInTreeRequested, this, [this](const JsonPath& p) {
+        showTreePage();
+        selectPath(p);
+      });
+    }
     pages_->addTab(treePage_, tr("Tree (all keys)"));
     root->addWidget(pages_);
-    connect(form_, &FormView::showInTreeRequested, this, [this](const JsonPath& p) {
-      showTreePage();
-      selectPath(p);
-    });
+    if (mapPage_)  // Inspect tool: jump to the unit's / structure's entry in the form (or the tree without a form)
+      connect(mapPage_, &MapPage::inspectRequested, this, [this](const JsonPath& p) {
+        if (form_ && form_->focusPath(p)) {
+          showFormPage();
+        } else {
+          showTreePage();
+          selectPath(p);
+        }
+      });
   }
 
   connect(delButton, &QPushButton::clicked, this, [this] { removeCurrent(); });
@@ -163,8 +181,16 @@ void TreeEditor::selectPath(const JsonPath& path) {
   view_->scrollTo(i);
 }
 
+void TreeEditor::setAppSettings(AppSettings* settings) {
+  if (mapPage_) mapPage_->setAppSettings(settings);
+}
+
+void TreeEditor::showMapPage() {
+  if (pages_ && mapPage_) pages_->setCurrentWidget(mapPage_);
+}
+
 void TreeEditor::showFormPage() {
-  if (pages_) pages_->setCurrentWidget(form_);
+  if (pages_ && form_) pages_->setCurrentWidget(form_);
 }
 
 void TreeEditor::showTreePage() {
