@@ -6,6 +6,7 @@
 #include <QResizeEvent>
 #include <QScrollBar>
 #include <QTimer>
+#include <QToolButton>
 #include <QVBoxLayout>
 
 #include "form_parts.h"
@@ -29,6 +30,16 @@ FormView::FormView(FormContext* ctx, const SchemaNode* node, QWidget* parent) : 
         if (auto* c = qobject_cast<ChoiceField*>(f.data())) c->refreshItems();
     });
   rebuild();
+}
+
+FormView::~FormView() { endDrag(false); }
+
+// The registered field the keyboard focus is in (its path), or nothing.
+QString FormView::currentFocusKey() const {
+  if (QWidget* fw = QApplication::focusWidget())
+    for (auto it = fields_.cbegin(); it != fields_.cend(); ++it)
+      if (it.value() && it.value()->isAncestorOf(fw)) return it.key();
+  return {};
 }
 
 void FormView::registerField(FieldBase* f) { fields_.insert(pathToString(f->path()), f); }
@@ -80,14 +91,21 @@ void FormView::rebuild() {
   rebuildPending_ = false;
   if (hasTarget_ && !ctx_->at(target_)) hasTarget_ = false;
   const int scroll = verticalScrollBar()->value();
-  QString focusKeyStr;
-  if (QWidget* fw = QApplication::focusWidget())
-    for (auto it = fields_.cbegin(); it != fields_.cend(); ++it)
-      if (it.value() && it.value()->isAncestorOf(fw)) { focusKeyStr = it.key(); break; }
+  endDrag(false);  // the grip being dragged is about to be replaced
+  // After a move the field that had the focus has another path: the move says which (pendingFocusKey_), or the grip / button
+  // that was used says which item to give the focus back to.
+  QString focusKeyStr = pendingFocusKey_.isEmpty() ? currentFocusKey() : pendingFocusKey_;
+  const QString focusItem = pendingFocusItem_, focusButton = pendingFocusButton_;
+  pendingFocusKey_.clear();
+  pendingFocusItem_.clear();
+  pendingFocusButton_.clear();
 
   QWidget* old = takeWidget();
   fields_.clear();
   anchors_.clear();
+  lists_.clear();
+  itemRows_.clear();
+  lazyOpen_.clear();
   expanders_.clear();
   discriminators_.clear();
   built_ = 0;
@@ -116,6 +134,15 @@ void FormView::rebuild() {
   if (scroll > 0) QTimer::singleShot(0, this, [this, scroll] { verticalScrollBar()->setValue(scroll); });
   if (!focusKeyStr.isEmpty())
     if (FieldBase* f = fields_.value(focusKeyStr).data()) f->focusTarget()->setFocus();
+  if (!focusItem.isEmpty())
+    if (QFrame* row = itemRows_.value(focusItem).data()) {
+      // The grip or button that moved the item gets the focus back (a disabled one, at the end of the list, hands it to its twin),
+      // and the item stays in view even when the move changed the layout above it.
+      QToolButton* b = row->findChild<QToolButton*>(focusButton);
+      if (!b || !b->isEnabled()) b = row->findChild<QToolButton*>(focusButton == "itemUp" ? "itemDown" : "itemUp");
+      if (b && b->isEnabled()) b->setFocus();
+      QTimer::singleShot(0, this, [this, row = QPointer<QFrame>(row)] { if (row) ensureWidgetVisible(row); });
+    }
 }
 
 void FormView::onChanged(const JsonChange& c) {

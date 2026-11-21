@@ -93,6 +93,7 @@ QWidget* FormView::lazyBody(const JsonPath& path, QBoxLayout* header, const std:
     holder->layout()->addWidget(make());
     bodyDepth_ = saved;
   };
+  lazyOpen_[key] = open;
   toggle->setChecked(open);
   toggle->setText(open ? QStringLiteral("▾") : QStringLiteral("▸"));
   if (open) build();
@@ -102,6 +103,7 @@ QWidget* FormView::lazyBody(const JsonPath& path, QBoxLayout* header, const std:
   }
   connect(toggle, &QToolButton::toggled, toggle, [this, toggle, holder, build, key](bool on) {
     toggle->setText(on ? QStringLiteral("▾") : QStringLiteral("▸"));
+    lazyOpen_[key] = on;
     if (on) {
       build();
       expanders_.remove(key);
@@ -293,7 +295,7 @@ QWidget* FormView::buildVariant(const SchemaNode& n, const JsonPath& path) {
         if (!value.has(m.first.c_str()))
           if (const SchemaNode* fld = shape->field(m.first))
             if (typeOk(*fld, m.second)) value.set(m.first, m.second);
-    ctx_->set(path, value, tr("Change %1 to %2").arg(pathToString(path), QString::fromStdString(n.variants[(size_t)i].name)));
+    ctx_->setField(n, path, value, tr("Change %1 to %2").arg(pathToString(path), QString::fromStdString(n.variants[(size_t)i].name)));
   });
   if (idx >= 0 && n.variants[(size_t)idx].node) v->addWidget(buildNode(*n.variants[(size_t)idx].node, path));
   return frame;
@@ -316,6 +318,12 @@ QWidget* FormView::buildList(const SchemaNode& n, const JsonPath& path) {
     v->addWidget(none);
   }
   const SchemaNode& of = n.of->resolved();
+  {
+    ListRows& lr = lists_[pathToString(path)];  // (an empty list takes drops too)
+    lr.widget = w;
+    lr.item = &of;
+    lr.path = path;
+  }
   // Long lists (a 300-command event) are built one page at a time: a form with hundreds of items would be slow to build and
   // useless to scroll. The page is remembered per list; opening a key on another page switches to it (expandAlong).
   const QString listKey = pathToString(path);
@@ -352,6 +360,8 @@ QWidget* FormView::buildList(const SchemaNode& n, const JsonPath& path) {
     rv->setSpacing(2);
     auto* bar = new QHBoxLayout;
     bar->setContentsMargins(0, 0, 0, 0);
+    bar->addWidget(makeDragHandle(path, i, row));  // (lazyBody puts the open / close arrow in front of it)
+    registerListItem(path, i, row);
     const bool compound = !of.isScalar();
     if (compound) {
       row->setFrameShape(QFrame::StyledPanel);
@@ -382,8 +392,8 @@ QWidget* FormView::buildList(const SchemaNode& n, const JsonPath& path) {
     auto* del = smallButton(QStringLiteral("×"), tr("Remove this item"), row, "itemRemove");
     up->setEnabled(i > 0);
     down->setEnabled(i + 1 < count);
-    connect(up, &QToolButton::clicked, this, [this, path, i] { ctx_->moveItem(path, i, i - 1); });
-    connect(down, &QToolButton::clicked, this, [this, path, i] { ctx_->moveItem(path, i, i + 1); });
+    connect(up, &QToolButton::clicked, this, [this, path, i] { moveListItem(path, i, path, i - 1, QStringLiteral("itemUp")); });
+    connect(down, &QToolButton::clicked, this, [this, path, i] { moveListItem(path, i, path, i + 2, QStringLiteral("itemDown")); });
     connect(dup, &QToolButton::clicked, this, [this, path, i] {
       if (const ote::Json* cur = ctx_->at(childPath(path, i))) ctx_->insertItem(path, i + 1, *cur);
     });

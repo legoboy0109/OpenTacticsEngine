@@ -39,7 +39,9 @@ void addStoryContexts(std::vector<Context>& c) {
   c.push_back({"gfx-main", "demo-economy", {},
                {"graphics:sheets", "graphics:unitMarker", "graphics:terrain", "graphics:units", "graphics:structures"},
                {{"graphics:terrain.*{picture}", R"({"sheet":"tiles","cell":[0,0]})"},
-                {"graphics:terrain.*{picture}.join", "[0,2]"},
+                {"graphics:terrain.*{picture}.join{one block}", "[0,2]"},
+                {"graphics:terrain.*{picture}.join{animation (several blocks)}", "[[0,2]]"},
+                {"graphics:terrain.*{picture}.join{animation (several blocks)}[]", "[0,2]"},
                 {"graphics:units.*{picture}", R"({"sheet":"units","cell":[0,0]})"},
                 {"graphics:units.*{picture}.walk", R"({"down":[[0,0]]})"},
                 {"graphics:units.*{picture}.sides", R"({"blue":{"sheet":"units","cell":[0,0]}})"},
@@ -59,9 +61,10 @@ void addStoryContexts(std::vector<Context>& c) {
                  R"("structures":{"fort":{"model":"models/fort.glb"}},"portraits":{"eirik":{"sheet":"units","cell":[0,0]}}}})"}},
                {"graphics:styles"},
                {{"graphics:styles.*.terrain.*{picture}", R"({"sheet":"iso_tiles","cell":[0,0]})"},
-                {"graphics:styles.*.terrain.*{picture}.join", "[0,0]"},
+
                 {"graphics:styles.*.terrain.*{picture}.stand", R"({"sheet":"stand","cell":[0,0]})"},
-                {"graphics:styles.*.terrain.*{picture}.stand.variants", "[[0,0]]"},
+                {"graphics:styles.*.terrain.*{picture}.stand.variants{cells of the sheet}", "[[0,0]]"},
+                {"graphics:styles.*.terrain.*{picture}.stand.variants{cells of the sheet}[]", "[0,0]"},
                 {"graphics:styles.*.terrain.*{picture}.stand.model", "\"models/fighter.glb\""},
                 {"graphics:styles.*.units.*{picture}", R"({"sheet":"iso_units","cell":[0,0]})"},
                 {"graphics:styles.*.units.*{picture}.walk", R"({"down":[[0,0]]})"},
@@ -76,8 +79,11 @@ void addStoryContexts(std::vector<Context>& c) {
   // A standing thing is a picture (sheet, cell, width) or a model (model, height, turn); the two never mix.
   c.push_back({"gfx-style-stand-model", "demo-srpg",
                {{"data/graphics.json", "styles", R"({"isometric-3d":{"terrain":{"plain":{"sheet":"iso_tiles","cell":[0,0],"stand":{"model":"models/fighter.glb"}}}}})"}},
-               {"graphics:styles.*.terrain.*{picture}.stand.model", "graphics:styles.*.terrain.*{picture}.stand.height", "graphics:styles.*.terrain.*{picture}.stand.turn"},
+               {"graphics:styles.*.terrain.*{picture}.stand.model", "graphics:styles.*.terrain.*{picture}.stand.height", "graphics:styles.*.terrain.*{picture}.stand.turn",
+                "graphics:styles.*.terrain.*{picture}.stand.variants{model files}"},
                {{"graphics:styles.*.terrain.*{picture}", R"({"sheet":"iso_tiles","cell":[0,0]})"},
+                // (a list of model files is only read when the standing thing has no sheet: the loader picks the picture kind first)
+                {"graphics:styles.*.terrain.*{picture}.stand.variants{model files}[]", "\"models/fighter.glb\""},
                 {"graphics:styles.*.terrain.*{picture}.stand", R"({"model":"models/fighter.glb"})"},
                 {"graphics:styles.*.terrain.*{picture}.stand.model", "\"models/fighter.glb\""}}});
 

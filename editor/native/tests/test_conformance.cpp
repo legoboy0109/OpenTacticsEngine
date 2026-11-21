@@ -48,6 +48,12 @@ const QString* extraSkipReason(const QString& note) {
   return nullptr;
 }
 
+// OTE_CONFORMANCE_ONLY="graphics:battle" tries only the keys that start so (a way to iterate on one section; unset: every key).
+bool filteredOut(const QString& keyId) {
+  static const QString only = qEnvironmentVariable("OTE_CONFORMANCE_ONLY");
+  return !only.isEmpty() && !keyId.startsWith(only);
+}
+
 // The last path component of an identity key: changing it would break every reference to the entry.
 bool isIdentityKey(const QString& keyPath) { return keyPath.endsWith(".id") || keyPath.endsWith(":id"); }
 
@@ -418,6 +424,7 @@ std::vector<ote_editor::Problem> ConformanceTest::place(const Context& c, const 
     }
     if (!existing) {
       node->set(step.toStdString(), sampleFor(c, keyId, *child, lookup));
+      for (const std::string& ex : child->excludes) node->erase(ex);  // (a join in place of a cell)
       existing = memberOf(*node, step.toStdString());
     }
     node = existing;
@@ -451,6 +458,7 @@ void ConformanceTest::everySchemaKeyIsAcceptedByTheLoader() {
   QMap<QString, int> skippedByReason;  // thousands of nested keys share one reason: print it once with a count
   int tested = 0, skippedCount = 0, extraChecked = 0;
   for (const KeyInfo& k : keys_) {
+    if (filteredOut(k.id)) continue;
     if (isIdentityKey(k.id)) {
       ++skippedCount;
       ++skippedByReason[QStringLiteral("identity keys: renaming one would break the references to the entry")];
@@ -502,7 +510,7 @@ void ConformanceTest::anInvalidValueIsRefusedNamingTheFile() {
   QStringList failures, notes;
   int checked = 0;
   for (const KeyInfo& k : keys_) {
-    if (isIdentityKey(k.id) || skipReason(k.id)) continue;
+    if (filteredOut(k.id) || isIdentityKey(k.id) || skipReason(k.id)) continue;
     const Context* c = contextFor(k.id);
     if (!c) continue;
     const SchemaNode& n = *k.node;
@@ -560,7 +568,7 @@ void ConformanceTest::everyOptionalBlockEnabledAloneIsAccepted() {
   int checked = 0;
   for (const KeyInfo& k : keys_) {
     if (k.node->kind != SchemaNode::Kind::Object || !k.node->block) continue;
-    if (skipReason(k.id)) continue;  // a block inside a skipped section (a nested copy of a definition tested elsewhere)
+    if (filteredOut(k.id) || skipReason(k.id)) continue;  // a block inside a skipped section (a nested copy of a definition tested elsewhere)
     const Context* c = contextFor(k.id);
     if (!c) continue;  // already reported by the key test
     auto ex = blockExcuses().find(k.id);

@@ -1,0 +1,6 @@
+{ "rules": { "points": { "endTurnAdjacent": 5, "fightTogether": 2 }, "range": 3, "conversations": "both" },
+  "pairs": [
+    { "a": "hero", "b": "ally",
+      "levels": [ { "points": 10, "bonus": { "hit": 5 },
+                    "talk": [ { "say": "Walk beside me.", "speaker": "hero", "portrait": "hero" }, { "say": "Always.", "speaker": "ally" } ] } ] },
+    { "a": "rival", "b": "hero", "levels": [ { "points": 10, "bonus": { "avoid": 5 } } ] } ] }

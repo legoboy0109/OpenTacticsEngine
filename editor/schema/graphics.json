@@ -4,6 +4,19 @@
   "defs": {
     "cell": { "type": "list", "length": 2, "sample": [0, 0], "of": { "type": "int", "min": 0, "max": 30000 }, "help": "[column, row] of a cell of the sheet, counted from 0." },
     "cells": { "type": "list", "of": { "use": "cell" }, "help": "A list of cells." },
+    "joinBlocks": {
+      "type": "variant", "help": "Joined edges: the top-left cell of a 4 x 4 block of cells (8 x 8 on hexagons), or a list of such blocks as animation frames.",
+      "variants": [
+        { "name": "one block", "kind": "array", "first": "number", "sample": [0, 2], "node": { "use": "cell", "help": "[column, row] of the block's top-left cell." } },
+        { "name": "animation (several blocks)", "kind": "array", "first": "array", "sample": [[0, 2]], "node": { "use": "cells", "help": "The top-left cell of each block, one per animation frame." } } ]
+    },
+    "standVariants": {
+      "type": "variant", "help": "Several pictures or several models; one is picked per square.",
+      "variants": [
+        { "name": "cells of the sheet", "kind": "array", "first": "array", "sample": [[0, 0]], "node": { "use": "cells", "help": "Cells [column, row], one picked per square." } },
+        { "name": "model files", "kind": "array", "first": "string", "sample": ["models/fighter.glb"],
+          "node": { "type": "list", "min": 1, "max": 64, "of": { "type": "string" }, "help": "Model files (.glb or .gltf in the game folder), one picked per square." } } ]
+    },
     "terrainLook": {
       "type": "object", "help": "How a terrain looks (exactly one of cell, variants, frames, join).",
       "fields": {
@@ -11,7 +24,7 @@
         "cell": { "use": "cell", "excludes": ["variants", "frames", "join"], "help": "One picture: its cell." },
         "variants": { "use": "cells", "excludes": ["cell", "frames", "join"], "help": "Several pictures; one is picked per square." },
         "frames": { "use": "cells", "excludes": ["cell", "variants", "join"], "help": "An animation: these cells one after the other (see frameMs)." },
-        "join": { "type": "json", "sample": [0, 0], "excludes": ["cell", "variants", "frames"], "help": "Joined edges: the top-left cell [col, row] of a 4 x 4 block (8 x 8 on hexagons), or a list of such blocks as animation frames." },
+        "join": { "use": "joinBlocks", "excludes": ["cell", "variants", "frames"] },
         "frameMs": { "type": "int", "min": 20, "max": 60000, "help": "Milliseconds per frame of an animation." },
         "joinWith": { "type": "list", "of": { "type": "ref", "ref": "data/terrain.json" }, "excludes": ["joinExcept"], "help": "Joins with these terrains as well as itself (join only)." },
         "joinExcept": { "type": "list", "of": { "type": "ref", "ref": "data/terrain.json" }, "excludes": ["joinWith"], "help": "Joins with every terrain except these (join only)." },
@@ -23,7 +36,7 @@
       "fields": {
         "sheet": { "type": "ref", "ref": "@sheets", "help": "The sheet of an upright picture." },
         "cell": { "use": "cell", "excludes": ["variants", "frames", "model"], "help": "One picture: its cell." },
-        "variants": { "type": "json", "excludes": ["cell", "frames", "model"], "help": "Several cells [[col, row], ...] or several model files [\"models/a.glb\", ...]; one is picked per square." },
+        "variants": { "use": "standVariants", "excludes": ["cell", "frames", "model"] },
         "frames": { "use": "cells", "excludes": ["cell", "variants", "model"], "help": "An animation of cells." },
         "model": { "type": "string", "excludes": ["cell", "variants", "frames"], "help": "A 3D model: a .glb or .gltf file inside the game folder." },
         "height": { "type": "number", "min": 0.1, "max": 16, "help": "Height in squares (a model only)." },
@@ -124,8 +137,7 @@
       "structures": { "type": "map", "ref": "data/structures.json", "of": { "use": "structureThing" }, "help": "The picture of each structure." },
       "portraits": { "type": "map", "free": true, "of": { "use": "portraitLook" }, "help": "Portraits by id (a character's id or the name a say line uses)." },
       "styles": { "type": "map", "ref": "game.json#styles", "of": { "use": "artSet" }, "help": "Art of a visual style of game.json: what it replaces (flat styles) or all it has (3D styles)." },
-      "battle": { "type": "json", "help": "The battle scene's animation sets and their assignment (docs/BATTLE_SCENE.md): kept as raw JSON for now; edit it in the tree view." },
-      "battleBackground": { "type": "json", "help": "The battle scene's background (docs/BATTLE_SCENE.md): kept as raw JSON for now." }
+      "battle": { "use": "_battle#battle" }
     }
   }
 }

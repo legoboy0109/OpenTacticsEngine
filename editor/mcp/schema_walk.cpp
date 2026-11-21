@@ -79,7 +79,7 @@ NodeAt schemaAt(const ote_editor::FileSchema* fs, const Json& root, const Concre
       next = cur->field(path[i].key);
       if (!next) { res.unknownKey = true; return res; }
     } else if (cur->kind == K::Map || cur->kind == K::List) {
-      next = cur->of.get();
+      next = cur->kind == K::List ? cur->itemNode(path[i].isIndex ? path[i].index : 0) : cur->of.get();
       if (!next) return res;
     } else {
       return NodeAt{nullptr, cur, val, res.key, false, false};  // below a scalar or raw json: the schema says nothing
@@ -172,7 +172,8 @@ void checkValue(const SchemaNode* nodeIn, const Json& v, const CheckEnv& env, co
       size_t i = 0;
       for (const Json& item : v.items()) {
         if (issues.size() >= 8) return;
-        checkValue(n.of.get(), item, env, path + "[" + std::to_string(i++) + "]", allowUnknown, issues);
+        checkValue(n.itemNode(i), item, env, path + "[" + std::to_string(i) + "]", allowUnknown, issues);
+        ++i;
       }
       return;
     }
@@ -187,7 +188,11 @@ Json variantList(const SchemaNode& node) {
     o.set("kind", jstr(v.name));
     if (!v.help.empty()) o.set("help", jstr(v.help));
     if (!v.matchKey.empty()) o.set("key", jstr(v.matchKey));
-    else if (!v.matchKind.empty()) o.set("jsonType", jstr(v.matchKind));
+    else if (!v.matchKind.empty()) {
+      o.set("jsonType", jstr(v.matchKind));
+      if (v.matchLength >= 0) o.set("items", jnum(v.matchLength));
+      if (!v.matchFirst.empty()) o.set("firstItem", jstr(v.matchFirst));
+    }
     else if (v.matchIsValue) o.set("value", v.matchValue);
     a.push(o);
   }
@@ -286,6 +291,14 @@ void describeInto(const SchemaNode& nodeIn, const CheckEnv& env, int depth, cons
       fields.set(f.first, fo);
     }
     o.set("keys", fields);
+  } else if (n.kind == K::List && !n.tuple.empty()) {
+    Json items = jarr();  // a fixed list whose positions differ: one description per position
+    for (const auto& t : n.tuple) {
+      Json item = jobj();
+      describeInto(*t, env, depth - 1, nullptr, item);
+      items.push(item);
+    }
+    o.set("positions", items);
   } else if ((n.kind == K::List || n.kind == K::Map) && n.of) {
     Json item = jobj();
     describeInto(*n.of, env, depth - 1, nullptr, item);

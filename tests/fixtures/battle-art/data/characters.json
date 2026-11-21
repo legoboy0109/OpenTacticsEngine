@@ -1,0 +1,14 @@
+{ "characters": [
+  { "id": "hero", "name": "Aldric", "description": "Captain of the company.", "type": "fighter", "level": 2,
+    "items": ["iron_sword", "potion"],
+    "quotes": {
+      "battle": [ { "once": "always", "lines": [ { "say": "Forward!", "speaker": "ally" }, { "say": "With me.", "speaker": "hero", "portrait": "hero" } ] } ],
+      "defeat": { "falls": [ { "say": "Remember me.", "speaker": "hero" } ] } } },
+  { "id": "ally", "name": "Brenna", "description": "An archer of the company.", "type": "archer", "level": 1,
+    "items": ["iron_sword"],
+    "quotes": {
+      "battle": [ { "against": "hero", "once": "always", "lines": [ { "say": "Captain!", "speaker": "hero" } ] },
+                  { "lines": [ { "say": "Steady." } ] } ],
+      "defeat": { "falls": [ { "say": "Tell the captain.", "speaker": "hero", "portrait": "hero" } ] } } },
+  { "id": "rival", "name": "Corin", "description": "Leads the other company.", "type": "grunt", "level": 2,
+    "quotes": { "battle": [ { "against": "hero", "once": "map", "lines": [ { "say": "We meet again.", "speaker": "rival" } ] } ] } } ] }

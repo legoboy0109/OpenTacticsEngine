@@ -10,6 +10,8 @@
 // long list of commands opens instantly; what the user opened or closed is remembered (per path) across rebuilds.
 #pragma once
 #include <QHash>
+#include <QList>
+#include <QPair>
 #include <QPointer>
 #include <QScrollArea>
 #include <QSet>
@@ -18,7 +20,9 @@
 #include "form_fields.h"
 
 class QBoxLayout;
+class QFrame;
 class QLabel;
+class QTimer;
 class QToolButton;
 
 namespace ote_native {
@@ -28,6 +32,7 @@ class FormView : public QScrollArea {
  public:
   // `node` is the Object node describing the target. The target is chosen with setTarget().
   FormView(FormContext* ctx, const SchemaNode* node, QWidget* parent = nullptr);
+  ~FormView() override;
 
   // Shows the object at `path` (empty path = the document root). A path that does not resolve clears the form.
   void setTarget(const JsonPath& path);
@@ -65,6 +70,17 @@ class FormView : public QScrollArea {
   static constexpr int kBudget = 220;  // nodes built before new containers start collapsed
   static constexpr size_t kPageSize = 50;  // list items built at once; longer lists get a page bar
 
+  // --- moving list items (form_drag.cpp) ---
+  // Moves item `from` of the list at `srcList` to `to` (the index it is inserted before, counted before the move) of the same list
+  // or of another list of this file with items of the same kind: one undo step. The items that were open stay open, and the
+  // keyboard focus goes with the item: to its field, or to the button named `focusButton` (the grip, "itemUp", "itemDown").
+  bool moveListItem(const JsonPath& srcList, size_t from, const JsonPath& dstList, size_t to, const QString& focusButton = QStringLiteral("dragHandle"));
+  // The grip of an item (tests press and drag it), nullptr when that item is not built.
+  QWidget* dragHandleAt(const JsonPath& list, size_t index) const;
+  bool isDragging() const { return drag_ != nullptr; }
+  // While dragging: where the item would go (the list's path and index), or false when it would not move.
+  bool dropTarget(JsonPath* list, size_t* index) const;
+
   // --- used by the fields ---
   void registerField(FieldBase* f);
   void requestRebuild();
@@ -85,6 +101,12 @@ class FormView : public QScrollArea {
   void rebuild();
   void onChanged(const JsonChange& c);
   QWidget* buildList(const SchemaNode& node, const JsonPath& path);
+  QToolButton* makeDragHandle(const JsonPath& list, size_t index, QWidget* parent);
+  void registerListItem(const JsonPath& list, size_t index, QFrame* row);
+  void beginDrag(const JsonPath& list, size_t index, QPoint global);
+  void updateDrag(QPoint global);
+  void endDrag(bool drop);
+  QString currentFocusKey() const;
   QWidget* buildMap(const SchemaNode& node, const JsonPath& path);
   QWidget* buildFreeMap(const SchemaNode& node, const JsonPath& path);
   QWidget* buildBlock(const SchemaNode& node, const JsonPath& path);
@@ -110,6 +132,20 @@ class FormView : public QScrollArea {
   QHash<QString, std::function<void()>> expanders_;  // collapsed containers: opens one
   QSet<QString> open_, closed_;                      // what the user opened / closed (survives rebuilds)
   QHash<QString, size_t> pages_;                     // the page each long list shows (survives rebuilds)
+  // List items, for moving them: the built lists with their rows, the rows by item path, the drag in progress, and where the
+  // focus goes after the next rebuild (a move changes every path below it).
+  struct ListRows {
+    QPointer<QWidget> widget;
+    const SchemaNode* item = nullptr;
+    JsonPath path;
+    QList<QPair<size_t, QPointer<QFrame>>> rows;
+  };
+  struct DragState;
+  QHash<QString, ListRows> lists_;
+  QHash<QString, QPointer<QFrame>> itemRows_;
+  QHash<QString, bool> lazyOpen_;  // every collapsible container built, and whether it is open now
+  DragState* drag_ = nullptr;
+  QString pendingFocusKey_, pendingFocusItem_, pendingFocusButton_;
   QSet<QString> discriminators_;  // paths whose change alters which fields / shape apply: the form is rebuilt for them
 };
 
