@@ -88,18 +88,6 @@ void drawLayer(bool opaque) {
   hw3d::setScissor(all);
   hw3d::setConstants(c);
   hw3d::setPipe(pipe, tex);
-  if (!opaque) {
-    // Debug: OTE_XBOX_CHIPLOAD=N (args.txt) draws N tiny rectangles (4 x 4 pixels in the corner) before the last layer, the HUD:
-    // the chip is busy for a good part of the frame with the HUD still missing, so a frame shown while the chip is drawing it (a race
-    // in the flip, hw3d_gpu.cpp beginFrame) is caught by many screenshots instead of one in a few hundred
-    // (tools/xbox-og/flicker_check.py).
-    static int load = -1;
-    if (load < 0) {
-      const char* e = getenv("OTE_XBOX_CHIPLOAD");
-      load = e ? atoi(e) : 0;
-    }
-    for (int i = 0; i < load; ++i) hw3d::drawQuad(0, 0, 4, 4, 0, 0, 1, 1, 0xFFFFFFFFu);
-  }
   if (g_fit.canvasW > 0) {
     // Chip scaling: the canvas covers only the fitted rectangle, so the first layer blacks out the margin around it first
     // (the 3D picture and the later layers only draw inside it).

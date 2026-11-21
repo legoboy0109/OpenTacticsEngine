@@ -248,11 +248,15 @@ square" answers (`Map3D::hiddenAt`) are thrown away whenever the camera key chan
 `args.txt`: `OTE_LOG_LEVEL=debug` prints every 120 frames `frame flip: frames .., chip still busy at the blank .., drawn into the shown
 buffer: at start .., at end ..; blanks since last frame 0:.. 1:.. 2:.. 3+:..; meshes rewritten while the chip may read them ..` (with the
 rule on: "at end" 0 and "at start" counts the waits; with `OTE_XBOX_FLIP=unsafe`: "at end" = every frame), `OTE_XBOX_FRAMEMARK=1` paints
-the frame number as 16 white squares in the screen corner as the last thing of every frame, `OTE_XBOX_CHIPLOAD=N` keeps the chip busy
-longer before the HUD. Then `flicker_check.py 'shots/<prefix>-*s-*.png' --framemark 640` (1280 at 720p) says how many shots show a
+the frame number as 16 white squares in the screen corner as the last thing of every frame. Then `flicker_check.py 'shots/<prefix>-*s-*.png' --framemark 640` (1280 at 720p) says how many shots show a
 picture without its number or HUD (torn), whether the numbers ever go backwards, jump over 4 between two shots or repeat. Scripts used:
 `OpenTacticsEngine-OGXbox/scripts/flk-*` (a scripted camera turn with cursor moves in full 3D, 3D isometric and Hex Wars, at 480, 480
 16:9 and 720p, each with and without `OTE_XBOX_FLIP=unsafe`).
+Measured (60 screenshots a burst, quiet host): without the rule 1 to 5 of 120 shots in a scripted turn showed no frame number or went
+backwards (full 3D, 3D isometric, Hex Wars; the launcher in 2D showed numbers going backwards and 13% repeats); with four busy loops
+on the host 18 of 120 shots in 3D isometric were half-drawn (`shots/flicker-before-loaded-host-torn.png`). With the rule: no incomplete
+shot, nothing backwards, in 2D, full 3D, 3D isometric and Hex Wars at 480, 480 16:9 and 720p, also with the loops
+(`flicker-after-loaded-host-ok.png`); the frame interval stays 16.66 ms (`perf2-*`).
 
 What is certain about a real console is the structure, not the numbers: 1.0 MB or less copied to write-combined memory a frame, a few
 hundred thousand pixels of CPU drawing, 80 to 90 KB of vertex data written, 8 to 10 draws, 2,600 triangles and 22 KB of push buffer
