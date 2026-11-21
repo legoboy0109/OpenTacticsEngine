@@ -146,6 +146,17 @@ address and the remembered choices in `src/play/playOptions.ts`; each change sta
   that level for this run (docs/DIFFICULTY.md "Test level"); the player gets `testlevel=auto|N`. Remembered per map of the project.
   "Automatic" is the hostile units' average level + 2. It shows the number the player settled on, read back from the player's own log line (the embedded page posts
   `{type:"ote-player-testlevel", level}`), e.g. "Automatic (7)", once the game has started.
+- **Frame size** (no choice, nothing to switch): the player's frame is exactly the largest whole multiple (1x, 2x, 3x...) of the game's view
+  (`view.width` x `view.height` of game.json, default 480x270) that fits the space under the header, measured in device pixels (CSS size = k x view /
+  `devicePixelRatio`, so the canvas backing store is k x view and one canvas pixel is one device pixel), centred in the panel, and worked out again when
+  the panel or window is resized or the ratio changes (`ResizeObserver`; `src/play/wholeFit.ts`). The picture therefore grows in steps with the window,
+  has no border inside the frame and is never scaled by a fraction (the player's own "Whole-number scaling", docs/GRAPHICS.md). A frame is laid out in
+  whole CSS pixels (its inner size is rounded, and the player sizes its canvas from that), so the panel picks the whole CSS size whose canvas is exactly
+  k x view device pixels (`cssFor`); where none is (e.g. 960 px at ratio 1.75) it takes the next size up, which leaves the canvas a pixel over, never
+  short (a short canvas would show the picture at (k-1)x), and the picture is still exactly k x. After each size change (and when the player is ready) the panel
+  sends the frame a `resize` event so the player measures its canvas again (the player left it a pixel short at fractional sizes otherwise). When even 1x
+  does not fit, the frame fills the space and the player fits the picture to it as before. Tests: `tests/unit/wholeFit.test.ts`, `tests/e2e/play-fit.spec.ts`
+  (window sizes 1280x900, 2560x1401, and ratios 1.25, 1.1, 1.75, then a smaller window and back).
 - The embedded player never saves (`--no-saving`), so a test run cannot touch a real Continue save or slot, and there is no Continue to
   continue: Restart starts the same test run again. Tests: `tests/unit/playOptions.test.ts`, `tests/e2e/testplay.spec.ts` (desktop and
   360 px; it judges the iframe's address only).

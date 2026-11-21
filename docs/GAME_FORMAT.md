@@ -642,8 +642,11 @@ to every game; any single option can be overridden for one game. Lookup
 order for an option, highest first: command-line flag, per-game override,
 global value, the game's own default (e.g. `font`, the first style), then the
 engine default. The options today are `font`, `fontSize`, `uiScale`
-(percent; multiplies the text size, rounded) and `style` (a style id above;
-a game that lacks the chosen id uses its first style). An explicit
+(percent; multiplies the text size, rounded), `style` (a style id above;
+a game that lacks the chosen id uses its first style) and `integerScale`
+(`true` / `false`, default `true`: "Whole-number scaling", the picture is shown
+only at 1x, 2x, 3x... of the game's view, centred with a plain border; false
+fits it to the window at any size; docs/GRAPHICS.md; flag `--integer-scale on|off`). An explicit
 `fontSize` wins; otherwise the size of the font in use applies (the game's
 `font.size` only while the game's own font is in use). The built-in `pixel`
 font only grows in whole multiples of 8.
