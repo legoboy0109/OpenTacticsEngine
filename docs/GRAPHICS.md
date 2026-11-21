@@ -465,6 +465,20 @@ defence, sight and everything else; the rules core keeps no tile in its state, b
   pixels (`platform/common/pixel_snap.h`, unit-tested in `tests/test_pixel_snap.cpp`; whole scales are untouched). Test: `tests/fixtures/tiles-sparse`
   (black terrain, a sheet of one bright tile among transparent cells, made by the test) in `tools/webtest/suites/tiles.mjs`, which scans the
   screenshot of the embedded player at nine canvas sizes for dark lines between the squares.
+- **Seams in a browser without WebGL** (found in the editor's Play panel, a 1178 x 716 canvas, scale 2.454 x 2.452; `tiles.mjs` and `scroll.mjs`
+  never saw it because they run with WebGL): when the browser refuses WebGL the player logs "this browser gave no WebGL" and SDL draws with its
+  SOFTWARE renderer, which places a rectangle by truncating `(int)(x * scale)` and `(int)(w * scale)` separately. The snapped numbers come back
+  from the float multiply a hair under the whole pixel about as often as a hair over, so some neighbours ended up one pixel apart: lines in the
+  background colour, one device pixel wide, the full length of the picture (units too, they are square-aligned), on irregular tile edges that
+  change as the camera moves. Measured with the sweep in the 2560 x 1401 window: GPU renderers (SwiftShader, ANGLE on GL, Vulkan and EGL on a
+  Radeon) drew no seam in 60 frames; with `--disable-webgl` 58 of 60 frames had one. `OutputMap::nudge` (1/32 device pixel, set only when
+  `SDL_GetRendererName` is "software", pushed away from zero so negative positions truncate right as well) fixes it; the GPU renderers place
+  real floats and get none. Test: `tools/webtest/suites/software.mjs` (its own Chromium with WebGL off, the Play panel's size included) and
+  `pixel_snap_survives_a_renderer_that_truncates` in `tests/test_pixel_snap.cpp`.
+- **Canvas backing store vs. SDL's size at fractional devicePixelRatio** (not a seam so far, noted for the next look): at 1.25 the editor's
+  1178 px wide frame has a canvas `width` of 1472 while SDL reports 1473 window pixels (1178 x 1.25 = 1472.5, SDL rounds up, the canvas
+  attribute is floored), so the renderer's idea of the output (scale 3.06875) is one pixel wider than the real framebuffer. Nothing visible
+  in 60 frames at 1.25 and 1.5; whole scales and dpr 1 are exact.
 - **Performance**: the 2D view and the 3D views batch tiles like terrain pictures (one textured quad or blit per visible square per frame); measured on a 60 x 40 map in the headless player (300 frames): 2D 0.68 s without the layer, 0.77 s with; isometric 0.56 s / 0.63 s; 3D isometric 0.76 s / 1.23 s and full 3D 0.87 s / 1.44 s with the software 3D drawer (the extra is the 2,400 tile quads a frame).
 
 In memory: `Graphics::tilesets` (`TilesetDef`: `sheet`, `cols`, `rows`, `anims`; `frame(tile, ms)`, `cell(tile)`: `engine/core/data/tileset.h`), the map's

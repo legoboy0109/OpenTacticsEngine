@@ -17,7 +17,7 @@ import { thinLines, sparseSheetPng } from './tiles.mjs';
 export const name = 'scroll';
 
 // Walks the cursor right and down (and back), taking a shot after each step; returns the seam counts.
-async function walk(s, page, env, label, steps) {
+export async function walk(s, page, env, label, steps) {
   let vertical = 0, horizontal = 0, shots = 0, worst = '';
   const seq = [];
   for (let i = 0; i < steps; i++) seq.push(i % 5 === 4 ? 'ArrowDown' : 'ArrowRight');

@@ -23,6 +23,11 @@ namespace ote {
 struct OutputMap {
   float scaleX = 1, scaleY = 1;
   float offX = 0, offY = 0;
+  // For a backend that places a rectangle by TRUNCATING the scaled numbers to ints (SDL's software renderer: `(int)(x * scale)` and
+  // `(int)(w * scale)`, each on its own). The snapped edges are whole device pixels, but (a / k) * k comes back as 57.99999 about as
+  // often as 58.00001, and truncation turns the first into 57: a one-pixel gap (or overlap) between neighbours. The nudge (device
+  // pixels, 0 = off, the default) pushes every number a little away from zero so truncation lands on the intended pixel.
+  float nudge = 0;
   bool known = false;  // false until the backend has asked its renderer for the mapping: rectangles then go through unchanged
 };
 
@@ -35,13 +40,15 @@ inline bool outputMapIsWhole(const OutputMap& m) {
 
 // One axis: the logical interval [pos, pos + size) becomes the device interval [a, b) with whole numbers, b >= a + 1, and is
 // returned as logical position / size (what the backend multiplies by `scale` again).
-inline void snapSpan(float scale, float off, int pos, int size, float& outPos, float& outSize) {
+inline void snapSpan(float scale, float off, float nudge, int pos, int size, float& outPos, float& outSize) {
   const double k = (double)scale;
   double a = std::floor((double)pos * k + (double)off + 0.5);
   double b = std::floor((double)(pos + size) * k + (double)off + 0.5);
   if (b < a + 1) b = a + 1;  // never vanishes (a downscaled 1-pixel line)
-  outPos = (float)((a - (double)off) / k);
-  outSize = (float)((b - a) / k);
+  const double p = a - (double)off;  // the device position the backend multiplies back to (a whole number)
+  const double n = (double)nudge;
+  outPos = (float)((p < 0 ? p - n : p + n) / k);  // away from zero: truncation (toward zero) then keeps p
+  outSize = (float)((b - a + n) / k);
 }
 
 // A rectangle in logical pixels to the rectangle (still in logical pixels) whose device edges are whole pixels.
@@ -53,8 +60,8 @@ inline void snapRect(const OutputMap& m, int x, int y, int w, int h, float& ox, 
     oh = (float)h;
     return;
   }
-  snapSpan(m.scaleX, m.offX, x, w, ox, ow);
-  snapSpan(m.scaleY, m.offY, y, h, oy, oh);
+  snapSpan(m.scaleX, m.offX, m.nudge, x, w, ox, ow);
+  snapSpan(m.scaleY, m.offY, m.nudge, y, h, oy, oh);
 }
 
 }  // namespace ote
