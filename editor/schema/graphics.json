@@ -1,0 +1,130 @@
+{
+  "title": "Graphics",
+  "files": ["data/graphics.json", "art/*.style.json"],
+  "defs": {
+    "cell": { "type": "list", "length": 2, "sample": [0, 0], "of": { "type": "int", "min": 0, "max": 30000 }, "help": "[column, row] of a cell of the sheet, counted from 0." },
+    "cells": { "type": "list", "of": { "use": "cell" }, "help": "A list of cells." },
+    "terrainLook": {
+      "type": "object", "help": "How a terrain looks (exactly one of cell, variants, frames, join).",
+      "fields": {
+        "sheet": { "type": "ref", "ref": "@sheets", "required": true, "help": "The sheet the picture is in." },
+        "cell": { "use": "cell", "excludes": ["variants", "frames", "join"], "help": "One picture: its cell." },
+        "variants": { "use": "cells", "excludes": ["cell", "frames", "join"], "help": "Several pictures; one is picked per square." },
+        "frames": { "use": "cells", "excludes": ["cell", "variants", "join"], "help": "An animation: these cells one after the other (see frameMs)." },
+        "join": { "type": "json", "sample": [0, 0], "excludes": ["cell", "variants", "frames"], "help": "Joined edges: the top-left cell [col, row] of a 4 x 4 block (8 x 8 on hexagons), or a list of such blocks as animation frames." },
+        "frameMs": { "type": "int", "min": 20, "max": 60000, "help": "Milliseconds per frame of an animation." },
+        "joinWith": { "type": "list", "of": { "type": "ref", "ref": "data/terrain.json" }, "excludes": ["joinExcept"], "help": "Joins with these terrains as well as itself (join only)." },
+        "joinExcept": { "type": "list", "of": { "type": "ref", "ref": "data/terrain.json" }, "excludes": ["joinWith"], "help": "Joins with every terrain except these (join only)." },
+        "joinEdge": { "type": "bool", "help": "The map edge counts as a neighbour of the same terrain (join only)." },
+        "stand": { "use": "standLook", "help": "Something that stands on the squares in 3D styles (trees, rocks)." } }
+    },
+    "standLook": {
+      "type": "object", "help": "An upright thing on a terrain in a 3D style: a picture or a 3D model.",
+      "fields": {
+        "sheet": { "type": "ref", "ref": "@sheets", "help": "The sheet of an upright picture." },
+        "cell": { "use": "cell", "excludes": ["variants", "frames", "model"], "help": "One picture: its cell." },
+        "variants": { "type": "json", "excludes": ["cell", "frames", "model"], "help": "Several cells [[col, row], ...] or several model files [\"models/a.glb\", ...]; one is picked per square." },
+        "frames": { "use": "cells", "excludes": ["cell", "variants", "model"], "help": "An animation of cells." },
+        "model": { "type": "string", "excludes": ["cell", "variants", "frames"], "help": "A 3D model: a .glb or .gltf file inside the game folder." },
+        "height": { "type": "number", "min": 0.1, "max": 16, "help": "Height in squares (a model only)." },
+        "turn": { "type": "number", "min": -360, "max": 360, "help": "Degrees the model is turned (a model only)." },
+        "width": { "type": "int", "min": 1, "max": 512, "help": "Width in pixels (an upright picture only)." },
+        "frameMs": { "type": "int", "min": 20, "max": 60000, "help": "Milliseconds per frame." },
+        "scatter": { "type": "bool", "help": "Placed at random spots in the square." } }
+    },
+    "spriteLook": {
+      "type": "object", "help": "A picture of a unit or structure: one cell, or an animation.",
+      "fields": {
+        "sheet": { "type": "ref", "ref": "@sheets", "required": true, "help": "The sheet the picture is in." },
+        "cell": { "use": "cell", "excludes": ["frames"], "help": "One picture: its cell." },
+        "frames": { "use": "cells", "excludes": ["cell"], "help": "An animation: these cells one after the other." },
+        "frameMs": { "type": "int", "min": 20, "max": 60000, "help": "Milliseconds per frame." },
+        "sides": { "type": "map", "free": true, "help": "Another picture for a side of the map (by side id).", "of": { "type": "object", "fields": {
+          "sheet": { "type": "ref", "ref": "@sheets", "required": true, "help": "The sheet." },
+          "cell": { "use": "cell", "excludes": ["frames"], "help": "One picture: its cell." },
+          "frames": { "use": "cells", "excludes": ["cell"], "help": "An animation." },
+          "frameMs": { "type": "int", "min": 20, "max": 60000, "help": "Milliseconds per frame." } } } } }
+    },
+    "unitLook": { "use": "spriteLook", "moreFields": {
+      "walk": { "type": "object", "block": true, "enable": { "down": [[0, 0]] }, "help": "Frames while the unit moves (down, up and side or left / right).", "fields": {
+          "sheet": { "type": "ref", "ref": "@sheets", "help": "The sheet of the walk frames (default: the picture's own)." },
+          "down": { "use": "cells", "help": "Frames walking down (1 to 64)." },
+          "up": { "use": "cells", "help": "Frames walking up." },
+          "side": { "use": "cells", "help": "Frames walking right; left is the same turned round." },
+          "left": { "use": "cells", "help": "Own frames walking left." },
+          "right": { "use": "cells", "help": "Own frames walking right." },
+          "frameMs": { "type": "int", "min": 20, "max": 60000, "help": "Milliseconds per walk frame." } } } } },
+    "modelLook": {
+      "type": "object", "help": "A 3D model of a unit or structure.",
+      "fields": {
+        "model": { "type": "string", "required": true, "help": "A .glb or .gltf file inside the game folder." },
+        "height": { "type": "number", "min": 0.1, "max": 16, "default": 1, "help": "Height in squares." },
+        "turn": { "type": "number", "min": -360, "max": 360, "default": 0, "help": "Degrees the model is turned." },
+        "sideMaterial": { "type": "string", "help": "Name of the model's material that takes the side's colour." } }
+    },
+    "unitThing": {
+      "type": "variant", "help": "The art of a unit type: a 3D model, a picture, or none.",
+      "variants": [
+        { "name": "3D model", "key": "model", "node": { "use": "modelLook" } },
+        { "name": "picture", "kind": "object", "node": { "use": "unitLook" } },
+        { "name": "no art", "value": null } ]
+    },
+    "structureThing": {
+      "type": "variant", "help": "The art of a structure: a 3D model, a picture, or none.",
+      "variants": [
+        { "name": "3D model", "key": "model", "node": { "use": "modelLook" } },
+        { "name": "picture", "kind": "object", "node": { "use": "spriteLook" } },
+        { "name": "no art", "value": null } ]
+    },
+    "terrainEntry": {
+      "type": "variant", "help": "The art of a terrain, or none.",
+      "variants": [
+        { "name": "picture", "kind": "object", "node": { "use": "terrainLook" } },
+        { "name": "no art", "value": null } ]
+    },
+    "portraitLook": {
+      "type": "object", "help": "A portrait: one cell, with optional talking and blinking frames.",
+      "fields": {
+        "sheet": { "type": "ref", "ref": "@sheets", "required": true, "help": "The sheet the portrait is in." },
+        "cell": { "use": "cell", "required": true, "help": "The portrait's cell." },
+        "faces": { "type": "enum", "values": ["left", "right"], "help": "The way the picture looks, so the game can mirror it." },
+        "talk": { "use": "cells", "help": "Frames shown while the person talks (1 to 8)." },
+        "blink": { "use": "cells", "help": "Frames shown when the person blinks (1 to 8)." } }
+    },
+    "artSet": {
+      "type": "object", "help": "Art by id: terrain, units, structures and portraits.",
+      "fields": {
+        "terrain": { "type": "map", "ref": "data/terrain.json", "of": { "use": "terrainEntry" }, "help": "How each terrain looks." },
+        "units": { "type": "map", "ref": "data/units.json", "of": { "use": "unitThing" }, "help": "The picture or model of each unit type." },
+        "structures": { "type": "map", "ref": "data/structures.json", "of": { "use": "structureThing" }, "help": "The picture or model of each structure." },
+        "portraits": { "type": "map", "free": true, "of": { "use": "portraitLook" }, "help": "Portraits by id (a character's id or the name a say line uses)." } }
+    }
+  },
+  "root": {
+    "type": "object",
+    "fields": {
+      "sheets": { "type": "list", "help": "The picture files (.png in the game folder), cut into cells.", "of": { "type": "object", "fields": {
+        "id": { "type": "string", "required": true, "help": "Unique id the art below names the sheet by." },
+        "file": { "type": "string", "required": true, "help": "A .png file inside the game folder, such as art/tiles.png." },
+        "cellWidth": { "type": "int", "required": true, "min": 1, "help": "Width of one cell in pixels." },
+        "cellHeight": { "type": "int", "required": true, "min": 1, "help": "Height of one cell in pixels." },
+        "smooth": { "type": "bool", "help": "Scaled smoothly (for painted art) instead of with hard pixels." } } } },
+      "unitMarker": { "type": "bool", "help": "Draw the side's colour marker under a unit's picture." },
+      "backgrounds": { "type": "map", "free": true, "help": "Story backgrounds by id (letters, digits, _ and -): a whole sheet or one cell.", "of": { "type": "object", "fields": {
+        "sheet": { "type": "ref", "ref": "@sheets", "required": true, "help": "The sheet." },
+        "cell": { "use": "cell", "help": "One cell of it (default: the whole sheet)." } } } },
+      "tilesets": { "type": "map", "free": true, "help": "Tilesets of a map's tile layer by id: a sheet whose cells are numbered tiles.", "of": { "type": "object", "fields": {
+        "sheet": { "type": "ref", "ref": "@sheets", "required": true, "help": "The sheet." },
+        "animations": { "type": "map", "free": true, "help": "Animated tiles by tile number.", "of": { "type": "object", "fields": {
+          "frames": { "type": "list", "required": true, "min": 2, "of": { "type": "int", "min": 0 }, "help": "Tile numbers shown one after the other (2 to 64)." },
+          "ms": { "type": "int", "required": true, "min": 20, "max": 60000, "help": "Milliseconds per frame." } } } } } } },
+      "terrain": { "type": "map", "ref": "data/terrain.json", "of": { "use": "terrainEntry" }, "help": "How each terrain looks in the flat views." },
+      "units": { "type": "map", "ref": "data/units.json", "of": { "use": "unitThing" }, "help": "The picture of each unit type." },
+      "structures": { "type": "map", "ref": "data/structures.json", "of": { "use": "structureThing" }, "help": "The picture of each structure." },
+      "portraits": { "type": "map", "free": true, "of": { "use": "portraitLook" }, "help": "Portraits by id (a character's id or the name a say line uses)." },
+      "styles": { "type": "map", "ref": "game.json#styles", "of": { "use": "artSet" }, "help": "Art of a visual style of game.json: what it replaces (flat styles) or all it has (3D styles)." },
+      "battle": { "type": "json", "help": "The battle scene's animation sets and their assignment (docs/BATTLE_SCENE.md): kept as raw JSON for now; edit it in the tree view." },
+      "battleBackground": { "type": "json", "help": "The battle scene's background (docs/BATTLE_SCENE.md): kept as raw JSON for now." }
+    }
+  }
+}

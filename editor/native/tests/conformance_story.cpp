@@ -35,6 +35,52 @@ void addStoryContexts(std::vector<Context>& c) {
                {SC "{playMusic}", SC "{stopMusic}", SC "{playSound}", "campaign:chapters[].before{music and commands}.music"}, {}});
   c.push_back({"campaign-background", "scene-pres", {}, {SC "{background}"}, {}});
 
+  // --- data/graphics.json (and the style fragments art/*.style.json, which the engine itself never reads: same keys, tried here) ---
+  c.push_back({"gfx-main", "demo-economy", {},
+               {"graphics:sheets", "graphics:unitMarker", "graphics:terrain", "graphics:units", "graphics:structures"},
+               {{"graphics:terrain.*{picture}", R"({"sheet":"tiles","cell":[0,0]})"},
+                {"graphics:terrain.*{picture}.join", "[0,2]"},
+                {"graphics:units.*{picture}", R"({"sheet":"units","cell":[0,0]})"},
+                {"graphics:units.*{picture}.walk", R"({"down":[[0,0]]})"},
+                {"graphics:units.*{picture}.sides", R"({"blue":{"sheet":"units","cell":[0,0]}})"},
+                {"graphics:structures.*{picture}", R"({"sheet":"structures","cell":[0,0]})"},
+                {"graphics:structures.*{picture}.sides", R"({"blue":{"sheet":"structures","cell":[0,0]}})"},
+                {"graphics:sheets[].file", "\"art/tiles.png\""}}});
+  c.push_back({"gfx-tilesets", "demo-economy",
+               {{"data/graphics.json", "tilesets", R"({"t":{"sheet":"tiles","animations":{"0":{"frames":[0,1],"ms":200}}}})"}},
+               {"graphics:tilesets"},
+               {{"graphics:tilesets.*.animations", R"({"0":{"frames":[0,1],"ms":200}})"}, {"graphics:tilesets.*.animations.*.frames", "[0,1]"}}});
+  c.push_back({"gfx-extra", "scene-pres", {}, {"graphics:portraits", "graphics:backgrounds"}, {}});
+
+  // A 3D style of demo-srpg (the first entry of `styles` is what the keys are tried in): sprites, models and standing things.
+  c.push_back({"gfx-style", "demo-srpg",
+               {{"data/graphics.json", "styles",
+                 R"({"isometric-3d":{"terrain":{"plain":{"sheet":"iso_tiles","cell":[0,0]}},"units":{"lord":{"sheet":"iso_units","cell":[0,0]}},)"
+                 R"("structures":{"fort":{"model":"models/fort.glb"}},"portraits":{"eirik":{"sheet":"units","cell":[0,0]}}}})"}},
+               {"graphics:styles"},
+               {{"graphics:styles.*.terrain.*{picture}", R"({"sheet":"iso_tiles","cell":[0,0]})"},
+                {"graphics:styles.*.terrain.*{picture}.join", "[0,0]"},
+                {"graphics:styles.*.terrain.*{picture}.stand", R"({"sheet":"stand","cell":[0,0]})"},
+                {"graphics:styles.*.terrain.*{picture}.stand.variants", "[[0,0]]"},
+                {"graphics:styles.*.terrain.*{picture}.stand.model", "\"models/fighter.glb\""},
+                {"graphics:styles.*.units.*{picture}", R"({"sheet":"iso_units","cell":[0,0]})"},
+                {"graphics:styles.*.units.*{picture}.walk", R"({"down":[[0,0]]})"},
+                {"graphics:styles.*.units.*{picture}.sides", R"({"blue":{"sheet":"iso_units","cell":[0,0]}})"},
+                {"graphics:styles.*.units.*{3D model}", R"({"model":"models/fighter.glb"})"},
+                {"graphics:styles.*.units.*{3D model}.model", "\"models/fighter.glb\""},
+                {"graphics:styles.*.structures.*{picture}", R"({"sheet":"structures","cell":[0,0]})"},
+                {"graphics:styles.*.structures.*{picture}.sides", R"({"blue":{"sheet":"structures","cell":[0,0]}})"},
+                {"graphics:styles.*.structures.*{3D model}", R"({"model":"models/fort.glb"})"},
+                {"graphics:styles.*.structures.*{3D model}.model", "\"models/fort.glb\""}}});
+
+  // A standing thing is a picture (sheet, cell, width) or a model (model, height, turn); the two never mix.
+  c.push_back({"gfx-style-stand-model", "demo-srpg",
+               {{"data/graphics.json", "styles", R"({"isometric-3d":{"terrain":{"plain":{"sheet":"iso_tiles","cell":[0,0],"stand":{"model":"models/fighter.glb"}}}}})"}},
+               {"graphics:styles.*.terrain.*{picture}.stand.model", "graphics:styles.*.terrain.*{picture}.stand.height", "graphics:styles.*.terrain.*{picture}.stand.turn"},
+               {{"graphics:styles.*.terrain.*{picture}", R"({"sheet":"iso_tiles","cell":[0,0]})"},
+                {"graphics:styles.*.terrain.*{picture}.stand", R"({"model":"models/fighter.glb"})"},
+                {"graphics:styles.*.terrain.*{picture}.stand.model", "\"models/fighter.glb\""}}});
+
   // --- data/audio.json (demo-economy has the tracks and sound files) and the sound keys of other files ---
   c.push_back({"audio", "demo-economy", {}, {"audio:"},
                {{"audio:music.*.file", "\"audio/title.ogg\""},
@@ -48,6 +94,11 @@ void addStoryContexts(std::vector<Context>& c) {
   c.push_back({"map-audio", "demo-economy", {}, {"maps:music", "maps:playerTurnMusic", "maps:enemyTurnMusic", "maps:prepMusic", "maps:phaseMusic", "maps:fewEnemies"}, {}});
 }
 
-void addStoryExtraSkips(std::map<QString, QString>&) {}
+void addStoryExtraSkips(std::map<QString, QString>& s) {
+  const char* kJoin = "the lists are read only for a joined picture (join); a plain picture ignores them";
+  for (const char* k : {"graphics:terrain.*{picture}.joinWith", "graphics:terrain.*{picture}.joinExcept", "graphics:styles.*.terrain.*{picture}.joinWith",
+                        "graphics:styles.*.terrain.*{picture}.joinExcept"})
+    s.insert({QString(k) + " = [\"zz_no_such_id\"]", kJoin});
+}
 
 }  // namespace conformance
