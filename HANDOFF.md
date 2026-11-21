@@ -4,29 +4,36 @@ Current state of the build, for whoever (or whichever model) continues.
 Read docs/PLAN.md (roadmap + owner decisions), docs/ARCHITECTURE.md
 (structure + binding portability rules) and docs/GAME_FORMAT.md first.
 
-## Latest (2026-11-20, evening)
+## Latest (2026-11-21, night)
 
-- **origin/main = d649036**, full checks 59-61 clean (ote_tests 2649, editor API 1557, ctest 79, vitest 1614, e2e 616).
-  Since the morning: jobs, speed turn order, merit ranks + overlay jobs, commanders (enemy meters shown; bar only at UI 150),
-  `changeSide ready`, style `largeArt`, Json writes shortest round-trip decimals.
-- **Original Xbox speed** (merged): 60 Hz in xemu in all perf scenes (fast memcpy in `tools/xbox-og/nx_mem.c`, chip scales the
-  2D layer drawn at logical size, ARGB8888 textures, pacing without per-frame blank wait, 3D caches). Softer text at non-integer
-  scale; up to 2 frames input delay (untested feel). Test files rebuilt from 1227d7c in `OpenTacticsEngine-OGXbox/for-testing/`
-  (boot smoke-tested only). Owner is to try it in xemu, then on the real console. Real hardware never tested.
-- **Native editor** (`editor/native`, Qt 6 Widgets, option `OTE_BUILD_NATIVE_EDITOR`, docs/NATIVE_EDITOR.md): milestone 1
-  (editor/core shared library, document model + undo, table and tree editors, problems dock, Play) and milestone 2 (schema files
-  `editor/schema/*.json`, generated forms, Rules page, conformance test against the loader). Built in `build-native/` in the main
-  tree; tests: `QT_QPA_PLATFORM=offscreen ctest --test-dir build-native -R native` (12). The full check does NOT build it.
-  Owner's launcher: `~/.local/share/applications/ote-editor-native.desktop`. Not yet seen by the owner; Play never launched for real.
-  Next: remaining schemas (skills, abilities, campaign, older game.json parts), then Lua/script tools, then in-process preview
-  and 3D/battle-scene tools; Windows build (needs Qt in the VM: ask before downloading).
-- **Owner decisions pending**: native editor name / raw vs friendly wording / comment handling on save; merit earned by every
-  side; class-job units cannot promote; commander meter rules; plus the older list (AP pool per side, research refund, faction
-  start resources, facing defaults, speed-turn numbers).
-- **Owner's own xemu**: `~/.local/share/xemu/xemu/xemu.toml` edited with their yes (backup `xemu.toml.before-paths`); file
-  picker needs `SDL_FILE_DIALOG_DRIVER=zenity` (launcher override `~/.local/share/applications/xemu.desktop`).
-- **Not rebuilt since 278e11e:** Windows zip, UWP package, Android APK. Series X still has the old package.
-- **Heavy parallel jobs slow the owner's PC**: run full checks with `nice`, few agents at once.
+- **origin/main = 16870bc** (full check 63 clean: ote_tests 2659, editor API 1572, ctest 79, vitest 1619, e2e 620).
+  **Local main = 0f35ffc** adds `ote-mcp`; full check 64 running (`$S/combined64_verify.txt`); push if clean.
+- **Mechanics** (all pushed): damage types, research trees, factions, area/line fire, action points, height, facing, ranks,
+  jobs, speed turn order, merit ranks + overlay jobs, commanders (enemy meters; bar only at UI 150), `changeSide ready`.
+- **Stricter loaders** (pushed): unknown keys refused with "did you mean", numeric ranges, `ote-editor --validate <folder>`
+  (read-only). Quiet keys are listed in docs/GAME_FORMAT.md "Strict files" (`editor` at game.json root, `name` on graphics
+  sheets: the web editor writes both). Web editor number boxes follow the loader (`editor/web/src/model/dataLimits.ts`).
+  Known gap: `model/skillChecks.ts` (pinned mirror) has no 0..100 check for a block's percent chance.
+- **Original Xbox** (pushed): 60 Hz in xemu; flicker fixed (never draw into the shown buffer; detector
+  `tools/xbox-og/flicker_check.py`, `SHOT_BURST` in OGXbox/run-xemu.sh). Owner's test files: `OpenTacticsEngine-OGXbox/for-testing/`
+  (built from the flicker-fix branch; boot smoke-tested). The owner's xemu must load THAT iso (it once loaded a stale
+  `build/player/ote-og-player.iso`; `dvd_path` was reset, backup `xemu.toml.before-disc-fix`). Real console never tested.
+- **Native editor** (`editor/native`, Qt 6, option `OTE_BUILD_NATIVE_EDITOR`; docs/NATIVE_EDITOR.md): table/tree editors,
+  schema-driven forms for every data file incl. story events, campaign, audio, graphics (raw: tiles/tileLayer/heights, battle
+  scene art). Built in `build-native/` of the main tree; launcher `~/.local/share/applications/ote-editor-native.desktop`.
+  Tests: `QT_QPA_PLATFORM=offscreen ctest --test-dir build-native -R native` (17; conformance takes 3+ minutes; the full
+  check does NOT build this option, so run these by hand after any editor/ or loader change).
+- **ote-mcp** (`editor/mcp`, docs/MCP.md): stdio MCP server, no Qt, 23 tools, schema engine now Qt-free in `editor/core`
+  (native model wraps it). Tests `ctest -R "mcp|ote_editor_core"`. Unverified: Windows branch, any real MCP client, the
+  claimed 2026-07-28 protocol revision (looked up by the agent; newer than my knowledge).
+- **Vision Quest (private)**: converter step 38 (no `_rain`/`_snow` working keys in game.json); validates clean under the
+  strict loader.
+- **Next candidates**: owner tries the Xbox build, native editor and MCP; map painter; battle-scene art forms; Lua/script
+  tools; in-process preview; Windows builds of native editor (Qt in the VM: ask) and ote-mcp; MCP `requireClean`, bundled
+  templates; rebuild Windows zip / UWP / Android (stale since 278e11e).
+- **Owner decisions pending**: native editor name / wording / comment handling; merit for every side; class-job units cannot
+  promote; commander meter rules; older list (AP pool, research refund, faction start resources, facing, speed-turn numbers).
+- **Heavy parallel jobs slow the owner's PC**: full checks under `nice`, few agents at once.
 
 ## Earlier (2026-11-19, night) — read this first
 
