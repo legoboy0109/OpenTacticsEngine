@@ -4,7 +4,23 @@ Current state of the build, for whoever (or whichever model) continues.
 Read docs/PLAN.md (roadmap + owner decisions), docs/ARCHITECTURE.md
 (structure + binding portability rules) and docs/GAME_FORMAT.md first.
 
-## Latest (2026-11-21, night)
+## Latest (2026-11-21, late night)
+
+- **Pushed (full checks 65 and 66 clean):** native editor map painter, battle-art forms, drag reordering; deployment slot tint
+  under the unit; whole-device-pixel 2D rectangles (black grid); unlock ability follows a chest/door's `from` (AI thieves now
+  use the trait).
+- **Merged locally, built, ote_tests 2680 both builds, NOT yet full-checked or pushed:** test level (weapon ranks rise per level,
+  `auto` = enemy average + 2, `rules.promotion.testAt` promotes and counts promoted units as level + testAt). Next full check = 67.
+- **Agents running:** (a) remaining vertical tile seams that depend on camera position (owner's web editor Play, ~5.19x);
+  (b) item icons in lists (`graphics.json` `icons`) + calmer pointer edge scrolling. After (b) merges: extract Vision Quest's item
+  icons in the private converter.
+- **Vision Quest port** (`/home/kadenm/Projects/VisionQuestPort`, private, steps 39–41 committed): promotion by item, turn events
+  once, thieves without Locktouch, chests from on top, creating-row order (Titus's Dire Thunder + 8 others), rescue from the ROM.
+  Uncommitted there: `conv_rules.py` `testAt: 15`; a conversion with it is being copied into `games/vision-quest` (git-ignored).
+- **Owner decisions still open:** native editor page/tool names; test-level +2 amount; slot number over the sprite; enemy thieves
+  opening chests with a lockpick; pointer edge-scroll numbers; older list below.
+
+## Earlier (2026-11-21, night)
 
 - **origin/main = local main** (full check 64 clean: ote_tests 2659, editor API 1572, ctest 81, vitest 1619, e2e 620);
   includes `ote-mcp`.
