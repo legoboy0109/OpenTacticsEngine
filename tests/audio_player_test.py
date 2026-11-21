@@ -200,9 +200,9 @@ def test_options(tmp):
     check('options: --music-volume / --sound-volume beat the options', lines and lines[0].endswith('volumes music=9 sound=0'), str(lines))
     s = json.load(open(settings))
     check('options: ...and are not saved', s['global'].get('musicVolume') == 5)
-    # Touch: tap the row's value (steps forward), tap its left arrow (steps back). Rows are 14 px apart from y=45. The value column starts after the widest label ('Unavailable actions'), so the left arrow is near x=192.
+    # Touch: tap the row's value (steps forward), tap its left arrow (steps back). Rows are 14 px apart from y=45; the list scrolls one row once the tapped row is chosen, so the later taps are one row higher. The value column starts after the widest label ('Whole-number scaling'), so the left arrow is near x=200.
     touch = os.path.join(tmp, 'touch.json')
-    code, out, lines = headless(tmp, touch, ['--input', TO_OPTIONS + ',tap:300:144,tap:300:144,tap:192:144,wait:2'])
+    code, out, lines = headless(tmp, touch, ['--input', TO_OPTIONS + ',tap:300:150,tap:300:136,tap:200:136,wait:2'])
     s = json.load(open(touch))
     body = [l.split(' ', 1)[1] for l in lines if 'tick' not in l]
     check('options: touch steps the volume up and down', s['global'].get('musicVolume') == 8 and

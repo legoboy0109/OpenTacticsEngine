@@ -1,4 +1,5 @@
 // Combat forecast box shown while choosing an attack target.
+#include <utility>
 #include <algorithm>
 
 #include "battle/battle_draw.h"
@@ -14,8 +15,9 @@ namespace {
 struct Line {
   std::string text;
   Color color;
-  bool item = false;  // the weapon line: its icon (graphics.json "icons") goes before the name
+  bool item;  // the weapon line: its icon (graphics.json "icons") goes before the name
   IconRef pic;
+  Line(std::string t, Color col, bool isItem = false, IconRef icon = IconRef()) : text(std::move(t)), color(col), item(isItem), pic(icon) {}
 };
 using Column = std::vector<Line>;
 
