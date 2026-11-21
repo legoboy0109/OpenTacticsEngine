@@ -519,6 +519,8 @@ export interface Graphics extends Extra {
   battle?: BattleSection
   /** Portrait id -> picture; the id is what a `say` command's "portrait" names. */
   portraits?: Record<string, Portrait>
+  /** Item and weapon icons: weapon or item id -> one cell of a sheet (no editor screen yet; kept as is, and dropped with their sheet). */
+  icons?: Record<string, { sheet: string; cell: [number, number] }>
   /** Story scene backgrounds: id -> picture; the id is what a `background` command names (not the battle scene's `battle.backgrounds`). */
   backgrounds?: Record<string, SceneBackground>
   unitMarker?: boolean

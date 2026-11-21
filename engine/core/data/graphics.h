@@ -168,6 +168,11 @@ struct Graphics {
   bool unitMarker = true;
   // The side-view battle scene's art (docs/BATTLE_SCENE.md); empty when the game gives none.
   BattleArt battle;
+  // Icons (docs/GRAPHICS.md "Icons"): the small picture the player draws before a weapon's or an item's name in a list. One
+  // Look::Still per weapon index / item index (kind None = no icon); the same in every style.
+  std::vector<Look> weaponIcons, itemIcons;
+  const Look* weaponIcon(int w) const { return w >= 0 && (size_t)w < weaponIcons.size() && weaponIcons[(size_t)w].any() ? &weaponIcons[(size_t)w] : nullptr; }
+  const Look* itemIcon(int i) const { return i >= 0 && (size_t)i < itemIcons.size() && itemIcons[(size_t)i].any() ? &itemIcons[(size_t)i] : nullptr; }
   // Per visual style index (same order as Database::styles), already merged:
   // the style's own entries on top of the entries shared by all styles.
   // Empty when the game has no graphics.json.

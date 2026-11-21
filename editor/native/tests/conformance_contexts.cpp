@@ -53,6 +53,7 @@ const std::map<QString, QString>& skipped() {
       {"graphics:units", "a map by unit type id: its entries are tried one by one"},
       {"graphics:structures", "a map by structure id: its entries are tried one by one"},
       {"graphics:portraits", "a free map: its entries are tried one by one"},
+      {"graphics:icons", "a free map: its entries are tried one by one"},
       {"graphics:styles", "a map by style id: its entries are tried one by one"},
       {"graphics:tilesets", "a free map: its entries are tried one by one"},
       {"graphics:terrain.*{picture}.stand*", "a standing thing needs a 3D style: tried under graphics:styles"},

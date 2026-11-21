@@ -104,6 +104,12 @@
         "talk": { "use": "cells", "help": "Frames shown while the person talks (1 to 8)." },
         "blink": { "use": "cells", "help": "Frames shown when the person blinks (1 to 8)." } }
     },
+    "iconLook": {
+      "type": "object", "help": "An icon: one cell of a sheet, drawn before the weapon's or item's name in lists.",
+      "fields": {
+        "sheet": { "type": "ref", "ref": "@sheets", "required": true, "help": "The sheet the icon is in." },
+        "cell": { "use": "cell", "required": true, "help": "The icon's cell." } }
+    },
     "artSet": {
       "type": "object", "help": "Art by id: terrain, units, structures and portraits.",
       "fields": {
@@ -136,6 +142,7 @@
       "units": { "type": "map", "ref": "data/units.json", "of": { "use": "unitThing" }, "help": "The picture of each unit type." },
       "structures": { "type": "map", "ref": "data/structures.json", "of": { "use": "structureThing" }, "help": "The picture of each structure." },
       "portraits": { "type": "map", "free": true, "of": { "use": "portraitLook" }, "help": "Portraits by id (a character's id or the name a say line uses)." },
+      "icons": { "type": "map", "free": true, "of": { "use": "iconLook" }, "help": "Icons by weapon or item id: the small picture before the name in item lists." },
       "styles": { "type": "map", "ref": "game.json#styles", "of": { "use": "artSet" }, "help": "Art of a visual style of game.json: what it replaces (flat styles) or all it has (3D styles)." },
       "battle": { "use": "_battle#battle" }
     }

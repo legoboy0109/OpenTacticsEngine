@@ -366,6 +366,37 @@ bool readPortraits(const LoadCtx& c, const Database& db, const Json& o, const st
   return true;
 }
 
+std::vector<std::string> itemAndWeaponIds(const Database& db) {
+  std::vector<std::string> ids;
+  for (const WeaponDef& w : db.weapons) ids.push_back(w.id);
+  for (const ItemDef& i : db.items) ids.push_back(i.id);
+  return ids;
+}
+
+// The root "icons" map: weapon or item id -> { "sheet", "cell" } (docs/GRAPHICS.md "Icons"). An id that is both a weapon and an item
+// gives both the icon. null = no icon. Needs the sheets, the weapons and the items.
+bool readIcons(const LoadCtx& c, Database& db, const Json& root) {
+  const Json* m;
+  if (!c.object(root, "icons", "", m)) return false;
+  db.graphics.weaponIcons.assign(db.weapons.size(), Look());
+  db.graphics.itemIcons.assign(db.items.size(), Look());
+  for (const Json::Member& e : m->members()) {
+    const std::string where = "icon " + q(e.first);
+    const int w = db.findWeapon(e.first), it = db.findItem(e.first);
+    if (e.first.empty()) return c.fail(where, "the id must not be empty");
+    if (w < 0 && it < 0) return c.fail(where, "there is no weapon or item with this id" + didYouMean(e.first, itemAndWeaponIds(db)));
+    if (e.second.isNull()) continue;
+    if (e.second.isObject() && (e.second.has("frames") || e.second.has("variants") || e.second.has("join")))
+      return c.fail(where, "an icon is one \"cell\" of a sheet");
+    if (!c.onlyKeys(e.second, {"sheet", "cell"}, where)) return false;
+    Look look;
+    if (!readLook(c, db, e.second, where, false, -1, look, "icons")) return false;
+    if (w >= 0) db.graphics.weaponIcons[(size_t)w] = look;
+    if (it >= 0) db.graphics.itemIcons[(size_t)it] = look;
+  }
+  return true;
+}
+
 // The "terrain" / "units" / "structures" maps of the file root or of one style, applied on
 // top of `set`. A null value removes the art (placeholder look).
 bool readSet(const LoadCtx& c, const Database& db, const Json& o, const std::string& prefix, bool view3d,
@@ -414,7 +445,7 @@ bool loadGraphics(const std::string& path, Database& db, std::string& err) {
   if (!loadObjectFile(path, root, err)) return false;
   LoadCtx c(err, path);
 
-  if (!c.onlyKeys(root, {"sheets", "unitMarker", "backgrounds", "tilesets", "terrain", "units", "structures", "portraits", "styles", "battle"}, ""))
+  if (!c.onlyKeys(root, {"sheets", "unitMarker", "backgrounds", "tilesets", "terrain", "units", "structures", "portraits", "icons", "styles", "battle"}, ""))
     return false;
   const Json* sheets;
   if (!c.array(root, "sheets", "", sheets)) return false;
@@ -455,6 +486,7 @@ bool loadGraphics(const std::string& path, Database& db, std::string& err) {
   if (!c.boolean(root, "unitMarker", "", db.graphics.unitMarker)) return false;
   if (!readSceneBackgrounds(c, db, root)) return false;
   if (!readTilesets(c, db, root)) return false;  // loader_tilesets.cpp
+  if (!readIcons(c, db, root)) return false;
 
   GraphicsSet base;
   base.terrain.assign(db.terrains.size(), Look());
