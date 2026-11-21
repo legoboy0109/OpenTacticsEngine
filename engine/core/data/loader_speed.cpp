@@ -40,7 +40,7 @@ bool loadSpeedRules(const LoadCtx& c, const Json& rules, Database& db) {
       bool known = false;
       for (const char* k : keys) known = known || m.first == k;
       if (!known)
-        return c.fail(at, "unknown key " + q(m.first) + " (expected \"mode\", \"stat\", \"threshold\", \"preview\", \"roundTicks\", \"ctCost\")");
+        return c.fail(at, unknownKeyText(m.first, {"mode", "stat", "threshold", "preview", "roundTicks", "ctCost"}));
     }
   // The stat: named, or the stat called "speed" when the game has one.
   std::string statId = "speed";
@@ -59,7 +59,7 @@ bool loadSpeedRules(const LoadCtx& c, const Json& rules, Database& db) {
       const std::string w = at + ", \"ctCost\"";
       for (const Json::Member& m : cost->members())
         if (m.first != "both" && m.first != "one" && m.first != "none")
-          return c.fail(w, "unknown key " + q(m.first) + " (expected \"both\", \"one\", \"none\")");
+          return c.fail(w, unknownKeyText(m.first, {"both", "one", "none"}));
       if (!c.integerIn(*cost, "both", w, 0, 100000, sp.costBoth) || !c.integerIn(*cost, "one", w, 0, 100000, sp.costOne) ||
           !c.integerIn(*cost, "none", w, 0, 100000, sp.costNone))
         return false;

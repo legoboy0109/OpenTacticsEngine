@@ -26,7 +26,7 @@ bool readWeaponArea(const LoadCtx& c, const Json& e, const std::string& where, W
   const std::string at = where + ", \"area\"";
   for (const Json::Member& m : a->members())
     if (m.first != "shape" && m.first != "radius" && m.first != "length" && m.first != "friendlyFire" && m.first != "apExtra" && m.first != "vertical")
-      return c.fail(where, "\"area\" has an unknown key " + q(m.first) + " (it takes shape, radius, length, friendlyFire, apExtra, vertical)");
+      return c.fail(where, "\"area\" has an unknown key " + q(m.first) + " (it takes shape, radius, length, friendlyFire, apExtra, vertical)" + didYouMean(m.first, {"shape", "radius", "length", "friendlyFire", "apExtra", "vertical"}));
   if (!a->has("shape")) return c.fail(where, "\"area\" needs a \"shape\": \"burst\", \"line\", \"radius\" or \"cross\"");
   std::string shape;
   if (!c.str(*a, "shape", at, shape)) return false;

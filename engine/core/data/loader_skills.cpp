@@ -36,7 +36,7 @@ bool loadSkills(const std::string& path, Database& db, std::string& err) {
   if (!loadObjectFile(path, root, err)) return false;
   LoadCtx c(err, path);
   for (const Json::Member& m : root.members())
-    if (m.first != "skills") return c.fail("", "unknown key \"" + m.first + "\" (expected \"skills\")");
+    if (m.first != "skills") return c.fail("", unknownKeyText(m.first, {"skills"}));
   const Json* list;
   if (!c.array(root, "skills", "", list, true)) return false;
   if ((int)list->size() > kMaxSkills) return c.fail("", "too many skills (at most " + std::to_string(kMaxSkills) + ")");
@@ -52,7 +52,7 @@ bool loadSkills(const std::string& path, Database& db, std::string& err) {
       if (o.id == s.id) return c.fail(where, "duplicate id");
     for (const Json::Member& m : e.members())
       if (m.first != "id" && m.first != "name" && m.first != "description" && m.first != "blocks" && m.first != "tags")
-        return c.fail(where, "unknown key \"" + m.first + "\" (expected \"id\", \"name\", \"description\", \"tags\", \"blocks\")");
+        return c.fail(where, unknownKeyText(m.first, {"id", "name", "description", "tags", "blocks"}));
     s.name = s.id;
     const Json* blocks;
     if (!c.str(e, "name", where, s.name) || !c.str(e, "description", where, s.description) ||
@@ -83,7 +83,7 @@ static bool readLearnList(const LoadCtx& c, const Database& db, const Json& e, c
     LearnDef d;
     if (!c.integer(l, "level", where, d.level, true) || !c.str(l, "skill", where, d.skillId, true)) return false;
     for (const Json::Member& m : l.members())
-      if (m.first != "level" && m.first != "skill") return c.fail(where, at + ": unknown key \"" + m.first + "\"");
+      if (m.first != "level" && m.first != "skill") return c.fail(where, at + ": " + unknownKeyText(m.first, {"level", "skill"}));
     if (d.level < 2 || d.level > db.rules.maxLevel)
       return c.fail(where, at + ": \"level\" must be from 2 to " + std::to_string(db.rules.maxLevel));
     d.skill = db.findSkill(d.skillId);

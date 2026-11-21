@@ -17,15 +17,7 @@ namespace {
 std::string q(const std::string& s) { return "\"" + s + "\""; }
 
 bool onlyKeys(const LoadCtx& c, const Json& o, std::initializer_list<const char*> keys, const std::string& where) {
-  for (const Json::Member& m : o.members()) {
-    bool known = false;
-    for (const char* k : keys) known = known || m.first == k;
-    if (known) continue;
-    std::string list;
-    for (const char* k : keys) list += (list.empty() ? "" : ", ") + q(k);
-    return c.fail(where, "unknown key " + q(m.first) + " (expected " + list + ")");
-  }
-  return true;
+  return c.onlyKeys(o, keys, where);
 }
 
 // "summon": { "type": "hound", "level": "summoner", "limit": 1, ... } (the unit type is resolved later).

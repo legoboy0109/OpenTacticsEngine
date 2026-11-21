@@ -11,16 +11,7 @@ namespace ote {
 namespace {
 
 bool onlyKeys(const LoadCtx& c, const Json& o, std::initializer_list<const char*> keys, const std::string& where) {
-  for (const Json::Member& m : o.members()) {
-    bool known = false;
-    std::string list;
-    for (const char* k : keys) {
-      known = known || m.first == k;
-      list += (list.empty() ? "\"" : ", \"") + std::string(k) + "\"";
-    }
-    if (!known) return c.fail(where, "unknown key \"" + m.first + "\" (expected " + list + ")");
-  }
-  return true;
+  return c.onlyKeys(o, keys, where);
 }
 
 // A list of ids of one kind -> indices. The key may be left out (no restriction); a written list, even an empty one, is the

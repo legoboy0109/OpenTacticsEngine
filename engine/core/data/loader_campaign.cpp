@@ -8,15 +8,7 @@
 namespace ote {
 
 bool CampaignLoader::onlyKeys(const Json& o, std::initializer_list<const char*> keys, const std::string& where) const {
-  for (const Json::Member& m : o.members()) {
-    bool known = false;
-    for (const char* k : keys) known = known || m.first == k;
-    if (known) continue;
-    std::string list;
-    for (const char* k : keys) list += (list.empty() ? "" : ", ") + quoted(k);
-    return fail(where, "unknown key " + quoted(m.first) + " (expected " + list + ")");
-  }
-  return true;
+  return ctx().onlyKeys(o, keys, where);
 }
 
 namespace {

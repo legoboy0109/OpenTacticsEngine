@@ -19,7 +19,7 @@ bool loadStructureUpgrades(const LoadCtx& c, const Json& list, Database& db) {
       if (!u.isObject()) return c.fail(where, at + " must be an object { \"to\": ..., \"cost\": ... }");
       for (const Json::Member& m : u.members())
         if (m.first != "to" && m.first != "cost" && m.first != "requires")
-          return c.fail(where, at + ": unknown key \"" + m.first + "\" (expected \"to\", \"cost\", \"requires\")");
+          return c.fail(where, at + ": " + unknownKeyText(m.first, {"to", "cost", "requires"}));
       UpgradeDef up;
       std::string to;
       if (!c.str(u, "to", where, to, true)) return false;

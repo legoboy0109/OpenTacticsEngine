@@ -16,12 +16,7 @@ constexpr int kMaxPercent = 1000;
 std::string q(const std::string& s) { return "\"" + s + "\""; }
 
 bool onlyKeys(const LoadCtx& c, const Json& o, std::initializer_list<const char*> keys, const std::string& where) {
-  for (const Json::Member& m : o.members()) {
-    bool ok = false;
-    for (const char* k : keys) ok = ok || m.first == k;
-    if (!ok) return c.fail(where, "unknown key " + q(m.first));
-  }
-  return true;
+  return c.onlyKeys(o, keys, where);
 }
 
 bool percent(const LoadCtx& c, const Json& o, const char* key, const std::string& where, int& out, bool& given) {

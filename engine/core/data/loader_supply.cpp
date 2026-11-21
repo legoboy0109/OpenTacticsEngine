@@ -13,7 +13,11 @@ bool onlyKeys(const LoadCtx& c, const Json& o, const std::string& where, const c
   for (const Json::Member& m : o.members()) {
     bool ok = false;
     for (const char* const* k = allowed; *k; ++k) ok = ok || m.first == *k;
-    if (!ok) return c.fail(where, "unknown key \"" + m.first + "\" (expected " + names + ")");
+    if (!ok) {
+      std::vector<std::string> keys;
+      for (const char* const* k = allowed; *k; ++k) keys.push_back(*k);
+      return c.fail(where, "unknown key \"" + m.first + "\" (expected " + names + ")" + didYouMean(m.first, keys));
+    }
   }
   return true;
 }

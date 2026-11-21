@@ -19,7 +19,7 @@ bool readTilesets(const LoadCtx& c, Database& db, const Json& root) {
     if (!e.second.isObject()) return c.fail(where, "must be an object such as { \"sheet\": \"world_tiles\" }");
     for (const Json::Member& k : e.second.members())
       if (k.first != "sheet" && k.first != "animations")
-        return c.fail(where, "unknown key \"" + k.first + "\" (a tileset has \"sheet\" and optionally \"animations\")");
+        return c.fail(where, "unknown key \"" + k.first + "\" (a tileset has \"sheet\" and optionally \"animations\")" + didYouMean(k.first, {"sheet", "animations"}));
     TilesetDef ts;
     ts.id = e.first;
     std::string sheetId;
@@ -46,7 +46,7 @@ bool readTilesets(const LoadCtx& c, Database& db, const Json& root) {
           return c.fail(at, "tile " + std::to_string(a.tile) + " is outside the sheet (" + std::to_string(ts.count()) + " tiles)");
         if (!m.second.isObject()) return c.fail(at, "must be { \"frames\": [40, 41], \"ms\": 200 }");
         for (const Json::Member& k : m.second.members())
-          if (k.first != "frames" && k.first != "ms") return c.fail(at, "unknown key \"" + k.first + "\" (use frames and ms)");
+          if (k.first != "frames" && k.first != "ms") return c.fail(at, "unknown key \"" + k.first + "\" (use frames and ms)" + didYouMean(k.first, {"frames", "ms"}));
         const Json* frames;
         if (!c.array(m.second, "frames", at, frames, true)) return false;
         if (frames->size() < 2 || frames->size() > 64) return c.fail(at, "\"frames\" must list between 2 and 64 tiles");

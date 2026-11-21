@@ -24,7 +24,7 @@ bool readBy(const LoadCtx& c, const Database& db, const Json& by, const std::str
   MapWeaponDef& m = s.mapWeapon;
   if (!by.isObject()) return c.fail(where, "\"by\" must be { \"types\": [unit type ids], \"tags\": [unit tags] }");
   for (const Json::Member& k : by.members())
-    if (k.first != "types" && k.first != "tags") return c.fail(where, "\"by\" has an unknown key " + q(k.first) + " (it has \"types\" and \"tags\")");
+    if (k.first != "types" && k.first != "tags") return c.fail(where, "\"by\" has an unknown key " + q(k.first) + " (it has \"types\" and \"tags\")" + didYouMean(k.first, {"types", "tags"}));
   std::vector<std::string> types, tags;
   if (!c.stringList(by, "types", where + ": \"by\"", types) || !c.stringList(by, "tags", where + ": \"by\"", tags)) return false;
   if (types.empty() && tags.empty()) return c.fail(where, "\"by\" is empty: list \"types\" or \"tags\", or leave \"by\" out for any unit");

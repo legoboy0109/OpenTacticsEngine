@@ -21,15 +21,7 @@ std::string roman(int n) {  // 1..20 -> I..XX, the default badge of the n-th ran
 }
 
 bool onlyThese(const LoadCtx& c, const Json& e, const std::string& at, std::initializer_list<const char*> keys) {
-  for (const Json::Member& m : e.members()) {
-    bool known = false;
-    for (const char* k : keys) known = known || m.first == k;
-    if (known) continue;
-    std::string list;
-    for (const char* k : keys) list += (list.empty() ? "" : ", ") + q(k);
-    return c.fail(at, "unknown key " + q(m.first) + " (expected " + list + ")");
-  }
-  return true;
+  return c.onlyKeys(e, keys, at);
 }
 
 bool printable(const std::string& s) {

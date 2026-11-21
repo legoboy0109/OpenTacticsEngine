@@ -2,14 +2,77 @@
 // false after writing a creator-readable message to err:
 //   "<file>: <where>: <what is wrong>"
 #pragma once
+#include <algorithm>
 #include <cmath>
+#include <cstdlib>
+#include <initializer_list>
 #include <string>
+#include <vector>
 
 #include "core/base/json.h"
 #include "core/data/database.h"
 #include "core/data/events.h"
 
 namespace ote {
+
+// ---- unknown keys: a typo must not pass silently, and the message helps to find the key that was meant ----
+
+// Edit distance between two keys: inserting, deleting or replacing a letter, or swapping two neighbours, each count 1 ("rnage" is one
+// slip from "range").
+inline int keyDistance(const std::string& a, const std::string& b) {
+  std::vector<std::vector<int>> d(a.size() + 1, std::vector<int>(b.size() + 1, 0));
+  for (size_t i = 0; i <= a.size(); ++i) d[i][0] = (int)i;
+  for (size_t j = 0; j <= b.size(); ++j) d[0][j] = (int)j;
+  for (size_t i = 1; i <= a.size(); ++i)
+    for (size_t j = 1; j <= b.size(); ++j) {
+      d[i][j] = std::min(d[i - 1][j - 1] + (a[i - 1] == b[j - 1] ? 0 : 1), std::min(d[i - 1][j], d[i][j - 1]) + 1);
+      if (i > 1 && j > 1 && a[i - 1] == b[j - 2] && a[i - 2] == b[j - 1]) d[i][j] = std::min(d[i][j], d[i - 2][j - 2] + 1);
+    }
+  return d[a.size()][b.size()];
+}
+
+// The known key that `key` is most probably a slip of (at most 2 edits, and not more than half the letters of the longer
+// key), or "".
+inline std::string closestKey(const std::string& key, const std::vector<std::string>& known) {
+  std::string best;
+  int bestDistance = 3;
+  for (const std::string& k : known) {
+    const int d = keyDistance(key, k);
+    const int longer = (int)std::max(key.size(), k.size());
+    if (d < bestDistance && d * 2 <= longer) {
+      bestDistance = d;
+      best = k;
+    }
+  }
+  return best;
+}
+
+// " - did you mean \"x\"?" when a known key is close to `key`, else "". For the messages that word their own refusal.
+inline std::string didYouMean(const std::string& key, const std::vector<std::string>& known) {
+  const std::string k = closestKey(key, known);
+  return k.empty() ? std::string() : " - did you mean \"" + k + "\"?";
+}
+inline std::string didYouMean(const std::string& key, std::initializer_list<const char*> known) {
+  return didYouMean(key, std::vector<std::string>(known.begin(), known.end()));
+}
+
+// The whole refusal text: unknown key "colour" (expected "id", "name", ...) - did you mean "color"?
+// The list of expected keys is left out when it is long (more than 14): the hint is what helps then.
+inline std::string unknownKeyText(const std::string& key, const std::vector<std::string>& known) {
+  std::string text = "unknown key \"" + key + "\"";
+  if (known.size() <= 14) {
+    std::string list;
+    for (const std::string& k : known) list += (list.empty() ? "\"" : ", \"") + k + "\"";
+    text += " (expected " + list + ")";
+  }
+  return text + didYouMean(key, known);
+}
+inline std::string unknownKeyText(const std::string& key, std::initializer_list<const char*> known) {
+  return unknownKeyText(key, std::vector<std::string>(known.begin(), known.end()));
+}
+
+// The most a stat number (a unit's stat or growth, a bonus) may be, plus or minus: far above any real game, far below an int overflow.
+constexpr int kMaxStatNumber = 99999;
 
 class LoadCtx {
  public:
@@ -85,6 +148,23 @@ class LoadCtx {
     return true;
   }
 
+  // An object may only have the keys of `keys`. `quiet` keys are accepted too but never listed or suggested: bookkeeping that
+  // something else reads and the loader ignores (a comment at the call says who reads each). `where` names the object.
+  bool onlyKeys(const Json& o, const std::vector<std::string>& keys, const std::string& where,
+                std::initializer_list<const char*> quiet = {}) const {
+    for (const Json::Member& m : o.members()) {
+      bool known = false;
+      for (const std::string& k : keys) known = known || m.first == k;
+      for (const char* k : quiet) known = known || m.first == k;
+      if (!known) return fail(where, unknownKeyText(m.first, keys));
+    }
+    return true;
+  }
+  bool onlyKeys(const Json& o, std::initializer_list<const char*> keys, const std::string& where,
+                std::initializer_list<const char*> quiet = {}) const {
+    return onlyKeys(o, std::vector<std::string>(keys.begin(), keys.end()), where, quiet);
+  }
+
   static bool isWhole(const Json& j) {
     return j.isNumber() && j.asNumber() == std::floor(j.asNumber()) &&
            std::fabs(j.asNumber()) < 2e9;
@@ -92,8 +172,9 @@ class LoadCtx {
 
   // {"statId": number} -> per-stat ints (out must already be sized to
   // db.stats.size()). Unknown stat ids are errors.
+  // Every number is within +-`limit` (default kMaxStatNumber; a bonus that is smaller by nature passes a smaller one).
   bool statMap(const Database& db, const Json& o, const char* key, const std::string& where,
-               std::vector<int>& out) const {
+               std::vector<int>& out, int limit = kMaxStatNumber) const {
     const Json* m;
     if (!object(o, key, where, m)) return false;
     for (const Json::Member& e : m->members()) {
@@ -101,6 +182,8 @@ class LoadCtx {
       if (s < 0) return fail(where, std::string("\"") + key + "\" names unknown stat \"" + e.first + "\"");
       if (!isWhole(e.second))
         return fail(where, std::string("\"") + key + "\".\"" + e.first + "\" must be a whole number");
+      if (std::abs(e.second.asInt()) > limit)
+        return fail(where, std::string("\"") + key + "\".\"" + e.first + "\" must be a whole number from -" + std::to_string(limit) + " to " + std::to_string(limit));
       out[static_cast<size_t>(s)] = e.second.asInt();
     }
     return true;
@@ -165,10 +248,11 @@ class LoadCtx {
 };
 
 // Reads an array of {id, name} entries into stats/resources/move types.
-// Checks object shape, non-empty ids and duplicates.
+// Checks object shape, non-empty ids, duplicates and unknown keys; `extra` are the keys read elsewhere (a resource's "refill",
+// a move type's "sounds").
 template <class T>
 bool readIdList(const LoadCtx& c, const Json& root, const char* key, bool required,
-                std::vector<T>& out) {
+                std::vector<T>& out, std::initializer_list<const char*> extra = {}) {
   const Json* arr;
   if (!c.array(root, key, "", arr, required)) return false;
   if (required && arr->size() == 0) return c.fail("", std::string("\"") + key + "\" must not be empty");
@@ -182,6 +266,9 @@ bool readIdList(const LoadCtx& c, const Json& root, const char* key, bool requir
     where = std::string(key) + " \"" + t.id + "\"";
     for (const T& o : out)
       if (o.id == t.id) return c.fail(where, "duplicate id");
+    std::vector<std::string> keys = {"id", "name"};
+    keys.insert(keys.end(), extra.begin(), extra.end());
+    if (!c.onlyKeys(e, keys, where)) return false;
     t.name = t.id;
     if (!c.str(e, "name", where, t.name)) return false;
     out.push_back(t);
