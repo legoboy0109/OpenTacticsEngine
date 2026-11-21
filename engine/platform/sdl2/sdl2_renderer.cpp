@@ -92,7 +92,7 @@ class SdlRenderer::Target : public TextTarget {
       SDL_RenderCopy(r_, t, &src, &dst);
       SDL_RenderSetLogicalSize(r_, *lw_, *lh_);
     } else {
-      SDL_RenderCopy(r_, t, &src, &dst);
+      owner_->copyLogical(t, src, dst);
     }
   }
 
@@ -159,11 +159,58 @@ void SdlRenderer::setLogicalSize(int width, int height) {
   OTE_INFO("logical size %dx%d", w_, h_);
 }
 
+// SDL2's logical-size letterbox (SDL_RenderSetLogicalSize): the scale per axis is the viewport's size over the logical size (read
+// back with SDL_RenderGetScale), and the viewport sits at ((output - size) / 2, whole-number division). Checked against
+// SDL_RenderLogicalToWindow on SDL 2.32 for wide, tall and exact-fit windows.
+void SdlRenderer::refreshMap() {
+  map_ = OutputMap();
+#if SDL_VERSION_ATLEAST(2, 0, 10)
+  if (fixed_ || w_ < 1 || h_ < 1) return;
+  float kx = 1, ky = 1;
+  int ow = 0, oh = 0;
+  SDL_RenderGetScale(r_, &kx, &ky);
+  SDL_GetRendererOutputSize(r_, &ow, &oh);
+  if (kx <= 0 || ky <= 0 || ow < 1 || oh < 1) return;
+  const int vw = (int)std::floor((float)w_ * kx + 0.5f), vh = (int)std::floor((float)h_ * ky + 0.5f);
+  map_.scaleX = kx;
+  map_.scaleY = ky;
+  map_.offX = (float)((ow - vw) / 2);
+  map_.offY = (float)((oh - vh) / 2);
+  map_.known = true;
+#endif
+}
+
+void SdlRenderer::copyLogical(SDL_Texture* t, const SDL_Rect& src, const SDL_Rect& dst) {
+#if SDL_VERSION_ATLEAST(2, 0, 10)
+  if (map_.known) {
+    SDL_FRect f;
+    snapRect(map_, dst.x, dst.y, dst.w, dst.h, f.x, f.y, f.w, f.h);
+    SDL_RenderCopyF(r_, t, &src, &f);
+    return;
+  }
+#endif
+  SDL_RenderCopy(r_, t, &src, &dst);
+}
+
+void SdlRenderer::fillLogical(const SDL_Rect& rect) {
+#if SDL_VERSION_ATLEAST(2, 0, 10)
+  if (map_.known) {
+    SDL_FRect f;
+    snapRect(map_, rect.x, rect.y, rect.w, rect.h, f.x, f.y, f.w, f.h);
+    SDL_RenderFillRectF(r_, &f);
+    return;
+  }
+#endif
+  SDL_RenderFillRect(r_, &rect);
+}
+
 void SdlRenderer::applyLogical() {
   if (!fixed_) {
     if (SDL_RenderSetLogicalSize(r_, w_, h_) != 0) OTE_WARN("logical size failed: %s", SDL_GetError());
+    refreshMap();
     return;
   }
+  map_ = OutputMap();
   ScreenFitIn in;
   in.logicalW = w_;
   in.logicalH = h_;
@@ -354,7 +401,7 @@ void SdlRenderer::drawTexture(TextureId id, int sx, int sy, int sw, int sh, int 
   SDL_Rect dst = {dx, dy, dw, dh};
   OTE_PROF_SDL(prof::kSdlCopy, pixelsOf(dw, dh, false));
   leaveOutputSpace();
-  SDL_RenderCopy(r_, t, &src, &dst);
+  copyLogical(t, src, dst);
 }
 
 void SdlRenderer::setColor(Color c) {
@@ -386,6 +433,7 @@ void SdlRenderer::clear(Color c) {
     SDL_RenderFillRect(r_, nullptr);  // the whole viewport = the canvas
     return;
   }
+  refreshMap();  // the window may have been resized since the last frame
   setColor(c);
   SDL_RenderClear(r_);
 }
@@ -396,7 +444,7 @@ void SdlRenderer::fillRect(int x, int y, int w, int h, Color c) {
   leaveOutputSpace();
   setColor(c);
   SDL_Rect rect = {x, y, w, h};
-  SDL_RenderFillRect(r_, &rect);
+  fillLogical(rect);
 }
 
 void SdlRenderer::drawRect(int x, int y, int w, int h, Color c) {

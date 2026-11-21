@@ -1,5 +1,7 @@
 #include "platform/sdl3/sdl_renderer.h"
 
+#include <cmath>
+
 #include "core/base/log.h"
 
 namespace ote {
@@ -7,7 +9,7 @@ namespace ote {
 // Atlas textures for the text engine. Handles index into tex_.
 class SdlRenderer::Target : public TextTarget {
  public:
-  Target(SDL_Renderer* r, int* lw, int* lh) : r_(r), lw_(lw), lh_(lh) {}
+  Target(SDL_Renderer* r, int* lw, int* lh, const OutputMap* map) : r_(r), lw_(lw), lh_(lh), map_(map) {}
   ~Target() override {
     for (SDL_Texture* t : tex_)
       if (t) SDL_DestroyTexture(t);
@@ -46,6 +48,7 @@ class SdlRenderer::Target : public TextTarget {
     SDL_SetTextureAlphaMod(t, tint.a);
     SDL_FRect src = {(float)sx, (float)sy, (float)sw, (float)sh};
     SDL_FRect dst = {(float)dx, (float)dy, (float)dw, (float)dh};
+    if (!outputSpace) snapRect(*map_, dx, dy, dw, dh, dst.x, dst.y, dst.w, dst.h);  // whole device pixels (pixel_snap.h)
     if (outputSpace) {  // real window pixels: step out of the logical presentation for this one draw
       SDL_SetRenderLogicalPresentation(r_, 0, 0, SDL_LOGICAL_PRESENTATION_DISABLED);
       SDL_RenderTexture(r_, t, &src, &dst);
@@ -71,12 +74,13 @@ class SdlRenderer::Target : public TextTarget {
   SDL_Renderer* r_;
   int* lw_;
   int* lh_;
+  const OutputMap* map_;
   std::vector<SDL_Texture*> tex_;
 };
 
 SdlRenderer::SdlRenderer(SDL_Window* window, SDL_Renderer* renderer, int w, int h, bool headless, int headlessScale)
     : window_(window), r_(renderer), w_(w), h_(h), headless_(headless), headlessScale_(headlessScale) {
-  target_.reset(new Target(r_, &w_, &h_));
+  target_.reset(new Target(r_, &w_, &h_, &map_));
   text_.reset(new TextEngine(*target_));
 }
 
@@ -85,6 +89,21 @@ SdlRenderer::~SdlRenderer() {
     if (t) SDL_DestroyTexture(t);
   text_.reset();  // frees atlas textures through target_, before the SDL renderer goes away
   target_.reset();
+}
+
+void SdlRenderer::refreshMap() {
+  SDL_FRect rc;
+  if (SDL_GetRenderLogicalPresentationRect(r_, &rc) && w_ > 0 && h_ > 0 && rc.w > 0 && rc.h > 0) {
+    // SDL3 (SDL_render.c, UpdateLogicalPresentation): the scale is the rect's size over the logical size on each axis, and the
+    // viewport, in which every vertex is placed, starts at the FLOORED offset (a letterbox offset of .5 is not applied).
+    map_.scaleX = rc.w / (float)w_;
+    map_.scaleY = rc.h / (float)h_;
+    map_.offX = std::floor(rc.x);
+    map_.offY = std::floor(rc.y);
+    map_.known = true;
+  } else {
+    map_ = OutputMap();
+  }
 }
 
 void SdlRenderer::setLogicalSize(int width, int height) {
@@ -98,6 +117,7 @@ void SdlRenderer::setLogicalSize(int width, int height) {
   }
   if (!SDL_SetRenderLogicalPresentation(r_, w_, h_, SDL_LOGICAL_PRESENTATION_LETTERBOX))
     OTE_WARN("logical presentation failed: %s", SDL_GetError());
+  refreshMap();
   OTE_INFO("logical size %dx%d", w_, h_);
 }
 
@@ -155,13 +175,15 @@ void SdlRenderer::drawTexture(TextureId id, int sx, int sy, int sw, int sh, int 
   SDL_SetTextureColorMod(t, mod.r, mod.g, mod.b);
   SDL_SetTextureAlphaMod(t, mod.a);
   SDL_FRect src = {(float)sx, (float)sy, (float)sw, (float)sh};
-  SDL_FRect dst = {(float)dx, (float)dy, (float)dw, (float)dh};
+  SDL_FRect dst;
+  snapRect(map_, dx, dy, dw, dh, dst.x, dst.y, dst.w, dst.h);  // whole device pixels (pixel_snap.h)
   SDL_RenderTexture(r_, t, &src, &dst);
 }
 
 void SdlRenderer::setColor(Color c) { SDL_SetRenderDrawColor(r_, c.r, c.g, c.b, c.a); }
 
 void SdlRenderer::clear(Color c) {
+  refreshMap();  // the window may have been resized since the last frame
   setColor(c);
   SDL_RenderClear(r_);
 }
@@ -169,7 +191,8 @@ void SdlRenderer::clear(Color c) {
 void SdlRenderer::fillRect(int x, int y, int w, int h, Color c) {
   if (w <= 0 || h <= 0) return;
   setColor(c);
-  SDL_FRect rect = {(float)x, (float)y, (float)w, (float)h};
+  SDL_FRect rect;
+  snapRect(map_, x, y, w, h, rect.x, rect.y, rect.w, rect.h);
   SDL_RenderFillRect(r_, &rect);
 }
 

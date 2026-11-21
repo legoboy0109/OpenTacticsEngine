@@ -423,6 +423,13 @@ defence, sight and everything else; the rules core keeps no tile in its state, b
 - **Standing terrain is not drawn on a square that has a tile** (the 3D views' `stand` pictures and models): the tile already shows the trees or the
   peak. Squares without a tile keep their standing parts. The terrain's `stand` stays defined; it simply does not apply there.
 - **Fallback**: a square whose tile cannot be drawn (its sheet failed to load) shows the terrain's look as if it had no tile.
+- **Seams at fractional output scales**: when the window or canvas is not a whole multiple of the view (a resized window, a browser at 125%, an
+  embedded player), a square's edge can fall exactly on a device pixel centre (1.5x does it on every second square), and the nearest-filter lookup
+  there read the NEIGHBOURING cell of the sheet; on a sparse sheet that is transparent and the dark behind showed as a thin line along the squares.
+  The SDL backends (`sdl3`, so the web player too, and `sdl2` on desktop windows) therefore put both edges of every 2D rectangle on whole device
+  pixels (`platform/common/pixel_snap.h`, unit-tested in `tests/test_pixel_snap.cpp`; whole scales are untouched). Test: `tests/fixtures/tiles-sparse`
+  (black terrain, a sheet of one bright tile among transparent cells, made by the test) in `tools/webtest/suites/tiles.mjs`, which scans the
+  screenshot of the embedded player at nine canvas sizes for dark lines between the squares.
 - **Performance**: the 2D view and the 3D views batch tiles like terrain pictures (one textured quad or blit per visible square per frame); measured on a 60 x 40 map in the headless player (300 frames): 2D 0.68 s without the layer, 0.77 s with; isometric 0.56 s / 0.63 s; 3D isometric 0.76 s / 1.23 s and full 3D 0.87 s / 1.44 s with the software 3D drawer (the extra is the 2,400 tile quads a frame).
 
 In memory: `Graphics::tilesets` (`TilesetDef`: `sheet`, `cols`, `rows`, `anims`; `frame(tile, ms)`, `cell(tile)`: `engine/core/data/tileset.h`), the map's
