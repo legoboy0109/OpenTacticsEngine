@@ -1,0 +1,35 @@
+{
+  "title": "Campaign",
+  "files": ["data/campaign.json"],
+  "root": {
+    "type": "object",
+    "fields": {
+      "name": { "type": "string", "default": "Campaign", "help": "The campaign's name." },
+      "rules": { "type": "object", "block": true, "help": "What happens to fallen units and to a lost battle.", "fields": {
+        "fallen": { "type": "enum", "values": ["gone", "return"], "default": "gone", "help": "gone: a unit that falls is lost for good; return: it is back next chapter." },
+        "onDefeat": { "type": "enum", "values": ["retry", "end"], "default": "retry", "help": "retry: the chapter can be played again; end: the campaign is over." } } },
+      "freeBattles": { "type": "variant", "help": "Single maps next to the campaign: none, all, some, or with a condition.", "variants": [
+        { "name": "none", "value": "none" },
+        { "name": "all maps", "value": "all" },
+        { "name": "some maps", "kind": "array", "sample": [], "node": { "type": "list", "of": { "type": "ref", "ref": "game.json#maps" }, "help": "The maps that may be played on their own." } },
+        { "name": "with a condition", "kind": "object", "sample": { "maps": "all" }, "node": { "type": "object", "fields": {
+          "maps": { "type": "variant", "required": true, "help": "Which maps.", "variants": [
+            { "name": "none", "value": "none" },
+            { "name": "all maps", "value": "all" },
+            { "name": "some maps", "kind": "array", "sample": [], "node": { "type": "list", "of": { "type": "ref", "ref": "game.json#maps" }, "help": "The maps." } } ] },
+          "when": { "type": "enum", "values": ["always", "storyComplete"], "help": "always: from the start; storyComplete: after the story is finished." },
+          "lockedNote": { "type": "string", "help": "The text shown while free battles are still locked." } } } } ] },
+      "parties": { "type": "list", "help": "Groups of characters that play different chapters (leave out for one roster).", "of": { "type": "object", "fields": {
+        "id": { "type": "string", "required": true, "help": "Unique id (letters, digits, _ and -); chapters and commands name it." },
+        "name": { "type": "string", "help": "Name shown to the player (default: the id)." } } } },
+      "chapters": { "type": "list", "required": true, "collapsed": true, "help": "The chapters in play order (at least one).", "of": { "type": "object", "fields": {
+        "id": { "type": "string", "required": true, "help": "Unique id (letters, digits, _ and -)." },
+        "name": { "type": "string", "help": "Name shown on the chapter card (default: the id)." },
+        "map": { "type": "ref", "ref": "game.json#maps", "required": true, "help": "The map this chapter is played on." },
+        "next": { "type": "ref", "ref": "@chapters", "help": "The chapter that follows (default: the next in the list); a goto in the after scene can choose another." },
+        "party": { "type": "ref", "ref": "@parties", "help": "Which party plays it (needs parties)." },
+        "before": { "use": "_scene#scene", "help": "The scene that plays before the battle." },
+        "after": { "use": "_scene#scene", "help": "The scene that plays after the battle." } } } }
+    }
+  }
+}

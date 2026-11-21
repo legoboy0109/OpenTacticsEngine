@@ -74,7 +74,10 @@
         { "name": "number", "kind": "number", "node": { "type": "int", "min": 0, "max": 1000 } },
         { "name": "formula", "kind": "string", "node": { "type": "string" }, "sample": "1" } ] },
       "if": { "type": "list", "when": { "kind": ["staff"] }, "of": { "use": "_skills#condition" }, "help": "Conditions the target must meet (at most 8)." },
-      "sounds": { "type": "map", "free": true, "of": { "type": "string" }, "help": "Sound ids by event (use, healScene ...; docs/SOUND.md)." }
+      "sounds": { "type": "object", "help": "Sounds of this item instead of the standard ones (docs/SOUND.md).", "fields": {
+        "use": { "type": "ref", "ref": "keys:data/audio.json#sounds", "values": [""], "help": "The item is used." },
+        "heal": { "type": "ref", "ref": "keys:data/audio.json#sounds", "values": [""], "help": "The +N sound of this staff or healing item." },
+        "healScene": { "type": "ref", "ref": "keys:data/audio.json#sounds", "values": [""], "help": "The heal sound in the battle scene only." } } }
     }
   }
 }

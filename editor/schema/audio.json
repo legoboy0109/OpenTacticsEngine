@@ -1,0 +1,64 @@
+{
+  "title": "Audio",
+  "files": ["data/audio.json"],
+  "root": {
+    "type": "object",
+    "fields": {
+      "music": { "type": "map", "free": true, "help": "Music tracks by id (letters, digits, _ and -). Story commands, maps and the standard set below name them.", "of": { "type": "object", "fields": {
+        "file": { "type": "string", "required": true, "help": "Path inside the game folder to an .ogg or .wav file, such as audio/title.ogg." },
+        "loopStart": { "type": "number", "min": 0, "help": "Seconds into the track where the loop begins (default 0)." },
+        "volume": { "type": "int", "min": 0, "max": 100, "help": "Percent of full volume (default 100)." },
+        "loop": { "type": "bool", "default": true, "help": "false: plays once (a jingle: victory, defeat, level up ...)." } } } },
+      "sounds": { "type": "map", "free": true, "help": "Sound effects by id. Units, weapons, items and story commands name them.", "of": { "type": "object", "fields": {
+        "file": { "type": "string", "excludes": ["files"], "help": "Path to one .ogg or .wav file (this or files)." },
+        "files": { "type": "list", "min": 1, "excludes": ["file"], "of": { "type": "string" }, "help": "Several files: one is picked each time (1 to 16)." },
+        "volume": { "type": "int", "min": 0, "max": 100, "help": "Percent of full volume (default 100)." } } } },
+      "use": { "type": "object", "block": true, "help": "The game's standard set: which track plays where and which sound goes with which event.", "fields": {
+        "titleMusic": { "type": "ref", "ref": "keys:@music", "values": [""], "help": "Title screen." },
+        "mapMusic": { "type": "ref", "ref": "keys:@music", "values": [""], "help": "During a battle, when nothing more specific is set." },
+        "playerTurnMusic": { "type": "ref", "ref": "keys:@music", "values": [""], "help": "While a person's side plays." },
+        "enemyTurnMusic": { "type": "ref", "ref": "keys:@music", "values": [""], "help": "While the computer's sides play." },
+        "sceneMusic": { "type": "ref", "ref": "keys:@music", "values": [""], "help": "Story scenes." },
+        "prepMusic": { "type": "ref", "ref": "keys:@music", "values": [""], "help": "The preparation screen." },
+        "shopMusic": { "type": "ref", "ref": "keys:@music", "values": [""], "help": "Shops." },
+        "victory": { "type": "ref", "ref": "keys:@music", "values": [""], "help": "Jingle when the battle is won (the track needs loop: false)." },
+        "defeat": { "type": "ref", "ref": "keys:@music", "values": [""], "help": "Jingle when the battle is lost (loop: false)." },
+        "levelUp": { "type": "ref", "ref": "keys:@music", "values": [""], "help": "Jingle on a level up (loop: false)." },
+        "promotion": { "type": "ref", "ref": "keys:@music", "values": [""], "help": "Jingle on a promotion (loop: false)." },
+        "chapterCard": { "type": "ref", "ref": "keys:@music", "values": [""], "help": "Jingle of the chapter title card (loop: false)." },
+        "bootJingle": { "type": "ref", "ref": "keys:@music", "values": [""], "help": "Jingle when the game starts (loop: false)." },
+        "phaseMusic": { "type": "map", "free": true, "of": { "type": "ref", "ref": "keys:@music", "values": [""] }, "help": "Music by side id: the track that plays during that side's turn." },
+        "fewEnemies": { "type": "object", "block": true, "help": "Another track once few enemies are left.", "fields": {
+          "music": { "type": "ref", "ref": "keys:@music", "required": true, "help": "The track." },
+          "count": { "type": "int", "required": true, "min": 1, "max": 999, "help": "It starts when this many hostile units or fewer remain." } } },
+        "promotionSounds": { "type": "list", "min": 1, "help": "Sounds played at times after a promotion starts (1 to 16).", "of": { "type": "object", "fields": {
+          "atMs": { "type": "int", "required": true, "min": 0, "max": 60000, "help": "Milliseconds after the start." },
+          "sound": { "type": "ref", "ref": "keys:@sounds", "required": true, "help": "The sound." } } } },
+        "sounds": { "type": "object", "help": "The sound that goes with each event of the game.", "fields": {
+          "cursor": { "type": "ref", "ref": "keys:@sounds", "values": [""], "help": "The cursor moves." },
+          "confirm": { "type": "ref", "ref": "keys:@sounds", "values": [""], "help": "A choice is confirmed." },
+          "cancel": { "type": "ref", "ref": "keys:@sounds", "values": [""], "help": "A choice is cancelled." },
+          "error": { "type": "ref", "ref": "keys:@sounds", "values": [""], "help": "Something is refused." },
+          "step": { "type": "ref", "ref": "keys:@sounds", "values": [""], "help": "A unit takes a step." },
+          "hit": { "type": "ref", "ref": "keys:@sounds", "values": [""], "help": "A strike hits." },
+          "miss": { "type": "ref", "ref": "keys:@sounds", "values": [""], "help": "A strike misses." },
+          "critical": { "type": "ref", "ref": "keys:@sounds", "values": [""], "help": "A critical hit." },
+          "heal": { "type": "ref", "ref": "keys:@sounds", "values": [""], "help": "Hit points are restored." },
+          "defeated": { "type": "ref", "ref": "keys:@sounds", "values": [""], "help": "A unit is defeated." },
+          "capture": { "type": "ref", "ref": "keys:@sounds", "values": [""], "help": "A structure is captured." },
+          "build": { "type": "ref", "ref": "keys:@sounds", "values": [""], "help": "A unit or structure is built." },
+          "itemUse": { "type": "ref", "ref": "keys:@sounds", "values": [""], "help": "An item is used." },
+          "gold": { "type": "ref", "ref": "keys:@sounds", "values": [""], "help": "Funds change." },
+          "dialogue": { "type": "ref", "ref": "keys:@sounds", "values": [""], "help": "A line of dialogue appears." },
+          "turnStart": { "type": "ref", "ref": "keys:@sounds", "values": [""], "help": "A turn starts." },
+          "upgrade": { "type": "ref", "ref": "keys:@sounds", "values": [""], "help": "A structure is upgraded." },
+          "research": { "type": "ref", "ref": "keys:@sounds", "values": [""], "help": "A technology is finished." },
+          "repair": { "type": "ref", "ref": "keys:@sounds", "values": [""], "help": "A unit is repaired." },
+          "supply": { "type": "ref", "ref": "keys:@sounds", "values": [""], "help": "A unit is resupplied." },
+          "ambush": { "type": "ref", "ref": "keys:@sounds", "values": [""], "help": "A hidden unit is found." },
+          "select": { "type": "ref", "ref": "keys:@sounds", "values": [""], "help": "A unit is selected." },
+          "levelUpTick": { "type": "ref", "ref": "keys:@sounds", "values": [""], "help": "A stat ticks up on the level-up screen." },
+          "save": { "type": "ref", "ref": "keys:@sounds", "values": [""], "help": "The game is saved." } } } } }
+    }
+  }
+}

@@ -69,7 +69,9 @@
         "of": { "type": "object", "fields": {
           "id": { "type": "string", "required": true, "help": "Unique id." },
           "name": { "type": "string", "help": "Display name." },
-          "sounds": { "type": "map", "free": true, "of": { "type": "json" }, "help": "Step sounds: { \"step\": sound id, \"stepInterval\": seconds } (docs/SOUND.md)." } } }
+          "sounds": { "type": "object", "help": "Step sounds of this move type (docs/SOUND.md).", "fields": {
+            "step": { "type": "ref", "ref": "keys:data/audio.json#sounds", "values": [""], "help": "The sound of a step." },
+            "stepInterval": { "type": "number", "min": 0.02, "max": 2, "help": "Seconds between two steps of a walk (0.02 to 2)." } } } } }
       },
       "switches": { "use": "idName", "help": "Story switches (off / on) that map events and the campaign read and set (docs/EVENTS.md)." },
       "variables": { "use": "idName", "help": "Story variables (whole numbers, start at 0)." },

@@ -1,0 +1,678 @@
+{
+  "defs": {
+    "condition": {
+      "type": "variant",
+      "help": "One condition.",
+      "variants": [
+        {
+          "name": "switch",
+          "key": "switch",
+          "help": "A story switch is on (or off).",
+          "summary": "{switch}[ is {is}]",
+          "node": {
+            "type": "object",
+            "fields": {
+              "switch": {"type": "ref", "ref": "game.json#switches", "help": "The switch.", "required": true},
+              "is": {"type": "bool", "help": "true: on; false: off.", "default": true}
+            }
+          }
+        },
+        {
+          "name": "variable",
+          "key": "variable",
+          "help": "A story variable compared with a number.",
+          "summary": "{variable} [{op} ]{value}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "variable": {"type": "ref", "ref": "game.json#variables", "help": "The variable.", "required": true},
+              "op": {"type": "enum", "values": ["=", "==", "!=", "<", "<=", ">", ">="], "help": "How to compare (default =).", "default": "="},
+              "value": {"type": "int", "help": "The number.", "required": true}
+            }
+          }
+        },
+        {
+          "name": "alive",
+          "key": "alive",
+          "help": "A roster unit is alive.",
+          "summary": "{alive} alive",
+          "node": {
+            "type": "object",
+            "fields": {
+              "alive": {"type": "string", "help": "The unit. (a roster unit id: only the shape is checked, the character may join later)", "required": true}
+            }
+          }
+        },
+        {
+          "name": "dead",
+          "key": "dead",
+          "help": "A roster unit has fallen.",
+          "summary": "{dead} dead",
+          "node": {
+            "type": "object",
+            "fields": {
+              "dead": {"type": "string", "help": "The unit. (a roster unit id: only the shape is checked, the character may join later)", "required": true}
+            }
+          }
+        },
+        {
+          "name": "rosterAlive",
+          "key": "rosterAlive",
+          "help": "A character is alive (in this party, or any with party any).",
+          "summary": "{rosterAlive} alive",
+          "node": {
+            "type": "object",
+            "fields": {
+              "rosterAlive": {"type": "string", "help": "A character id.", "required": true},
+              "party": {"type": "enum", "values": ["any", "active"], "help": "Which parties count (default any).", "default": "any"}
+            }
+          }
+        },
+        {
+          "name": "rosterDead",
+          "key": "rosterDead",
+          "help": "A character fell.",
+          "summary": "{rosterDead} dead",
+          "node": {
+            "type": "object",
+            "fields": {
+              "rosterDead": {"type": "string", "help": "A character id.", "required": true},
+              "party": {"type": "enum", "values": ["any", "active"], "help": "Which parties count (default any).", "default": "any"}
+            }
+          }
+        },
+        {
+          "name": "inRoster",
+          "key": "inRoster",
+          "help": "A character is in the roster and not gone.",
+          "summary": "{inRoster} in the roster",
+          "node": {
+            "type": "object",
+            "fields": {
+              "inRoster": {"type": "string", "help": "A character id.", "required": true},
+              "party": {"type": "enum", "values": ["any", "active"], "help": "Which parties count (default any).", "default": "any"}
+            }
+          }
+        },
+        {
+          "name": "support",
+          "key": "support",
+          "help": "Two characters' support level compared with a number.",
+          "summary": "{support} [{op} ]{value}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "support": {
+                "type": "list",
+                "of": {"type": "ref", "ref": "data/characters.json", "help": "A character."},
+                "help": "The two characters of a support pair.",
+                "length": 2,
+                "required": true
+              },
+              "op": {"type": "enum", "values": ["=", "==", "!=", "<", "<=", ">", ">="], "help": "How to compare (default >=).", "default": ">="},
+              "value": {"type": "int", "help": "Support level, 0 to 5.", "min": 0, "max": 5, "required": true}
+            }
+          }
+        },
+        {
+          "name": "difficulty",
+          "key": "difficulty",
+          "help": "The difficulty of the playthrough (the game needs difficulties).",
+          "summary": "difficulty {difficulty}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "difficulty": {
+                "type": "variant",
+                "help": "A difficulty, or at least / at most one.",
+                "variants": [
+                  {"name": "is", "kind": "string", "node": {"type": "ref", "ref": "game.json#difficulties.list", "help": "The difficulty."}},
+                  {
+                    "name": "at least",
+                    "key": "atLeast",
+                    "node": {
+                      "type": "object",
+                      "fields": {"atLeast": {"type": "ref", "ref": "game.json#difficulties.list", "help": "This difficulty or a harder one.", "required": true}}
+                    }
+                  },
+                  {
+                    "name": "at most",
+                    "key": "atMost",
+                    "node": {
+                      "type": "object",
+                      "fields": {"atMost": {"type": "ref", "ref": "game.json#difficulties.list", "help": "This difficulty or an easier one.", "required": true}}
+                    }
+                  }
+                ],
+                "required": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    "sceneCommand": {
+      "type": "variant",
+      "help": "One scene command.",
+      "variants": [
+        {
+          "name": "say",
+          "key": "say",
+          "help": "A line of dialogue.",
+          "summary": "[{speaker|speakerName}: ]\"{say}\"",
+          "node": {
+            "type": "object",
+            "fields": {
+              "say": {"type": "string", "help": "The text shown.", "required": true},
+              "speaker": {
+                "type": "string",
+                "help": "The speaker (a roster unit id: only the shape is checked, the character may join later)",
+                "excludes": ["speakerName"]
+              },
+              "speakerName": {"type": "string", "help": "A name shown instead.", "excludes": ["speaker"]},
+              "portrait": {"type": "string", "help": "Portrait id."},
+              "position": {
+                "type": "enum",
+                "values": ["farLeft", "left", "midLeft", "center", "midRight", "right", "farRight"],
+                "help": "Where the speaker stands on the stage."
+              },
+              "auto": {"type": "int", "help": "The line goes on by itself after this many milliseconds.", "min": 1, "max": 60000}
+            }
+          }
+        },
+        {
+          "name": "narrate",
+          "key": "narrate",
+          "help": "A line with no speaker.",
+          "summary": "\"{narrate}\"",
+          "node": {
+            "type": "object",
+            "fields": {
+              "narrate": {"type": "string", "help": "The text shown.", "required": true},
+              "auto": {"type": "int", "help": "The line goes on by itself after this many milliseconds.", "min": 1, "max": 60000}
+            }
+          }
+        },
+        {
+          "name": "setSwitch",
+          "key": "setSwitch",
+          "help": "Turns a story switch on or off.",
+          "summary": "{setSwitch} = {to}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "setSwitch": {"type": "ref", "ref": "game.json#switches", "help": "The switch.", "required": true},
+              "to": {"type": "bool", "help": "On (true) or off (false).", "required": true}
+            }
+          }
+        },
+        {
+          "name": "setVariable",
+          "key": "setVariable",
+          "help": "Sets a story variable: a number.",
+          "summary": "{setVariable} = {to}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "setVariable": {"type": "ref", "ref": "game.json#variables", "help": "The variable.", "required": true},
+              "to": {"type": "int", "help": "The number.", "min": -1000000000, "max": 1000000000, "required": true}
+            }
+          },
+          "unless": ["level", "hp", "maxHp", "stat"]
+        },
+        {
+          "name": "setVariable (character's level)",
+          "key": "setVariable",
+          "help": "Sets a story variable: a roster unit's level.",
+          "summary": "{setVariable} = level of {level}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "setVariable": {"type": "ref", "ref": "game.json#variables", "help": "The variable.", "required": true},
+              "level": {"type": "string", "help": "The unit. (a roster unit id: only the shape is checked, the character may join later)", "required": true}
+            }
+          },
+          "with": ["level"]
+        },
+        {
+          "name": "setVariable (character's most hit points)",
+          "key": "setVariable",
+          "help": "Sets a story variable: a roster unit's most hit points.",
+          "summary": "{setVariable} = max hp of {maxHp}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "setVariable": {"type": "ref", "ref": "game.json#variables", "help": "The variable.", "required": true},
+              "maxHp": {"type": "string", "help": "The unit. (a roster unit id: only the shape is checked, the character may join later)", "required": true}
+            }
+          },
+          "with": ["maxHp"]
+        },
+        {
+          "name": "setVariable (character's stat)",
+          "key": "setVariable",
+          "help": "Sets a story variable: one stat of a roster unit.",
+          "summary": "{setVariable} = {stat} of {of}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "setVariable": {"type": "ref", "ref": "game.json#variables", "help": "The variable.", "required": true},
+              "stat": {"type": "ref", "ref": "game.json#stats", "help": "The stat.", "required": true},
+              "of": {"type": "string", "help": "The unit. (a roster unit id: only the shape is checked, the character may join later)", "required": true}
+            }
+          },
+          "with": ["stat"]
+        },
+        {
+          "name": "addVariable",
+          "key": "addVariable",
+          "help": "Adds to a story variable: a number.",
+          "summary": "{addVariable} += {by}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "addVariable": {"type": "ref", "ref": "game.json#variables", "help": "The variable.", "required": true},
+              "by": {"type": "int", "help": "The number.", "min": -1000000000, "max": 1000000000, "required": true}
+            }
+          },
+          "unless": ["level", "hp", "maxHp", "stat"]
+        },
+        {
+          "name": "addVariable (character's level)",
+          "key": "addVariable",
+          "help": "Adds to a story variable: a roster unit's level.",
+          "summary": "{addVariable} += level of {level}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "addVariable": {"type": "ref", "ref": "game.json#variables", "help": "The variable.", "required": true},
+              "level": {"type": "string", "help": "The unit. (a roster unit id: only the shape is checked, the character may join later)", "required": true}
+            }
+          },
+          "with": ["level"]
+        },
+        {
+          "name": "addVariable (character's most hit points)",
+          "key": "addVariable",
+          "help": "Adds to a story variable: a roster unit's most hit points.",
+          "summary": "{addVariable} += max hp of {maxHp}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "addVariable": {"type": "ref", "ref": "game.json#variables", "help": "The variable.", "required": true},
+              "maxHp": {"type": "string", "help": "The unit. (a roster unit id: only the shape is checked, the character may join later)", "required": true}
+            }
+          },
+          "with": ["maxHp"]
+        },
+        {
+          "name": "addVariable (character's stat)",
+          "key": "addVariable",
+          "help": "Adds to a story variable: one stat of a roster unit.",
+          "summary": "{addVariable} += {stat} of {of}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "addVariable": {"type": "ref", "ref": "game.json#variables", "help": "The variable.", "required": true},
+              "stat": {"type": "ref", "ref": "game.json#stats", "help": "The stat.", "required": true},
+              "of": {"type": "string", "help": "The unit. (a roster unit id: only the shape is checked, the character may join later)", "required": true}
+            }
+          },
+          "with": ["stat"]
+        },
+        {
+          "name": "giveResource",
+          "key": "giveResource",
+          "help": "Gives (or takes) resources of a side.",
+          "summary": "{giveResource} to {side}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "giveResource": {
+                "type": "map",
+                "ref": "game.json#resources",
+                "of": {"type": "int", "help": "Amount (may be negative).", "min": -1000000000, "max": 1000000000, "sample": 1},
+                "help": "Amount per resource.",
+                "required": true
+              },
+              "side": {"type": "string", "help": "The side's id (one of the chapter maps' sides).", "required": true}
+            }
+          }
+        },
+        {
+          "name": "takeItem",
+          "key": "takeItem",
+          "help": "Takes an item from a roster unit.",
+          "summary": "{takeItem} from {from}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "takeItem": {"type": "ref", "ref": "data/items.json", "help": "The item.", "required": true},
+              "from": {
+                "type": "string",
+                "help": "Who loses it. (a roster unit id: only the shape is checked, the character may join later)",
+                "required": true
+              },
+              "all": {"type": "bool", "help": "Every copy, not just one."}
+            }
+          }
+        },
+        {
+          "name": "storeItems",
+          "key": "storeItems",
+          "help": "Sends a roster unit's items to the shared storage.",
+          "summary": "{storeItems}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "storeItems": {"type": "string", "help": "The unit. (a roster unit id: only the shape is checked, the character may join later)", "required": true},
+              "keep": {"type": "list", "of": {"type": "ref", "ref": "data/items.json", "help": "An item."}, "help": "Items it keeps."}
+            }
+          }
+        },
+        {
+          "name": "addSupport",
+          "key": "addSupport",
+          "help": "Adds support points to a pair of characters.",
+          "summary": "{addSupport} by {by}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "addSupport": {
+                "type": "list",
+                "of": {"type": "ref", "ref": "data/characters.json", "help": "A character."},
+                "help": "The two characters of the pair.",
+                "length": 2,
+                "required": true
+              },
+              "by": {"type": "int", "help": "Points (may be negative).", "min": -1000000, "max": 1000000, "required": true}
+            }
+          }
+        },
+        {
+          "name": "if",
+          "key": "if",
+          "help": "Runs some commands only when all the conditions hold.",
+          "summary": "if {if}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "if": {"type": "list", "of": {"use": "condition", "help": "One condition."}, "help": "All of these must hold.", "required": true},
+              "then": {"use": "sceneCommands", "help": "Run when the conditions hold.", "required": true},
+              "else": {"use": "sceneCommands", "help": "Run when they do not."}
+            }
+          }
+        },
+        {
+          "name": "goto",
+          "key": "goto",
+          "help": "Jumps to another chapter (a chapter's after scene, or a before scene to another chapter).",
+          "summary": "go to {goto}",
+          "node": {"type": "object", "fields": {"goto": {"type": "ref", "ref": "@chapters", "help": "The chapter.", "required": true}}}
+        },
+        {
+          "name": "choice",
+          "key": "choice",
+          "help": "Asks a question; each answer runs its own commands.",
+          "summary": "\"{choice}\"",
+          "node": {
+            "type": "object",
+            "fields": {
+              "choice": {"type": "string", "help": "The question.", "required": true},
+              "speaker": {
+                "type": "string",
+                "help": "The speaker (a roster unit id: only the shape is checked, the character may join later)",
+                "excludes": ["speakerName"]
+              },
+              "speakerName": {"type": "string", "help": "A name shown instead.", "excludes": ["speaker"]},
+              "portrait": {"type": "string", "help": "Portrait id."},
+              "store": {"type": "ref", "ref": "game.json#variables", "help": "A variable that remembers the answer's number."},
+              "answers": {
+                "type": "list",
+                "of": {
+                  "type": "object",
+                  "fields": {
+                    "text": {"type": "string", "help": "The words of the answer (different from the others).", "required": true},
+                    "if": {"type": "list", "of": {"use": "condition", "help": "One condition."}, "help": "The answer is offered only when all hold."},
+                    "do": {"use": "sceneCommands", "help": "What happens when it is chosen."}
+                  }
+                },
+                "help": "Two to four answers.",
+                "collapsed": true,
+                "required": true
+              }
+            }
+          }
+        },
+        {
+          "name": "switchParty",
+          "key": "switchParty",
+          "help": "Makes another party the active one.",
+          "summary": "switch to {switchParty}",
+          "node": {"type": "object", "fields": {"switchParty": {"type": "ref", "ref": "@parties", "help": "The party.", "required": true}}}
+        },
+        {
+          "name": "mergeParties",
+          "key": "mergeParties",
+          "help": "Merges parties into one.",
+          "summary": "{mergeParties} into {into}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "mergeParties": {
+                "type": "list",
+                "of": {"type": "ref", "ref": "@parties", "help": "A party."},
+                "help": "The parties that join (not the one they join).",
+                "collapsed": false,
+                "required": true
+              },
+              "into": {"type": "ref", "ref": "@parties", "help": "The party that takes the others in.", "required": true}
+            }
+          }
+        },
+        {
+          "name": "playMusic",
+          "key": "playMusic",
+          "help": "Plays a music track of data/audio.json.",
+          "summary": "{playMusic}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "playMusic": {"type": "ref", "ref": "keys:data/audio.json#music", "help": "The track (a music entry of data/audio.json).", "required": true},
+              "fade": {"type": "number", "min": 0, "max": 60, "help": "Fade seconds (0 = a cut; default: a short cross-fade)."}
+            }
+          }
+        },
+        {
+          "name": "stopMusic",
+          "key": "stopMusic",
+          "help": "Silence until the next playMusic.",
+          "summary": "stop the music",
+          "node": {
+            "type": "object",
+            "fields": {
+              "stopMusic": {"type": "bool", "help": "Must be true.", "required": true},
+              "fade": {"type": "number", "min": 0, "max": 60, "help": "Fade seconds."}
+            }
+          }
+        },
+        {
+          "name": "playSound",
+          "key": "playSound",
+          "help": "One sound effect of data/audio.json.",
+          "summary": "{playSound}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "playSound": {"type": "ref", "ref": "keys:data/audio.json#sounds", "help": "The sound (a sounds entry of data/audio.json).", "required": true}
+            }
+          }
+        },
+        {
+          "name": "background",
+          "key": "background",
+          "help": "Shows a background (or nothing).",
+          "summary": "{background}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "background": {
+                "type": "variant",
+                "help": "A background, or null for none.",
+                "variants": [
+                  {
+                    "name": "background",
+                    "kind": "string",
+                    "node": {"type": "ref", "ref": "keys:data/graphics.json#backgrounds", "help": "A background of data/graphics.json."}
+                  },
+                  {"name": "none", "value": null}
+                ],
+                "required": true
+              },
+              "transition": {"type": "enum", "values": ["cut", "fade"], "help": "cut or fade (default cut).", "default": "cut"},
+              "ms": {"type": "int", "help": "How long it takes, in milliseconds.", "min": 0, "max": 10000}
+            }
+          }
+        },
+        {
+          "name": "clearStage",
+          "key": "clearStage",
+          "help": "Every speaker leaves the stage.",
+          "summary": "clear the stage",
+          "node": {
+            "type": "object",
+            "fields": {
+              "clearStage": {"type": "bool", "help": "Must be true.", "required": true},
+              "transition": {"type": "enum", "values": ["cut", "fade"], "help": "cut: at once; fade: with a fade."},
+              "ms": {"type": "int", "help": "How long it takes, in milliseconds.", "min": 0, "max": 10000}
+            }
+          }
+        },
+        {
+          "name": "leave",
+          "key": "leave",
+          "help": "A speaker leaves the stage.",
+          "summary": "{leave} leaves",
+          "node": {
+            "type": "object",
+            "fields": {
+              "leave": {"type": "string", "help": "The speaker (the id or name a say line used).", "required": true},
+              "transition": {"type": "enum", "values": ["cut", "fade"], "help": "cut: at once; fade: with a fade."},
+              "ms": {"type": "int", "help": "How long it takes, in milliseconds.", "min": 0, "max": 10000}
+            }
+          }
+        },
+        {
+          "name": "enter",
+          "key": "enter",
+          "help": "A speaker comes on stage.",
+          "summary": "{enter} enters {position}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "enter": {"type": "string", "help": "The speaker (the id or name a say line uses).", "required": true},
+              "position": {
+                "type": "enum",
+                "values": ["farLeft", "left", "midLeft", "center", "midRight", "right", "farRight"],
+                "help": "Where.",
+                "required": true
+              },
+              "portrait": {"type": "string", "help": "Portrait id."},
+              "transition": {"type": "enum", "values": ["cut", "fade"], "help": "cut: at once; fade: with a fade."},
+              "ms": {"type": "int", "help": "How long it takes, in milliseconds.", "min": 0, "max": 10000}
+            }
+          }
+        },
+        {
+          "name": "move",
+          "key": "move",
+          "help": "A speaker moves on the stage.",
+          "summary": "{move} to {position}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "move": {"type": "string", "help": "The speaker.", "required": true},
+              "position": {
+                "type": "enum",
+                "values": ["farLeft", "left", "midLeft", "center", "midRight", "right", "farRight"],
+                "help": "Where to.",
+                "required": true
+              },
+              "transition": {"type": "enum", "values": ["cut", "fade"], "help": "fade: slides (default); cut: jumps.", "default": "fade"},
+              "ms": {"type": "int", "help": "How long it takes, in milliseconds.", "min": 0, "max": 10000}
+            }
+          }
+        },
+        {
+          "name": "shake",
+          "key": "shake",
+          "help": "Shakes the screen.",
+          "summary": "shake {shake.ms} ms",
+          "node": {
+            "type": "object",
+            "fields": {
+              "shake": {
+                "type": "object",
+                "fields": {
+                  "ms": {"type": "int", "help": "How long, in milliseconds.", "min": 0, "max": 10000, "default": 400},
+                  "strength": {"type": "int", "help": "How hard, in pixels.", "min": 1, "max": 32}
+                },
+                "help": "How long and how hard.",
+                "required": true
+              }
+            }
+          }
+        },
+        {
+          "name": "wait",
+          "key": "wait",
+          "help": "Pauses the story.",
+          "summary": "{wait} ms",
+          "node": {"type": "object", "fields": {"wait": {"type": "int", "help": "Milliseconds.", "min": 0, "max": 60000, "required": true}}}
+        },
+        {
+          "name": "fade",
+          "key": "fade",
+          "help": "Fades the screen out or in.",
+          "summary": "fade {fade}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "fade": {"type": "enum", "values": ["out", "in"], "help": "out: to a colour; in: back.", "required": true},
+              "ms": {"type": "int", "help": "How long it takes, in milliseconds.", "min": 0, "max": 10000},
+              "color": {"type": "string", "help": "A colour like #000000."}
+            }
+          },
+          "unless": ["playMusic", "stopMusic", "playSound"]
+        }
+      ]
+    },
+    "sceneCommands": {"type": "list", "collapsed": true, "of": {"use": "sceneCommand", "help": "One scene command."}, "help": "Scene commands, run in order."},
+    "scene": {
+      "type": "variant",
+      "help": "What plays before or after a chapter.",
+      "variants": [
+        {
+          "name": "commands",
+          "kind": "array",
+          "help": "A plain list of scene commands.",
+          "node": {"use": "sceneCommands", "help": "The commands."},
+          "sample": [{"say": "Text"}]
+        },
+        {
+          "name": "music and commands",
+          "kind": "object",
+          "help": "Scene music, then the commands.",
+          "sample": {},
+          "node": {
+            "type": "object",
+            "fields": {
+              "music": {"type": "ref", "ref": "keys:data/audio.json#music", "help": "The track that plays during the scene."},
+              "commands": {"use": "sceneCommands", "help": "The commands."}
+            }
+          }
+        }
+      ]
+    }
+  }
+}
