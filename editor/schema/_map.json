@@ -1,7 +1,7 @@
 {
   "defs": {
     "rect": {
-      "type": "object", "help": "A rectangle of squares.",
+      "type": "object", "help": "A rectangle of squares.", "summary": "{x},{y}[ ({w} x {h})]",
       "fields": {
         "x": { "type": "int", "required": true, "min": 0, "help": "Column of the top-left square." },
         "y": { "type": "int", "required": true, "min": 0, "help": "Row of the top-left square." },
@@ -9,7 +9,7 @@
         "h": { "type": "int", "min": 1, "default": 1, "help": "Height in squares." } }
     },
     "square": {
-      "type": "object", "help": "One square.",
+      "type": "object", "help": "One square.", "summary": "{x},{y}",
       "fields": {
         "x": { "type": "int", "required": true, "min": 0, "help": "Column." },
         "y": { "type": "int", "required": true, "min": 0, "help": "Row." } }
@@ -60,7 +60,7 @@
           "heals": { "type": "enum", "values": ["anyone", "retreating"], "default": "anyone", "help": "retreating: its healing staves are used only on allies that are retreating." } } } } ]
     },
     "unit": {
-      "type": "object", "help": "A unit as an addUnit command adds it; a map's units list takes one more key (facing).",
+      "type": "object", "summary": "{id|character|type} ({side}) at {x},{y}", "help": "A unit as an addUnit command adds it; a map's units list takes one more key (facing).",
       "fields": {
         "id": { "type": "string", "help": "Id events name the unit by (letters, digits, _ and -). A unit with a character is known by the character's id: leave this out." },
         "character": { "type": "ref", "ref": "data/characters.json", "help": "A character of data/characters.json; type, name and level default to the character's." },
@@ -99,25 +99,25 @@
     "winRule": {
       "type": "variant", "help": "One way to win.",
       "variants": [
-        { "name": "defeated", "key": "defeated", "node": { "type": "object", "fields": {
+        { "name": "defeated", "key": "defeated", "summary": "{defeated} defeated", "node": { "type": "object", "fields": {
           "defeated": { "use": "filter", "required": true, "help": "Win when every matching unit is defeated." } } } },
-        { "name": "reach", "key": "reach", "node": { "type": "object", "fields": {
+        { "name": "reach", "key": "reach", "summary": "{reach}[ by {by}]", "node": { "type": "object", "fields": {
           "reach": { "use": "rect", "required": true, "help": "Win when a unit ends a move inside this area." },
           "by": { "use": "filter", "help": "Only units that match (default: any of the person's units)." } } } },
-        { "name": "round", "key": "round", "node": { "type": "object", "fields": {
+        { "name": "round", "key": "round", "summary": "round {round}", "node": { "type": "object", "fields": {
           "round": { "type": "int", "required": true, "min": 1, "max": 100000, "help": "Win when this round is reached." } } } },
-        { "name": "survive", "key": "survive", "node": { "type": "object", "fields": {
+        { "name": "survive", "key": "survive", "summary": "survive {survive} rounds", "node": { "type": "object", "fields": {
           "survive": { "type": "int", "required": true, "min": 1, "max": 100000, "help": "Win by surviving this many rounds." } } } } ]
     },
     "loseRule": {
       "type": "variant", "help": "One way to lose.",
       "variants": [
-        { "name": "defeated", "key": "defeated", "node": { "type": "object", "fields": {
+        { "name": "defeated", "key": "defeated", "summary": "{defeated} defeated", "node": { "type": "object", "fields": {
           "defeated": { "use": "filter", "required": true, "help": "Lose when every matching unit is defeated." } } } },
-        { "name": "reach", "key": "reach", "node": { "type": "object", "fields": {
+        { "name": "reach", "key": "reach", "summary": "{reach}[ by {by}]", "node": { "type": "object", "fields": {
           "reach": { "use": "rect", "required": true, "help": "Lose when a unit ends a move inside this area." },
           "by": { "use": "filter", "help": "Only units that match." } } } },
-        { "name": "round", "key": "round", "node": { "type": "object", "fields": {
+        { "name": "round", "key": "round", "summary": "round {round}", "node": { "type": "object", "fields": {
           "round": { "type": "int", "required": true, "min": 1, "max": 100000, "help": "Lose when this round is reached." } } } } ]
     },
     "objectives": {
@@ -171,13 +171,13 @@
     "changes": {
       "type": "map", "free": true, "help": "Named map changes that applyChange / revertChange commands use (docs/EVENTS.md Changing the map).",
       "of": { "type": "object", "fields": {
-        "cells": { "type": "list", "of": { "type": "object", "fields": {
+        "cells": { "type": "list", "of": { "type": "object", "summary": "{x},{y}: {terrain}", "fields": {
           "x": { "type": "int", "required": true, "min": 0, "help": "Column." },
           "y": { "type": "int", "required": true, "min": 0, "help": "Row." },
           "terrain": { "type": "ref", "ref": "data/terrain.json", "required": true, "help": "The terrain the square gets." },
           "tile": { "type": "int", "min": -1, "help": "Tile number of the map's tile layer (-1 = no tile; needs tileLayer)." },
           "keepTile": { "type": "bool", "help": "The square keeps its tile." } } }, "help": "Squares that get another terrain." },
-        "structures": { "type": "list", "of": { "type": "object", "fields": {
+        "structures": { "type": "list", "of": { "type": "object", "summary": "{id} becomes {kind}", "fields": {
           "id": { "type": "ref", "ref": "@structures", "required": true, "help": "The id of a structure the map placed." },
           "kind": { "type": "ref", "ref": "data/structures.json", "required": true, "help": "The structure kind it turns into (same size)." } } }, "help": "Structures that turn into another kind." },
         "keepTile": { "type": "bool", "help": "Squares whose terrain changes keep their tile." } } }

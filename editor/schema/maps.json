@@ -12,7 +12,7 @@
       "fog": { "type": "bool", "help": "Fog of war on this map (docs/ECONOMY.md)." },
       "fogVision": { "type": "int", "min": -10, "max": 10, "help": "Sight added to every unit under fog (needs fog)." },
       "aiSeesAll": { "type": "bool", "help": "Computer sides see everything under fog (needs fog)." },
-      "structures": { "type": "list", "help": "Structures placed on the map (contents of chests: tree view).", "of": { "type": "object", "fields": {
+      "structures": { "type": "list", "help": "Structures placed on the map (contents of chests: tree view).", "of": { "type": "object", "summary": "{id|type} at {x},{y}", "fields": {
         "type": { "type": "ref", "ref": "data/structures.json", "required": true, "help": "The kind of structure." },
         "x": { "type": "int", "required": true, "min": 0, "help": "Column of its top-left corner." },
         "y": { "type": "int", "required": true, "min": 0, "help": "Row of its top-left corner." },

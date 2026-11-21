@@ -1030,7 +1030,8 @@
                     "text": {"type": "string", "help": "The words of the answer (different from the others).", "required": true},
                     "if": {"type": "list", "of": {"use": "condition", "help": "One condition."}, "help": "The answer is offered only when all hold."},
                     "do": {"use": "commands", "help": "What happens when it is chosen."}
-                  }
+                  },
+                  "summary": "{text}"
                 },
                 "help": "Two to four answers.",
                 "collapsed": true,

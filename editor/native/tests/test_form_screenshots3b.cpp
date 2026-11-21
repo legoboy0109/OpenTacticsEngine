@@ -5,6 +5,7 @@
 #include <QApplication>
 #include <QDir>
 #include <QImage>
+#include <QScrollBar>
 #include <QSettings>
 #include <QtTest>
 #include <memory>
@@ -118,6 +119,15 @@ void Shots3bTest::scene() {
     f->flush();
     QCoreApplication::processEvents();
   };
+  // Scrolling to a widget is only exact once the layout has settled: open the way, let it settle, then put `top` at the top edge.
+  auto goTo = [&](FormView* f, const QString& top, const QString& open = QString()) {
+    f->expandAlong(path(open.isEmpty() ? top : open));
+    settle(f);
+    f->focusPath(path(top));
+    settle(f);
+    if (QWidget* a = f->anchorWidget(path(top))) f->verticalScrollBar()->setValue(a->mapTo(f->widget(), QPoint(0, 0)).y() - 8);
+    settle(f);
+  };
   if (needsEvents) {
     TreeEditor* t = s.tree("maps/field.json");
     QVERIFY(t && t->form());
@@ -131,28 +141,24 @@ void Shots3bTest::scene() {
     t->formContext()->set(path("events[7].do"), longList);
     settle(f);
     if (scene == "events-collapsed") {
-      QVERIFY(f->focusPath(path("events[7].do")));
+      goTo(f, "events[7].do");
     } else if (scene == "events-expanded") {
-      QVERIFY(f->focusPath(path("events[7].do[1].moveUnit")));
+      goTo(f, "events[7].do", "events[7].do[1]");
     } else if (scene == "events-choice") {
-      QVERIFY(f->focusPath(path("events[7].do[18].answers[0].do")));
       f->expandAlong(path("events[7].do[18].answers[1]"));
+      goTo(f, "events[7].do[18]", "events[7].do[18].answers[0]");
     } else if (scene == "objectives") {
-      QVERIFY(f->focusPath(path("objectives")));
+      goTo(f, "objectives");
     } else {
-      f->expandAlong(path("prep"));
-      QVERIFY(f->focusPath(path("prep")));
+      goTo(f, "prep", "prep");
     }
-    settle(f);
-  } else if (scene == "campaign") {
-    s.w->openFile("data/campaign.json");
-    QVERIFY(s.w->editorFor("data/campaign.json"));
-  } else if (scene == "audio") {
-    s.w->openFile("data/audio.json");
-    QVERIFY(s.w->editorFor("data/audio.json"));
   } else {
-    s.w->openFile("art/detailed.style.json");
-    QVERIFY(s.w->editorFor("art/detailed.style.json"));
+    const QString rel = scene == "campaign" ? "data/campaign.json" : scene == "audio" ? "data/audio.json" : "art/detailed.style.json";
+    TreeEditor* t = s.tree(rel);
+    QVERIFY(t && t->form());
+    if (scene == "campaign") goTo(t->form(), "chapters", "chapters[0].before");
+    else if (scene == "audio") goTo(t->form(), "use", "use");
+    else goTo(t->form(), "styles", "styles");
   }
   save(s.w.get(), QString("m3b-%1-%2x%3.png").arg(scene).arg(w).arg(h), w, h);
 }

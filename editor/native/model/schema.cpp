@@ -149,6 +149,7 @@ struct Parser {
     n->free = j["free"].asBool();
     n->excludes = strings(j["excludes"]);
     n->collapsed = j["collapsed"].asBool();
+    n->summary = j["summary"].asString();
     if (j.has("enable")) n->enable = j["enable"];
     if (j["when"].isObject()) {
       SchemaNode::When w;

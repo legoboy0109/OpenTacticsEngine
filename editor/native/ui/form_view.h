@@ -44,6 +44,8 @@ class FormView : public QScrollArea {
   bool focusKey(const QString& key);
   // True when a container (object, list, command ...) of this path is built in the form right now.
   bool hasAnchor(const JsonPath& path) const { return anchors_.value(pathToString(path)) != nullptr; }
+  // The widget of such a container (screenshots and tests scroll to it), or nullptr.
+  QWidget* anchorWidget(const JsonPath& path) const { return anchors_.value(pathToString(path)).data(); }
   // Runs a pending rebuild now (tests; the form otherwise does it on the next event-loop turn).
   void flush();
   QList<FieldBase*> fields() const;

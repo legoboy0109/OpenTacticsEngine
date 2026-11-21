@@ -67,6 +67,7 @@ struct SchemaNode {
   ote::Json enable;     // block: exactly what the Enable switch writes (Null = built from required keys and defaults)
   bool free = false;    // Map: any key (named sets, free-form numbers) instead of the ids of `ref`
   std::vector<std::string> excludes;  // setting this key removes these sibling keys (turns / until: one of the two)
+  std::string summary;     // Object: one-line template of a collapsed list item ("{x},{y}"), see summaryText
   bool collapsed = false;  // List: the items start collapsed (a long command list: one line each)
   // A definition that contains itself (a command list inside the `if` command) is expanded twice when the schema is loaded; the
   // third level is this placeholder, expanded the first time somebody looks at it (by a form: `resolved()`), so scripts can
