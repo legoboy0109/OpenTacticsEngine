@@ -315,6 +315,9 @@ class BattleScene : public Scene {
   // battle_unit_icon.cpp: the unit's map picture and "Lv2 Soldier" on a row of the prep lists
   void drawUnitIcon(Renderer& r, int type, int x, int y, int size);
   void decorateUnitRow(PanelRow& row, int type, int level);
+  // The class and level a preparation list shows for the unit `id`: the unit in the battle when it is there (the test level and
+  // the difficulty change it after the roster was read), else what the list has.
+  void prepLive(const std::string& id, int& type, int& level) const;
   void updateShopMusic();  // battle_shop_music.cpp
   // battle_prep_sell.cpp: selling at the shop, and Equip on the trade screen
   void prepShopTab(int tab);                 // 0 = Buy, 1 = Sell (the shop's tabs)

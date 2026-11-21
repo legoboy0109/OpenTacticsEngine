@@ -44,6 +44,16 @@ void BattleScene::drawUnitIcon(Renderer& r, int type, int x, int y, int size) {
   drawGlyphCentered(r, x + size / 2, y + size / 2, db.unitTypes[(size_t)type].glyph, readableOn(col), std::max(1, (size - 2) * 3 / 4));
 }
 
+void BattleScene::prepLive(const std::string& id, int& type, int& level) const {
+  if (id.empty()) return;
+  for (const Unit& u : battle_.units)
+    if (u.storyId == id && battle_.exists(u)) {
+      type = u.type;
+      level = u.level;
+      return;
+    }
+}
+
 void BattleScene::decorateUnitRow(PanelRow& row, int type, int level) {
   const Database& db = session_.db;
   if (type < 0 || (size_t)type >= db.unitTypes.size()) return;

@@ -64,7 +64,9 @@ void BattleScene::prepSellWhoOpen(int sel) {
     if (r.gone) continue;
     PanelRow row;
     row.label = r.name;
-    decorateUnitRow(row, r.type, r.level);
+    int type = r.type, level = r.level;
+    prepLive(r.id, type, level);
+    decorateUnitRow(row, type, level);
     row.extra = countText(db, r);
     row.dim = r.items.empty();
     row.detail = std::string(PrepWords::kSellFrom) + " " + r.name;

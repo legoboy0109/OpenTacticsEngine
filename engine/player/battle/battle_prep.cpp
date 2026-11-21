@@ -176,14 +176,16 @@ void BattleScene::prepUnitsOpen(int sel) {
     row.label = e.name;
     const bool in = e.slot >= 0;
     row.mark = in;
-    decorateUnitRow(row, e.type, e.level);
+    int type = e.type, level = e.level;
+    prepLive(e.id, type, level);  // a deployed unit as it stands in the battle (docs/DIFFICULTY.md "Test level")
+    decorateUnitRow(row, type, level);
     row.dim = e.lock == PrepLock::Forbidden || e.lock == PrepLock::Fallen;
     if (e.lock == PrepLock::Forbidden) row.extra = "Not allowed";
     else if (e.lock == PrepLock::Fallen) row.extra = "Fallen";
     else if (in) row.extra = std::string(PrepWords::kSlot) + " " + intStr(e.slot + 1) + (e.lock == PrepLock::Required ? " *" : "");
     else row.extra = PrepWords::kOut;
     // The level and class lead the explanation: "Lv2 Soldier. Must fight in this battle."
-    row.detail = "Lv" + intStr(e.level) + " " + session_.db.unitTypes[(size_t)e.type].name + ". " +
+    row.detail = "Lv" + intStr(level) + " " + session_.db.unitTypes[(size_t)type].name + ". " +
                  (e.lock != PrepLock::None ? prepLockReason(e.lock) : (in ? PrepWords::kTakeOut : PrepWords::kPutIn));
     rows.push_back(row);
     p.ids.push_back(e.id);
