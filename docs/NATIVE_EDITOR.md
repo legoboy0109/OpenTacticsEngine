@@ -36,6 +36,8 @@ RTTI; only plain non-polymorphic types (`ote::Json`, `ote_editor_core` functions
 ```
 editor/core/        ote_editor_core (static): validateProject, audio check, safe paths, revision hash, log. No HTTP.
                     Linked by ote-editor (the HTTP shell, behaviour unchanged) and by the native editor.
+                    map_grid, map_resize: a map's tiles / legend / heights / tileLayer as plain data (read, write, legend symbols,
+                    flood region, resize with anchor); the native map painter uses it and the MCP server could
 editor/schema/        hand-written schemas of the data files (milestones 2, 3 and 3b); also compiled into the program
                     _common.json, _skills.json, _map.json, _story.json, _scene.json: shared definitions only ("defs", pulled in
                     with "use"): the story language (conditions, triggers, commands) is _story.json, a campaign scene's is _scene.json
@@ -49,11 +51,16 @@ editor/native/
     schema          the schema types and loader (editor/schema/*.json), typeOk / sample values
     id_source       the live id lists ("data/units.json", "game.json#stats") the forms' combo boxes use
     story_ids       ids computed from a whole map ("@storyUnits", "@teams") and the one resolver of every id source
+    map_painter     the painter's model: strokes on a copy of the grid, written as ONE undo step; resize; terrain list
+    map_geometry    cell <-> pixel for square and hexagon grids (hit-testing, outlines, size)
+    map_markers     units, structures and deployment slots of a map, for the painter's overlay
     cell_text, tsv, table_shape, play_command, comment_scan   small pure helpers
   ui/               item models (table, tree), editors, dialogs, main window, prompter, settings;
                     form_context (the one way a form edits), form_fields (leaf widgets), form_view (lifecycle, sync, focus),
                     form_build (objects, blocks, paged lists, maps, variants; lazy containers), form_other (the Other keys box),
-                    variant_picker_dialog (the "which kind?" chooser of a list's Add button)
+                    variant_picker_dialog (the "which kind?" chooser of a list's Add button);
+                    map_page (the painter page: tool bar, terrain palette, status), map_view + map_view_paint (the canvas),
+                    map_art (the game's tile pictures), map_resize_dialog, map_tool
   tests/            QtTest programs (below)
 ```
 Design rules worth knowing:
@@ -228,7 +235,7 @@ family; a key names its place as `schema:path` with `[]` for list items, `*` for
 whose block has the `when` an effect or condition belongs to. **Every optional block is also "enabled alone"** (what the Enable
 switch writes) and must be accepted; those that cannot be valid alone carry a reason in `blockExcuses()`. The reverse check now
 reads the demo games too and also fails on a value shape that no variant describes. Keys excused in the reverse check are only the
-raw parts of a map's tile grid (`tiles`, `tileLayer`, `heights`), listed with reasons in `excusedKey()`.
+raw parts of a map's tile grid (`tiles`, `tileLayer`, `heights`; the Painter page edits them), listed with reasons in `excusedKey()`.
 
 ## What is covered
 | Section | State | Note |
@@ -244,6 +251,7 @@ raw parts of a map's tile grid (`tiles`, `tileLayer`, `heights`), listed with re
 | `data/research.json`, `data/factions.json`, `data/jobs.json`, `data/commanders.json` | covered | skill grants and AI weights are real forms now |
 | maps: `name`, `grid`, `fog`, `fogVision`, `aiSeesAll`, `sides[]` (+ `storage`), `units[]` (all keys: placement, `character`, `job` / `jobs` / `learned` / `equipped`, `xp`, `merit`, `ranks`, `goesFor`, `behaviour`, `skills`, `difficulty`), `structures[]`, `legend`, `changes`, `prep`, `objectives`, `music` / `playerTurnMusic` / `enemyTurnMusic` / `prepMusic` / `phaseMusic` / `fewEnemies` | covered | raw: `tiles`, `tileLayer`, `heights` (a map painter is a later milestone) |
 | maps: `events[]` | covered | 9 triggers, 16 conditions, 62 command shapes (54 command keys) as variants; see below |
+| maps: `tiles`, `legend`, `heights`, `tileLayer` | painter | the **Painter** page, see "The map painter" below; the Tree page still shows the raw rows |
 | `data/campaign.json` | covered | rules, free battles, parties, chapters; a scene is a list of 25 command kinds (setVariable / addVariable in 4 shapes each) or `{ music, commands }`, with 9 conditions |
 | `data/audio.json` | covered | music, sounds, the standard set (`use`, the 24 sound cues, jingles, phase music, few enemies, promotion sounds); the `sounds` of weapons, units, items and move types are real objects whose values are sound ids of this file |
 | `data/graphics.json`, `art/*.style.json` | mostly | sheets, `unitMarker`, backgrounds, tilesets (+ animations), terrain / unit / structure looks (cell, variants, frames, join, walk, sides, models, standing things), portraits, `styles` (flat and 3D). Raw: `battle` and `battleBackground` (the battle scene's art), and the `join` / stand `variants` values that are either one cell or a list. The style files are the same shape as graphics.json (the engine never reads them: a tool merges them) |
@@ -257,6 +265,46 @@ openChest, setBehaviour, wakeGroup, addCondition, removeCondition, promote, teac
 storeItems, showUnit, background, fade, wait, shake, leave, clearStage, enter, move, weather. `wait` and `fade` come last in the list:
 `moveUnit` / `focus` also have a `wait` key and the music commands a `fade` key (the `unless` lists). The commands inside `if` and a
 choice's answers are real nested forms (collapsed by default, built when opened).
+
+## The map painter
+
+Every map file (`maps/*.json` with a `tiles` list) has a first page, **Painter**, before its form ("Map") and the tree. It shows the
+grid and edits `tiles`, `legend`, `heights` and, on resize, `tileLayer`; everything else in the map stays in the form.
+- **Canvas.** Each square or hexagon is drawn with the game's own picture (`data/graphics.json`: a terrain's `cell`, the first of
+  its `variants` / `frames`, or the first piece of its `join` block, cut from the sheet; the same top-down look the 2D view uses),
+  otherwise the terrain's `color` (or a colour made from its id) and its legend letter. Square and pointy / flat hexagon maps are
+  hit-tested exactly (odd rows / columns shoved half a cell, docs/HEX.md). Only the cells in view are drawn, so a 100 x 100 map
+  repaints in a few milliseconds. Wheel = zoom around the pointer (10% - 800%), middle button or Space + drag = pan, plus scroll bars,
+  `-` / `+` / `100%` / `Fit` buttons.
+- **Tools.** Paint (click and drag), Rectangle, Fill (flood fill over connected squares of the same terrain, hexagon-aware), Pick
+  (eyedropper: also copies the square's height into the Height box), Raise / Lower (height +1 / -1 once per square per stroke),
+  Set height (the number in the Height box, 0-99) and Inspect. A fast drag leaves no gaps (the segment between two mouse events is
+  walked). The palette lists `data/terrain.json` (then legend terrains it does not list) with the legend symbol beside each name.
+- **Heights.** Shown as lighter shading and a small number. A map without `heights` gets the list (all 0, written right after
+  `tiles`) with its first height edit; "set 0" on such a map changes nothing.
+- **Overlays** (read-only): units (circle, side colour, letter of the kind / character / job), structures (square; hexagon ring
+  structures get a dashed ring; multi-square structures outline their footprint) and the preparation screen's deployment slots
+  (small diamonds, numbered; sides themselves have no start square). Tooltips name the thing, its side and its square. The
+  **Inspect** tool opens the clicked entry in the form page (the tree page for files without a schema).
+- **Undo.** A stroke works on a copy of the grid (so the canvas can show it live) and is written when the button is released:
+  the rows that changed, as `SetValue` commands inside one macro = one undo step ("Paint terrain", "Fill area", "Fill rectangle",
+  "Raise height" ...). Nothing changed = no undo step. If the file changes under a half-made stroke (Ctrl+Z while dragging) the stroke
+  is dropped. Dirty flag, save and the problems check work as for every other edit.
+- **Legend.** Painting a terrain the legend does not have adds one in the map's own style: the terrain's `glyph` when free, else a
+  letter of its id in the map's case (lower case, capitals; maps whose legend is digits continue the digits), else the next free
+  symbol of that kind. A symbol painted and overwritten again inside the same stroke is not kept. Never a quote or a backslash.
+- **Resize map...** width, height, a 3 x 3 anchor (which part of the old map stays put) and the terrain of the new squares (default:
+  the most used). `tiles`, `heights` and `tileLayer` are rebuilt together; units, structures, deployment slots and `changes` squares
+  move with the anchor and are removed when they no longer fit (a multi-square structure or a hexagon ring must fit whole). The
+  dialog lists what would be removed and asks again before cutting; one undo step restores everything. Hexagon maps only move by
+  whole pairs of rows (pointy) or columns (flat), so the picture does not shift. **Coordinates inside story events (`reach`, areas,
+  `addUnit` squares ...) are not adjusted.**
+- **Tile layer.** Read, shown (check box "Tile layer picture", square games only, pictures from the layer's tileset) and kept
+  consistent on resize, saved in its string form. Painting changes terrain only, never the layer; there is no tool that paints tiles
+  of the layer yet.
+- **Remembered** (`ui/app_settings`): zoom, tool, and the overlay switches.
+- The Qt-free parts (read / write of the grid, legend choice, flood region, resize) are in `editor/core/map_grid.*` and
+  `map_resize.cpp`, tested by `ote_editor_core_tests`, so the MCP server can use the same code (its `set_tiles` still has its own).
 
 ## Tests
 Registered in ctest as `native_test_*` only when the option is ON. They set `QT_QPA_PLATFORM=offscreen`, so no window ever
@@ -282,6 +330,15 @@ QT_QPA_PLATFORM=offscreen OTE_SHOT_DIR=/some/folder ./editor/native/native_test_
 - `native_test_form_window`: scripted run on a temp copy of a fixture: new resource, action points enabled in Rules, new
   damage type, a weapon given it through the combo, save, problems empty, undo all -> files as loaded; problem double-click;
   "Show in tree view"; no schema -> milestone 1 behaviour.
+- `native_test_map_model`: the painter's model on demo-srpg (square) and demo-hex: a stroke = one undo step with byte-exact file
+  text, legend entries (glyph, style, unused ones dropped), rectangle, flood fill (square and hexagon, against a neighbour table
+  written out separately), heights, resize (grow, shrink with removals, hexagon row pairs, tile layer, undo restores every byte),
+  and "the engine still loads the resized map" through the real project check.
+- `native_test_map_view`: hit-testing on every cell of square / pointy / flat grids, real mouse strokes in the real window (fast
+  drags, rectangle, fill, pick, inspect, heights, hexagon clicks), wheel zoom, pan, zoom / tool remembered across a restart, the
+  resize questions, a 100 x 100 map (painting, a 300-event stroke and a fill take milliseconds).
+- `native_test_map_screenshots`: square map, hexagon map (and a rectangle preview), heights at 100% / 250% / 40%, a tile layer, the
+  resize dialog (`OTE_SHOT_DIR=... ./editor/native/native_test_map_screenshots`).
 - `native_test_conformance`: see above.
 - `native_test_form_features`: `when`, variants, free maps, block `needs` / `enable`, lazy building (collapsed containers are not
   instantiated; focusing a key opens the way), two columns, the table | table + form | form views and their per-kind memory, and
@@ -305,7 +362,10 @@ QT_QPA_PLATFORM=offscreen OTE_SHOT_DIR=/some/folder ./editor/native/native_test_
   nested-JSON dialog, a refused edit, and a dark palette, at 1280x720 and 1920x1080 where it matters.
 
 ## Not there yet
-- A map painter for the tile grid (`tiles`, `tileLayer`, `heights` stay raw JSON), the battle scene's art in graphics.json (`battle`,
+- Map painter leftovers: no tool paints the `tileLayer` tiles (it is shown and kept on resize), units / structures / deployment
+  slots cannot be moved or placed on the canvas yet (Inspect only opens them in the form), no brush sizes, no 3D / isometric
+  preview, resize does not adjust coordinates inside story events, and `ote-mcp`'s `set_tiles` has its own copy of the legend
+  logic instead of `editor/core/map_grid`. Also: the battle scene's art in graphics.json (`battle`,
   `battleBackground`), pickers that show the sound or the picture, and the table-level help of a column beyond its tooltip.
 - Which skill effect or condition is allowed in which kind of block is not filtered in the picker (the help line says, the engine's
   check refuses).
