@@ -32,6 +32,9 @@ const std::map<QString, QString>& skipped() {
       {"units:promotions[].items", "needs a promotion item (promotes: true), which these fixtures' items are not (cross-file rule)"},
       {"characters:job", "the equipped skills must belong to the job and be learned (cross-key rule on the rows around it)"},
       {"characters:jobs", "the equipped skills must have been learned in one of the jobs (cross-key rule on the rows around it)"},
+      {"maps:structures[].contents*", "needs a chest placed on the fixture's own map geometry; the loader side is covered by the engine's place tests (tests/test_srpg_places*)"},
+      {"maps:structures[].visitSides", "needs a visit place placed on the fixture's own map geometry; covered by the engine's place tests"},
+      {"maps:structures[].visitUnits", "needs a visit place placed on the fixture's own map geometry; covered by the engine's place tests"},
       {"abilities:spendsItem", "needs an item whose skill gives the ability (cross-file rule); the probe ability has none"},
       {"weapons:sounds", "sound ids need data/audio.json with sounds, and the keys are cue names (docs/SOUND.md); covered with audio.json"},
       {"units:sounds", "sound ids need data/audio.json with sounds, and the keys are cue names (docs/SOUND.md); covered with audio.json"},
@@ -70,9 +73,35 @@ bool excusedKey(const QString& schema, const QString& path, QString* why) {
   const QStringList seg = path.split('.');
   auto yes = [&](const char* w) { *why = w; return true; };
   if (schema == "maps") {
-    if (seg.size() == 1) return yes("map structure (tiles, legend, events, structures, objectives ...): not described yet");
-    if (seg.size() == 2 && (seg[0] == "units[]" || seg[0] == "sides[]"))
-      return yes("older side / unit placement keys (behaviour, items, xp, merit, ...): not described yet");
+    // What a map keeps raw for now, each with the reason. Everything else of a map is described.
+    static const char* const kRaw[][2] = {
+        {"tiles", "the tile grid: a map painter is a later milestone"},
+        {"legend", "the tile grid's legend: goes with the tile grid"},
+        {"tileLayer", "the second tile layer: goes with the tile grid"},
+        {"heights", "the height grid: goes with the tile grid"},
+        {"events", "story events: triggers and commands are a larger language (docs/EVENTS.md), milestone 4"},
+        {"changes", "named map changes (cells, structures) that story commands apply: milestone 4"},
+        {"prep", "the preparation screen (slots, required characters, shop): milestone 4"},
+        {"objectives", "win / lose rules with unit filters (docs/EVENTS.md): milestone 4"},
+    };
+    for (const auto& r : kRaw)
+      if (seg[0] == r[0]) return yes(r[1]);
+    if (seg.size() == 2 && seg[0] == "sides[]" && seg[1] == "storage") return yes("a side's item storage: milestone 4");
+    if (seg.size() == 2 && seg[0] == "units[]") {
+      static const char* const kUnit[][2] = {
+          {"behaviour", "the computer behaviour of a unit (mode, route, retreat ...): milestone 4"},
+          {"character", "unit placement keys that name characters, jobs and learned skills: milestone 4"},
+          {"job", "unit placement keys that name characters, jobs and learned skills: milestone 4"},
+          {"learned", "unit placement keys that name characters, jobs and learned skills: milestone 4"},
+          {"equipped", "unit placement keys that name characters, jobs and learned skills: milestone 4"},
+          {"xp", "experience, merit and weapon ranks of a placed unit: milestone 4"},
+          {"merit", "experience, merit and weapon ranks of a placed unit: milestone 4"},
+          {"ranks", "experience, merit and weapon ranks of a placed unit: milestone 4"},
+          {"goesFor", "what a computer unit goes for (chests, villages ...): milestone 4"},
+      };
+      for (const auto& r : kUnit)
+        if (seg[1] == r[0]) return yes(r[1]);
+    }
     return false;
   }
   if (schema == "units" || schema == "weapons" || schema == "items" || schema == "terrain")

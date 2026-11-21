@@ -187,6 +187,15 @@ const Op probeUsable = {"data/items.json", "items[+]", R"({"id":"probe","name":"
                {"structures:weapon", "structures:uses", "structures:ignoreRank", "structures:by", "structures:becomes"},
                {{"structures:becomes", "\"ballista_wreck\""}}});
 
+  // --- maps: the parts outside the tile grid ---
+  c.push_back({"map-rows", "ai-scripted", {}, {"maps:name", "maps:grid", "maps:units[].name", "maps:units[].level", "maps:units[].items", "maps:units[].stats"},
+               {{"maps:grid.width", "14"}, {"maps:grid.height", "6"}}});
+  c.push_back({"map-fog", "ai-scripted", {{"maps/field.json", "fog", "true"}}, {"maps:fog", "maps:fogVision"}, {}});
+  c.push_back({"map-ai-sees", "ai-scripted", {{"maps/field.json", "fog", "true"}}, {"maps:aiSeesAll"}, {}});
+  c.push_back({"map-structures", "plain-economy", {}, {"maps:structures"}, {{"maps:structures[].side", "\"blue\""}}});
+  c.push_back({"map-structures-doors", "srpg-doors", {}, {"maps:structures[].locked", "maps:structures[].contents", "maps:structures[].visitSides", "maps:structures[].visitUnits"}, {}});
+  c.push_back({"map-structures-weapon", "srpg-mapweapon", {}, {"maps:structures[].uses"}, {}});
+
   // --- characters, supports, ranks, caps ---
   c.push_back({"character-rows", "srpg-chars", {},
                {"characters:id", "characters:name", "characters:description", "characters:type", "characters:level", "characters:stats", "characters:growths",
@@ -209,6 +218,13 @@ const Op probeUsable = {"data/items.json", "items[+]", R"({"id":"probe","name":"
 }
 
 void addDataExtraSkips(std::map<QString, QString>& s) {
+  s.insert({
+      {"maps:grid.type = \"hex\"", "a square game's maps are square (cross-file rule)"},
+      {"maps:grid.width = 1", "the tile rows must have exactly that many characters (cross-key rule; the tile grid is raw JSON for now)"},
+      {"maps:grid.width = 256", "the tile rows must have exactly that many characters (cross-key rule; the tile grid is raw JSON for now)"},
+      {"maps:grid.height = 1", "the tile grid must have exactly that many rows (cross-key rule; the tile grid is raw JSON for now)"},
+      {"maps:grid.height = 256", "the tile grid must have exactly that many rows (cross-key rule; the tile grid is raw JSON for now)"},
+  });
   s.insert({
       {"characters:level = 99", "the level cap of the game (rules.progression.maxLevel) is lower"},
       {"characters:learns[].level = 99", "the level cap of the game (rules.progression.maxLevel) is lower"},

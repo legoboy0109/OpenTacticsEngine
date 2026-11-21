@@ -1,9 +1,35 @@
 {
-  "title": "Sides and units",
+  "title": "Map",
   "files": ["maps/*.json"],
   "root": {
     "type": "object",
     "fields": {
+      "name": { "type": "string", "help": "Name of the battle." },
+      "grid": { "type": "object", "required": true, "help": "Size of the map. The tiles and the legend stay raw JSON for now (a map painter comes later): see the tree view.", "fields": {
+        "type": { "type": "enum", "required": true, "values": ["square", "hex"], "help": "Must match the game's grid." },
+        "width": { "type": "int", "required": true, "min": 1, "max": 256, "help": "Columns (1 to 256)." },
+        "height": { "type": "int", "required": true, "min": 1, "max": 256, "help": "Rows (1 to 256)." } } },
+      "fog": { "type": "bool", "help": "Fog of war on this map (docs/ECONOMY.md)." },
+      "fogVision": { "type": "int", "min": -10, "max": 10, "help": "Sight added to every unit under fog (needs fog)." },
+      "aiSeesAll": { "type": "bool", "help": "Computer sides see everything under fog (needs fog)." },
+      "structures": { "type": "list", "help": "Structures placed on the map (contents of chests: tree view).", "of": { "type": "object", "fields": {
+        "type": { "type": "ref", "ref": "data/structures.json", "required": true, "help": "The kind of structure." },
+        "x": { "type": "int", "required": true, "min": 0, "help": "Column of its top-left corner." },
+        "y": { "type": "int", "required": true, "min": 0, "help": "Row of its top-left corner." },
+        "side": { "type": "string", "help": "Id of the side that owns it (leave out for none)." },
+        "id": { "type": "string", "help": "Id events name it by (letters, digits, _ and -)." },
+        "locked": { "type": "bool", "help": "Starts locked (doors and chests)." },
+        "uses": { "type": "int", "min": 1, "help": "Shots left of a map weapon." },
+        "contents": { "type": "list", "min": 1, "help": "What a chest holds (at least one entry).", "of": { "type": "variant", "variants": [
+          { "name": "item id", "kind": "string", "node": { "type": "ref", "ref": "data/items.json" } },
+          { "name": "item with uses", "key": "item", "node": { "type": "object", "fields": {
+            "item": { "type": "ref", "ref": "data/items.json", "required": true, "help": "The item." },
+            "uses": { "type": "int", "min": 1, "help": "Uses left (at most the item's own)." } } } },
+          { "name": "resource", "key": "resource", "node": { "type": "object", "fields": {
+            "resource": { "type": "ref", "ref": "game.json#resources", "required": true, "help": "The resource." },
+            "amount": { "type": "int", "required": true, "min": 1, "help": "How much." } } } } ] } },
+        "visitSides": { "type": "list", "of": { "type": "ref", "ref": "@sides" }, "help": "Sides that may visit it (places with a visit block)." },
+        "visitUnits": { "type": "list", "of": { "type": "ref", "ref": ["@units", "data/characters.json"] }, "help": "Units or characters that may visit it." } } } },
       "sides": { "type": "list", "help": "The sides of the battle (at least two).", "of": { "type": "object", "fields": {
         "id": { "type": "string", "required": true, "help": "Unique id inside the map." },
         "name": { "type": "string", "help": "Display name." },
@@ -22,6 +48,10 @@
         "x": { "type": "int", "required": true, "min": 0, "help": "Column." },
         "y": { "type": "int", "required": true, "min": 0, "help": "Row." },
         "leader": { "type": "bool", "help": "The side's leader (leaderDead defeat)." },
+        "name": { "type": "string", "help": "Display name (a character's own by default)." },
+        "level": { "type": "int", "min": 1, "help": "Level of the unit (at most the game's maximum)." },
+        "items": { "use": "_common#itemGrants", "help": "Items it carries (replaces its type's or character's)." },
+        "stats": { "type": "map", "ref": "game.json#stats", "of": { "type": "int" }, "help": "Exact stats instead of the type's (a stat written here is never shifted by difficulty)." },
         "facing": { "type": "string", "help": "Direction the unit looks (needs rules.facing); the names depend on the grid, e.g. north, east." } } } }
     }
   }
