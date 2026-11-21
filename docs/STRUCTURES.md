@@ -29,7 +29,7 @@ Contract for the structure layer. Owner decisions (2026-11-14):
                                                 // the terrain's cost; 0 = cannot enter
     "props": { "defense": 3 },                 // optional. Listed numbers replace the
                                                 // terrain's numbers of the same name
-    "capturePoints": 20,                        // > 0 = can be captured
+    "capturePoints": 20,                        // > 0 = can be captured; 0 or left out = cannot be captured; negative is refused
     "income": { "funds": 1000 },                // per turn to the owner
     "produces": ["infantry", "tank"],           // unit types the owner can build here
     "tags": ["hq"],                             // "hq" = headquarters

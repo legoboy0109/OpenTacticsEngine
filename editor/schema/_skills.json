@@ -218,7 +218,7 @@
         "when": { "type": "enum", "required": true, "values": ["always", "combat", "strike", "struck", "turnStart", "defeat", "afterCombat", "staffUse"], "help": "always: a permanent bonus; combat: while a fight is worked out; strike / struck: at each strike made / suffered; turnStart; defeat; afterCombat; staffUse." },
         "if": { "type": "list", "of": { "use": "condition" }, "help": "Conditions (at most 8) that must all hold." },
         "chance": { "type": "variant", "help": "Percent or formula (not in always and combat blocks).", "variants": [
-          { "name": "percent", "kind": "number", "node": { "type": "int" } },
+          { "name": "percent", "kind": "number", "node": { "type": "int", "min": 0, "max": 100 } },
           { "name": "formula", "kind": "string", "node": { "type": "string" }, "sample": "50" } ] },
         "aura": { "type": "object", "block": true, "enable": { "to": "allies" }, "help": "The block gives its effects to other units near the owner instead (combat blocks).", "fields": {
           "to": { "type": "enum", "required": true, "values": ["allies", "enemies"], "help": "Whom it reaches." },

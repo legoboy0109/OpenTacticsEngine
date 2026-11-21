@@ -26,7 +26,7 @@
         "turns": { "type": "int", "min": 1, "max": 10, "help": "Turns it burns." },
         "shrink": { "type": "int", "min": 1, "max": 9, "help": "Squares lost each turn (less than the radius)." } } },
       "weapon": { "type": "ref", "ref": "data/weapons.json", "required": true, "when": { "kind": ["weapon"] }, "help": "The weapon this item is (needs rules.items.weapons carried)." },
-      "bonus": { "type": "map", "ref": "game.json#stats", "of": { "type": "int", "sample": 1 }, "when": { "kind": ["accessory", "staff"] }, "help": "Stat bonus while carried (at least one non-zero)." },
+      "bonus": { "type": "map", "ref": "game.json#stats", "of": { "type": "int", "min": -99999, "max": 99999, "sample": 1 }, "when": { "kind": ["accessory", "staff"] }, "help": "Stat bonus while carried (at least one non-zero)." },
       "skills": { "type": "list", "of": { "type": "ref", "ref": "data/skills.json" }, "when": { "kind": ["accessory"] }, "help": "Skills it gives while carried." },
       "group": { "type": "string", "required": true, "when": { "kind": ["staff"] }, "help": "Staff group (what a unit type lists in wields)." },
       "rank": { "type": "ref", "ref": "data/ranks.json#ranks", "when": { "kind": ["staff"] }, "help": "Weapon rank needed to use it." },

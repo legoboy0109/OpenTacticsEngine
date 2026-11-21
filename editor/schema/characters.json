@@ -8,8 +8,8 @@
       "description": { "type": "string", "help": "Text shown on the character's page." },
       "type": { "type": "ref", "ref": "data/units.json", "required": true, "help": "The unit type (class) the character starts as." },
       "level": { "type": "int", "min": 1, "max": 99, "help": "Starting level." },
-      "stats": { "type": "map", "ref": "game.json#stats", "expand": true, "of": { "type": "int" }, "help": "Stat bonus over the unit type, per stat." },
-      "growths": { "type": "map", "ref": "game.json#stats", "of": { "type": "int" }, "help": "Growth bonus over the unit type, per stat." },
+      "stats": { "type": "map", "ref": "game.json#stats", "expand": true, "of": { "type": "int", "min": -99999, "max": 99999 }, "help": "Stat bonus over the unit type, per stat." },
+      "growths": { "type": "map", "ref": "game.json#stats", "of": { "type": "int", "min": -99999, "max": 99999 }, "help": "Growth bonus over the unit type, per stat." },
       "skills": { "type": "list", "of": { "type": "ref", "ref": "data/skills.json" }, "help": "Skills the character always has." },
       "learns": { "type": "list", "help": "Skills learned on reaching a level.", "of": { "type": "object", "fields": {
         "level": { "type": "int", "required": true, "min": 2, "max": 99, "help": "Level at which it is learned." },
