@@ -30,6 +30,8 @@ const std::map<QString, QString>& skipped() {
       {"skills:blocks[].do[]{cancelEffective}.cancelEffective{these tags}", "the tags must be keys of some weapon's versus, and this fixture has none"},
       {"conditions:blocks[].do[]{cancelEffective}.cancelEffective{these tags}", "the tags must be keys of some weapon's versus, and this fixture has none"},
       {"units:promotions[].items", "needs a promotion item (promotes: true), which these fixtures' items are not (cross-file rule)"},
+      {"characters:job", "the equipped skills must belong to the job and be learned (cross-key rule on the rows around it)"},
+      {"characters:jobs", "the equipped skills must have been learned in one of the jobs (cross-key rule on the rows around it)"},
       {"abilities:spendsItem", "needs an item whose skill gives the ability (cross-file rule); the probe ability has none"},
       {"weapons:sounds", "sound ids need data/audio.json with sounds, and the keys are cue names (docs/SOUND.md); covered with audio.json"},
       {"units:sounds", "sound ids need data/audio.json with sounds, and the keys are cue names (docs/SOUND.md); covered with audio.json"},
@@ -55,6 +57,9 @@ const std::map<QString, QString>& extraSkips() {
 
 const std::map<QString, QString>& blockExcuses() {
   static const std::map<QString, QString> s = {
+      {"structures:by", "it must name at least one unit type or tag, which Enable alone cannot know (cross-key rule)"},
+      {"structures:door", "the kind it opens into must have the same footprint as the structure, and the first kind of a game may not (cross-file rule)"},
+      {"structures:chest", "the kind it opens into must have the same footprint as the structure, and the first kind of a game may not (cross-file rule)"},
       {"game:grid", "the keys are tried in a hexagon fixture; Enable alone writes a square grid, which its structures (rings) refuse"},
   };
   return s;

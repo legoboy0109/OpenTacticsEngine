@@ -167,9 +167,57 @@ const Op probeUsable = {"data/items.json", "items[+]", R"({"id":"probe","name":"
   c.push_back({"ability-unlock", "srpg-doors", {ability("cell", "[1,2]", R"({"unlock":true})")}, {"abilities:effect{unlock}"}, {}});
   c.push_back({"ability-charge", "speed-order", {{"data/abilities.json", "abilities[+]", R"({"id":"probe","name":"Probe","target":"unit","range":[1,2],"effect":{"heal":5},"cost":"action","chargeSpeed":20})"}},
                {"abilities:chargeSpeed", "abilities:chargeTargets", "abilities:interruptedBy"}, {}});
+
+  // --- structures ---
+  c.push_back({"structure-rows", "plain-economy", {},
+               {"structures:id", "structures:name", "structures:color", "structures:glyph", "structures:width", "structures:height", "structures:moveCost",
+                "structures:props", "structures:tags", "structures:capturePoints", "structures:income", "structures:produces", "structures:research",
+                "structures:repairs", "structures:blocksSight", "structures:light"},
+               {}});
+  c.push_back({"structure-hex", "hex-flat", {}, {"structures:rings"}, {}});
+  c.push_back({"structure-upgrades", "research-branches", {}, {"structures:upgrades"}, {}});
+  c.push_back({"structure-sells", "demo-srpg", {}, {"structures:sells"}, {}});
+  c.push_back({"structure-door", "srpg-doors", {{"data/structures.json", "structures[+]", R"({"id":"probe","name":"Probe","moveCost":{"foot":0},"door":{"opens":"cell_door_open","hp":10,"by":["key"]}})"}},
+               {"structures:door"}, {{"structures:door", R"({"opens":"cell_door_open","hp":10,"by":["key"]})"}, {"structures:door.opens", "\"cell_door_open\""}, {"structures:door.keys", R"(["brass_key"])"}}});
+  c.push_back({"structure-chest", "srpg-doors", {{"data/structures.json", "structures[+]", R"({"id":"probe","name":"Probe","chest":{"opens":"chest_open"}})"}},
+               {"structures:chest"}, {{"structures:chest", R"({"opens":"chest_open"})"}, {"structures:chest.opens", "\"chest_open\""}, {"structures:chest.keys", R"(["master_key"])"}}});
+  c.push_back({"structure-visit", "srpg-doors", {{"data/structures.json", "structures[+]", R"({"id":"probe","name":"Probe","visit":{}})"}},
+               {"structures:visit"}, {{"structures:visit", "{}"}, {"structures:visit.becomes", "\"hamlet_shut\""}, {"structures:visit.ruin", "\"hamlet_ruin\""}}});
+  c.push_back({"structure-weapon", "srpg-mapweapon", {{"data/structures.json", "structures[+]", R"({"id":"probe","name":"Probe","weapon":"ballista_bolt"})"}},
+               {"structures:weapon", "structures:uses", "structures:ignoreRank", "structures:by", "structures:becomes"},
+               {{"structures:becomes", "\"ballista_wreck\""}}});
+
+  // --- characters, supports, ranks, caps ---
+  c.push_back({"character-rows", "srpg-chars", {},
+               {"characters:id", "characters:name", "characters:description", "characters:type", "characters:level", "characters:stats", "characters:growths",
+                "characters:tags", "characters:wields", "characters:promotion", "characters:items"},
+               {}});
+  c.push_back({"character-skills", "srpg-skills", {}, {"characters:skills", "characters:learns"}, {}});
+  c.push_back({"character-abilities", "srpg-abilities", {}, {"characters:abilities"}, {}});
+  c.push_back({"character-ranks", "srpg-ranks", {}, {"characters:ranks", "characters:capAdjust"}, {{"characters:ranks", R"({"sword":"e"})"}}});
+  c.push_back({"character-resist", "damage-types", {}, {"characters:resist"}, {}});
+  c.push_back({"character-jobs", "jobs", {}, {"characters:equipped", "characters:job", "characters:jobs"}, {}});
+  c.push_back({"character-quotes", "srpg-quotes", {}, {"characters:quotes"}, {}});
+  c.push_back({"support-rows", "srpg-supports", {}, {"supports:"},
+               {{"supports:rules", R"({"levelNames":["C","B"]})"}, {"supports:rules.levelNames", R"(["C","B"])"},
+                {"supports:pairs", R"([{"a":"eirik","b":"bram","levels":[{"points":10},{"points":20}]}])"},
+                {"supports:pairs[].b", "\"bram\""},
+                {"supports:pairs[].levels[].bonus.stats", R"({"str":1})"},
+                {"supports:pairs[].levels[].talk", R"([{"say":"Hello","speaker":"eirik"}])"}}});
+  c.push_back({"rank-rows", "srpg-ranks", {}, {"ranks:", "caps:"},
+               {{"ranks:ranks", R"([{"id":"e","xp":0},{"id":"d","xp":3},{"id":"c","xp":7},{"id":"b","xp":12}])"}}});
 }
 
 void addDataExtraSkips(std::map<QString, QString>& s) {
+  s.insert({
+      {"characters:level = 99", "the level cap of the game (rules.progression.maxLevel) is lower"},
+      {"characters:learns[].level = 99", "the level cap of the game (rules.progression.maxLevel) is lower"},
+      {"characters:promotion.fromLevel = 99", "the level cap of the game (rules.progression.maxLevel) is lower"},
+      {"ranks:ranks[].xp = 9999", "the first rank must start at 0 (cross-key rule)"},
+      {"structures:width = 8", "the maps of the fixture have structures that no longer fit (cross-file rule)"},
+      {"structures:height = 8", "the maps of the fixture have structures that no longer fit (cross-file rule)"},
+      {"supports:pairs[].levels[].points = 1000000", "the second level must have more points than the first (cross-key rule)"},
+  });
   for (const char* schema : {"skills", "conditions"})  // which effects a block may hold depends on its `when` (cross-key rule)
     for (const char* when : {"always", "combat", "strike", "struck", "turnStart", "defeat", "afterCombat", "staffUse"})
       s.insert({QString("%1:blocks[].when = \"%2\"").arg(schema, when), "the effects of the block belong to one kind of block (cross-key rule); every kind is tried with its own effects"});

@@ -1,0 +1,44 @@
+{
+  "files": ["data/characters.json"],
+  "rows": {
+    "type": "object",
+    "fields": {
+      "id": { "type": "string", "required": true, "help": "Unique id (letters, digits, _ and -); maps, events and the campaign name it." },
+      "name": { "type": "string", "help": "Display name (defaults to the id)." },
+      "description": { "type": "string", "help": "Text shown on the character's page." },
+      "type": { "type": "ref", "ref": "data/units.json", "required": true, "help": "The unit type (class) the character starts as." },
+      "level": { "type": "int", "min": 1, "max": 99, "help": "Starting level." },
+      "stats": { "type": "map", "ref": "game.json#stats", "expand": true, "of": { "type": "int" }, "help": "Stat bonus over the unit type, per stat." },
+      "growths": { "type": "map", "ref": "game.json#stats", "of": { "type": "int" }, "help": "Growth bonus over the unit type, per stat." },
+      "skills": { "type": "list", "of": { "type": "ref", "ref": "data/skills.json" }, "help": "Skills the character always has." },
+      "learns": { "type": "list", "help": "Skills learned on reaching a level.", "of": { "type": "object", "fields": {
+        "level": { "type": "int", "required": true, "min": 2, "max": 99, "help": "Level at which it is learned." },
+        "skill": { "type": "ref", "ref": "data/skills.json", "required": true, "help": "The skill." } } } },
+      "abilities": { "type": "list", "of": { "type": "ref", "ref": "data/abilities.json" }, "help": "Menu abilities of the character." },
+      "tags": { "type": "list", "of": { "type": "string" }, "help": "Free words that skills and filters test." },
+      "wields": { "type": "list", "of": { "type": "string" }, "help": "Extra weapon groups the character can use." },
+      "promotion": { "type": "object", "block": true, "help": "The lowest level of this character's promotions.", "fields": {
+        "fromLevel": { "type": "int", "required": true, "min": 1, "max": 99, "help": "Level." } } },
+      "items": { "use": "_common#itemGrants", "help": "Items the character starts with." },
+      "equipped": { "type": "list", "of": { "type": "ref", "ref": ["data/skills.json", "data/abilities.json"] }, "help": "Learned job skills and abilities the character has equipped (docs/JOBS.md)." },
+      "job": { "type": "ref", "ref": "data/jobs.json", "help": "The job the character currently has." },
+      "jobs": { "type": "map", "ref": "data/jobs.json", "of": { "type": "object", "fields": {
+        "jp": { "type": "int", "min": 0, "help": "Job points earned in it." },
+        "learned": { "type": "list", "of": { "type": "ref", "ref": ["data/skills.json", "data/abilities.json"] }, "help": "What was learned in it." } } }, "help": "Progress in each job." },
+      "ranks": { "type": "map", "free": true, "of": { "type": "variant", "variants": [
+        { "name": "rank id", "kind": "string", "node": { "type": "ref", "ref": "data/ranks.json#ranks" } },
+        { "name": "weapon experience", "kind": "number", "node": { "type": "int", "min": 0 } } ] },
+        "help": "Starting weapon rank per weapon group (needs data/ranks.json)." },
+      "capAdjust": { "type": "map", "ref": "game.json#stats", "of": { "type": "int" }, "help": "Stat cap change per stat (needs data/caps.json)." },
+      "resist": { "type": "map", "ref": "game.json#damageTypes", "of": { "type": "int", "sample": 1 }, "help": "Flat resistance per damage type." },
+      "quotes": { "type": "object", "block": true, "help": "What the character says in battle (docs/EVENTS.md).", "fields": {
+        "battle": { "type": "list", "help": "Lines when it fights (the first quote that fits is used).", "of": { "type": "object", "fields": {
+          "against": { "type": "ref", "ref": "data/characters.json", "help": "Only against this character." },
+          "once": { "type": "enum", "values": ["map", "campaign", "always"], "help": "How often it may be said." },
+          "lines": { "type": "list", "required": true, "min": 1, "of": { "use": "_common#sayLine" }, "help": "What is said (at least one line)." } } } },
+        "defeat": { "type": "object", "block": true, "help": "Last words.", "fields": {
+          "falls": { "type": "list", "of": { "use": "_common#sayLine" }, "help": "When the character falls." },
+          "retreats": { "type": "list", "of": { "use": "_common#sayLine" }, "help": "When the character retreats." } } } } }
+    }
+  }
+}

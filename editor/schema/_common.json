@@ -1,5 +1,13 @@
 {
   "defs": {
+    "sayLine": {
+      "type": "object", "help": "One line of speech.",
+      "fields": {
+        "say": { "type": "string", "required": true, "help": "The text shown." },
+        "speaker": { "type": "ref", "ref": "data/characters.json", "excludes": ["speakerName"], "help": "Who speaks (a character or a unit of the map); or use speakerName." },
+        "speakerName": { "type": "string", "excludes": ["speaker"], "help": "A name shown instead, for someone who is no character." },
+        "portrait": { "type": "string", "help": "Art id of the portrait." } }
+    },
     "jump": {
       "type": "variant",
       "variants": [

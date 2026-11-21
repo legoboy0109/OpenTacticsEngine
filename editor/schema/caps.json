@@ -1,0 +1,10 @@
+{
+  "files": ["data/caps.json"],
+  "root": {
+    "type": "object",
+    "fields": {
+      "caps": { "type": "map", "ref": "game.json#stats", "required": true, "of": { "type": "int", "min": 1, "max": 99999 }, "help": "Highest value per stat." },
+      "computerCaps": { "type": "map", "ref": "game.json#stats", "of": { "type": "int", "min": 1, "max": 99999 }, "help": "Different caps for computer-controlled units." }
+    }
+  }
+}
