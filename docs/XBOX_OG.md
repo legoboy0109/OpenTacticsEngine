@@ -218,11 +218,41 @@ copy at 1:1 cost 6.1 ms against 0.6 ms in the matching format; (4) no unconditio
 (6) 3D: changing meshes alternate two buffers (no stall for the chip), one kick of the chip per draw, a mesh's cut at the camera is kept
 while the camera stands still. Not changed: the structure of the 3D drawing (inline 16-bit indices in the push buffer, one vertex program).
 
-**Pacing.** pbkit has three frame buffers and flips to a finished one at the vertical blank by itself; the first version still waited for
-the next blank after every frame, so a frame that took 17 ms instead of 16.6 cost 33. Now the only wait is `pb_finished()` saying that
-two frames are already queued (then it waits for a blank, which frees a buffer). A frame a little over 16.7 ms costs one repeated
-picture, not a doubled interval; with `OTE_XBOX_PACE=vbl` in `args.txt` the old wait is back (for comparing). The price is up to two
-frames of input delay, as in any triple-buffered game. At 60 Hz the `work` limit is 16.7 ms of this CPU; in xemu the scenes use 3 to 9.
+**Pacing, and the race that flickered** (found 2026-11-20 on the owner's xemu: "flickering, mostly in the 3D views when the camera
+moves"). pbkit has three frame buffers that rotate by themselves: `pb_finished()` queues the frame just drawn for the flip at the
+next vertical blank and moves the draw target on to the next buffer. The first speed version dropped the per-frame wait for the blank
+and waited only when `pb_finished()` said "the table is full". But three buffers cannot hold one on the screen, two queued and one being
+drawn: with two frames queued the next frame is drawn **into the buffer the display is showing** (the debug line `frame flip:` counted
+it in 120 of 120 frames: "drawn into the shown buffer ... at end 120"). The chip draws the 2D layer, then the 3D picture, then the HUD,
+so whenever a blank falls in the middle, the screen shows a picture without its HUD or without its top layer for one frame
+(`shots/flicker-before-no-hud.png`, `flicker-before-partial-frame.png`), and a frame can be shown out of order or skipped. Real hardware
+scans the buffer continuously, so there it would tear on every frame; xemu shows a half-done surface only when a blank happens to fall
+in the middle of the chip's drawing (1 to 6 shots in 100 on a quiet host, more when the host is loaded: a heavier 3D frame, as with a
+moving camera, keeps the chip busy longer). **Rule that prevents it:** `beginFrame()` (hw3d_gpu.cpp) reads the display's start address
+(PCRTC_START) and, while it is the buffer this frame would draw into, waits for a blank. That leaves one frame on the screen, at most
+two queued and one being drawn, never an overlap, and it still costs no wait when the frames are on time; a frame a little over 16.7 ms
+costs one repeated picture, not a doubled interval. `OTE_XBOX_FLIP=unsafe` in `args.txt` takes the rule away (for showing the race),
+`OTE_XBOX_PACE=vbl` brings the first version's wait for a blank after every frame back. The price is up to two frames of input delay, as
+in any triple-buffered game. At 60 Hz the `work` limit is 16.7 ms of this CPU; the guard's wait is inside `work` (look at `interval`).
+
+Everything else the speed work made asynchronous was checked and is safe by construction: `beginFrame()` also waits until the chip has
+finished the previous frame (`pb_busy()`), so the push buffer, the 2D layer's two textures, the frame's scratch memory (triangles cut
+at the camera) and every mesh's vertices are free by the time the CPU writes a frame; only `updateMesh` calls made before the frame is
+open (the game's update) can meet a chip still drawing, and they write the mesh's other buffer (`lastUse` against `idleSeq()`). A debug
+counter checks that ("meshes rewritten while the chip may read them", always 0 in every run). The cached cut at the camera is
+compared with the whole clip matrix and the guard band every time, so a moving camera never reuses a stale cut; and the lazy "hidden
+square" answers (`Map3D::hiddenAt`) are thrown away whenever the camera key changes, so a turn shows the same squares as before.
+
+**The flicker detector** (host: `tools/xbox-og/flicker_check.py`; emulator: `OpenTacticsEngine-OGXbox/run-xemu.sh` with
+`SHOT_BURST=N`, N screenshots of the emulator's real output back to back, about 30 a second, named `<prefix>-<s>s-<k>.png`). Words for
+`args.txt`: `OTE_LOG_LEVEL=debug` prints every 120 frames `frame flip: frames .., chip still busy at the blank .., drawn into the shown
+buffer: at start .., at end ..; blanks since last frame 0:.. 1:.. 2:.. 3+:..; meshes rewritten while the chip may read them ..` (with the
+rule on: "at end" 0 and "at start" counts the waits; with `OTE_XBOX_FLIP=unsafe`: "at end" = every frame), `OTE_XBOX_FRAMEMARK=1` paints
+the frame number as 16 white squares in the screen corner as the last thing of every frame, `OTE_XBOX_CHIPLOAD=N` keeps the chip busy
+longer before the HUD. Then `flicker_check.py 'shots/<prefix>-*s-*.png' --framemark 640` (1280 at 720p) says how many shots show a
+picture without its number or HUD (torn), whether the numbers ever go backwards, jump over 4 between two shots or repeat. Scripts used:
+`OpenTacticsEngine-OGXbox/scripts/flk-*` (a scripted camera turn with cursor moves in full 3D, 3D isometric and Hex Wars, at 480, 480
+16:9 and 720p, each with and without `OTE_XBOX_FLIP=unsafe`).
 
 What is certain about a real console is the structure, not the numbers: 1.0 MB or less copied to write-combined memory a frame, a few
 hundred thousand pixels of CPU drawing, 80 to 90 KB of vertex data written, 8 to 10 draws, 2,600 triangles and 22 KB of push buffer
@@ -248,8 +278,8 @@ turns out CPU-bound), skipping unchanged frames (see below), cutting the overlay
   are cut on the CPU (`hw3d_clip.*`, unit-tested on the host).
 * **The push buffer holds the whole frame** (indices are sent inline, 16 bit): 2 MB, about 100,000 triangles; a draw that does not
   fit is dropped with a warning in the log.
-* Vertex and texture memory must not change while the chip may still read it: `updateMesh`, `destroy*` and `create*` wait for the
-  chip to be idle first (cheap: it is idle by then, the player waits a frame for the vertical blank).
+* Vertex and texture memory must not change while the chip may still read it: `destroy*` and `create*` wait for the
+  chip to be idle first, `updateMesh` writes the mesh's other buffer unless the chip was seen idle since the last draw that read it.
 * A frame buffer is read back only for screenshots; on a real console its tiled layout may scramble that picture (the picture on the
   TV is not affected).
 

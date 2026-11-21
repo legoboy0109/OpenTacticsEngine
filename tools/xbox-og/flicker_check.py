@@ -33,7 +33,7 @@ mark = np.array([int(v) for v in a.mark.split(",")], dtype=np.int16)
 imgs = [np.asarray(Image.open(f).convert("RGB")).astype(np.int16) for f in files]
 share = [100.0 * float((np.abs(im - mark).max(axis=2) <= a.tol).mean()) for im in imgs]
 median = float(np.median(share))
-torn = [i for i, s in enumerate(share) if s < a.min_ratio * median]
+torn = [] if a.framemark else [i for i, s in enumerate(share) if s < a.min_ratio * median]  # (the frame number is the surer test: sky and water can share the panel colour)
 glitch = []
 for i in range(1, len(imgs) - 1):
     dn = lambda x, y: float((np.abs(imgs[x] - imgs[y]).max(axis=2) > 40).mean()) * 100
