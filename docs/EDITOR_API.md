@@ -13,6 +13,11 @@ ote-editor [--games DIR=games] [--assets DIR=assets]
            [--learn-file FILE=<user data>/OpenTacticsEngine/editor/learn.json]
 ```
 
+`ote-editor --validate GAME_FOLDER` is the one command that does not start the helper: it runs the same project check as the Problems
+list (`loadGame`, every map, the formulas, a battle start on each map, the audio files), prints one problem per line (`file: message`)
+and a last line `<folder>: N problems`, and exits 0 when there are none, 1 when there are, 2 when the folder has no `game.json`. It only
+reads: nothing is written, no port is opened, not even the tutorial file.
+
 `--learn-file` is where the tutorial's remembered state lives (`GET`/`PUT /api/learn`). The default is the platform's user data
 folder, never a game folder and never the repository: `~/.local/share` (or `$XDG_DATA_HOME`) on Linux, `~/Library/Application Support`
 on macOS, `%APPDATA%` on Windows, plus `OpenTacticsEngine/editor/learn.json`. `--learn-file ""` (an empty value) keeps the state in
