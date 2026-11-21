@@ -51,8 +51,9 @@ QWidget* FormView::buildLeaf(const SchemaNode& n, const JsonPath& path) {
   }
 }
 
-QWidget* FormView::buildNode(const SchemaNode& n, const JsonPath& path, bool inList) {
+QWidget* FormView::buildNode(const SchemaNode& node, const JsonPath& path, bool inList) {
   using K = SchemaNode::Kind;
+  const SchemaNode& n = node.resolved();  // a placeholder of a recursive definition (commands inside `if`) expands here
   ++built_;
   const ote::Json* v = ctx_->at(path);
   QWidget* w;
@@ -71,9 +72,9 @@ QWidget* FormView::buildNode(const SchemaNode& n, const JsonPath& path, bool inL
 
 // --- lazy containers --------------------------------------------------------------------------------------------
 
-QWidget* FormView::lazyBody(const JsonPath& path, QBoxLayout* header, const std::function<QWidget*()>& make) {
+QWidget* FormView::lazyBody(const JsonPath& path, QBoxLayout* header, const std::function<QWidget*()>& make, bool startClosed) {
   const QString key = pathToString(path);
-  const bool open = open_.contains(key) || (!closed_.contains(key) && built_ < kBudget);
+  const bool open = open_.contains(key) || (!closed_.contains(key) && !startClosed && built_ < kBudget);
   auto* toggle = new QToolButton;
   toggle->setObjectName("collapseToggle");
   toggle->setAutoRaise(true);
@@ -143,7 +144,7 @@ QWidget* FormView::buildObjectBody(const SchemaNode& n, const JsonPath& path) {
     slot = 0;
   };
   for (const auto& f : n.fields) {
-    const SchemaNode& fn = *f.second;
+    const SchemaNode& fn = f.second->resolved();
     const JsonPath fp = childPath(path, f.first);
     const QString key = QString::fromStdString(f.first);
     bool applies = true;
@@ -286,7 +287,7 @@ QWidget* FormView::buildVariant(const SchemaNode& n, const JsonPath& path) {
     if (i < 0 || (size_t)i >= n.variants.size()) return;
     ote::Json value = defaultValueOfVariant(n.variants[(size_t)i], ctx_->lookup());
     const ote::Json* old = ctx_->at(path);
-    const SchemaNode* shape = n.variants[(size_t)i].node.get();
+    const SchemaNode* shape = n.variants[(size_t)i].node ? &n.variants[(size_t)i].node->resolved() : nullptr;
     if (old && old->isObject() && value.isObject() && shape)  // keep the keys the new shape shares (`who` of a condition)
       for (const auto& m : old->members())
         if (!value.has(m.first.c_str()))
@@ -314,16 +315,35 @@ QWidget* FormView::buildList(const SchemaNode& n, const JsonPath& path) {
     none->setForegroundRole(QPalette::PlaceholderText);
     v->addWidget(none);
   }
-  const SchemaNode& of = *n.of;
-  // A form with hundreds of unit entries would be slow to build and useless to scroll: show the first ones, point at the tree.
-  constexpr size_t kMaxShown = 60;
-  if (count > kMaxShown) {
-    auto* more = new QLabel(tr("Showing the first %1 of %2 items; the tree view shows all of them.").arg(kMaxShown).arg(count), w);
-    more->setObjectName("listTruncated");
-    more->setStyleSheet(warningStyle());
-    v->addWidget(more);
-  }
-  for (size_t i = 0; i < std::min(count, kMaxShown); ++i) {
+  const SchemaNode& of = n.of->resolved();
+  // Long lists (a 300-command event) are built one page at a time: a form with hundreds of items would be slow to build and
+  // useless to scroll. The page is remembered per list; opening a key on another page switches to it (expandAlong).
+  const QString listKey = pathToString(path);
+  const size_t pageCount = (count + kPageSize - 1) / kPageSize;
+  size_t page = pages_.value(listKey, 0);
+  if (pageCount > 0 && page >= pageCount) page = pageCount - 1;
+  const size_t first = page * kPageSize, last = std::min(count, first + kPageSize);
+  auto pager = [&](const char* name) {
+    auto* bar = new QWidget(w);
+    bar->setObjectName(name);
+    auto* hb = new QHBoxLayout(bar);
+    hb->setContentsMargins(0, 0, 0, 0);
+    auto* prev = smallButton(QStringLiteral("◀"), tr("Previous page"), bar, "pagePrev");
+    auto* next = smallButton(QStringLiteral("▶"), tr("Next page"), bar, "pageNext");
+    auto* label = new QLabel(tr("Items %1 to %2 of %3").arg(first + 1).arg(last).arg(count), bar);
+    label->setObjectName("pageLabel");
+    prev->setEnabled(page > 0);
+    next->setEnabled(page + 1 < pageCount);
+    connect(prev, &QToolButton::clicked, this, [this, listKey, page] { pages_[listKey] = page - 1; requestRebuild(); });
+    connect(next, &QToolButton::clicked, this, [this, listKey, page] { pages_[listKey] = page + 1; requestRebuild(); });
+    hb->addWidget(prev);
+    hb->addWidget(label);
+    hb->addWidget(next);
+    hb->addStretch(1);
+    return bar;
+  };
+  if (pageCount > 1) v->addWidget(pager("pagerTop"));
+  for (size_t i = first; i < last; ++i) {
     const JsonPath ip = childPath(path, i);
     auto* row = new QFrame(w);
     row->setObjectName("listItem");
@@ -336,44 +356,81 @@ QWidget* FormView::buildList(const SchemaNode& n, const JsonPath& path) {
     if (compound) {
       row->setFrameShape(QFrame::StyledPanel);
       rv->setContentsMargins(6, 3, 6, 6);
-      const QString s = summaryOf(of, (*list)[i]);
-      auto* title = new QLabel(QStringLiteral("[%1]  %2").arg(i + 1).arg(s), row);
+      const ote::Json& item = (*list)[i];
+      const QString s = summaryOf(of, item);
+      // A variant item reads "[3]  say   Eirik: "The ford ..."": the raw key in bold, what it does after it.
+      const int vi = of.kind == SchemaNode::Kind::Variant ? variantIndex(of, item) : -1;
+      const bool named = vi >= 0 && of.variants[(size_t)vi].summary.size() > 0;
+      auto* title = new QLabel(named ? QStringLiteral("[%1]  %2").arg(i + 1).arg(QString::fromStdString(of.variants[(size_t)vi].name))
+                                     : QStringLiteral("[%1]  %2").arg(i + 1).arg(s),
+                               row);
       title->setObjectName("itemTitle");
       QFont f = title->font();
       f.setBold(true);
       title->setFont(f);
-      bar->addWidget(title, 1);
+      bar->addWidget(title, named ? 0 : 1);
+      if (named) {
+        auto* sum = new ElidedLabel(s, row);
+        sum->setObjectName("itemSummary");
+        sum->setToolTip(s);
+        bar->addWidget(sum, 1);
+      }
     }
     auto* up = smallButton(QStringLiteral("▲"), tr("Move up"), row, "itemUp");
     auto* down = smallButton(QStringLiteral("▼"), tr("Move down"), row, "itemDown");
+    auto* dup = smallButton(QStringLiteral("⧉"), tr("Duplicate this item (the copy goes right after it)"), row, "itemDuplicate");
     auto* del = smallButton(QStringLiteral("×"), tr("Remove this item"), row, "itemRemove");
     up->setEnabled(i > 0);
     down->setEnabled(i + 1 < count);
     connect(up, &QToolButton::clicked, this, [this, path, i] { ctx_->moveItem(path, i, i - 1); });
     connect(down, &QToolButton::clicked, this, [this, path, i] { ctx_->moveItem(path, i, i + 1); });
+    connect(dup, &QToolButton::clicked, this, [this, path, i] {
+      if (const ote::Json* cur = ctx_->at(childPath(path, i))) ctx_->insertItem(path, i + 1, *cur);
+    });
     connect(del, &QToolButton::clicked, this, [this, ip] { ctx_->erase(ip); });
     if (compound) {
       bar->addWidget(up);
       bar->addWidget(down);
+      bar->addWidget(dup);
       bar->addWidget(del);
       rv->addLayout(bar);
-      rv->addWidget(lazyBody(ip, bar, [this, &of, ip] { return buildNode(of, ip, true); }));
+      rv->addWidget(lazyBody(ip, bar, [this, &of, ip] { return buildNode(of, ip, true); }, n.collapsed));
     } else {
       bar->addWidget(buildNode(of, ip, true), 1);
       bar->addWidget(up);
       bar->addWidget(down);
+      bar->addWidget(dup);
       bar->addWidget(del);
       rv->addLayout(bar);
     }
     v->addWidget(row);
   }
-  auto* add = new QPushButton(tr("Add item"), w);
+  if (pageCount > 1) v->addWidget(pager("pagerBottom"));
+  // A list of one-of-several shapes (commands, conditions) asks which kind first, with a line of help for each.
+  const bool picks = of.kind == SchemaNode::Kind::Variant && of.variants.size() > 1;
+  auto* add = new QPushButton(picks ? tr("Add...") : tr("Add item"), w);
   add->setObjectName("addItem");
   add->setToolTip(tr("Add a new item at the end of %1").arg(pathToString(path)));
-  connect(add, &QPushButton::clicked, this, [this, &n, path] {
-    ote::Json item = defaultValue(*n.of, ctx_->lookup());
-    if (item.isNull()) item = ote::Json::makeObject();
+  connect(add, &QPushButton::clicked, this, [this, &n, &of, path, picks, add] {
+    ote::Json item;
+    if (picks) {
+      std::vector<std::pair<QString, QString>> entries;
+      for (const auto& vr : of.variants) entries.emplace_back(QString::fromStdString(vr.name), QString::fromStdString(vr.help));
+      const int r = ctx_->pickVariant(tr("Add to %1").arg(path.empty() || path.back().isIndex ? pathToString(path) : QString::fromStdString(path.back().key)), entries, add);
+      if (r < 0) return;
+      item = defaultValueOfVariant(of.variants[(size_t)r], ctx_->lookup());
+    } else {
+      item = defaultValue(n.of->resolved(), ctx_->lookup());
+      if (item.isNull()) item = ote::Json::makeObject();
+    }
     ctx_->appendItem(path, item);
+    // Show the page the new item is on, and open it: somebody who just added a command wants to fill it in.
+    const size_t countNow = ctx_->at(path) ? ctx_->at(path)->size() : 0;
+    if (countNow > 0) {
+      pages_[pathToString(path)] = (countNow - 1) / kPageSize;
+      open_.insert(pathToString(childPath(path, countNow - 1)));
+      closed_.remove(pathToString(childPath(path, countNow - 1)));
+    }
   });
   auto* ab = new QHBoxLayout;
   ab->setContentsMargins(0, 0, 0, 0);
@@ -409,7 +466,7 @@ QWidget* FormView::buildMap(const SchemaNode& n, const JsonPath& path) {
     lab->setObjectName("mapKey");
     if (isUnknown) lab->setStyleSheet(warningStyle());
     g->addWidget(lab, r, 0);
-    g->addWidget(buildNode(*n.of, childPath(path, id.toStdString())), r, 1);
+    g->addWidget(buildNode(*n.of, childPath(path, id.toStdString())), r, 1);  // (buildNode resolves a placeholder)
     ++r;
   };
   for (const QString& id : rows) addRow(id, false);
@@ -436,7 +493,7 @@ QWidget* FormView::buildFreeMap(const SchemaNode& n, const JsonPath& path) {
   v->setContentsMargins(0, 0, 0, 0);
   v->setSpacing(3);
   const ote::Json* cur = ctx_->at(path);
-  const bool scalarValues = n.of->isScalar();
+  const bool scalarValues = n.of->resolved().isScalar();
   if (cur && cur->isObject())
     for (const auto& m : cur->members()) {
       const std::string key = m.first;

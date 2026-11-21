@@ -46,7 +46,11 @@ struct SchemaNode {
   // `{ "hp": {...} }` or `{ "near": ... }`; a skill grant is a plain id or `{ skill, filter }`).
   struct Variant {
     std::string name;       // shown in the picker
+    std::string help;       // one line shown next to the name in the picker ("what this command does")
+    std::string summary;    // one-line template of a collapsed list item: "{speaker}: {say}" (see summaryText)
     std::string matchKey;   // the object has this key ...
+    std::vector<std::string> matchWith;    // ... and also all of these ("with") ...
+    std::vector<std::string> matchUnless;  // ... and none of these ("unless"): setVariable with a number, or reading a unit
     std::string matchKind;  // ... or the value is of this JSON kind ("string", "number", "bool", "array", "object") ...
     ote::Json matchValue;   // ... or equals this value exactly (matchIsValue)
     bool matchIsValue = false;
@@ -63,6 +67,13 @@ struct SchemaNode {
   ote::Json enable;     // block: exactly what the Enable switch writes (Null = built from required keys and defaults)
   bool free = false;    // Map: any key (named sets, free-form numbers) instead of the ids of `ref`
   std::vector<std::string> excludes;  // setting this key removes these sibling keys (turns / until: one of the two)
+  bool collapsed = false;  // List: the items start collapsed (a long command list: one line each)
+  // A definition that contains itself (a command list inside the `if` command) is expanded twice when the schema is loaded; the
+  // third level is this placeholder, expanded the first time somebody looks at it (by a form: `resolved()`), so scripts can
+  // nest as deep as they like without the schema tree growing without end. Tools that enumerate keys skip such nodes.
+  std::function<std::shared_ptr<const SchemaNode>()> lazy;
+  mutable std::shared_ptr<const SchemaNode> lazyCache;
+  const SchemaNode& resolved() const;
 
   const SchemaNode* field(const std::string& key) const;
   bool isScalar() const;  // String, Int, Number, Bool, Enum, Ref
@@ -98,7 +109,7 @@ class SchemaSet {
  private:
   void registerDefs(const QString& name, const ote::Json& j);
   void build(const QString& name, const ote::Json& j);
-  std::map<std::string, ote::Json> defs_;
+  std::shared_ptr<std::map<std::string, ote::Json>> defs_ = std::make_shared<std::map<std::string, ote::Json>>();
   std::vector<std::shared_ptr<const FileSchema>> schemas_;
   QStringList errors_;
 };
@@ -120,6 +131,10 @@ int variantIndex(const SchemaNode& n, const ote::Json& v);
 bool fieldApplies(const SchemaNode& parent, const SchemaNode& field, const ote::Json* obj);
 // The value a fresh list item / new block starts with: required fields filled, ids from `ids`.
 ote::Json defaultValue(const SchemaNode& n, const IdLookup& ids);
+// The one-line text of a variant value from its `summary` template: "{say}" is the value at that key, "{a.b}" a nested one,
+// "{a|b}" the first of two that has a text, "[ ... ]" a part that is left out when a placeholder in it has no text.
+// Texts are shortened, a one-key object such as { "unit": "gorm" } reads as "gorm", {} as "any unit", a list as its items.
+QString summaryText(const QString& tmpl, const ote::Json& value);
 // What the picker writes when the user switches a variant node to variant `v`.
 ote::Json defaultValueOfVariant(const SchemaNode::Variant& v, const IdLookup& ids);
 // A valid value of variant `v` for the conformance test.
