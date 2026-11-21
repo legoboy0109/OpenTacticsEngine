@@ -37,6 +37,7 @@ class TradePanel {
   bool open_ = false;
   std::string name_[2];
   std::vector<PanelRow> rows_[2];
+  IconColumn icons_;
   RowList list_[2];
   int col_ = 0;
   int ax_ = 0, ay_ = 0, aw_ = 0, ah_ = 0;

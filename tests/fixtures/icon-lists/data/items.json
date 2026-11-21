@@ -1,0 +1,9 @@
+// Six items: three with an icon in graphics.json ("iron_sword", "potion" and the weapon "bow", which the weapon item "hunting_bow"
+// takes), three without ("charm", "salve", "cloak").
+{ "items": [
+  { "id": "iron_sword",  "name": "Iron Sword",  "kind": "weapon", "weapon": "sword", "uses": 30, "price": { "gold": 40 } },
+  { "id": "hunting_bow", "name": "Hunting Bow", "kind": "weapon", "weapon": "bow",   "uses": 20, "price": { "gold": 50 } },
+  { "id": "potion", "name": "Potion", "kind": "usable", "uses": 2, "heal": 5, "price": { "gold": 20 } },
+  { "id": "salve",  "name": "Salve",  "kind": "usable", "uses": 1, "heal": 3, "price": { "gold": 10 } },
+  { "id": "charm",  "name": "Charm",  "kind": "accessory", "bonus": { "def": 1 } },
+  { "id": "cloak",  "name": "Cloak",  "kind": "accessory", "bonus": { "def": 1 }, "price": { "gold": 30 } } ] }

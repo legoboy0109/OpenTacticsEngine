@@ -37,13 +37,15 @@ void drawFloats(Renderer& r, const DrawCtx& c, bool screenSpace) {
     }
     Color col = f.color;
     if (k > 0.7f) col.a = (uint8_t)(255 * (1 - (k - 0.7f) / 0.3f));  // fade out at the end
-    int w = textW(r, f.text);
+    const int iconW = f.pic.any() ? f.pic.w + itemicon::kGap : 0;  // an item's icon goes before the text and is part of the float's width
+    int w = textW(r, f.text) + iconW;
     if (!screenSpace) {  // keep the text inside the map viewport
       x = std::max(2 + w / 2, std::min(x, c.layout.vw - 2 - w / 2));
       y = std::max(1, y);
     }
     if (screenSpace) r.fillRect(x - w / 2 - 2, y - 1, w + 4, c.layout.lh + 2, Color(10, 12, 24, (uint8_t)(col.a * 220 / 255)));
-    drawTextShadow(r, x - w / 2, y, f.text, col);
+    if (iconW) itemicon::draw(r, f.pic, x - w / 2, y + (c.layout.lh - f.pic.h) / 2, false, col.a);
+    drawTextShadow(r, x - w / 2 + iconW, y, f.text, col);
   }
 }
 

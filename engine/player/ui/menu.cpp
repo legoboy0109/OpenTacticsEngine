@@ -20,11 +20,13 @@ void Menu::open(Renderer& r, const std::string& title, const std::vector<MenuIte
   step(1);
 
   // Everything is measured with the active font, so the menu fits any text.
-  rowH_ = r.lineHeight() + 4;
+  icons_ = IconColumn();
+  for (const MenuItem& it : items) icons_.add(it.pic);
+  rowH_ = std::max(r.lineHeight() + 4, icons_.h);  // (an icon that fits the row changes nothing)
   int gap = textW(r, "  "), arrowW = textW(r, ">") + 4;
   int widest = textW(r, title);
   for (const MenuItem& it : items) {
-    int n = textW(r, it.label) + (it.extra.empty() ? 0 : gap + textW(r, it.extra));
+    int n = icons_.indent() + textW(r, it.label) + (it.extra.empty() ? 0 : gap + textW(r, it.extra));
     widest = std::max(widest, n);
   }
   arrowW_ = arrowW;
@@ -113,8 +115,13 @@ void Menu::draw(Renderer& r) const {
     bool sel = (int)i == sel_;
     if (sel) r.fillRect(x_ + 2, ry - 1, w_ - 4, rowH_ - 1, Color(70, 90, 150));
     Color c = it.enabled ? Color(240, 240, 245) : Color(110, 112, 125);
-    if (sel) r.drawText(x_ + 3, ry + 1, ">", Color(255, 220, 90));
+    if (sel) r.drawText(x_ + 3, ry + 1 + (rowH_ - (r.lineHeight() + 4)) / 2, ">", Color(255, 220, 90));
     int tx = x_ + kPad + arrowW_;
+    if (icons_.any()) {
+      itemicon::drawInRow(r, it.pic, tx, ry - 1, rowH_, !it.enabled);
+      tx += icons_.indent();
+    }
+    const int ty0 = ry + 1 + (rowH_ - (r.lineHeight() + 4)) / 2;  // (the text keeps its place unless an icon made the rows taller)
     // A long reason ("Only Ser Ovan can wield this") on a narrow screen: the menu is clamped to the screen, so the
     // extra text is shortened to what is left after the label instead of running out of the box on the left.
     std::string extra = it.extra;
@@ -123,8 +130,8 @@ void Menu::draw(Renderer& r) const {
       if (textW(r, extra) > room) extra = fitText(r, extra, std::max(0, room));
     }
     int extraW = extra.empty() ? 0 : textW(r, extra);
-    r.drawText(tx, ry + 1, fitText(r, it.label, w_ - kPad - (tx - x_) - (extraW ? extraW + 4 : 0)).c_str(), c);
-    if (extraW) r.drawText(x_ + w_ - kPad - extraW, ry + 1, extra.c_str(), it.enabled ? Color(255, 220, 120) : c);
+    r.drawText(tx, ty0, fitText(r, it.label, w_ - kPad - (tx - x_) - (extraW ? extraW + 4 : 0)).c_str(), c);
+    if (extraW) r.drawText(x_ + w_ - kPad - extraW, ty0, extra.c_str(), it.enabled ? Color(255, 220, 120) : c);
   }
 }
 

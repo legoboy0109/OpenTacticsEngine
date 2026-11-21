@@ -59,6 +59,7 @@ std::vector<PanelRow> grantRows(const Battle& b, const Playthrough& pt, const st
       s.drop = g.drop;
       PanelRow row;
       row.label = b.itemOf(s).name;
+      row.pic = itemicon::ofItem(*b.db, s.item);
       row.extra = usesText(b, s);
       row.detail = itemDetail(b, s);
       row.count = g.count;
@@ -71,6 +72,7 @@ std::vector<PanelRow> grantRows(const Battle& b, const Playthrough& pt, const st
     const ItemStack s = stackOf(items[i]);
     PanelRow row;
     row.label = b.itemOf(s).name;
+    row.pic = itemicon::ofItem(*b.db, s.item);
     row.extra = usesText(b, s);
     row.detail = itemDetail(b, s);
     row.mark = (int)i == equipped;
@@ -238,6 +240,7 @@ void BattleScene::prepShopOpen(int sel) {
     s.uses = d.uses;
     PanelRow row;
     row.label = d.name;
+    row.pic = itemicon::ofItem(db, i);
     row.extra = priceText(db, d.price);
     row.detail = itemDetail(battle_, s);
     for (const Amount& a : d.price) row.dim = row.dim || a.resource >= (int)have.size() || have[(size_t)a.resource] < a.amount;

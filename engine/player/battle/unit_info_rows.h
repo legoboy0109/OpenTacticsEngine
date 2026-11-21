@@ -7,6 +7,7 @@
 
 #include "core/battle/battle.h"
 #include "platform/platform.h"
+#include "ui/item_icon.h"
 
 namespace ote {
 
@@ -33,6 +34,7 @@ std::vector<SkillRow> skillRows(const Battle& b, const Unit& u);
 struct ItemRow {
   std::string name, uses, detail;
   bool equipped = false;  // the weapon in hand (carried weapons)
+  IconRef pic;            // the item's icon (graphics.json "icons"); empty = none
   std::string blocked;    // "Needs rank B" / "Only Kell can wield this": a weapon the unit may not wield now (shown greyed; also in `detail`)
 };
 std::vector<ItemRow> itemRows(const Battle& b, const Unit& u);

@@ -137,6 +137,7 @@ std::vector<ItemRow> itemRows(const Battle& b, const Unit& u) {
   for (size_t i = 0; i < u.items.size(); ++i) {
     ItemRow row;
     row.name = b.itemOf(u.items[i]).name;
+    row.pic = itemicon::ofItem(*b.db, u.items[i].item);
     row.uses = usesText(b, u.items[i]);
     row.detail = itemDetail(b, u.items[i]);
     row.equipped = (int)i == eq;
@@ -195,17 +196,21 @@ void drawSkillRows(Renderer& r, int x, int y, int w, int h, int lineH, const std
 void drawItemRows(Renderer& r, int x, int y, int w, int h, int lineH, const std::vector<ItemRow>& rows) {
   if (rows.empty()) { r.drawText(x, y, "No items", kLabel); return; }
   const int rh = lineH + 2, sq = std::max(3, lineH / 3);
+  IconColumn icons;  // one column for the whole list; the name line grows only when an icon is taller than it
+  for (const ItemRow& it : rows) icons.add(it.pic);
+  const int nameRow = std::max(rh, icons.h), off = (nameRow - rh) / 2;  // (the text keeps its place unless an icon made the rows taller)
   int cy = y;
   for (size_t i = 0; i < rows.size(); ++i) {
     const ItemRow& it = rows[i];
-    const int need = rh * (it.detail.empty() ? 1 : 2), room = y + h - cy - (i + 1 == rows.size() ? 0 : rh);
+    const int need = nameRow + (it.detail.empty() ? 0 : rh), room = y + h - cy - (i + 1 == rows.size() ? 0 : rh);
     if (need > room) { more(r, x, cy, rows.size() - i); return; }
-    if (it.equipped) r.fillRect(x, cy + (lineH - sq) / 2, sq, sq, Color(255, 220, 90));
-    const int tx = x + sq + 4, tw = w - sq - 4, uw = textW(r, it.uses);
+    if (it.equipped) r.fillRect(x, cy + (lineH - sq) / 2 + off, sq, sq, Color(255, 220, 90));
     const bool blocked = !it.blocked.empty();  // greyed, with the reason in place of the description
-    r.drawText(tx, cy, fitText(r, it.name, tw - uw - 8).c_str(), blocked ? kGreyed : kText);
-    if (!it.uses.empty()) r.drawText(x + w - uw, cy, it.uses.c_str(), kSmall);
-    if (!it.detail.empty()) r.drawText(tx + 6, cy + rh, fitText(r, it.detail, tw - 6).c_str(), blocked ? kDown : kLabel);
+    itemicon::drawInRow(r, it.pic, x + sq + 4, cy, nameRow, blocked);
+    const int tx = x + sq + 4 + icons.indent(), tw = w - sq - 4 - icons.indent(), uw = textW(r, it.uses);
+    r.drawText(tx, cy + off, fitText(r, it.name, tw - uw - 8).c_str(), blocked ? kGreyed : kText);
+    if (!it.uses.empty()) r.drawText(x + w - uw, cy + off, it.uses.c_str(), kSmall);
+    if (!it.detail.empty()) r.drawText(tx + 6, cy + nameRow, fitText(r, it.detail, tw - 6).c_str(), blocked ? kDown : kLabel);
     cy += need + 3;
   }
 }

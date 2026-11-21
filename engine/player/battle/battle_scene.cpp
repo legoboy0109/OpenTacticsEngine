@@ -329,6 +329,7 @@ std::string BattleScene::hintBase() const {
 }
 
 void BattleScene::draw(Renderer& r) {
+  itemicon::useSprites(host_.sprites());  // the textures every list's item icons are drawn from (ui/item_icon.h)
   if (covered_) {  // nothing of the map is drawn under the cover
     cover_.draw(r);
     return;

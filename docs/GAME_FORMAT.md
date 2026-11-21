@@ -24,7 +24,7 @@ The message names the file, the entry and the key and, when a known key is a sli
 neighbours swapped), says which: `data/weapons.json: weapon "sword": unknown key "rnage" - did you mean "range"?`. A list of the keys
 the object takes follows when it is short. This holds for `game.json` (the root and every block of it: `view`, `font`, `roles`, `formulas`,
 `rules` and each block inside it, the entries of `stats`, `resources`, `moveTypes`, `switches`, `variables`, `maps` and `styles`), the root and every
-row of every file in `data/`, `data/graphics.json` (sheets, looks, portraits, styles, battle sets, animations, effects, assignments, backgrounds,
+row of every file in `data/`, `data/graphics.json` (sheets, looks, portraits, icons, styles, battle sets, animations, effects, assignments, backgrounds,
 platforms), and the root of a map with its grid, sides, structures, units and unit item lists. (A map's root is judged last: a more specific
 message of a reader that looks at a key wins when both apply.)
 

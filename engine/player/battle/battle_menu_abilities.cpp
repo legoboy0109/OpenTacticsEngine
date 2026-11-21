@@ -69,7 +69,7 @@ void BattleScene::stealMenu(int user, int ability, int target, std::function<voi
     std::string extra = o.ok ? usesText(battle_, st) : stealReasonText(o.why, false);
     if (textW(r, extra) > room && !o.ok) extra = stealReasonText(o.why, true);
     if (textW(r, extra) > room) extra = "";  // a narrow screen: greyed without words (the unit details say why)
-    items.push_back({d.name, extra, o.ok, kStealBase + o.slot});
+    items.push_back({d.name, extra, o.ok, kStealBase + o.slot, itemicon::ofItem(*battle_.db, st.item)});
     log += (log.empty() ? "" : ", ") + d.name + (o.ok ? "" : " [" + stealReasonText(o.why, false) + "]");
   }
   OTE_INFO("steal list from %s: %s", t.name.c_str(), log.c_str());

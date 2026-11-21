@@ -1,0 +1,16 @@
+// Frozen fixture: item and weapon icons in lists (docs/GRAPHICS.md "Icons"). tests/icons_player_test.py copies it to a temp
+// folder and draws every list that names an item: the item menu, the weapon choice, trade, storage, shop, the unit panel and
+// the unit details. data/graphics.json gives three of the six items an icon (cells of art/icons.png); the others have none, so
+// a list shows rows with and without icons side by side.
+{
+  "formatVersion": 1, "name": "Icon Lists Fixture",
+  "stats": [ {"id":"hp"}, {"id":"str"}, {"id":"def"}, {"id":"spd"}, {"id":"mov"} ],
+  "roles": { "hp": "hp", "move": "mov" },
+  "resources": [ { "id": "gold", "name": "Gold" } ],
+  "moveTypes": [ {"id":"foot"} ],
+  "attackWeaponChoice": "pick",
+  "rules": { "defeat": ["noUnits"], "counterAttacks": true,
+             "items": { "weapons": "carried", "inventorySize": 5, "storage": "anywhere" } },
+  "formulas": { "damage": "a.str - b.def" },
+  "maps": [ {"id":"field","name":"Field","file":"maps/field.json"} ]
+}

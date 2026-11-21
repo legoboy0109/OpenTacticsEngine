@@ -92,7 +92,7 @@ bool BattleScene::placeChosen(int id) {
   for (int slot : o.keySlots) {
     const ItemStack& st = u.items[(size_t)slot];
     const ItemDef& d = battle_.db->items[(size_t)st.item];
-    items.push_back({d.name, st.uses >= 0 ? "x" + intStr(st.uses) : "", true, kPlaceKeyBase + slot});
+    items.push_back({d.name, st.uses >= 0 ? "x" + intStr(st.uses) : "", true, kPlaceKeyBase + slot, itemicon::ofItem(*battle_.db, st.item)});
     log += (log.empty() ? "" : ", ") + d.name;
   }
   OTE_INFO("key choices for %s: %s", structureName(battle_, o.structure).c_str(), log.c_str());

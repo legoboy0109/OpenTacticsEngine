@@ -42,6 +42,10 @@ units do, drawn across their whole footprint.
   "portraits": {                           // dialogue portraits (see "Portraits")
     "eirik": { "sheet": "faces", "cell": [0,0] }
   },
+  "icons": {                               // the small picture before a weapon's or item's name in lists (see "Icons")
+    "iron_sword": { "sheet": "icons", "cell": [0,0] },
+    "potion":     { "sheet": "icons", "cell": [1,0] }
+  },
   "units": {                               // unit type id -> look
     "knight": { "sheet": "knight", "cell": [0,0] },
     "soldier": { "sheet": "men", "frames": [[0,0],[1,0]], "frameMs": 450,
@@ -222,6 +226,37 @@ A portrait also stands on the scene **stage** when a line has a `position` (docs
 there it is drawn bigger (the largest whole-number scale that fits 55 percent of the screen's height and 45 percent of its width, 3 times
 on the 480 x 270 screen with 48 x 48 faces), bright while its speaker talks and dimmed otherwise. The same picture serves both; faces
 that are about 48 x 48 or 64 x 64 work well.
+
+## Icons (item and weapon lists)
+
+```jsonc
+"icons": { "iron_sword": { "sheet": "icons", "cell": [0,0] },     // an item id (data/items.json) ...
+           "bow":        { "sheet": "icons", "cell": [2,0] },     // ... or a weapon id (data/weapons.json)
+           "charm": null }                                         // null = no icon
+```
+
+An optional root key of `data/graphics.json` (not per style: the same icons in every kind of view). The key is an id of a **weapon** or of an
+**item**; an id that is both gives both the icon. A weapon item (`"kind": "weapon"`) without an icon of its own takes the icon of its weapon, so a
+game may name either. Each entry is exactly one `cell` of a sheet (`frames`, `variants` and `join` are refused), drawn at **the sheet's cell size**.
+Refused with the file and the entry named: an unknown sheet, a cell outside the sheet, an id that names neither a weapon nor an item, a key other than
+`sheet` and `cell`, an entry that is not an object.
+
+**Where the player draws it.** To the left of the name, vertically centred on the row, in every list that names an item or weapon: the unit's
+items, the attack's weapon choice (`attackWeaponChoice: "pick"`), trade (both sides), the storage, the shop (buy and sell, in a battle and on the
+preparation screen), the staff / key / steal choice menus, the unit panel on the right of a battle (the weapon in hand and the item list), the unit
+details' Items page, the weapon line of the attack, area and staff forecasts, and the floating "Got ..." / "Found ..." line when an item is picked up
+(`ui/item_icon.h` is the one helper; every list uses it). Rules:
+
+- **One column per list.** The widest icon of a list's rows sets the column; every row of that list, with an icon or not, starts its name one column
+  (icon width + 3 pixels) further right, so the names line up. (The two sides of the trade list share one column.) A list in which no row has an icon
+  looks exactly as it did before; a game without `icons` is pixel for pixel the game it was (`tests/icons_player_test.py --baseline`).
+- **Row height.** Rows keep the height they have (text height + 4 in a list, + 2 in the unit panel) unless the icon is taller than the row: then the
+  rows of that list are as tall as the icon. A 8 x 8 icon with the built-in 8 pixel font changes nothing.
+- **Greyed rows.** An unusable row (cannot be bought, a weapon the unit may not wield) draws its icon dimmed with the same grey as its text.
+- **Where the icon comes from.** A carried weapon shown by the name of its item (item menu, weapon choice, forecast) uses the item's icon, else its
+  weapon's; a unit type's own weapon uses the weapon's.
+- Editors: `data/graphics.json` is edited as text for now (the web editor keeps the key as it is and drops an icon whose sheet is removed; the native
+  editor's schema knows it). Fixture and test: `tests/fixtures/icon-lists`, `tests/icons_player_test.py`, `tests/test_icons.cpp`.
 
 ## Backgrounds (story scenes)
 

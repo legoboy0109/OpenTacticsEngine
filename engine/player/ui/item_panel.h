@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "platform/platform.h"
+#include "ui/item_icon.h"
 #include "ui/row_list.h"
 
 namespace ote {
@@ -28,13 +29,19 @@ struct PanelRow {
   std::function<void(Renderer&, int x, int y, int size)> icon;
   int iconSize = 0;
   std::string sub;
+  // The item's or weapon's own icon (graphics.json "icons", ui/item_icon.h); empty = none. The list keeps one column for it
+  // (`IconColumn`, from the rows' icons) so the names line up whether a row has an icon or not.
+  IconRef pic;
 };
 
+// The icon column of a set of lists: the widest and tallest icon among all the rows given.
+IconColumn iconColumnOf(const std::vector<PanelRow>& a, const std::vector<PanelRow>& b = std::vector<PanelRow>());
+
 // One row inside `x, y, w, h` (shared with the trade panel).
-void drawPanelRow(Renderer& r, int x, int y, int w, int h, const PanelRow& row, bool selected);
+void drawPanelRow(Renderer& r, int x, int y, int w, int h, const PanelRow& row, bool selected, const IconColumn& icons = IconColumn());
 // The width one row needs to show everything (marker, name with its count, gap, extra): the trade panel shares the width
 // between its two columns by what their rows need.
-int panelRowWidth(const Renderer& r, const PanelRow& row);
+int panelRowWidth(const Renderer& r, const PanelRow& row, const IconColumn& icons = IconColumn());
 
 class ItemPanel {
  public:
@@ -73,6 +80,7 @@ class ItemPanel {
   bool open_ = false;
   std::string title_, head_, empty_;
   std::vector<PanelRow> rows_;
+  IconColumn icons_;  // the width every row's name is moved right by, and the tallest icon
   RowList list_;
   int maxW_ = 0;  // 0 = the usual width
   std::vector<std::string> tabs_;

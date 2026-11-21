@@ -1,0 +1,11 @@
+// Hero (leader) stands on the shop with Friend beside him (trade, storage, shop); Grunt is two squares from Hero, so both the sword
+// (range 1-2) and the bow (2) reach it without moving: the weapon choice lists both.
+{ "name": "Field", "grid": { "type": "square", "width": 8, "height": 4 }, "legend": { ".": "plain" },
+  "tiles": ["........", "........", "........", "........"],
+  "structures": [ { "type": "shop", "x": 1, "y": 1 } ],
+  "sides": [ { "id": "blue", "controller": "human", "resources": { "gold": 100 }, "storage": ["potion", "iron_sword"] },
+             { "id": "red", "controller": "ai" } ],
+  "units": [
+    { "type": "hero", "side": "blue", "x": 1, "y": 1, "leader": true, "id": "hero" },
+    { "type": "friend", "side": "blue", "x": 2, "y": 1, "id": "friend" },
+    { "type": "grunt", "side": "red", "x": 3, "y": 1, "leader": true } ] }
