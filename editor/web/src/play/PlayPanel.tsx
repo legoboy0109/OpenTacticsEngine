@@ -30,6 +30,8 @@ export function PlayPanel({ store, maps, initialMap, onClose }: Props) {
   const dialog = useRef<HTMLDialogElement>(null)
   const frame = useRef<HTMLIFrameElement>(null)
   const stage = useRef<HTMLDivElement>(null)
+  const head = useRef<HTMLElement>(null)
+  const foot = useRef<HTMLElement>(null)
   const [map, setMap] = useState(initialMap)
   const [status, setStatus] = useState<Status>({ state: 'loading' })
   const [saveFailed, setSaveFailed] = useState(false)
@@ -38,8 +40,9 @@ export function PlayPanel({ store, maps, initialMap, onClose }: Props) {
   // Every style can be played. With one there is nothing to choose.
   const doc = useDoc()
   const playable = doc.game?.styles ?? []
-  // The frame is the largest whole multiple of the game's view that fits the stage, in device pixels (wholeFit.ts).
-  const fitCss = useWholeFit(stage, viewSize(doc.game?.view))
+  // The dialog is sized from the window: the frame is the largest whole multiple of the game's view that fits it, in device pixels (wholeFit.ts).
+  const layout = useWholeFit({ dialog, head, stage, foot }, viewSize(doc.game?.view))
+  const fitCss = layout.frame
   // The player sizes its canvas (css size x devicePixelRatio, rounded) on the frame's `resize` events, and in a frame whose size is a
   // fraction of a css pixel the backing store was left one pixel short (1919 for 1920 at 1.75): ask it to measure again once the new
   // size is laid out, and when it has started.
@@ -160,8 +163,8 @@ export function PlayPanel({ store, maps, initialMap, onClose }: Props) {
   }
 
   return (
-    <dialog ref={dialog} className="play-dialog" aria-label={T.panelTitle} onCancel={(e) => { e.preventDefault(); onClose() }}>
-      <header className="play-head">
+    <dialog ref={dialog} className="play-dialog" style={layout.dialog} aria-label={T.panelTitle} onCancel={(e) => { e.preventDefault(); onClose() }}>
+      <header className="play-head" ref={head}>
         <h2>{T.panelTitle}</h2>
         <label className="play-map">
           <span>{T.mapLabel}</span>
@@ -212,7 +215,7 @@ export function PlayPanel({ store, maps, initialMap, onClose }: Props) {
           <button type="button" className="btn" onClick={onClose}><Icon name="close" />{T.close}</button>
         </div>
       </header>
-      <div className="play-stage" ref={stage}>
+      <div className="play-stage" ref={stage} style={layout.stage}>
         <iframe key={`${map}:${style}:${showAll}:${sound}:${difficulty}:${chapter ?? ''}:${testLevel.kind}${testLevel.kind === 'number' ? testLevel.n : ''}`} ref={frame}
           src={playerUrl(store.id, map, { style: style !== playable[0]?.id ? style : undefined, showAll, muted: !sound, difficulty: difficulty || undefined, chapter, testLevel })} title="Game preview" className="play-frame" style={fitCss}
           allow="fullscreen" onLoad={() => frame.current?.focus()} />
@@ -226,7 +229,7 @@ export function PlayPanel({ store, maps, initialMap, onClose }: Props) {
         )}
         {saveFailed && <div className="play-banner" role="alert">{T.unsavedTitle}</div>}
       </div>
-      <footer className="play-foot">
+      <footer className="play-foot" ref={foot}>
         <p className="play-hint"><strong>{T.controlsTitle}:</strong> {T.controls.map(([what, keys]) => `${what}: ${keys}`).join(' · ')}</p>
       </footer>
     </dialog>

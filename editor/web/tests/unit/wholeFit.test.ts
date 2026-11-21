@@ -1,6 +1,6 @@
 // The Play panel frame's whole-number fit (src/play/wholeFit.ts): the arithmetic, in device pixels.
 import { describe, expect, it } from 'vitest'
-import { cssFor, fitStyle, viewSize, wholeFit } from '../../src/play/wholeFit'
+import { cssFor, dialogFit, fitStyle, viewSize, wholeFit } from '../../src/play/wholeFit'
 
 const V = { width: 480, height: 270 }
 
@@ -36,6 +36,22 @@ describe('wholeFit', () => {
     // never short: a canvas below k x view would show the picture at (k-1)x
     for (const dpr of [1, 1.1, 1.25, 1.3, 1.5, 1.75, 2, 2.5, 3]) for (const dev of [480, 960, 1440, 1920, 2400, 270, 540, 1350])
       expect(Math.round(cssFor(dev, dpr) * dpr)).toBeGreaterThanOrEqual(dev)
+  })
+})
+
+describe('dialogFit', () => {
+  const chrome = { borderW: 2, borderH: 2, head: 90, foot: 34 }
+  it('sizes the dialog from the window: frame = the largest whole multiple, dialog = frame + chrome', () => {
+    const l = dialogFit(V, { w: 2560, h: 1401 }, chrome, 1)!
+    expect(l.frame).toMatchObject({ width: '1920px', height: '1080px' })
+    expect(l.dialog).toMatchObject({ width: '1922px', height: 'fit-content' })
+    expect(l.stage).toMatchObject({ height: '1080px' })
+    expect(dialogFit(V, { w: 1920, h: 1080 }, chrome, 1)!.frame).toMatchObject({ width: '1440px' })
+    expect(dialogFit(V, { w: 1280, h: 900 }, chrome, 1)!.frame).toMatchObject({ width: '960px' })
+  })
+  it('keeps a narrow frame on a dialog wide enough for the header, and gives up below 1x', () => {
+    expect(dialogFit(V, { w: 760, h: 700 }, chrome, 1)!.dialog).toMatchObject({ width: '602px' })
+    expect(dialogFit(V, { w: 800, h: 300 }, chrome, 1)).toBeNull()
   })
 })
 
