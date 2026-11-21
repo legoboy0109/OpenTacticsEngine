@@ -4,32 +4,29 @@ Current state of the build, for whoever (or whichever model) continues.
 Read docs/PLAN.md (roadmap + owner decisions), docs/ARCHITECTURE.md
 (structure + binding portability rules) and docs/GAME_FORMAT.md first.
 
-## Latest (2026-11-20, afternoon)
+## Latest (2026-11-20, evening)
 
-- **Pushed (origin/main = 74954ae, full checks 49-58 clean):** original Xbox native 3D (emulator only), mechanics series:
-  damage types, side-wide modifiers + branching research, factions, line fire + area attacks, action points, height rules,
-  facing, unit ranks, jobs (`docs/JOBS.md`), speed turn order + charged actions (`docs/TURN_ORDER.md`); `changeSide`
-  `"ready": true`; style `"largeArt"` (Detailed 3D hidden on the original Xbox).
-- **Merged locally, full check 59 running** (`nice -n 10`): merit ranks + overlay jobs (ranks/jobs independent of levels and
-  classes; `rules.ranks`, job without `unitType`), commanders (`docs/COMMANDERS.md`; enemy meters shown). Push if clean.
-- **In progress (agent, worktree):** original Xbox frame rate, weight on the 3D views (owner saw low fps in xemu, mainly 3D).
-  Ideas: 2D layer at logical size scaled by the chip, skip unchanged frames, faster upload, cache static 3D meshes.
-  It builds into `OpenTacticsEngine-OGXbox/build/ogx-perf`; the owner's test files are in `OpenTacticsEngine-OGXbox/for-testing/`
-  (ISO + app folder, built from 666675d+jobs).
-- **Owner's own xemu:** set up by editing `~/.local/share/xemu/xemu/xemu.toml` with the owner's yes (boot ROM/BIOS paths on the
-  external drive, a COPY of the HDD image, the test ISO as `dvd_path`; backup `xemu.toml.before-paths`). Its file picker only
-  works with `SDL_FILE_DIALOG_DRIVER=zenity` (portal method fails silently inside xemu, cause unknown):
-  `~/.local/share/applications/xemu.desktop` overrides the launcher with that.
-- **Vision Quest (private):** converter step 37 = recruits `ready: true`; output copied to `games/vision-quest`. An editor
-  left running from before a new data key reports "unknown key" problems until restarted.
-- **Owner decisions pending** (each feature works with a default): AP pool per side vs per unit, AP per movement point;
-  research cancel refund 0%; faction start resources added, no faction/commander pick in campaigns; area line shape;
-  default facing toward nearest foe, hex arcs 3/2/1; merit earned by every side; class-job units cannot promote;
-  speed mode refuses actionPoints and production; commander meter rules.
-- **Known gaps:** no editor forms for any new mechanic (web editor on hold); AP-game and speed-game computer opponents are
-  simple; no blast animation; commander portraits not drawn; faction screen at 150% cuts text.
+- **origin/main = d649036**, full checks 59-61 clean (ote_tests 2649, editor API 1557, ctest 79, vitest 1614, e2e 616).
+  Since the morning: jobs, speed turn order, merit ranks + overlay jobs, commanders (enemy meters shown; bar only at UI 150),
+  `changeSide ready`, style `largeArt`, Json writes shortest round-trip decimals.
+- **Original Xbox speed** (merged): 60 Hz in xemu in all perf scenes (fast memcpy in `tools/xbox-og/nx_mem.c`, chip scales the
+  2D layer drawn at logical size, ARGB8888 textures, pacing without per-frame blank wait, 3D caches). Softer text at non-integer
+  scale; up to 2 frames input delay (untested feel). Test files rebuilt from 1227d7c in `OpenTacticsEngine-OGXbox/for-testing/`
+  (boot smoke-tested only). Owner is to try it in xemu, then on the real console. Real hardware never tested.
+- **Native editor** (`editor/native`, Qt 6 Widgets, option `OTE_BUILD_NATIVE_EDITOR`, docs/NATIVE_EDITOR.md): milestone 1
+  (editor/core shared library, document model + undo, table and tree editors, problems dock, Play) and milestone 2 (schema files
+  `editor/schema/*.json`, generated forms, Rules page, conformance test against the loader). Built in `build-native/` in the main
+  tree; tests: `QT_QPA_PLATFORM=offscreen ctest --test-dir build-native -R native` (12). The full check does NOT build it.
+  Owner's launcher: `~/.local/share/applications/ote-editor-native.desktop`. Not yet seen by the owner; Play never launched for real.
+  Next: remaining schemas (skills, abilities, campaign, older game.json parts), then Lua/script tools, then in-process preview
+  and 3D/battle-scene tools; Windows build (needs Qt in the VM: ask before downloading).
+- **Owner decisions pending**: native editor name / raw vs friendly wording / comment handling on save; merit earned by every
+  side; class-job units cannot promote; commander meter rules; plus the older list (AP pool per side, research refund, faction
+  start resources, facing defaults, speed-turn numbers).
+- **Owner's own xemu**: `~/.local/share/xemu/xemu/xemu.toml` edited with their yes (backup `xemu.toml.before-paths`); file
+  picker needs `SDL_FILE_DIALOG_DRIVER=zenity` (launcher override `~/.local/share/applications/xemu.desktop`).
 - **Not rebuilt since 278e11e:** Windows zip, UWP package, Android APK. Series X still has the old package.
-- **Heavy parallel jobs slow the owner's PC** (they noticed in xemu): run full checks with `nice`, at most one agent beside one.
+- **Heavy parallel jobs slow the owner's PC**: run full checks with `nice`, few agents at once.
 
 ## Earlier (2026-11-19, night) — read this first
 
