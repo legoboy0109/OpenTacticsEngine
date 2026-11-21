@@ -54,8 +54,9 @@ export interface PlayLayout { dialog?: CSSProperties; stage?: CSSProperties; fra
 /** The dialog is at least this wide (CSS px), so its header controls have room; a frame narrower than that is centred on the dialog's own
  *  background. */
 export const MIN_DIALOG_WIDTH = 600
-/** Space kept free around the dialog (CSS px, each side). */
-export const OUTER_MARGIN = 16
+/** Space kept free around the dialog (CSS px, each side). Kept small: with a 480 x 270 view, 3x needs 810 device pixels of height plus
+ *  the chrome, and a 1080p screen's browser window has little more than that (the owner's saw 2x with 16). */
+export const OUTER_MARGIN = 4
 /** Below this window width the dialog is the style sheet's full-screen phone layout: only the frame is fitted, in the space it has. */
 export const PHONE_WIDTH = 720
 
