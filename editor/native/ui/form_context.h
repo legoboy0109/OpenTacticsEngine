@@ -36,9 +36,19 @@ class FormContext : public QObject {
   bool erase(const JsonPath& path);
   // Appends an item to the list at `path`, creating the list when it is absent.
   bool appendItem(const JsonPath& list, const ote::Json& item);
-  bool moveItem(const JsonPath& list, size_t from, size_t to);
   // Inserts `item` into the list at `index` (a duplicated command goes right after its original): one undo step.
   bool insertItem(const JsonPath& list, size_t index, const ote::Json& item);
+
+  // What transferItem() did, for whoever keeps per-path state (which items are open) in step with the file.
+  struct MoveInfo {
+    JsonPath insertList;   // the list the item went into ...
+    size_t insertAt = 0;   // ... at this index (counted before the move)
+    JsonPath erased;       // where the original was when it was taken out (after the insert shifted things)
+    JsonPath moved;        // the item's path afterwards
+  };
+  // Moves a list item to `to` (the index it is inserted before, 0..size, counted before the move) of the same list or of another
+  // list of this file, as ONE undo step. Refuses (false) a move into the item itself or into anything inside it.
+  bool transferItem(const JsonPath& srcList, size_t from, const JsonPath& dstList, size_t to, MoveInfo* info = nullptr);
 
   // The "which kind?" chooser of a list's Add button; tests replace it so no modal window ever opens. Returns the index into
   // `entries` (name, help), or -1 when the user cancels.

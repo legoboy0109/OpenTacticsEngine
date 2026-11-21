@@ -93,17 +93,53 @@ bool FormContext::appendItem(const JsonPath& list, const ote::Json& item) {
   return true;
 }
 
-bool FormContext::moveItem(const JsonPath& list, size_t from, size_t to) {
-  const ote::Json* l = at(list);
-  if (!l || !l->isArray() || from >= l->size() || to >= l->size() || from == to) return false;
-  project_->push(doc_, new MoveCommand(doc_, list, from, to));
-  return true;
-}
-
 bool FormContext::insertItem(const JsonPath& list, size_t index, const ote::Json& item) {
   const ote::Json* l = at(list);
   if (!l || !l->isArray() || index > l->size()) return false;
   project_->push(doc_, new InsertCommand(doc_, list, index, "", item));
+  return true;
+}
+
+bool FormContext::transferItem(const JsonPath& srcList, size_t from, const JsonPath& dstList, size_t to, MoveInfo* info) {
+  const ote::Json* sl = at(srcList);
+  const ote::Json* dl = at(dstList);
+  if (!sl || !dl || !sl->isArray() || !dl->isArray() || from >= sl->size() || to > dl->size()) return false;
+  JsonPath item = srcList;
+  item.push_back(PathStep::at(from));
+  if (pathStartsWith(dstList, item)) return false;  // into itself
+  MoveInfo mi;
+  mi.insertList = dstList;
+  mi.insertAt = to;
+  if (srcList == dstList) {
+    const size_t final = to > from ? to - 1 : to;
+    if (final == from) return false;
+    mi.erased = item;
+    if (to <= from) mi.erased.back().index = from + 1;  // (as the insert-then-erase picture of the same move; the file uses one MoveCommand)
+    mi.moved = srcList;
+    mi.moved.push_back(PathStep::at(final));
+    project_->push(doc_, new MoveCommand(doc_, srcList, from, final));
+    if (info) *info = mi;
+    return true;
+  }
+  const ote::Json value = (*sl)[from];
+  // The insert happens first and may shift the original (the item sits below the list it goes into, behind the insert point).
+  mi.erased = item;
+  if (item.size() > dstList.size() && pathStartsWith(item, dstList) && item[dstList.size()].isIndex && item[dstList.size()].index >= to) ++mi.erased[dstList.size()].index;
+  QUndoStack* stack = project_->undoStack();
+  stack->beginMacro(tr("Move %1").arg(pathToString(item)));
+  project_->push(doc_, new InsertCommand(doc_, dstList, to, "", value));
+  auto* erase = new EraseCommand(doc_, mi.erased);
+  if (erase->valid()) project_->push(doc_, erase);
+  else delete erase;
+  stack->endMacro();
+  // Where the item is now: the target list's path may itself have shifted by the erase.
+  JsonPath dst = dstList;
+  const JsonPath eraseList(mi.erased.begin(), mi.erased.end() - 1);
+  if (dst.size() > eraseList.size() && pathStartsWith(dst, eraseList) && dst[eraseList.size()].isIndex && dst[eraseList.size()].index > mi.erased.back().index)
+    --dst[eraseList.size()].index;
+  mi.moved = dst;
+  mi.moved.push_back(PathStep::at(to));
+  if (info) *info = mi;
   return true;
 }
 
