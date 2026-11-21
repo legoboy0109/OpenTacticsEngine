@@ -122,6 +122,7 @@ class FormFeaturesTest : public QObject {
   void focusOpensCollapsedContainers();
   void twoColumnsWhenWide();
   void viewModesOfATableFile();
+  void bigFormsOpenInstantly();
 };
 
 void FormFeaturesTest::whenShowsTheFieldsOfTheKind() {
@@ -391,6 +392,71 @@ void FormFeaturesTest::viewModesOfATableFile() {
   QCOMPARE(st.tableViewMode("units"), 2);
   QCOMPARE(st.tableViewMode("weapons"), 0);
   ed.hide();
+}
+
+// The real schemas: the Rules page with EVERY optional block switched on, and a skill with eight blocks of six effects each, must
+// build in a blink (collapsed blocks are not instantiated). The bound is generous (a slow CI box); the measured time is printed.
+void FormFeaturesTest::bigFormsOpenInstantly() {
+  ote_test::Scratch tmp;
+  ote_test::copyTree(QStringLiteral(OTE_SOURCE_DIR "/games/demo-srpg"), tmp.file("g"));
+  SchemaSet real;
+  real.loadFolder(QStringLiteral(OTE_SOURCE_DIR "/editor/schema"));
+  QVERIFY2(real.errors().isEmpty(), qPrintable(real.errors().join("\n")));
+  Project project(tmp.file("g"));
+  IdSource ids(&project);
+  JsonDocument* game = project.document("game.json");
+  FormContext gctx(&project, game, &ids);
+  const SchemaNode* rules = real.forFile("game.json")->root->field("rules");
+  int enabled = 0;
+  for (const auto& f : rules->fields)
+    if (f.second->kind == SchemaNode::Kind::Object && f.second->block) {
+      JsonPath p = {PathStep::member("rules"), PathStep::member(f.first)};
+      if (!gctx.at(p)) gctx.set(p, defaultValue(*f.second, gctx.lookup()));
+      ++enabled;
+    }
+  QVERIFY(enabled >= 15);
+  FormView rulesForm(&gctx, real.forFile("game.json")->root.get());
+  rulesForm.resize(1280, 800);
+  QElapsedTimer timer;
+  timer.start();
+  rulesForm.setTarget({});
+  rulesForm.flush();
+  const qint64 rulesMs = timer.elapsed();
+  qInfo("Rules page with %d blocks enabled: %lld ms, %d nodes built, %d containers collapsed", enabled, (long long)rulesMs, rulesForm.builtNodes(),
+        rulesForm.collapsedCount());
+  QVERIFY2(rulesMs < 1500, qPrintable(QString::number(rulesMs)));
+  QVERIFY(rulesForm.collapsedCount() > 0 || rulesForm.builtNodes() < 400);
+
+  // a skill with many blocks
+  Json blocks = Json::makeArray();
+  for (int i = 0; i < 8; ++i) {
+    Json b = Json::makeObject();
+    b.set("when", Json::makeString("combat"));
+    Json fx = Json::makeArray();
+    for (int k = 0; k < 6; ++k) {
+      Json e = Json::makeObject();
+      e.set("crit", Json::makeNumber(k + 1));
+      fx.push(e);
+    }
+    b.set("do", fx);
+    blocks.push(b);
+  }
+  JsonDocument* skills = project.document("data/skills.json");
+  FormContext sctx(&project, skills, &ids);
+  JsonPath first = {PathStep::member("skills"), PathStep::at(0), PathStep::member("blocks")};
+  sctx.set(first, blocks);
+  FormView skillForm(&sctx, real.forFile("data/skills.json")->rows.get());
+  skillForm.resize(1280, 800);
+  timer.restart();
+  skillForm.setTarget({PathStep::member("skills"), PathStep::at(0)});
+  skillForm.flush();
+  const qint64 skillMs = timer.elapsed();
+  qInfo("skill with 8 blocks x 6 effects: %lld ms, %d nodes built, %d containers collapsed", (long long)skillMs, skillForm.builtNodes(), skillForm.collapsedCount());
+  QVERIFY2(skillMs < 1500, qPrintable(QString::number(skillMs)));
+  QVERIFY(skillForm.collapsedCount() > 0);
+  // opening everything is allowed to take longer, but must work
+  skillForm.expandAll();
+  QCOMPARE(skillForm.collapsedCount(), 0);
 }
 
 QTEST_MAIN(FormFeaturesTest)
