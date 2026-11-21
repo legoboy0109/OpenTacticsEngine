@@ -42,6 +42,9 @@ enum class Button {
 // Touch also stands for a mouse press: both are "tap" in the hints.
 enum class InputDevice { None, Keyboard, Controller, Touch, Mouse };
 
+// PointerMove position that means "the pointer left the window": far outside any picture (a backend sends it on mouse-leave).
+constexpr int kPointerGone = -100000;
+
 struct InputEvent {
   // CameraDrag: the pointer's second button (right mouse button) is held and
   // the pointer moved; x, y are how far, not where.

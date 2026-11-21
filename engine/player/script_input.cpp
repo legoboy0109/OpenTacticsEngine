@@ -65,6 +65,13 @@ bool ScriptInput::parse(const std::string& text, int interval, std::string& err)
               toInt(tok.substr(colon + 1), t.y);
       t.kind = Token::Tap;
     }
+    if (!found && tok.compare(0, 5, "move:") == 0) {
+      size_t colon = tok.find(':', 5);
+      found = colon != std::string::npos && toInt(tok.substr(5, colon - 5), t.x) &&
+              toInt(tok.substr(colon + 1), t.y);
+      t.kind = Token::Move;
+    }
+    if (!found && tok == "leave") { t.kind = Token::Leave; found = true; }
     if (!found) {
       err = "bad --input token '" + tok + "'";
       return false;
@@ -105,6 +112,11 @@ void ScriptInput::tick(std::vector<InputEvent>& out, std::vector<Lifecycle>& not
     ev.type = InputEvent::PointerDown;
     out.push_back(ev);
     ev.type = InputEvent::PointerUp;
+    out.push_back(ev);
+  } else if (t.kind == Token::Move || t.kind == Token::Leave) {
+    ev.type = InputEvent::PointerMove;
+    ev.x = t.kind == Token::Move ? t.x : kPointerGone;
+    ev.y = t.kind == Token::Move ? t.y : kPointerGone;
     out.push_back(ev);
   } else {
     wait_ = interval_ * t.count;

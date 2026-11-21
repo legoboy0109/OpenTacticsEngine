@@ -76,6 +76,7 @@ bool BattleScene::turnInput(const InputEvent& e) {
 }
 
 void BattleScene::onInput(const InputEvent& e) {
+  trackPointer(e);
   if (covered_) {  // the cover takes every input (no camera, no cursor) until the next player confirms
     if (cover_.confirmed(e)) coverConfirmed();
     return;
@@ -147,8 +148,7 @@ void BattleScene::onInput(const InputEvent& e) {
   }
   if (e.type == InputEvent::ButtonDown) handleButton(e.button);
   else if (e.type == InputEvent::PointerMove) {
-    Cell c = cellAt(e.x, e.y);
-    if (c != kNoCell && mode_ != Mode::Targeting && mode_ != Mode::PickUnit && mode_ != Mode::PickCell) cursor_ = c;
+    if (mode_ != Mode::Targeting && mode_ != Mode::PickUnit && mode_ != Mode::PickCell) hoverAt(e.x, e.y);
   } else if (e.type == InputEvent::PointerDown) handlePointerDown(e.x, e.y);
 }
 

@@ -4,6 +4,8 @@
 //   wait | wait:N                                      idle for 1 / N intervals
 //   background | foreground | lowmemory | terminate   a life-cycle notice as the OS would send it (docs/PORTING.md)
 //   tap:X:Y                                            pointer down+up at logical pixel
+//   move:X:Y                                           the pointer moves there and stays (a mouse hovering; no click)
+//   leave                                              the pointer leaves the window (as a mouse-leave event does)
 //   device:keyboard|controller|touch                   the input device the following tokens come from (docs/PORTING.md "Hints
 //                                                      name the device"); takes effect at once and costs no time. Scripted input
 //                                                      is "keyboard" unless OTE_INPUT_DEVICE or this word says otherwise.
@@ -38,7 +40,7 @@ class ScriptInput {
 
  private:
   struct Token {
-    enum Kind { Press, Wait, Tap, Life, Device } kind = Wait;
+    enum Kind { Press, Wait, Tap, Move, Leave, Life, Device } kind = Wait;
     InputDevice device = InputDevice::Keyboard;
     Lifecycle life = Lifecycle::LowMemory;
     Button button = Button::None;

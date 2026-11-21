@@ -433,6 +433,11 @@ void BattleScene::prepListInput(const InputEvent& e) {
   }
 }
 
+bool BattleScene::prepOnMap() const {
+  return prep_ && (prep_->screen == PrepUi::Screen::Positions || prep_->screen == PrepUi::Screen::View);
+}
+bool BattleScene::prepOnMapView() const { return prep_ && prep_->screen == PrepUi::Screen::View; }
+
 // The two screens that use the map itself: a cursor over it, a tap on a square, and a small "Back" button for pointers.
 void BattleScene::prepCellInput(const InputEvent& e) {
   PrepUi& p = *prep_;
@@ -441,11 +446,7 @@ void BattleScene::prepCellInput(const InputEvent& e) {
   if (e.type == InputEvent::ButtonDown) {
     handle(e.button);
   } else if (e.type == InputEvent::PointerMove) {
-    const Cell c = cellAt(e.x, e.y);
-    if (c != kNoCell && c != cursor_) {
-      cursor_ = c;
-      if (!positions) prepViewLook();
-    }
+    hoverAt(e.x, e.y);
   } else if (e.type == InputEvent::PointerDown) {
     const int bw = std::max(40, textW(host_.renderer(), "Back") + 16), bh = layout_.lh + 8;
     if (e.x >= layout_.vw - bw - 4 && e.x < layout_.vw - 4 && e.y >= layout_.vh - bh - 4 && e.y < layout_.vh - 4) {  // the Back button

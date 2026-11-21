@@ -43,7 +43,7 @@ const char* usageText() {
          "--audio-log FILE writes one line per sound / music request (docs/SOUND.md, Audio log), so tests can see what would be heard.\n"
          "--audio-test plays a synthesized melody and a chime through the real sound device (or --audio-file's music) and exits.\n"
          "--audio-render FILE.wav writes --seconds of what the mixer would play for that same test to a 16-bit stereo WAV, with no device.\n"
-         "input tokens: up down left right confirm cancel menu next prev turnleft turnright tiltup tiltdown zoomin zoomout skip background foreground lowmemory terminate wait wait:N tap:X:Y device:keyboard|controller|touch|mouse\n";
+         "input tokens: up down left right confirm cancel menu next prev turnleft turnright tiltup tiltdown zoomin zoomout skip background foreground lowmemory terminate wait wait:N tap:X:Y move:X:Y leave device:keyboard|controller|touch|mouse\n";
 }
 
 namespace {
