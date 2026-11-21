@@ -195,6 +195,15 @@ number, its kind in bold and its summary on one line.
    fixture, which prerequisite edits, which key prefixes it claims, and `overrides` for keys that need a special sample).
    A key that really cannot be sampled goes into `skipped()` / `extraSkips()` with the reason.
 
+### One schema engine, shared with `ote-mcp`
+The Qt-free core of the schema logic lives in `editor/core` (`schema_engine.*`: the node types, the loader of the schema files,
+`SchemaSet`; `schema_values.cpp`: value checks, defaults, samples, summaries; `schema_ids.*`: id sources and the computed
+`@storyUnits` / `@teams` lists), written with `ote::Json` and std types only. `editor/native/model/schema.*`, `id_source.*` and
+`story_ids.*` are thin wrappers that add the `QString` / `QStringList` face the forms use (and the Qt resource folder of the embedded
+copy). The MCP server for AI assistants (`ote-mcp`, docs/MCP.md) uses the same engine, so a key added to a schema file is known to
+the forms and to that server at once. `ote_editor_core_tests` (ctest) tests the engine without Qt; the native tests keep running
+on the wrapper.
+
 ## Schema vs loader test (`native_test_conformance`)
 For every key of every schema, nested ones included, the test copies a fixture into a temp folder, applies the few edits the key
 depends on (e.g. the speed fixture for `chargeSpeed`), puts a sample value at the key's place and requires `validateProject` (the

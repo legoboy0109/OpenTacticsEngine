@@ -538,12 +538,57 @@ if(OTE_BUILD_EDITOR AND NOT EMSCRIPTEN)
     target_link_libraries(ote-editor PRIVATE ws2_32)
   endif()
 
+  # --- ote-mcp: the MCP (Model Context Protocol) server over stdio, docs/MCP.md. No Qt, no network, no new third-party code.
+  # The editor schemas and the docs are compiled into the program by a small generator (editor/mcp/gen), so it runs
+  # standalone; --schema-dir / OTE_SCHEMA_DIR override the schemas at run time.
+  file(GLOB MCP_SRC CONFIGURE_DEPENDS editor/mcp/*.cpp)
+  add_executable(ote_mcp_embed_gen editor/mcp/gen/embed_gen.cpp)
+  target_compile_options(ote_mcp_embed_gen PRIVATE ${OTE_WARN})
+  file(GLOB MCP_SCHEMAS CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/editor/schema/*.json)
+  set(MCP_DOCS "")
+  foreach(d GAME_FORMAT SRPG ECONOMY EVENTS JOBS TURN_ORDER COMMANDERS HEX AI ITEMS STRUCTURES DIFFICULTY GRAPHICS SOUND BATTLE_SCENE MCP)
+    list(APPEND MCP_DOCS ${CMAKE_SOURCE_DIR}/docs/${d}.md)
+  endforeach()
+  set(MCP_EMBEDDED_CPP ${CMAKE_BINARY_DIR}/ote_mcp_embedded.cpp)
+  add_custom_command(OUTPUT ${MCP_EMBEDDED_CPP}
+                     COMMAND ote_mcp_embed_gen ${MCP_EMBEDDED_CPP} --group Schemas ${MCP_SCHEMAS} --group Docs --strip-ext ${MCP_DOCS}
+                     DEPENDS ote_mcp_embed_gen ${MCP_SCHEMAS} ${MCP_DOCS}
+                     COMMENT "Embedding schemas and docs into ote-mcp")
+  add_executable(ote-mcp ${MCP_SRC} ${MCP_EMBEDDED_CPP})
+  target_include_directories(ote-mcp PRIVATE editor/mcp)
+  target_link_libraries(ote-mcp PRIVATE ote_editor_core ote_player_lib ote_core ote_audio)
+  target_compile_options(ote-mcp PRIVATE ${OTE_WARN})
+  if(NOT MSVC)
+    set_source_files_properties(${MCP_SRC} ${MCP_EMBEDDED_CPP} PROPERTIES COMPILE_FLAGS "-fexceptions")
+  endif()
+
+  # Qt-free unit tests of the schema engine (editor/core) and of the I/O-free parts of ote-mcp (same harness as ote_tests).
+  if(OTE_BUILD_TESTS)
+    file(GLOB CORE_TEST_SRC CONFIGURE_DEPENDS editor/core/tests/*.cpp editor/mcp/tests/*.cpp)
+    set(MCP_UNIT_SRC editor/mcp/jpath.cpp editor/mcp/diff.cpp editor/mcp/tool.cpp editor/mcp/util.cpp editor/mcp/png.cpp)
+    add_executable(ote_editor_core_tests ${CORE_TEST_SRC} ${MCP_UNIT_SRC})
+    target_include_directories(ote_editor_core_tests PRIVATE tests editor/mcp)
+    target_link_libraries(ote_editor_core_tests PRIVATE ote_editor_core ote_player_lib ote_core ote_audio)
+    target_compile_options(ote_editor_core_tests PRIVATE ${OTE_WARN})
+    target_compile_definitions(ote_editor_core_tests PRIVATE OTE_SOURCE_DIR="${CMAKE_SOURCE_DIR}" OTE_TEMP_DIR="${CMAKE_BINARY_DIR}")
+    if(NOT MSVC)
+      set_source_files_properties(${CORE_TEST_SRC} ${MCP_UNIT_SRC} PROPERTIES COMPILE_FLAGS "-fexceptions")
+    endif()
+    enable_testing()
+    add_test(NAME ote_editor_core COMMAND ote_editor_core_tests)
+  endif()
+
   find_package(Python3 COMPONENTS Interpreter)
   if(Python3_FOUND AND OTE_BUILD_TESTS)
     enable_testing()
     add_test(NAME editor_api
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/editor_api_test.py
                      $<TARGET_FILE:ote-editor> ${CMAKE_SOURCE_DIR})
+    # ote-mcp over stdio (docs/MCP.md): protocol, every tool, refusals, dry runs, fuzzing. It finds the player and the simulator
+    # itself (build-tree layout); without a player the render checks are skipped with a note.
+    add_test(NAME mcp
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/mcp_test.py
+                     $<TARGET_FILE:ote-mcp> ${CMAKE_SOURCE_DIR})
   endif()
 endif()
 

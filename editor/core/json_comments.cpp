@@ -1,6 +1,6 @@
-#include "comment_scan.h"
+#include "json_comments.h"
 
-namespace ote_native {
+namespace ote_editor {
 
 bool jsonTextHasComments(const std::string& text) {
   bool inString = false;
@@ -18,4 +18,4 @@ bool jsonTextHasComments(const std::string& text) {
   return false;
 }
 
-}  // namespace ote_native
+}  // namespace ote_editor

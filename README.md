@@ -16,6 +16,9 @@ on or off. Work in progress.
   isometric today, 3D kinds planned.
 - **Editor** (`editor/`): a browser-based editor for people who never
   script: units, weapons, terrain, structures, art, maps, and Play.
+- **MCP server** (`ote-mcp`, `editor/mcp`): lets an AI assistant build and edit games through the editor's own rules
+  (schemas, the engine's project check, dry runs) over the standard Model Context Protocol, with any client and any
+  model. Built with the editor (`./build/ote-mcp --root games`). How to use it: `docs/MCP.md`.
 - **Games** (`games/`): three small demos (one on hexagons), all with sound and
   music (the demo-srpg set is CC0, credited in its `CREDITS.md`). A game is a folder of
   JSON files, pictures, optional sound (`docs/SOUND.md`) and optional Lua
