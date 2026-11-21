@@ -1,94 +1,26 @@
-// The schema of one data file: which keys exist, their types, ranges, enums and which ids they point at. Schemas are
-// hand-written JSON files (editor/schema/*.json, format in docs/NATIVE_EDITOR.md) that drive the forms and the table
-// columns. They never decide what is allowed in a file: the engine's loader does. A schema that disagrees with the loader
-// is caught by native_test_conformance.
+// The schema of one data file, Qt face. The schema engine itself (types, loader, value checks, defaults, summaries) lives in
+// editor/core/schema_engine.h, shared with ote-mcp; this header re-exports its types into ote_native and adds the QString-typed
+// entry points the forms use. Format of the schema files: docs/NATIVE_EDITOR.md.
 #pragma once
+#include <QByteArray>
 #include <QString>
 #include <QStringList>
 #include <functional>
-#include <map>
-#include <memory>
-#include <optional>
 #include <string>
 #include <vector>
 
 #include "core/base/json.h"
+#include "schema_engine.h"  // editor/core
 
 namespace ote_native {
 
-struct SchemaNode;
-using NodePtr = std::shared_ptr<const SchemaNode>;
-
-struct SchemaNode {
-  enum class Kind { String, Int, Number, Bool, Enum, Ref, List, Object, Map, Json, Variant };
-  Kind kind = Kind::Json;
-  std::string help;  // one line, developer wording; lives in the schema file, never in C++
-  bool required = false;
-  bool block = false;   // Object that may be absent as a whole (shown with an Enable switch)
-  bool expand = false;  // table: one column per member of this object / per id of this map
-  std::optional<double> min, max;
-  ote::Json deflt;   // value the engine assumes when the key is absent (Null = none stated)
-  ote::Json sample;  // a valid value for the conformance test when the generated one would not do (Null = generate)
-  std::string alt;                  // another JSON kind the loader also takes as is: "string", "number" or "bool"
-  std::vector<std::string> values;  // Enum words; for a Ref, extra words allowed beside the ids ("choose")
-  std::vector<std::string> refs;    // Ref: id sources; Map: where the keys come from ("file" or "file#key.path")
-  NodePtr of;                       // List items, Map values
-  int length = -1;                  // List: fixed number of items (a pair such as [min, max])
-  std::vector<std::pair<std::string, NodePtr>> fields;  // Object, in display order
-
-  // A field that applies only while a sibling key has one of some words (items: `heal` only when kind is usable or staff).
-  struct When {
-    std::string key;
-    std::vector<std::string> values;
-  };
-  std::optional<When> when;
-  // Variant: one of several shapes, picked by what the value looks like (the sub-languages of skills and events: a condition is
-  // `{ "hp": {...} }` or `{ "near": ... }`; a skill grant is a plain id or `{ skill, filter }`).
-  struct Variant {
-    std::string name;       // shown in the picker
-    std::string help;       // one line shown next to the name in the picker ("what this command does")
-    std::string summary;    // one-line template of a collapsed list item: "{speaker}: {say}" (see summaryText)
-    std::string matchKey;   // the object has this key ...
-    std::vector<std::string> matchWith;    // ... and also all of these ("with") ...
-    std::vector<std::string> matchUnless;  // ... and none of these ("unless"): setVariable with a number, or reading a unit
-    std::string matchKind;  // ... or the value is of this JSON kind ("string", "number", "bool", "array", "object") ...
-    ote::Json matchValue;   // ... or equals this value exactly (matchIsValue)
-    bool matchIsValue = false;
-    NodePtr node;           // the shape (null for a constant `matchValue`)
-    ote::Json sample;       // value written when the picker switches to it, or the conformance sample (Null = generate)
-  };
-  std::vector<Variant> variants;
-  // A block that can only be switched on while some id lists are not empty (`rules.actionPoints` needs a resource).
-  struct Needs {
-    std::vector<std::string> refs;
-    std::string hint;
-  };
-  std::optional<Needs> needs;
-  ote::Json enable;     // block: exactly what the Enable switch writes (Null = built from required keys and defaults)
-  bool free = false;    // Map: any key (named sets, free-form numbers) instead of the ids of `ref`
-  std::vector<std::string> excludes;  // setting this key removes these sibling keys (turns / until: one of the two)
-  std::string summary;     // Object: one-line template of a collapsed list item ("{x},{y}"), see summaryText
-  bool collapsed = false;  // List: the items start collapsed (a long command list: one line each)
-  // A definition that contains itself (a command list inside the `if` command) is expanded twice when the schema is loaded; the
-  // third level is this placeholder, expanded the first time somebody looks at it (by a form: `resolved()`), so scripts can
-  // nest as deep as they like without the schema tree growing without end. Tools that enumerate keys skip such nodes.
-  std::function<std::shared_ptr<const SchemaNode>()> lazy;
-  mutable std::shared_ptr<const SchemaNode> lazyCache;
-  const SchemaNode& resolved() const;
-
-  const SchemaNode* field(const std::string& key) const;
-  bool isScalar() const;  // String, Int, Number, Bool, Enum, Ref
-  static const char* kindName(Kind k);
-};
-
-struct FileSchema {
-  std::string name;                 // from the file name
-  std::vector<std::string> files;   // project-relative data files this schema describes
-  NodePtr rows;                     // table files: one row
-  NodePtr root;                     // other files: the whole document
-  std::string title;                // tab title of the form page ("Form" when empty)
-  QString source;                   // where it was loaded from (for messages)
-};
+using ote_editor::FileSchema;
+using ote_editor::NodePtr;
+using ote_editor::SchemaNode;
+using ote_editor::fieldApplies;
+using ote_editor::isAlt;
+using ote_editor::typeOk;
+using ote_editor::variantIndex;
 
 // Resolves id sources ("data/units.json" or "game.json#damageTypes") to the ids they list right now.
 using IdLookup = std::function<QStringList(const std::vector<std::string>& sources)>;
@@ -100,41 +32,23 @@ class SchemaSet {
   // A schema file may also hold "defs" (named nodes other nodes pull in with "use": "name" or "file#name"); a file with only
   // defs describes no data file.
   void addFromText(const QString& name, const QByteArray& text);
-  const FileSchema* forFile(const QString& rel) const;
-  const std::vector<std::shared_ptr<const FileSchema>>& all() const { return schemas_; }
-  const QStringList& errors() const { return errors_; }
+  const FileSchema* forFile(const QString& rel) const { return core_.forFile(rel.toStdString()); }
+  const std::vector<std::shared_ptr<const FileSchema>>& all() const { return core_.all(); }
+  QStringList errors() const;
 
   // The folder the program reads: `overrideDir` (a folder the user named) > "<app dir>/schema" > the copy inside the program.
   static SchemaSet loadDefault(const QString& overrideDir, const QString& appDir);
 
  private:
-  void registerDefs(const QString& name, const ote::Json& j);
-  void build(const QString& name, const ote::Json& j);
-  std::shared_ptr<std::map<std::string, ote::Json>> defs_ = std::make_shared<std::map<std::string, ote::Json>>();
-  std::vector<std::shared_ptr<const FileSchema>> schemas_;
-  QStringList errors_;
+  ote_editor::SchemaSet core_;
+  QStringList readErrors_;  // resource files that could not be read
 };
 
-// --- values -----------------------------------------------------------------------------------------------------
 // Does `v` have the kind of value the node describes? On a mismatch `why` says what is wrong in one short phrase.
-// Shallow: a list is "fine" when it is an array, its items are checked by their own nodes. Unknown ids of a Ref are not
-// known here (the UI asks the project).
 bool nodeAccepts(const SchemaNode& n, const ote::Json& v, QString* why = nullptr);
-// Is `v` the right KIND of value (text, whole number, list ...) for the node? Looser than nodeAccepts: a number outside its
-// range or a word outside its enum still has the right kind. A value of the wrong kind is shown as it is, with a warning.
-bool typeOk(const SchemaNode& n, const ote::Json& v);
-// True when `v` is not of the node's own kind but of its `alt` kind (turnOrder: "speed" instead of { "mode": "speed" }).
-// The form shows such a value as JSON without a warning.
-bool isAlt(const SchemaNode& n, const ote::Json& v);
-// Index of the variant that describes `v`, or -1 (the form then shows `v` as raw JSON with a warning).
-int variantIndex(const SchemaNode& n, const ote::Json& v);
-// Does the field apply to `obj`, an object of `parent`? (Always true without a `when`.)
-bool fieldApplies(const SchemaNode& parent, const SchemaNode& field, const ote::Json* obj);
 // The value a fresh list item / new block starts with: required fields filled, ids from `ids`.
 ote::Json defaultValue(const SchemaNode& n, const IdLookup& ids);
-// The one-line text of a variant value from its `summary` template: "{say}" is the value at that key, "{a.b}" a nested one,
-// "{a|b}" the first of two that has a text, "[ ... ]" a part that is left out when a placeholder in it has no text.
-// Texts are shortened, a one-key object such as { "unit": "gorm" } reads as "gorm", {} as "any unit", a list as its items.
+// The one-line text of a variant value from its `summary` template (ote_editor::schemaSummary).
 QString summaryText(const QString& tmpl, const ote::Json& value);
 // What the picker writes when the user switches a variant node to variant `v`.
 ote::Json defaultValueOfVariant(const SchemaNode::Variant& v, const IdLookup& ids);

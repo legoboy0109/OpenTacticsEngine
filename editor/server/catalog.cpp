@@ -3,34 +3,23 @@
 
 #include "paths.h"
 #include "projects.h"
+#include "templates.h"
 
 namespace ote_editor {
 
 using ote::Json;
 
 ApiResult listTemplates(const Config& cfg) {
-  std::vector<std::string> ids;
-  std::error_code ec;
-  for (fs::directory_iterator it(cfg.templatesDir, ec), end; !ec && it != end; it.increment(ec)) {
-    std::error_code e2;
-    std::string name = it->path().filename().string();
-    if (validId(name) && fs::is_regular_file(it->path() / "game.json", e2)) ids.push_back(name);
-  }
-  std::sort(ids.begin(), ids.end());
+  // The listing itself is shared with ote-mcp (editor/core/templates.cpp).
   Json arr = Json::makeArray();
-  for (const std::string& id : ids) {
-    Json game;
-    Problem p;
-    bool ok = readJsonRel(cfg.templatesDir / id, "game.json", game, p) && game.isObject();
+  for (const TemplateInfo& t : ote_editor::listTemplates(cfg.templatesDir)) {
     Json o = Json::makeObject();
-    o.set("id", Json::makeString(id));
-    o.set("name", Json::makeString(ok ? game["name"].asString(id) : id));
-    o.set("description", Json::makeString(ok ? game["description"].asString() : ""));
-    // The grid the template's game.json asks for (docs/HEX.md): shown on the new-game cards. Missing = squares.
+    o.set("id", Json::makeString(t.id));
+    o.set("name", Json::makeString(t.name));
+    o.set("description", Json::makeString(t.description));
     Json grid = Json::makeObject();
-    const Json& g = game["grid"];
-    grid.set("type", Json::makeString(ok && g["type"].isString() ? g["type"].asString() : "square"));
-    if (ok && g["layout"].isString()) grid.set("layout", g["layout"]);
+    grid.set("type", Json::makeString(t.gridType));
+    if (!t.gridLayout.empty()) grid.set("layout", Json::makeString(t.gridLayout));
     o.set("grid", grid);
     arr.push(o);
   }

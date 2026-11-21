@@ -6,6 +6,7 @@
 
 #include "log.h"
 #include "paths.h"
+#include "templates.h"
 #include "revision.h"
 #include "validate.h"
 
@@ -104,43 +105,14 @@ ApiResult createProject(const Config& cfg, const Json& body) {
   std::string name = body["name"].asString(id);
   if (name.empty()) name = id;
 
-  std::error_code ec;
-  fs::path src = cfg.templatesDir / tpl;
-  if (!fs::is_regular_file(src / "game.json", ec)) return apiError(400, "unknown template \"" + tpl + "\"");
-  fs::path dst = cfg.gamesDir / id;
-  if (fs::exists(fs::symlink_status(dst, ec))) return apiError(409, "a project \"" + id + "\" already exists");
-
-  // Build in a hidden sibling folder, then rename: a failed copy never leaves
-  // a half-made project in the games folder.
-  fs::create_directories(cfg.gamesDir, ec);
-  fs::path tmp = cfg.gamesDir / ("." + id + kTempSuffix);
-  fs::remove_all(tmp, ec);
-  fs::copy(src, tmp, fs::copy_options::recursive | fs::copy_options::skip_symlinks, ec);
-  if (ec) {
-    std::error_code e2;
-    fs::remove_all(tmp, e2);
-    elog("create %s: copying template %s failed: %s", id.c_str(), tpl.c_str(), ec.message().c_str());
-    return apiError(500, "could not copy the template: " + ec.message());
-  }
-  Json game;
-  Problem prob;
-  std::string err;
-  bool ok = readJsonRel(tmp, "game.json", game, prob) && game.isObject();
-  if (ok) {
-    game.set("name", jstr(name));
-    ok = writeFileAtomic(tmp / "game.json", game.dump(2) + "\n", err);
-  } else {
-    err = "template game.json is broken: " + prob.message;
-  }
-  if (ok) {
-    fs::rename(tmp, dst, ec);
-    if (ec) { ok = false; err = ec.message(); }
-  }
-  if (!ok) {
-    std::error_code e2;
-    fs::remove_all(tmp, e2);
-    elog("create %s from %s failed: %s", id.c_str(), tpl.c_str(), err.c_str());
-    return apiError(500, "could not create the project: " + err);
+  // The copy-and-rename itself is shared with ote-mcp (editor/core/templates.cpp).
+  const CreateResult made = createFromTemplate(cfg.templatesDir, cfg.gamesDir, id, tpl, name);
+  switch (made.status) {
+    case CreateStatus::Created: break;
+    case CreateStatus::BadTemplate: return apiError(400, made.message);
+    case CreateStatus::AlreadyExists: return apiError(409, made.message);
+    case CreateStatus::CopyFailed:
+    case CreateStatus::WriteFailed: return apiError(500, made.message);
   }
   Json res;
   res.set("id", jstr(id));

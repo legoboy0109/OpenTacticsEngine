@@ -2,7 +2,7 @@
 
 #include "json_document.h"
 #include "project.h"
-#include "table_shape.h"
+#include "schema_ids.h"
 
 namespace ote_native {
 
@@ -28,56 +28,23 @@ void IdSource::watch(const QString& rel) {
 }
 
 QStringList IdSource::ids(const std::vector<std::string>& sources) {
+  // The resolving itself is ote_editor::resolveIdSources (shared with ote-mcp); this only feeds it the project's open
+  // documents and remembers which ones to watch. The edited document is not needed here ("@..." sources are the form's).
+  const ote::Json none;
   QStringList out;
-  for (const std::string& src : sources) {
-    const QString rel = fileOf(src);
-    if (!project_->jsonFiles().contains(rel)) continue;
-    JsonDocument* doc = project_->document(rel);
-    if (!doc) continue;
-    watch(rel);
-    const ote::Json* list = &doc->root();
-    const QString s = QString::fromStdString(src);
-    if (s.startsWith("tags:") || s.startsWith("field:")) {
-      // "tags:data/units.json" / "field:group:data/weapons.json": the free words a key of the rows holds (text or list of
-      // texts): what unit filters, conditions and weapon locks may name.
-      const std::string key = s.startsWith("tags:") ? "tags" : s.mid(6, s.indexOf(':', 6) - 6).toStdString();
-      if (auto p = findTableArray(doc->root()))
-        for (const ote::Json& row : resolvePath(doc->root(), *p)->items()) {
-          std::vector<const ote::Json*> words;
-          if (row[key].isString()) words.push_back(&row[key]);
-          for (const ote::Json& t : row[key].items()) words.push_back(&t);
-          for (const ote::Json* w : words)
-            if (w->isString() && !w->asString().empty() && !out.contains(QString::fromStdString(w->asString()))) out.append(QString::fromStdString(w->asString()));
-        }
-      continue;
-    }
-    const int hash = s.indexOf('#');
-    if (s.startsWith("keys:")) {
-      // "keys:game.json#rules.ai.weights": the names of the entries of an object (named sets, change ids).
-      const ote::Json* obj = &doc->root();
-      if (hash >= 0)
-        for (const QString& part : s.mid(hash + 1).split('.')) obj = &(*obj)[part.toStdString()];
-      if (obj->isObject())
-        for (const auto& m : obj->members())
-          if (!out.contains(QString::fromStdString(m.first))) out.append(QString::fromStdString(m.first));
-      continue;
-    }
-    if (hash >= 0) {
-      for (const QString& part : s.mid(hash + 1).split('.')) {
-        list = &(*list)[part.toStdString()];
-      }
-    } else if (auto p = findTableArray(doc->root())) {
-      // An empty table array is not recognised by findTableArray (it says nothing about columns); fall through to the key.
-      list = resolvePath(doc->root(), *p);
-    } else if (doc->root().isObject() && doc->root().members().size() == 1) {
-      list = &doc->root().members()[0].second;
-    }
-    for (const ote::Json& item : list->items()) {
-      const QString id = QString::fromStdString(item.isString() ? item.asString() : item["id"].asString());
-      if (!id.isEmpty() && !out.contains(id)) out.append(id);
-    }
-  }
+  for (const std::string& id : ote_editor::resolveIdSources(none, docLookup(), sources)) out << QString::fromStdString(id);
   return out;
+}
+
+ote_editor::DocLookup IdSource::docLookup() {
+  return [this](const std::string& relStd) -> const ote::Json* {
+    const QString rel = QString::fromStdString(relStd);
+    if (!project_->jsonFiles().contains(rel)) return nullptr;
+    JsonDocument* doc = project_->document(rel);
+    if (!doc) return nullptr;
+    watch(rel);
+    return &doc->root();
+  };
 }
 
 }  // namespace ote_native

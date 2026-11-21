@@ -1,11 +1,7 @@
-// The engine's JSON reader accepts // and /* */ comments, but ote::Json does not keep them, so saving a file drops
-// them. The editor warns before the first save of such a file; this finds out whether a file has any.
+// The comment scan moved to editor/core (json_comments.h) so ote-mcp shares it; this keeps the old name for the native editor.
 #pragma once
-#include <string>
+#include "json_comments.h"
 
 namespace ote_native {
-
-// True when `text` holds a // or /* */ comment outside of string literals.
-bool jsonTextHasComments(const std::string& text);
-
+using ote_editor::jsonTextHasComments;
 }  // namespace ote_native
