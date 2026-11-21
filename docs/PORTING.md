@@ -91,10 +91,11 @@ handlers are additions that call the same actions. No screen has text entry. Ski
 
 **Pointer scrolling (the battle map).** A mouse over the map only moves the cursor to the square under it; the camera does not chase
 that square, so resting on a square in the outer rows scrolls nothing. The map scrolls from the pointer only when the pointer is
-pushed against the **edge of the picture** (`battle/edge_scroll.h`, the one place for the numbers): inside a band along an edge a
-quarter of a tile wide (`kBandTiles`, at least 2 pixels; at the viewport's own edge and at the picture's edge, over the info panel
-or the hint line), for `kDwellSeconds` = 0.25 s, then at `kTilesPerSecond` = 8 tiles a second (frame-rate independent, so about 192
-pixels a second at a 24-pixel tile). It stops at once when the pointer leaves the band or the window; a corner scrolls both ways.
+pushed against the **edge of the picture** (`battle/edge_scroll.h`, the one place for the numbers): inside a band along an edge an
+eighth of a tile wide (`kBandTiles`, at least 2 pixels; at the viewport's own edge and at the picture's edge, over the info panel
+or the hint line), for `kDwellSeconds` = 0.5 s, then at `kTilesPerSecond` = 5 tiles a second (frame-rate independent, so 120
+pixels a second at a 24-pixel tile; the owner's tuning: the first values, a quarter tile, 0.25 s and 8 tiles, started too easily
+and moved too fast). It stops at once when the pointer leaves the band or the window; a corner scrolls both ways.
 It works with the cursor free (idle, a unit selected, choosing a facing, the preparation's Positions / View screens) and not while
 a menu or list is open, something is animating, a dialogue or fight scene plays, or in the full 3D view (its own camera). Only a
 mouse does it: a finger (`InputDevice::Touch`) never scrolls, and a key or pad press makes the pointer let go until it moves

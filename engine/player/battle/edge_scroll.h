@@ -15,10 +15,11 @@ namespace ote {
 
 class EdgeScroll {
  public:
-  // The three numbers that make the feel (change them here only).
-  static constexpr float kBandTiles = 0.25f;       // the band along an edge is this fraction of a tile wide (at least 2 pixels)
-  static constexpr float kDwellSeconds = 0.25f;    // the pointer must rest in the band this long before the map starts to move
-  static constexpr float kTilesPerSecond = 8.0f;   // then it moves this many tiles a second, whatever the frame rate
+  // The three numbers that make the feel (change them here only). Owner's tuning 2026-11-21: the first values (1/4 tile, 0.25 s,
+  // 8 tiles/s) started too easily and moved too fast.
+  static constexpr float kBandTiles = 0.125f;      // the band along an edge is this fraction of a tile wide (at least 2 pixels)
+  static constexpr float kDwellSeconds = 0.5f;     // the pointer must rest in the band this long before the map starts to move
+  static constexpr float kTilesPerSecond = 5.0f;   // then it moves this many tiles a second, whatever the frame rate
 
   // A mouse is at (x, y) in logical pixels; kPointerGone (or any negative position) = it left the window.
   void point(int x, int y) {
