@@ -40,11 +40,15 @@ void addCoreContexts(std::vector<Context>& out);
 void addGameContexts(std::vector<Context>& out);
 void addDataContexts(std::vector<Context>& out);
 void addSrpgContexts(std::vector<Context>& out);
+void addMapContexts(std::vector<Context>& out);
+void addEventContexts(std::vector<Context>& out);
 void addStoryContexts(std::vector<Context>& out);
 void addCoreExtraSkips(std::map<QString, QString>& out);
 void addGameExtraSkips(std::map<QString, QString>& out);
 void addDataExtraSkips(std::map<QString, QString>& out);
 void addSrpgExtraSkips(std::map<QString, QString>& out);
+void addMapExtraSkips(std::map<QString, QString>& out);
+void addEventExtraSkips(std::map<QString, QString>& out);
 void addStoryExtraSkips(std::map<QString, QString>& out);
 
 }  // namespace conformance

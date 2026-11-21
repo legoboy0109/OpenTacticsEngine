@@ -19,6 +19,7 @@
 #include "id_source.h"
 #include "project.h"
 #include "schema.h"
+#include "story_ids.h"
 #include "table_shape.h"
 #include "test_support.h"
 #include "validate.h"
@@ -35,6 +36,15 @@ const QString* skipReason(const QString& id) {
   if (it != skipped().end()) return &it->second;
   for (const auto& s : skipped())
     if (s.first.endsWith('*') && id.startsWith(s.first.left(s.first.size() - 1))) return &s.second;
+  return nullptr;
+}
+
+// An extra skip is "key = value" exactly, or a pattern with a leading "*" (any key ending so: "*{tag}.tag = \"zz_no_such_id\"").
+const QString* extraSkipReason(const QString& note) {
+  auto it = extraSkips().find(note);
+  if (it != extraSkips().end()) return &it->second;
+  for (const auto& s : extraSkips())
+    if (s.first.startsWith('*') && note.endsWith(s.first.mid(1))) return &s.second;
   return nullptr;
 }
 
@@ -62,6 +72,7 @@ void collectObject(const FileSchema* fs, const SchemaNode& obj, const QString& p
 // Walks into the children of a node whose own key is already listed: object members, list items, map entries, variant shapes.
 void descend(const FileSchema* fs, const SchemaNode& n, const QString& path, const QStringList& steps, std::vector<KeyInfo>& out) {
   using K = SchemaNode::Kind;
+  if (n.lazy) return;  // a recursive definition nested deeper than two levels: the same keys as one level up
   const QString schema = QString::fromStdString(fs->name);
   if (n.kind == K::Object) collectObject(fs, n, path, steps, out);
   if (n.kind == K::Variant) {
@@ -89,6 +100,7 @@ void descend(const FileSchema* fs, const SchemaNode& n, const QString& path, con
 
 void collectObject(const FileSchema* fs, const SchemaNode& obj, const QString& prefix, const QStringList& steps, std::vector<KeyInfo>& out) {
   for (const auto& f : obj.fields) {
+    if (f.second->lazy) continue;
     const QString key = QString::fromStdString(f.first);
     const QString path = prefix.isEmpty() ? key : prefix + "." + key;
     QStringList st = steps;
@@ -100,7 +112,8 @@ void collectObject(const FileSchema* fs, const SchemaNode& obj, const QString& p
 
 bool claims(const QString& claim, const QString& keyId) {
   if (!keyId.startsWith(claim)) return false;
-  if (claim.contains('{') && !claim.contains('}')) return true;  // a claim naming the start of a variant's name
+  const qsizetype lastOpen = claim.lastIndexOf('{');
+  if (lastOpen >= 0 && claim.indexOf('}', lastOpen) < 0) return true;  // a claim naming the start of a variant's name
   if (claim.endsWith(':') || keyId.size() == claim.size()) return true;
   const QChar next = keyId[claim.size()];
   return next == '.' || next == '[' || next == '{';
@@ -298,9 +311,10 @@ std::vector<ote_editor::Problem> ConformanceTest::place(const Context& c, const 
   // The ids a sample may point at come from the game as it stands (live project, like the editor's combo boxes).
   Project project(b->dir);
   IdSource ids(&project);
-  const IdLookup lookup = [&](const std::vector<std::string>& s) { return ids.ids(s); };
-
   Json root = readJson(b->dir + "/" + rel);
+  // "@sides", "@storyUnits" ... read the file being built, so a sample names a side or unit the map really has.
+  const IdLookup lookup = [&](const std::vector<std::string>& s) { return resolveSources(root, &ids, s); };
+
   Json* node = &root;
   const SchemaNode* sn = k.fs->rows ? k.fs->rows.get() : k.fs->root.get();
   if (k.fs->rows) {  // a table file: the last row (so references to the first entries never point at the row itself)
@@ -434,21 +448,22 @@ bool isContainer(const SchemaNode& n) {
 
 void ConformanceTest::everySchemaKeyIsAcceptedByTheLoader() {
   QStringList failures, unclaimed, notes;
+  QMap<QString, int> skippedByReason;  // thousands of nested keys share one reason: print it once with a count
   int tested = 0, skippedCount = 0, extraChecked = 0;
   for (const KeyInfo& k : keys_) {
     if (isIdentityKey(k.id)) {
       ++skippedCount;
-      notes << k.id + "  (identity key: renaming it would break the references to the entry)";
+      ++skippedByReason[QStringLiteral("identity keys: renaming one would break the references to the entry")];
       continue;
     }
     if (isContainer(*k.node)) {
       ++skippedCount;  // replacing a plain object would drop its siblings; its members are tested one by one
-      notes << k.id + "  (container: its members are tested one by one, as are its blocks)";
+      ++skippedByReason[QStringLiteral("containers: their members are tested one by one, as are their blocks")];
       continue;
     }
     if (const QString* sk = skipReason(k.id)) {
       ++skippedCount;
-      notes << k.id + "  (" + *sk + ")";
+      ++skippedByReason[*sk];
       continue;
     }
     const Context* c = contextFor(k.id);
@@ -465,8 +480,8 @@ void ConformanceTest::everySchemaKeyIsAcceptedByTheLoader() {
     else if (!problems.empty()) failures << QString("%1 [%2]: %3").arg(k.id, c->name, problemsText(problems));
     for (const Json& v : extras) {  // every enum word and both ends of a range must be accepted too
       const QString note = k.id + " = " + QString::fromStdString(v.dump(0));
-      if (extraSkips().count(note)) {
-        notes << note + "  (" + extraSkips().at(note) + ")";
+      if (const QString* why = extraSkipReason(note)) {
+        notes << note + "  (" + *why + ")";
         continue;
       }
       const auto more = place(*c, k, &v, &file, &placed);
@@ -478,6 +493,7 @@ void ConformanceTest::everySchemaKeyIsAcceptedByTheLoader() {
   qInfo("conformance: %d keys set to a sample and accepted (+%d more enum words / range ends), %d skipped on purpose, %d schema files",
         tested, extraChecked, skippedCount, (int)schemas_.all().size());
   for (const QString& n : notes) qInfo("  skipped: %s", qPrintable(n));
+  for (auto it = skippedByReason.cbegin(); it != skippedByReason.cend(); ++it) qInfo("  skipped %d keys: %s", it.value(), qPrintable(it.key()));
   QVERIFY2(unclaimed.isEmpty(), qPrintable("keys no context tests:\n" + unclaimed.join("\n")));
   QVERIFY2(failures.isEmpty(), qPrintable("the loader refuses the sample of:\n" + failures.join("\n")));
 }
@@ -516,8 +532,8 @@ void ConformanceTest::anInvalidValueIsRefusedNamingTheFile() {
       }
       if (!bad) continue;
       const QString note = k.id + " = " + QString::fromStdString(bad->dump(0));
-      if (extraSkips().count(note)) {
-        notes << note + "  (" + extraSkips().at(note) + ")";
+      if (const QString* why = extraSkipReason(note)) {
+        notes << note + "  (" + *why + ")";
         continue;
       }
       QString file;
@@ -544,6 +560,7 @@ void ConformanceTest::everyOptionalBlockEnabledAloneIsAccepted() {
   int checked = 0;
   for (const KeyInfo& k : keys_) {
     if (k.node->kind != SchemaNode::Kind::Object || !k.node->block) continue;
+    if (skipReason(k.id)) continue;  // a block inside a skipped section (a nested copy of a definition tested elsewhere)
     const Context* c = contextFor(k.id);
     if (!c) continue;  // already reported by the key test
     auto ex = blockExcuses().find(k.id);
@@ -555,7 +572,8 @@ void ConformanceTest::everyOptionalBlockEnabledAloneIsAccepted() {
     auto b = build(*c);
     Project project(b->dir);
     IdSource ids(&project);
-    const IdLookup lookup = [&](const std::vector<std::string>& s) { return ids.ids(s); };
+    const Json whole = readJson(b->dir + "/" + fileOf(b->dir, k.fs));
+    const IdLookup lookup = [&](const std::vector<std::string>& s) { return resolveSources(whole, &ids, s); };
     if (k.node->needs && lookup(k.node->needs->refs).isEmpty()) {
       notes << k.id + "  (the form offers Enable only after you add what it needs: \"" + QString::fromStdString(k.node->needs->hint) + "\")";
       continue;
@@ -596,9 +614,10 @@ void reverseObject(const SchemaNode& node, const Json& value, const QString& sch
   }
 }
 
-void reverseValue(const SchemaNode& node, const Json& value, const QString& schema, const QString& path, const QString& where,
+void reverseValue(const SchemaNode& node0, const Json& value, const QString& schema, const QString& path, const QString& where,
                   QStringList& unknown, QStringList& excusedList) {
   using K = SchemaNode::Kind;
+  const SchemaNode& node = node0.resolved();  // commands nested deeper than the loaded tree expand here
   if (isAlt(node, value)) return;
   if (node.kind == K::Object) reverseObject(node, value, schema, path, where, unknown, excusedList);
   else if (node.kind == K::List && node.length < 0 && node.of && value.isArray())

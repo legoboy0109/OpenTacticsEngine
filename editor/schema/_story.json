@@ -1,0 +1,1273 @@
+{
+  "defs": {
+    "condition": {
+      "type": "variant",
+      "help": "One condition.",
+      "variants": [
+        {
+          "name": "switch",
+          "key": "switch",
+          "help": "A story switch is on (or off).",
+          "summary": "{switch}[ is {is}]",
+          "node": {
+            "type": "object",
+            "fields": {
+              "switch": {"type": "ref", "ref": "game.json#switches", "help": "The switch.", "required": true},
+              "is": {"type": "bool", "help": "true: it must be on; false: off.", "default": true}
+            }
+          }
+        },
+        {
+          "name": "variable",
+          "key": "variable",
+          "help": "A story variable compared with a number.",
+          "summary": "{variable} [{op} ]{value}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "variable": {"type": "ref", "ref": "game.json#variables", "help": "The variable.", "required": true},
+              "op": {"type": "enum", "values": ["=", "==", "!=", "<", "<=", ">", ">="], "help": "How to compare (default =).", "default": "="},
+              "value": {"type": "int", "help": "The number to compare with.", "required": true}
+            }
+          }
+        },
+        {
+          "name": "alive",
+          "key": "alive",
+          "help": "Some living unit matches.",
+          "summary": "{alive} alive",
+          "node": {"type": "object", "fields": {"alive": {"use": "_map#filter", "help": "Which units.", "required": true}}}
+        },
+        {
+          "name": "dead",
+          "key": "dead",
+          "help": "A unit that matches exists (or existed) and none is alive.",
+          "summary": "{dead} dead",
+          "node": {"type": "object", "fields": {"dead": {"use": "_map#filter", "help": "Which units.", "required": true}}}
+        },
+        {
+          "name": "round",
+          "key": "round",
+          "help": "The round number compared with a number.",
+          "summary": "round [{round.op} ]{round.value}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "round": {
+                "type": "object",
+                "fields": {
+                  "op": {"type": "enum", "values": ["=", "==", "!=", "<", "<=", ">", ">="], "help": "How to compare (default =).", "default": "="},
+                  "value": {"type": "int", "help": "The round number.", "required": true}
+                },
+                "help": "The comparison.",
+                "required": true
+              }
+            }
+          }
+        },
+        {
+          "name": "carries",
+          "key": "carries",
+          "help": "A living matching unit carries the item (not its storage).",
+          "summary": "{unit} carries {carries}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "carries": {"type": "ref", "ref": "data/items.json", "help": "The item.", "required": true},
+              "unit": {"use": "_map#filter", "help": "Which units (default: any)."}
+            }
+          }
+        },
+        {
+          "name": "researched",
+          "key": "researched",
+          "help": "A side has finished a technology.",
+          "summary": "{side} has {researched}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "researched": {"type": "ref", "ref": "data/research.json", "help": "The technology.", "required": true},
+              "side": {"type": "ref", "ref": "@sides", "help": "The side.", "required": true}
+            }
+          }
+        },
+        {
+          "name": "sees",
+          "key": "sees",
+          "help": "A team sees a matching unit (fog of war).",
+          "summary": "{team} sees {sees}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "sees": {"use": "_map#filter", "help": "Which units must be seen.", "required": true},
+              "team": {"type": "ref", "ref": "@teams", "help": "The team (a side id means its team).", "required": true}
+            }
+          }
+        },
+        {
+          "name": "hasSkill",
+          "key": "hasSkill",
+          "help": "A living matching unit has the skill.",
+          "summary": "{unit} has {hasSkill}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "hasSkill": {"type": "ref", "ref": "data/skills.json", "help": "The skill.", "required": true},
+              "unit": {"use": "_map#filter", "help": "Which units (default: any)."}
+            }
+          }
+        },
+        {
+          "name": "support",
+          "key": "support",
+          "help": "Two characters' support level compared with a number.",
+          "summary": "{support} [{op} ]{value}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "support": {
+                "type": "list",
+                "of": {"type": "ref", "ref": "data/characters.json", "help": "A character."},
+                "help": "The two characters of a support pair.",
+                "length": 2,
+                "required": true
+              },
+              "op": {"type": "enum", "values": ["=", "==", "!=", "<", "<=", ">", ">="], "help": "How to compare (default >=).", "default": ">="},
+              "value": {"type": "int", "help": "Support level, 0 to 5.", "min": 0, "max": 5, "required": true}
+            }
+          }
+        },
+        {
+          "name": "hasCondition",
+          "key": "hasCondition",
+          "help": "A matching unit has a status condition.",
+          "summary": "{unit} has {hasCondition}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "hasCondition": {"type": "ref", "ref": "data/conditions.json", "help": "The status condition.", "required": true},
+              "unit": {"use": "_map#filter", "help": "Which units (default: any)."}
+            }
+          }
+        },
+        {
+          "name": "actor",
+          "key": "actor",
+          "help": "The unit that set this event off matches.",
+          "summary": "actor is {actor}",
+          "node": {"type": "object", "fields": {"actor": {"use": "_map#filter", "help": "Which units.", "required": true}}}
+        },
+        {
+          "name": "difficulty",
+          "key": "difficulty",
+          "help": "The difficulty the battle was built with (the game needs difficulties).",
+          "summary": "difficulty {difficulty}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "difficulty": {
+                "type": "variant",
+                "help": "A difficulty, or at least / at most one.",
+                "variants": [
+                  {"name": "is", "kind": "string", "node": {"type": "ref", "ref": "game.json#difficulties.list", "help": "The difficulty."}},
+                  {
+                    "name": "at least",
+                    "key": "atLeast",
+                    "node": {
+                      "type": "object",
+                      "fields": {"atLeast": {"type": "ref", "ref": "game.json#difficulties.list", "help": "This difficulty or a harder one.", "required": true}}
+                    }
+                  },
+                  {
+                    "name": "at most",
+                    "key": "atMost",
+                    "node": {
+                      "type": "object",
+                      "fields": {"atMost": {"type": "ref", "ref": "game.json#difficulties.list", "help": "This difficulty or an easier one.", "required": true}}
+                    }
+                  }
+                ],
+                "required": true
+              }
+            }
+          }
+        },
+        {
+          "name": "rosterAlive",
+          "key": "rosterAlive",
+          "help": "A campaign character is alive (on this map, or in the roster).",
+          "summary": "{rosterAlive} alive in the roster",
+          "node": {
+            "type": "object",
+            "fields": {
+              "rosterAlive": {"type": "string", "help": "A character id (letters, digits, _ and -); it need not be on this map.", "required": true},
+              "party": {"type": "enum", "values": ["any", "active"], "help": "Which parties count (default any).", "default": "any"}
+            }
+          }
+        },
+        {
+          "name": "rosterDead",
+          "key": "rosterDead",
+          "help": "A campaign character fell.",
+          "summary": "{rosterDead} dead in the roster",
+          "node": {
+            "type": "object",
+            "fields": {
+              "rosterDead": {"type": "string", "help": "A character id.", "required": true},
+              "party": {"type": "enum", "values": ["any", "active"], "help": "Which parties count (default any).", "default": "any"}
+            }
+          }
+        },
+        {
+          "name": "inRoster",
+          "key": "inRoster",
+          "help": "A campaign character is in the roster and not gone.",
+          "summary": "{inRoster} in the roster",
+          "node": {
+            "type": "object",
+            "fields": {
+              "inRoster": {"type": "string", "help": "A character id.", "required": true},
+              "party": {"type": "enum", "values": ["any", "active"], "help": "Which parties count (default any).", "default": "any"}
+            }
+          }
+        }
+      ]
+    },
+    "conditions": {"type": "list", "of": {"use": "condition", "help": "One condition."}, "help": "Conditions: all must hold."},
+    "trigger": {
+      "type": "variant",
+      "help": "When an event fires.",
+      "variants": [
+        {
+          "name": "battle",
+          "key": "battle",
+          "help": "At the start of the battle, or when it is decided.",
+          "summary": "battle {battle}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "battle": {
+                "type": "enum",
+                "values": ["start", "won", "lost", "end"],
+                "help": "start: before the first turn; won / lost: when decided; end: either.",
+                "required": true
+              }
+            }
+          }
+        },
+        {
+          "name": "turn",
+          "key": "turn",
+          "help": "At the start of a side's turn in a round (every round for \"every\").",
+          "summary": "turn {turn}[, {side}]",
+          "node": {
+            "type": "object",
+            "fields": {
+              "turn": {
+                "type": "variant",
+                "help": "A round number, or every round.",
+                "variants": [
+                  {"name": "round", "kind": "number", "node": {"type": "int", "help": "The round number (1 or more).", "min": 1, "max": 100000}},
+                  {"name": "every round", "value": "every"}
+                ],
+                "required": true
+              },
+              "side": {"type": "ref", "ref": "@sides", "help": "Whose turn (default: the first side)."}
+            }
+          }
+        },
+        {
+          "name": "reach",
+          "key": "reach",
+          "help": "A unit ends a move inside the area.",
+          "summary": "{by} reaches {reach.x},{reach.y}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "reach": {"use": "_map#rect", "help": "The area.", "required": true},
+              "by": {"use": "_map#filter", "help": "Which units (default: any)."}
+            }
+          }
+        },
+        {
+          "name": "defeated",
+          "key": "defeated",
+          "help": "A matching unit is defeated.",
+          "summary": "{defeated} defeated",
+          "node": {
+            "type": "object",
+            "fields": {
+              "defeated": {"use": "_map#filter", "help": "Which units.", "required": true},
+              "by": {"use": "_map#filter", "help": "Defeated by which units (default: anything)."}
+            }
+          }
+        },
+        {
+          "name": "fight",
+          "key": "fight",
+          "help": "Just before a fight in which a matching unit takes part.",
+          "summary": "{fight}[ fights {with}]",
+          "node": {
+            "type": "object",
+            "fields": {
+              "fight": {"use": "_map#filter", "help": "Which units.", "required": true},
+              "with": {"use": "_map#filter", "help": "The other fighter (default: anyone)."}
+            }
+          }
+        },
+        {
+          "name": "talk",
+          "key": "talk",
+          "help": "Adds Talk to the first unit's menu next to the second unit.",
+          "summary": "{talk} talks to {to}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "talk": {"type": "ref", "ref": "@storyUnits", "help": "The unit that starts the talk.", "required": true},
+              "to": {"type": "ref", "ref": "@storyUnits", "help": "The unit talked to.", "required": true},
+              "label": {"type": "string", "help": "The menu entry (default Talk).", "default": "Talk"}
+            }
+          }
+        },
+        {
+          "name": "promoted",
+          "key": "promoted",
+          "help": "A matching unit was promoted.",
+          "summary": "{promoted} promoted",
+          "node": {"type": "object", "fields": {"promoted": {"use": "_map#filter", "help": "Which units.", "required": true}}}
+        },
+        {
+          "name": "support",
+          "key": "support",
+          "help": "A support pair reached a level.",
+          "summary": "support {support}[ level {level}]",
+          "node": {
+            "type": "object",
+            "fields": {
+              "support": {
+                "type": "list",
+                "of": {"type": "ref", "ref": "data/characters.json", "help": "A character."},
+                "help": "The two characters of the pair.",
+                "length": 2,
+                "required": true
+              },
+              "level": {"type": "int", "help": "Fires at this level (default: any new level).", "min": 1, "max": 5}
+            }
+          }
+        },
+        {
+          "name": "place",
+          "key": "place",
+          "help": "A door or chest of the map was opened, a place visited or destroyed.",
+          "summary": "{place} {is}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "place": {"type": "ref", "ref": "@structures", "help": "The structure's id.", "required": true},
+              "is": {
+                "type": "enum",
+                "values": ["visited", "opened", "destroyed"],
+                "help": "What happened to it (a door or chest is opened, a place visited or destroyed).",
+                "required": true
+              },
+              "by": {"use": "_map#filter", "help": "By which units (default: anyone)."}
+            }
+          }
+        }
+      ]
+    },
+    "command": {
+      "type": "variant",
+      "help": "One command.",
+      "variants": [
+        {
+          "name": "say",
+          "key": "say",
+          "help": "A line of dialogue.",
+          "summary": "[{speaker|speakerName}: ]\"{say}\"",
+          "node": {
+            "type": "object",
+            "fields": {
+              "say": {"type": "string", "help": "The text shown.", "required": true},
+              "speaker": {"type": "ref", "ref": "@storyUnits", "help": "A unit of the map.", "excludes": ["speakerName"]},
+              "speakerName": {"type": "string", "help": "A name shown instead, for someone who is no unit.", "excludes": ["speaker"]},
+              "portrait": {"type": "string", "help": "Portrait id (text for the player to look up)."},
+              "position": {
+                "type": "enum",
+                "values": ["farLeft", "left", "midLeft", "center", "midRight", "right", "farRight"],
+                "help": "Where the speaker stands on the stage."
+              },
+              "auto": {"type": "int", "help": "The line goes on by itself after this many milliseconds.", "min": 1, "max": 60000}
+            }
+          }
+        },
+        {
+          "name": "narrate",
+          "key": "narrate",
+          "help": "A line with no speaker.",
+          "summary": "\"{narrate}\"",
+          "node": {
+            "type": "object",
+            "fields": {
+              "narrate": {"type": "string", "help": "The text shown.", "required": true},
+              "auto": {"type": "int", "help": "The line goes on by itself after this many milliseconds.", "min": 1, "max": 60000}
+            }
+          }
+        },
+        {
+          "name": "addUnit",
+          "key": "addUnit",
+          "help": "Puts a unit on the map.",
+          "summary": "{addUnit.id|addUnit.character|addUnit.type} ({addUnit.side}) at {addUnit.x},{addUnit.y}",
+          "node": {"type": "object", "fields": {"addUnit": {"use": "_map#unit", "help": "The unit, as a map's units list writes it.", "required": true}}}
+        },
+        {
+          "name": "removeUnit",
+          "key": "removeUnit",
+          "help": "Takes matching units off the map (no defeat).",
+          "summary": "{removeUnit}[, hidden: {hide}]",
+          "node": {
+            "type": "object",
+            "fields": {
+              "removeUnit": {"use": "_map#filter", "help": "Which units.", "required": true},
+              "hide": {"type": "bool", "help": "Keep the unit in the story so showUnit can bring it back."}
+            }
+          }
+        },
+        {
+          "name": "moveUnit",
+          "key": "moveUnit",
+          "help": "Puts a unit on a square.",
+          "summary": "{moveUnit} to {x},{y}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "moveUnit": {"type": "ref", "ref": "@storyUnits", "help": "The unit.", "required": true},
+              "x": {"type": "int", "help": "Column.", "min": 0, "required": true},
+              "y": {"type": "int", "help": "Row.", "min": 0, "required": true},
+              "walk": {"type": "bool", "help": "The unit walks there."},
+              "wait": {"type": "bool", "help": "The story waits until it arrives (needs walk)."}
+            }
+          }
+        },
+        {
+          "name": "changeSide",
+          "key": "changeSide",
+          "help": "Matching units join another side.",
+          "summary": "{changeSide} to {side}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "changeSide": {"use": "_map#filter", "help": "Which units.", "required": true},
+              "side": {"type": "ref", "ref": "@sides", "help": "The side they join.", "required": true},
+              "ready": {"type": "bool", "help": "They can act at once."}
+            }
+          }
+        },
+        {
+          "name": "giveItem",
+          "key": "giveItem",
+          "help": "Gives an item to matching units.",
+          "summary": "{giveItem} to {to}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "giveItem": {"type": "ref", "ref": "data/items.json", "help": "The item.", "required": true},
+              "to": {"use": "_map#filter", "help": "Who gets it.", "required": true}
+            }
+          }
+        },
+        {
+          "name": "takeItem",
+          "key": "takeItem",
+          "help": "Takes an item from matching units.",
+          "summary": "{takeItem} from {from}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "takeItem": {"type": "ref", "ref": "data/items.json", "help": "The item.", "required": true},
+              "from": {"use": "_map#filter", "help": "Who loses it.", "required": true},
+              "all": {"type": "bool", "help": "Every copy, not just one."}
+            }
+          }
+        },
+        {
+          "name": "giveResource",
+          "key": "giveResource",
+          "help": "Gives (or takes) resources of a side.",
+          "summary": "{giveResource} to {side}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "giveResource": {
+                "type": "map",
+                "ref": "game.json#resources",
+                "of": {"type": "int", "help": "Amount (may be negative).", "min": -1000000000, "max": 1000000000, "sample": 1},
+                "help": "Amount per resource.",
+                "required": true
+              },
+              "side": {"type": "ref", "ref": "@sides", "help": "The side.", "required": true}
+            }
+          }
+        },
+        {
+          "name": "grantResearch",
+          "key": "grantResearch",
+          "help": "A side gets a technology.",
+          "summary": "{grantResearch} to {side}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "grantResearch": {"type": "ref", "ref": "data/research.json", "help": "The technology.", "required": true},
+              "side": {"type": "ref", "ref": "@sides", "help": "The side.", "required": true}
+            }
+          }
+        },
+        {
+          "name": "setSwitch",
+          "key": "setSwitch",
+          "help": "Turns a story switch on or off.",
+          "summary": "{setSwitch} = {to}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "setSwitch": {"type": "ref", "ref": "game.json#switches", "help": "The switch.", "required": true},
+              "to": {"type": "bool", "help": "On (true) or off (false).", "required": true}
+            }
+          }
+        },
+        {
+          "name": "setVariable",
+          "key": "setVariable",
+          "help": "Sets a story variable: a number.",
+          "summary": "{setVariable} = {to}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "setVariable": {"type": "ref", "ref": "game.json#variables", "help": "The variable.", "required": true},
+              "to": {"type": "int", "help": "The number.", "min": -1000000000, "max": 1000000000, "required": true}
+            }
+          },
+          "unless": ["level", "hp", "maxHp", "stat"]
+        },
+        {
+          "name": "setVariable (unit's level)",
+          "key": "setVariable",
+          "help": "Sets a story variable: a unit's level.",
+          "summary": "{setVariable} = level of {level}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "setVariable": {"type": "ref", "ref": "game.json#variables", "help": "The variable.", "required": true},
+              "level": {"type": "ref", "ref": "@storyUnits", "help": "The unit to read the level from.", "required": true}
+            }
+          },
+          "with": ["level"]
+        },
+        {
+          "name": "setVariable (unit's hit points)",
+          "key": "setVariable",
+          "help": "Sets a story variable: a unit's hit points now.",
+          "summary": "{setVariable} = hp of {hp}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "setVariable": {"type": "ref", "ref": "game.json#variables", "help": "The variable.", "required": true},
+              "hp": {"type": "ref", "ref": "@storyUnits", "help": "The unit to read the hit points from.", "required": true}
+            }
+          },
+          "with": ["hp"]
+        },
+        {
+          "name": "setVariable (unit's most hit points)",
+          "key": "setVariable",
+          "help": "Sets a story variable: a unit's most hit points.",
+          "summary": "{setVariable} = max hp of {maxHp}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "setVariable": {"type": "ref", "ref": "game.json#variables", "help": "The variable.", "required": true},
+              "maxHp": {"type": "ref", "ref": "@storyUnits", "help": "The unit to read it from.", "required": true}
+            }
+          },
+          "with": ["maxHp"]
+        },
+        {
+          "name": "setVariable (unit's stat)",
+          "key": "setVariable",
+          "help": "Sets a story variable: one stat of a unit.",
+          "summary": "{setVariable} = {stat} of {of}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "setVariable": {"type": "ref", "ref": "game.json#variables", "help": "The variable.", "required": true},
+              "stat": {"type": "ref", "ref": "game.json#stats", "help": "The stat.", "required": true},
+              "of": {"type": "ref", "ref": "@storyUnits", "help": "The unit to read the stat from.", "required": true}
+            }
+          },
+          "with": ["stat"]
+        },
+        {
+          "name": "addVariable",
+          "key": "addVariable",
+          "help": "Adds to a story variable: a number.",
+          "summary": "{addVariable} += {by}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "addVariable": {"type": "ref", "ref": "game.json#variables", "help": "The variable.", "required": true},
+              "by": {"type": "int", "help": "The number.", "min": -1000000000, "max": 1000000000, "required": true}
+            }
+          },
+          "unless": ["level", "hp", "maxHp", "stat"]
+        },
+        {
+          "name": "addVariable (unit's level)",
+          "key": "addVariable",
+          "help": "Adds to a story variable: a unit's level.",
+          "summary": "{addVariable} += level of {level}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "addVariable": {"type": "ref", "ref": "game.json#variables", "help": "The variable.", "required": true},
+              "level": {"type": "ref", "ref": "@storyUnits", "help": "The unit to read the level from.", "required": true}
+            }
+          },
+          "with": ["level"]
+        },
+        {
+          "name": "addVariable (unit's hit points)",
+          "key": "addVariable",
+          "help": "Adds to a story variable: a unit's hit points now.",
+          "summary": "{addVariable} += hp of {hp}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "addVariable": {"type": "ref", "ref": "game.json#variables", "help": "The variable.", "required": true},
+              "hp": {"type": "ref", "ref": "@storyUnits", "help": "The unit to read the hit points from.", "required": true}
+            }
+          },
+          "with": ["hp"]
+        },
+        {
+          "name": "addVariable (unit's most hit points)",
+          "key": "addVariable",
+          "help": "Adds to a story variable: a unit's most hit points.",
+          "summary": "{addVariable} += max hp of {maxHp}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "addVariable": {"type": "ref", "ref": "game.json#variables", "help": "The variable.", "required": true},
+              "maxHp": {"type": "ref", "ref": "@storyUnits", "help": "The unit to read it from.", "required": true}
+            }
+          },
+          "with": ["maxHp"]
+        },
+        {
+          "name": "addVariable (unit's stat)",
+          "key": "addVariable",
+          "help": "Adds to a story variable: one stat of a unit.",
+          "summary": "{addVariable} += {stat} of {of}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "addVariable": {"type": "ref", "ref": "game.json#variables", "help": "The variable.", "required": true},
+              "stat": {"type": "ref", "ref": "game.json#stats", "help": "The stat.", "required": true},
+              "of": {"type": "ref", "ref": "@storyUnits", "help": "The unit to read the stat from.", "required": true}
+            }
+          },
+          "with": ["stat"]
+        },
+        {
+          "name": "objective",
+          "key": "objective",
+          "help": "Replaces the objectives shown and the rules that decide the battle.",
+          "summary": "{objective.text}",
+          "node": {"type": "object", "fields": {"objective": {"use": "_map#objectives", "help": "The new objectives.", "required": true}}}
+        },
+        {
+          "name": "win",
+          "key": "win",
+          "help": "Ends the battle: this team wins.",
+          "summary": "{win} wins",
+          "node": {"type": "object", "fields": {"win": {"type": "ref", "ref": "@teams", "help": "A team name or a side id.", "required": true}}}
+        },
+        {
+          "name": "lose",
+          "key": "lose",
+          "help": "Ends the battle: this team loses.",
+          "summary": "{lose} loses",
+          "node": {"type": "object", "fields": {"lose": {"type": "ref", "ref": "@teams", "help": "A team name or a side id.", "required": true}}}
+        },
+        {
+          "name": "if",
+          "key": "if",
+          "help": "Runs some commands only when all the conditions hold.",
+          "summary": "if {if}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "if": {"type": "list", "of": {"use": "condition", "help": "One condition."}, "help": "All of these must hold.", "required": true},
+              "then": {"use": "commands", "help": "Run when the conditions hold.", "required": true},
+              "else": {"use": "commands", "help": "Run when they do not."}
+            }
+          }
+        },
+        {
+          "name": "endTurn",
+          "key": "endTurn",
+          "help": "Ends the talking unit's turn (talk events only).",
+          "summary": "end the talker's turn",
+          "node": {"type": "object", "fields": {"endTurn": {"type": "bool", "help": "Must be true.", "required": true}}}
+        },
+        {
+          "name": "focus",
+          "key": "focus",
+          "help": "Scrolls the view to a unit or a square.",
+          "summary": "{focus}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "focus": {
+                "type": "variant",
+                "help": "A unit, or a square.",
+                "variants": [
+                  {"name": "unit", "kind": "string", "node": {"type": "ref", "ref": "@storyUnits", "help": "The unit to look at."}},
+                  {"name": "square", "kind": "object", "sample": {"x": 0, "y": 0}, "node": {"use": "_map#square", "help": "The square."}}
+                ],
+                "required": true
+              },
+              "ms": {"type": "int", "help": "How long the scroll takes, in milliseconds.", "min": 0, "max": 10000, "excludes": ["speed"]},
+              "speed": {"type": "number", "min": 0.1, "max": 100, "help": "Squares per second (instead of ms).", "excludes": ["ms"]},
+              "wait": {"type": "bool", "help": "The story waits for the scroll to end."}
+            }
+          }
+        },
+        {
+          "name": "playMusic",
+          "key": "playMusic",
+          "help": "Plays a music track of data/audio.json.",
+          "summary": "{playMusic}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "playMusic": {"type": "ref", "ref": "keys:data/audio.json#music", "help": "The track (a music entry of data/audio.json).", "required": true},
+              "fade": {"type": "number", "min": 0, "max": 60, "help": "Fade seconds (0 = a cut; default: a short cross-fade)."}
+            }
+          }
+        },
+        {
+          "name": "stopMusic",
+          "key": "stopMusic",
+          "help": "Silence until the next playMusic.",
+          "summary": "stop the music",
+          "node": {
+            "type": "object",
+            "fields": {
+              "stopMusic": {"type": "bool", "help": "Must be true.", "required": true},
+              "fade": {"type": "number", "min": 0, "max": 60, "help": "Fade seconds."}
+            }
+          }
+        },
+        {
+          "name": "playSound",
+          "key": "playSound",
+          "help": "One sound effect of data/audio.json.",
+          "summary": "{playSound}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "playSound": {"type": "ref", "ref": "keys:data/audio.json#sounds", "help": "The sound (a sounds entry of data/audio.json).", "required": true}
+            }
+          }
+        },
+        {
+          "name": "setPhaseMusic",
+          "key": "setPhaseMusic",
+          "help": "Changes the music a side's turn plays.",
+          "summary": "{setPhaseMusic.side}: {setPhaseMusic.music}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "setPhaseMusic": {
+                "type": "object",
+                "fields": {
+                  "side": {"type": "ref", "ref": "@sides", "help": "The side.", "required": true},
+                  "music": {
+                    "type": "variant",
+                    "help": "A track, none, or take the change away.",
+                    "variants": [
+                      {
+                        "name": "track",
+                        "kind": "string",
+                        "node": {"type": "ref", "ref": "keys:data/audio.json#music", "help": "The track (a music entry of data/audio.json)."}
+                      },
+                      {"name": "no music", "value": ""},
+                      {"name": "take the change away", "value": null}
+                    ],
+                    "required": true
+                  }
+                },
+                "help": "The side and its music.",
+                "required": true
+              }
+            }
+          }
+        },
+        {
+          "name": "setTerrain",
+          "key": "setTerrain",
+          "help": "Gives squares another terrain.",
+          "summary": "{setTerrain}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "setTerrain": {"type": "ref", "ref": "data/terrain.json", "help": "The terrain.", "required": true},
+              "area": {"use": "_map#rect", "help": "The squares as a rectangle (this or cells).", "excludes": ["cells"]},
+              "cells": {
+                "type": "list",
+                "of": {"type": "list", "length": 2, "of": {"type": "int", "help": "Column, then row.", "min": 0}, "help": "One square [x, y]."},
+                "help": "The squares one by one (this or area).",
+                "excludes": ["area"]
+              },
+              "tile": {"type": "int", "help": "Tile number of the tile layer (-1 = none).", "min": -1},
+              "keepTile": {"type": "bool", "help": "The squares keep their tiles."}
+            }
+          }
+        },
+        {
+          "name": "applyChange",
+          "key": "applyChange",
+          "help": "Applies one of the map's named changes.",
+          "summary": "{applyChange}",
+          "node": {"type": "object", "fields": {"applyChange": {"type": "ref", "ref": "keys:@changes", "help": "The change.", "required": true}}}
+        },
+        {
+          "name": "revertChange",
+          "key": "revertChange",
+          "help": "Puts back what a change's squares held.",
+          "summary": "{revertChange}",
+          "node": {"type": "object", "fields": {"revertChange": {"type": "ref", "ref": "keys:@changes", "help": "The change.", "required": true}}}
+        },
+        {
+          "name": "setFog",
+          "key": "setFog",
+          "help": "Fog of war on or off.",
+          "summary": "fog {setFog}",
+          "node": {"type": "object", "fields": {"setFog": {"type": "bool", "help": "On (true) or off (false).", "required": true}}}
+        },
+        {
+          "name": "setVision",
+          "key": "setVision",
+          "help": "Adds to every unit's sight (fog of war).",
+          "summary": "vision {setVision}",
+          "node": {"type": "object", "fields": {"setVision": {"type": "int", "help": "Added sight, -10 to 10.", "min": -10, "max": 10, "required": true}}}
+        },
+        {
+          "name": "openDoor",
+          "key": "openDoor",
+          "help": "Opens a shut door.",
+          "summary": "{openDoor}",
+          "node": {"type": "object", "fields": {"openDoor": {"type": "ref", "ref": "@structures", "help": "The structure's id.", "required": true}}}
+        },
+        {
+          "name": "closeDoor",
+          "key": "closeDoor",
+          "help": "Shuts an open door.",
+          "summary": "{closeDoor}",
+          "node": {"type": "object", "fields": {"closeDoor": {"type": "ref", "ref": "@structures", "help": "The structure's id.", "required": true}}}
+        },
+        {
+          "name": "lockDoor",
+          "key": "lockDoor",
+          "help": "Locks a door.",
+          "summary": "{lockDoor}",
+          "node": {"type": "object", "fields": {"lockDoor": {"type": "ref", "ref": "@structures", "help": "The structure's id.", "required": true}}}
+        },
+        {
+          "name": "unlockDoor",
+          "key": "unlockDoor",
+          "help": "Unlocks a door or chest.",
+          "summary": "{unlockDoor}",
+          "node": {"type": "object", "fields": {"unlockDoor": {"type": "ref", "ref": "@structures", "help": "The structure's id.", "required": true}}}
+        },
+        {
+          "name": "openChest",
+          "key": "openChest",
+          "help": "Opens a chest.",
+          "summary": "{openChest}[ for {by}]",
+          "node": {
+            "type": "object",
+            "fields": {
+              "openChest": {"type": "ref", "ref": "@structures", "help": "The chest's id.", "required": true},
+              "by": {"type": "ref", "ref": "@storyUnits", "help": "The unit that gets the contents."}
+            }
+          }
+        },
+        {
+          "name": "setBehaviour",
+          "key": "setBehaviour",
+          "help": "Gives computer units a new behaviour.",
+          "summary": "{units}: {setBehaviour}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "setBehaviour": {"use": "_map#behaviour", "help": "The behaviour.", "required": true},
+              "units": {"use": "_map#filter", "help": "Which units ({} for every unit).", "required": true}
+            }
+          }
+        },
+        {
+          "name": "wakeGroup",
+          "key": "wakeGroup",
+          "help": "Wakes every waiting unit of a group.",
+          "summary": "{wakeGroup}",
+          "node": {"type": "object", "fields": {"wakeGroup": {"type": "string", "help": "The group name of units' behaviour.", "required": true}}}
+        },
+        {
+          "name": "addCondition",
+          "key": "addCondition",
+          "help": "Gives a status condition to matching units.",
+          "summary": "{addCondition} to {to}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "addCondition": {"type": "ref", "ref": "data/conditions.json", "help": "The condition.", "required": true},
+              "to": {"use": "_map#filter", "help": "Which units.", "required": true},
+              "turns": {"type": "int", "help": "How many turns (counted conditions only).", "min": 1, "max": 99}
+            }
+          }
+        },
+        {
+          "name": "removeCondition",
+          "key": "removeCondition",
+          "help": "Takes a status condition (or all) off matching units.",
+          "summary": "{removeCondition} from {from}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "removeCondition": {"type": "ref", "ref": "data/conditions.json", "help": "The condition, or all.", "values": ["all"], "required": true},
+              "from": {"use": "_map#filter", "help": "Which units.", "required": true}
+            }
+          }
+        },
+        {
+          "name": "promote",
+          "key": "promote",
+          "help": "Promotes a unit.",
+          "summary": "{promote}[ to {to}]",
+          "node": {
+            "type": "object",
+            "fields": {
+              "promote": {"type": "ref", "ref": "@storyUnits", "help": "The unit.", "required": true},
+              "to": {"type": "ref", "ref": "data/units.json", "help": "The class (needed when it has several promotions)."}
+            }
+          }
+        },
+        {
+          "name": "teachSkill",
+          "key": "teachSkill",
+          "help": "Matching units learn a skill.",
+          "summary": "{teachSkill} to {to}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "teachSkill": {"type": "ref", "ref": "data/skills.json", "help": "The skill.", "required": true},
+              "to": {"use": "_map#filter", "help": "Which units.", "required": true}
+            }
+          }
+        },
+        {
+          "name": "forgetSkill",
+          "key": "forgetSkill",
+          "help": "Matching units forget a skill.",
+          "summary": "{forgetSkill} from {from}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "forgetSkill": {"type": "ref", "ref": "data/skills.json", "help": "The skill.", "required": true},
+              "from": {"use": "_map#filter", "help": "Which units.", "required": true}
+            }
+          }
+        },
+        {
+          "name": "addSupport",
+          "key": "addSupport",
+          "help": "Adds support points to a pair of characters.",
+          "summary": "{addSupport} by {by}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "addSupport": {
+                "type": "list",
+                "of": {"type": "ref", "ref": "data/characters.json", "help": "A character."},
+                "help": "The two characters of the pair.",
+                "length": 2,
+                "required": true
+              },
+              "by": {"type": "int", "help": "Points (may be negative).", "min": -1000000, "max": 1000000, "required": true}
+            }
+          }
+        },
+        {
+          "name": "choice",
+          "key": "choice",
+          "help": "Asks a question; each answer runs its own commands.",
+          "summary": "\"{choice}\"",
+          "node": {
+            "type": "object",
+            "fields": {
+              "choice": {"type": "string", "help": "The question.", "required": true},
+              "speaker": {"type": "ref", "ref": "@storyUnits", "help": "A unit of the map.", "excludes": ["speakerName"]},
+              "speakerName": {"type": "string", "help": "A name shown instead, for someone who is no unit.", "excludes": ["speaker"]},
+              "portrait": {"type": "string", "help": "Portrait id (text for the player to look up)."},
+              "store": {"type": "ref", "ref": "game.json#variables", "help": "A variable that remembers the answer's number."},
+              "answers": {
+                "type": "list",
+                "of": {
+                  "type": "object",
+                  "fields": {
+                    "text": {"type": "string", "help": "The words of the answer (different from the others).", "required": true},
+                    "if": {"type": "list", "of": {"use": "condition", "help": "One condition."}, "help": "The answer is offered only when all hold."},
+                    "do": {"use": "commands", "help": "What happens when it is chosen."}
+                  }
+                },
+                "help": "Two to four answers.",
+                "collapsed": true,
+                "required": true
+              }
+            }
+          }
+        },
+        {
+          "name": "fight",
+          "key": "fight",
+          "help": "Two units fight, with written strikes or real rolls.",
+          "summary": "{fight.attacker} vs {fight.defender}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "fight": {
+                "type": "object",
+                "fields": {
+                  "attacker": {"type": "ref", "ref": "@storyUnits", "help": "The unit that attacks.", "required": true},
+                  "defender": {"type": "ref", "ref": "@storyUnits", "help": "The unit that is attacked.", "required": true},
+                  "strikes": {
+                    "type": "list",
+                    "of": {
+                      "type": "object",
+                      "fields": {
+                        "by": {"type": "enum", "values": ["attacker", "defender"], "help": "Who strikes.", "required": true},
+                        "result": {"type": "enum", "values": ["hit", "miss", "crit"], "help": "What happens.", "required": true},
+                        "damage": {"type": "int", "help": "Damage (not for a miss).", "min": 0, "max": 9999}
+                      }
+                    },
+                    "help": "Written strikes (1 to 24); without them the fight is rolled."
+                  },
+                  "weapon": {
+                    "type": "object",
+                    "block": true,
+                    "help": "Weapons the fighters use (default: the equipped ones).",
+                    "fields": {
+                      "attacker": {"type": "ref", "ref": "data/weapons.json", "help": "The attacker's weapon."},
+                      "defender": {"type": "ref", "ref": "data/weapons.json", "help": "The defender's weapon."}
+                    }
+                  },
+                  "lethal": {"type": "bool", "help": "The fight may kill."},
+                  "xp": {"type": "bool", "help": "The fighters earn experience."},
+                  "wear": {"type": "bool", "help": "The weapons wear."}
+                },
+                "help": "The two fighters and how the fight goes.",
+                "required": true
+              }
+            }
+          }
+        },
+        {
+          "name": "storeItems",
+          "key": "storeItems",
+          "help": "Sends matching units' items to the side's shared storage.",
+          "summary": "{storeItems}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "storeItems": {"use": "_map#filter", "help": "Which units.", "required": true},
+              "keep": {"type": "list", "of": {"type": "ref", "ref": "data/items.json", "help": "An item."}, "help": "Items they keep."}
+            }
+          }
+        },
+        {
+          "name": "showUnit",
+          "key": "showUnit",
+          "help": "Brings back a unit hidden by removeUnit.",
+          "summary": "{showUnit} at {x},{y}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "showUnit": {"type": "ref", "ref": "@storyUnits", "help": "The unit.", "required": true},
+              "x": {"type": "int", "help": "Column.", "min": 0, "required": true},
+              "y": {"type": "int", "help": "Row.", "min": 0, "required": true}
+            }
+          }
+        },
+        {
+          "name": "background",
+          "key": "background",
+          "help": "Shows a background (or the map again).",
+          "summary": "{background}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "background": {
+                "type": "variant",
+                "help": "A background, or null for the map.",
+                "variants": [
+                  {
+                    "name": "background",
+                    "kind": "string",
+                    "node": {"type": "ref", "ref": "keys:data/graphics.json#backgrounds", "help": "A background of data/graphics.json."}
+                  },
+                  {"name": "back to the map", "value": null}
+                ],
+                "required": true
+              },
+              "transition": {"type": "enum", "values": ["cut", "fade"], "help": "cut or fade (default cut).", "default": "cut"},
+              "ms": {"type": "int", "help": "How long it takes, in milliseconds.", "min": 0, "max": 10000}
+            }
+          }
+        },
+        {
+          "name": "clearStage",
+          "key": "clearStage",
+          "help": "Every speaker leaves the stage.",
+          "summary": "clear the stage",
+          "node": {
+            "type": "object",
+            "fields": {
+              "clearStage": {"type": "bool", "help": "Must be true.", "required": true},
+              "transition": {"type": "enum", "values": ["cut", "fade"], "help": "cut: at once; fade: with a fade."},
+              "ms": {"type": "int", "help": "How long it takes, in milliseconds.", "min": 0, "max": 10000}
+            }
+          }
+        },
+        {
+          "name": "leave",
+          "key": "leave",
+          "help": "A speaker leaves the stage.",
+          "summary": "{leave} leaves",
+          "node": {
+            "type": "object",
+            "fields": {
+              "leave": {"type": "string", "help": "The speaker (the id or name a say line used).", "required": true},
+              "transition": {"type": "enum", "values": ["cut", "fade"], "help": "cut: at once; fade: with a fade."},
+              "ms": {"type": "int", "help": "How long it takes, in milliseconds.", "min": 0, "max": 10000}
+            }
+          }
+        },
+        {
+          "name": "enter",
+          "key": "enter",
+          "help": "A speaker comes on stage.",
+          "summary": "{enter} enters {position}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "enter": {"type": "string", "help": "The speaker (the id or name a say line uses).", "required": true},
+              "position": {
+                "type": "enum",
+                "values": ["farLeft", "left", "midLeft", "center", "midRight", "right", "farRight"],
+                "help": "Where.",
+                "required": true
+              },
+              "portrait": {"type": "string", "help": "Portrait id."},
+              "transition": {"type": "enum", "values": ["cut", "fade"], "help": "cut: at once; fade: with a fade."},
+              "ms": {"type": "int", "help": "How long it takes, in milliseconds.", "min": 0, "max": 10000}
+            }
+          }
+        },
+        {
+          "name": "move",
+          "key": "move",
+          "help": "A speaker moves on the stage.",
+          "summary": "{move} to {position}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "move": {"type": "string", "help": "The speaker.", "required": true},
+              "position": {
+                "type": "enum",
+                "values": ["farLeft", "left", "midLeft", "center", "midRight", "right", "farRight"],
+                "help": "Where to.",
+                "required": true
+              },
+              "transition": {"type": "enum", "values": ["cut", "fade"], "help": "fade: slides (default); cut: jumps.", "default": "fade"},
+              "ms": {"type": "int", "help": "How long it takes, in milliseconds.", "min": 0, "max": 10000}
+            }
+          }
+        },
+        {
+          "name": "shake",
+          "key": "shake",
+          "help": "Shakes the screen.",
+          "summary": "shake {shake.ms} ms",
+          "node": {
+            "type": "object",
+            "fields": {
+              "shake": {
+                "type": "object",
+                "fields": {
+                  "ms": {"type": "int", "help": "How long, in milliseconds.", "min": 0, "max": 10000, "default": 400},
+                  "strength": {"type": "int", "help": "How hard, in pixels.", "min": 1, "max": 32}
+                },
+                "help": "How long and how hard.",
+                "required": true
+              }
+            }
+          }
+        },
+        {
+          "name": "weather",
+          "key": "weather",
+          "help": "Rain, snow or clear sky over the map.",
+          "summary": "{weather}",
+          "node": {"type": "object", "fields": {"weather": {"type": "enum", "values": ["rain", "snow", "none"], "help": "The weather.", "required": true}}}
+        },
+        {
+          "name": "wait",
+          "key": "wait",
+          "help": "Pauses the story.",
+          "summary": "{wait} ms",
+          "node": {"type": "object", "fields": {"wait": {"type": "int", "help": "Milliseconds.", "min": 0, "max": 60000, "required": true}}},
+          "unless": ["focus", "moveUnit"]
+        },
+        {
+          "name": "fade",
+          "key": "fade",
+          "help": "Fades the screen out or in.",
+          "summary": "fade {fade}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "fade": {"type": "enum", "values": ["out", "in"], "help": "out: to a colour; in: back.", "required": true},
+              "ms": {"type": "int", "help": "How long it takes, in milliseconds.", "min": 0, "max": 10000},
+              "color": {"type": "string", "help": "A colour like #000000."}
+            }
+          },
+          "unless": ["playMusic", "stopMusic", "playSound"]
+        }
+      ]
+    },
+    "commands": {"type": "list", "collapsed": true, "of": {"use": "command", "help": "One command."}, "help": "Commands, run in order."},
+    "event": {
+      "type": "object",
+      "help": "One event: a trigger, optional conditions and the commands to run.",
+      "fields": {
+        "id": {"type": "string", "help": "Unique id in the map (letters, digits, _ and -).", "required": true},
+        "when": {"use": "trigger", "help": "What sets the event off.", "required": true},
+        "if": {"use": "conditions", "help": "Conditions judged when the event is about to run: all must hold."},
+        "repeat": {"type": "bool", "help": "Runs every time it fires (default: once)."},
+        "do": {"use": "commands", "help": "The commands, run in order.", "required": true}
+      }
+    }
+  }
+}

@@ -1,0 +1,186 @@
+{
+  "defs": {
+    "rect": {
+      "type": "object", "help": "A rectangle of squares.",
+      "fields": {
+        "x": { "type": "int", "required": true, "min": 0, "help": "Column of the top-left square." },
+        "y": { "type": "int", "required": true, "min": 0, "help": "Row of the top-left square." },
+        "w": { "type": "int", "min": 1, "default": 1, "help": "Width in squares." },
+        "h": { "type": "int", "min": 1, "default": 1, "help": "Height in squares." } }
+    },
+    "square": {
+      "type": "object", "help": "One square.",
+      "fields": {
+        "x": { "type": "int", "required": true, "min": 0, "help": "Column." },
+        "y": { "type": "int", "required": true, "min": 0, "help": "Row." } }
+    },
+    "weaponRanks": {
+      "type": "map", "free": true,
+      "of": { "type": "variant", "variants": [
+        { "name": "rank id", "kind": "string", "node": { "type": "ref", "ref": "data/ranks.json#ranks" } },
+        { "name": "weapon experience", "kind": "number", "node": { "type": "int", "min": 0 } } ] }
+    },
+    "behaviour": {
+      "type": "variant", "help": "What a computer unit does until the story changes it (docs/AI.md).",
+      "variants": [
+        { "name": "mode word", "kind": "string", "node": { "type": "enum", "values": ["advance", "hold", "guard"], "help": "advance: walk at the enemy; hold: stand still, hit what comes near; guard: sleep until an enemy is in reach." } },
+        { "name": "behaviour block", "kind": "object", "sample": { "mode": "advance" }, "node": { "type": "object", "fields": {
+          "mode": { "type": "enum", "values": ["advance", "hold", "guard", "guardArea", "seek", "patrol"], "default": "advance", "help": "advance, hold, guard (sleeps until woken), guardArea (wakes by an area or distance), seek (heads for a target), patrol (walks a route)." },
+          "wake": { "type": "enum", "values": ["once", "react"], "when": { "mode": ["guard"] }, "help": "once: wakes for good; react: only hits what it can reach this turn." },
+          "group": { "type": "string", "when": { "mode": ["guard", "guardArea"] }, "help": "Group name (letters, digits, _ and -): a wakeGroup command or a woken member wakes the whole group." },
+          "fromTurn": { "type": "int", "min": 1, "max": 99, "help": "The behaviour starts in this round; before it the unit holds." },
+          "area": { "use": "rect", "when": { "mode": ["guardArea"] }, "help": "Wakes when an enemy enters this rectangle." },
+          "within": { "type": "int", "min": 1, "max": 99, "when": { "mode": ["guardArea"] }, "help": "Wakes when an enemy is this many squares away (an area or this is needed)." },
+          "measure": { "type": "enum", "values": ["steps", "moveCost"], "when": { "mode": ["guardArea"] }, "help": "How within is measured: squares (default) or what the walk costs; needs within." },
+          "unit": { "type": "ref", "ref": ["@storyUnits", "data/characters.json"], "when": { "mode": ["seek"] }, "excludes": ["place", "x", "y"], "help": "Seek: head for this unit." },
+          "place": { "type": "ref", "ref": "@structures", "when": { "mode": ["seek"] }, "excludes": ["unit", "x", "y"], "help": "Seek: head for this structure of the map (it needs an id)." },
+          "x": { "type": "int", "min": 0, "when": { "mode": ["seek"] }, "excludes": ["unit", "place"], "help": "Seek: head for this square (column; needs y)." },
+          "y": { "type": "int", "min": 0, "when": { "mode": ["seek"] }, "excludes": ["unit", "place"], "help": "Seek: head for this square (row; needs x)." },
+          "prefer": { "type": "variant", "help": "Whom it attacks first.", "variants": [
+            { "name": "weakest", "value": "weakest" },
+            { "name": "nearest", "value": "nearest" },
+            { "name": "unit", "key": "unit", "node": { "type": "object", "fields": {
+              "unit": { "type": "ref", "ref": ["@storyUnits", "data/characters.json"], "required": true, "help": "A unit id of the map." } } } },
+            { "name": "unit type", "key": "type", "node": { "type": "object", "fields": {
+              "type": { "type": "ref", "ref": "data/units.json", "required": true, "help": "A unit type." } } } },
+            { "name": "tag", "key": "tag", "node": { "type": "object", "fields": {
+              "tag": { "type": "ref", "ref": "tags:data/units.json", "required": true, "help": "A unit tag." } } } } ] },
+          "order": { "type": "int", "min": -100000, "max": 100000, "help": "Acts earlier with a lower number (scripted-style computer players)." },
+          "weights": { "type": "ref", "ref": "keys:game.json#rules.ai.weights", "help": "A named weight set of game.json rules.ai.weights." },
+          "caution": { "type": "enum", "values": ["normal", "none"], "default": "normal", "help": "none: it ignores danger when it walks at the enemy." },
+          "retreat": { "type": "object", "block": true, "help": "Falls back when hurt.", "fields": {
+            "below": { "type": "int", "required": true, "min": 1, "max": 99, "help": "Hit point percent that sends it back." },
+            "until": { "type": "int", "min": 2, "max": 100, "default": 100, "help": "Hit point percent at which it returns (more than below)." },
+            "to": { "type": "object", "block": true, "help": "Where it falls back to.", "fields": {
+              "terrain": { "type": "list", "required": true, "min": 1, "of": { "type": "ref", "ref": "data/terrain.json" }, "help": "Terrain it heads for (at least one)." } } },
+            "useItems": { "type": "bool", "default": true, "help": "May use healing items while retreating." } } },
+          "idleTurns": { "type": "int", "min": 1, "max": 99, "help": "Rounds of standing still before it moves." },
+          "route": { "type": "list", "when": { "mode": ["patrol"] }, "of": { "use": "square" }, "help": "Patrol: the squares it walks, 2 to 32; the last leads back to the first." },
+          "ignores": { "type": "list", "of": { "type": "ref", "ref": ["@storyUnits", "data/characters.json"] }, "help": "Units it never attacks (at most 32)." },
+          "heals": { "type": "enum", "values": ["anyone", "retreating"], "default": "anyone", "help": "retreating: its healing staves are used only on allies that are retreating." } } } } ]
+    },
+    "unit": {
+      "type": "object", "help": "A unit as an addUnit command adds it; a map's units list takes one more key (facing).",
+      "fields": {
+        "id": { "type": "string", "help": "Id events name the unit by (letters, digits, _ and -). A unit with a character is known by the character's id: leave this out." },
+        "character": { "type": "ref", "ref": "data/characters.json", "help": "A character of data/characters.json; type, name and level default to the character's." },
+        "type": { "type": "ref", "ref": "data/units.json", "help": "Unit type (not needed with a character, or with a class job that has a unit type)." },
+        "side": { "type": "ref", "ref": "@sides", "required": true, "help": "Id of one of the map's sides." },
+        "x": { "type": "int", "required": true, "min": 0, "help": "Column." },
+        "y": { "type": "int", "required": true, "min": 0, "help": "Row." },
+        "leader": { "type": "bool", "help": "The side's leader (leaderDead defeat)." },
+        "name": { "type": "string", "help": "Display name (a character's own by default)." },
+        "level": { "type": "int", "min": 1, "help": "Level of the unit (at most the game's maximum)." },
+        "items": { "use": "_common#itemGrants", "help": "Items it carries (replaces its type's or character's)." },
+        "skills": { "type": "list", "of": { "type": "ref", "ref": "data/skills.json" }, "help": "Skills added to those of its type and character." },
+        "stats": { "type": "map", "ref": "game.json#stats", "of": { "type": "int" }, "help": "Exact stats instead of the type's (a stat written here is never shifted by difficulty)." },
+        "xp": { "type": "int", "min": 0, "help": "Experience it starts with (needs a rank table: rules.progression.levels)." },
+        "merit": { "type": "int", "min": 0, "help": "Merit it starts with (needs rules.ranks)." },
+        "ranks": { "use": "weaponRanks", "help": "Weapon rank per weapon group it starts with (needs data/ranks.json)." },
+        "job": { "type": "ref", "ref": "data/jobs.json", "help": "The unit's job (needs data/jobs.json); jobs, learned and equipped belong to it." },
+        "jobs": { "type": "map", "ref": "data/jobs.json", "of": { "type": "object", "fields": {
+          "jp": { "type": "int", "min": 0, "help": "Job points earned in it." },
+          "learned": { "type": "list", "of": { "type": "ref", "ref": ["data/skills.json", "data/abilities.json"] }, "help": "What was learned in it (costs nothing here)." } } }, "help": "Progress in jobs (needs job)." },
+        "learned": { "type": "list", "of": { "type": "ref", "ref": ["data/skills.json", "data/abilities.json"] }, "help": "What the unit has learned in its current job (needs job)." },
+        "equipped": { "type": "list", "of": { "type": "ref", "ref": ["data/skills.json", "data/abilities.json"] }, "help": "Learned skills and abilities it has equipped (needs job)." },
+        "goesFor": { "type": "list", "min": 1, "of": { "type": "enum", "values": ["chests", "villages", "doors", "steal", "walls", "weapons"] }, "help": "What a computer unit walks to (computer sides only)." },
+        "behaviour": { "use": "behaviour", "help": "What a computer unit does (computer sides only; docs/AI.md)." },
+        "difficulty": { "type": "list", "min": 1, "of": { "type": "ref", "ref": "game.json#difficulties.list" }, "help": "Only on these difficulties (computer sides only; leave out for all)." },
+        "difficultyShift": { "type": "bool", "help": "The difficulty setting changes this unit." } }
+    },
+    "storageGrants": {
+      "type": "list",
+      "of": { "type": "variant", "variants": [
+        { "name": "item id", "kind": "string", "node": { "type": "ref", "ref": "data/items.json" } },
+        { "name": "item with uses", "key": "item", "node": { "type": "object", "fields": {
+          "item": { "type": "ref", "ref": "data/items.json", "required": true, "help": "The item." },
+          "uses": { "type": "int", "min": 1, "help": "Uses left (at most the item's own; not for unlimited items)." } } } } ] }
+    },
+    "winRule": {
+      "type": "variant", "help": "One way to win.",
+      "variants": [
+        { "name": "defeated", "key": "defeated", "node": { "type": "object", "fields": {
+          "defeated": { "use": "filter", "required": true, "help": "Win when every matching unit is defeated." } } } },
+        { "name": "reach", "key": "reach", "node": { "type": "object", "fields": {
+          "reach": { "use": "rect", "required": true, "help": "Win when a unit ends a move inside this area." },
+          "by": { "use": "filter", "help": "Only units that match (default: any of the person's units)." } } } },
+        { "name": "round", "key": "round", "node": { "type": "object", "fields": {
+          "round": { "type": "int", "required": true, "min": 1, "max": 100000, "help": "Win when this round is reached." } } } },
+        { "name": "survive", "key": "survive", "node": { "type": "object", "fields": {
+          "survive": { "type": "int", "required": true, "min": 1, "max": 100000, "help": "Win by surviving this many rounds." } } } } ]
+    },
+    "loseRule": {
+      "type": "variant", "help": "One way to lose.",
+      "variants": [
+        { "name": "defeated", "key": "defeated", "node": { "type": "object", "fields": {
+          "defeated": { "use": "filter", "required": true, "help": "Lose when every matching unit is defeated." } } } },
+        { "name": "reach", "key": "reach", "node": { "type": "object", "fields": {
+          "reach": { "use": "rect", "required": true, "help": "Lose when a unit ends a move inside this area." },
+          "by": { "use": "filter", "help": "Only units that match." } } } },
+        { "name": "round", "key": "round", "node": { "type": "object", "fields": {
+          "round": { "type": "int", "required": true, "min": 1, "max": 100000, "help": "Lose when this round is reached." } } } } ]
+    },
+    "objectives": {
+      "type": "object", "help": "What the player is told to do, and the rules that decide it (docs/EVENTS.md Objectives). Also what an objective command writes.",
+      "fields": {
+        "text": { "type": "string", "help": "The line shown for the objective." },
+        "win": { "type": "list", "of": { "use": "winRule" }, "help": "Ways to win: any one is enough." },
+        "lose": { "type": "list", "of": { "use": "loseRule" }, "help": "Ways to lose: any one is enough." } }
+    },
+    "filter": {
+      "type": "variant", "help": "Which units: one by id, or all of a side / team / type / tag, or {} for every unit.",
+      "variants": [
+        { "name": "unit id", "kind": "string", "node": { "type": "ref", "ref": "@storyUnits" } },
+        { "name": "any unit", "value": {} },
+        { "name": "unit", "key": "unit", "node": { "type": "object", "fields": {
+          "unit": { "type": "ref", "ref": "@storyUnits", "required": true, "help": "The unit with this id." } } } },
+        { "name": "side", "key": "side", "node": { "type": "object", "fields": {
+          "side": { "type": "ref", "ref": "@sides", "required": true, "help": "Every unit of this side." } } } },
+        { "name": "team", "key": "team", "node": { "type": "object", "fields": {
+          "team": { "type": "ref", "ref": "@teams", "required": true, "help": "Every unit of this team." } } } },
+        { "name": "unit type", "key": "type", "node": { "type": "object", "fields": {
+          "type": { "type": "ref", "ref": "data/units.json", "required": true, "help": "Every unit of this type." } } } },
+        { "name": "tag", "key": "tag", "node": { "type": "object", "fields": {
+          "tag": { "type": "ref", "ref": "tags:data/units.json", "required": true, "help": "Every unit whose type has this tag." } } } } ]
+    },
+    "prep": {
+      "type": "object", "block": true, "help": "The preparation screen before the battle (docs/EVENTS.md Preparation).",
+      "fields": {
+        "side": { "type": "ref", "ref": "@sides", "help": "The human side the deployed characters join (default: the first human side)." },
+        "slots": { "type": "list", "required": true, "min": 1, "of": { "use": "square" }, "help": "The squares characters can be deployed on (1 to 64)." },
+        "limit": { "type": "int", "min": 1, "help": "How many may be deployed (at most the number of slots; default all)." },
+        "required": { "type": "list", "help": "Characters that must be deployed.", "of": { "type": "variant", "variants": [
+          { "name": "character id", "kind": "string", "node": { "type": "ref", "ref": "data/characters.json" } },
+          { "name": "character in a slot", "key": "character", "node": { "type": "object", "fields": {
+            "character": { "type": "ref", "ref": "data/characters.json", "required": true, "help": "The character." },
+            "slot": { "type": "int", "min": 1, "help": "Which slot it must stand on (numbered from 1)." } } } } ] } },
+        "forbidden": { "type": "list", "of": { "type": "ref", "ref": "data/characters.json" }, "help": "Characters that cannot be deployed here." },
+        "fixed": { "type": "list", "of": { "type": "ref", "ref": "@storyUnits" }, "help": "Units of the map that are always in (placed where the map puts them)." },
+        "shop": { "use": "shop", "block": true, "excludes": ["shops"], "help": "One preparation shop (or use shops for several)." },
+        "shops": { "type": "list", "min": 1, "excludes": ["shop"], "of": { "use": "shop", "moreFields": {
+          "id": { "type": "string", "required": true, "help": "Shop id (letters, digits, _ and -; unique)." },
+          "name": { "type": "string", "help": "Name in the menu (unique)." } } }, "help": "Several named shops (1 to 8)." } }
+    },
+    "shop": {
+      "type": "object", "help": "A shop.",
+      "fields": {
+        "sells": { "type": "list", "required": true, "min": 1, "of": { "type": "ref", "ref": "data/items.json" }, "help": "Items it sells (each needs a price)." },
+        "buys": { "type": "bool", "help": "Also buys items." },
+        "music": { "type": "ref", "ref": "keys:data/audio.json#music", "help": "Music track of data/audio.json." } }
+    },
+    "changes": {
+      "type": "map", "free": true, "help": "Named map changes that applyChange / revertChange commands use (docs/EVENTS.md Changing the map).",
+      "of": { "type": "object", "fields": {
+        "cells": { "type": "list", "of": { "type": "object", "fields": {
+          "x": { "type": "int", "required": true, "min": 0, "help": "Column." },
+          "y": { "type": "int", "required": true, "min": 0, "help": "Row." },
+          "terrain": { "type": "ref", "ref": "data/terrain.json", "required": true, "help": "The terrain the square gets." },
+          "tile": { "type": "int", "min": -1, "help": "Tile number of the map's tile layer (-1 = no tile; needs tileLayer)." },
+          "keepTile": { "type": "bool", "help": "The square keeps its tile." } } }, "help": "Squares that get another terrain." },
+        "structures": { "type": "list", "of": { "type": "object", "fields": {
+          "id": { "type": "ref", "ref": "@structures", "required": true, "help": "The id of a structure the map placed." },
+          "kind": { "type": "ref", "ref": "data/structures.json", "required": true, "help": "The structure kind it turns into (same size)." } } }, "help": "Structures that turn into another kind." },
+        "keepTile": { "type": "bool", "help": "Squares whose terrain changes keep their tile." } } }
+    }
+  }
+}
