@@ -35,6 +35,7 @@ Keys the loader itself does not read but something else does are accepted (and n
 | `editor` | root of `game.json` | the web editor, which keeps the formula presets of its text boxes there (`editor/web/src/model/formulas.ts`) |
 | `sounds` | rows of `weapons.json`, `units.json`, `items.json`, entries of `moveTypes` | the player's audio loader (docs/SOUND.md) |
 | `music`, `playerTurnMusic`, `enemyTurnMusic`, `prepMusic`, `phaseMusic`, `fewEnemies` | root of a map | the player's audio loader (docs/SOUND.md) |
+| `layout` | `grid` of a map | nobody: it belongs to `game.json` `grid`; a hexagon map that repeats it is tolerated and ignored |
 | `refill` | entries of `resources` | the loader of resource refills (docs/ECONOMY.md) |
 
 `//` comments in the files are comments of the JSON reader, not keys. Numbers that mean nothing are refused with the range in the message:
