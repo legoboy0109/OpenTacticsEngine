@@ -27,6 +27,7 @@ struct LookLayer {
   std::string enemyRanges;      // "both", "attack" or "off"; "" = unset (movement + attack, unless the game switched the display off)
   int musicVolume = -1;  // 0..10; -1 = unset
   int soundVolume = -1;  // 0..10; -1 = unset
+  int integerScale = -1; // 1/0: whole-number scaling on / off (docs/GRAPHICS.md); -1 = unset
   int safeArea = 0;      // percent of a TV screen the picture may use (original Xbox only, docs/XBOX_OG.md); 0 = unset
 };
 
@@ -56,6 +57,7 @@ struct EffectiveLook {
   int enemyRanges = 1;       // the enemy-range display: 0 off, 1 movement + attack, 2 attack only (docs/SRPG.md "Enemy ranges")
   int musicVolume = 7;  // 0..10 (docs/SOUND.md "Options")
   int soundVolume = 7;
+  bool integerScale = true;  // the picture is shown at whole multiples of the game's size (docs/GRAPHICS.md "Whole-number scaling")
   int safeArea = 0;  // 0 = the platform's default for the video mode (only the original Xbox backend uses it)
 };
 

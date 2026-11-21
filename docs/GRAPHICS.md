@@ -458,7 +458,7 @@ defence, sight and everything else; the rules core keeps no tile in its state, b
 - **Standing terrain is not drawn on a square that has a tile** (the 3D views' `stand` pictures and models): the tile already shows the trees or the
   peak. Squares without a tile keep their standing parts. The terrain's `stand` stays defined; it simply does not apply there.
 - **Fallback**: a square whose tile cannot be drawn (its sheet failed to load) shows the terrain's look as if it had no tile.
-- **Seams at fractional output scales**: when the window or canvas is not a whole multiple of the view (a resized window, a browser at 125%, an
+- **Seams at fractional output scales** (only with Whole-number scaling off; see the next entry): when the window or canvas is not a whole multiple of the view (a resized window, a browser at 125%, an
   embedded player), a square's edge can fall exactly on a device pixel centre (1.5x does it on every second square), and the nearest-filter lookup
   there read the NEIGHBOURING cell of the sheet; on a sparse sheet that is transparent and the dark behind showed as a thin line along the squares.
   The SDL backends (`sdl3`, so the web player too, and `sdl2` on desktop windows) therefore put both edges of every 2D rectangle on whole device
@@ -479,6 +479,21 @@ defence, sight and everything else; the rules core keeps no tile in its state, b
   1178 px wide frame has a canvas `width` of 1472 while SDL reports 1473 window pixels (1178 x 1.25 = 1472.5, SDL rounds up, the canvas
   attribute is floored), so the renderer's idea of the output (scale 3.06875) is one pixel wider than the real framebuffer. Nothing visible
   in 60 frames at 1.25 and 1.5; whole scales and dpr 1 are exact.
+- **Whole-number scaling** (player option, default **on**): the way to have no seams at all. The picture is only ever shown at 1x, 2x, 3x... of the
+  game's view (`view.width` x `view.height`), centred, with the rest of the window left as a plain border in the clear colour. The rectangle comes from
+  `wholeScaleRect()` in `platform/common/whole_scale.h` (unit-tested in `tests/test_whole_scale.cpp`): k = the smaller of output width / view width and
+  output height / view height, rounded down; the offset is half the leftover, rounded down (an odd leftover pixel is on the right / bottom). When the
+  output is smaller than 1x in either direction, k is 0 and the picture is fitted to the window as before, so nothing is cut off. A display that is not a
+  whole multiple (480x270 on 2560x1440 is 5.33x) shows 5x, 2400x1350, with a border; that is intended. **Off** is exactly the old behaviour (fit to the
+  window at any size, with the snapping above keeping the seams away). Stored as `integerScale` (a true / false in `settings.json`, global or per game),
+  Options row **Whole-number scaling**, flag `--integer-scale on|off` (the embedded web player runs with `--no-settings`, so it takes the default).
+  SDL3 (desktop and web) uses `SDL_LOGICAL_PRESENTATION_INTEGER_SCALE` while the output holds at least 1x (SDL's own mode would clamp to 1x and cut the
+  picture off, so below 1x the backend switches back to the letterbox itself, every frame, as the output changes); SDL2 does the same with
+  `SDL_RenderSetIntegerScale`. The pointer maps through the same presentation, so a click in the border lands outside the picture and does nothing
+  (as in a letterbox bar). The 3D layer's frame follows the real picture rectangle (`Renderer::displaySize`). Headless runs, `--scale N` screenshots and the
+  original Xbox's fixed screen are not touched. The editor's Play panel sizes its frame to a whole multiple of the view in device pixels
+  (docs/EDITOR_UI.md "Play"), so inside it the picture fills the frame at exactly k x. Tests: `tools/webtest/suites/intscale.mjs` (picture rectangle,
+  border, clicks, `off`), and the `tiles` / `scroll` suites at fractional canvas sizes with the setting on (seam-free by construction).
 - **Performance**: the 2D view and the 3D views batch tiles like terrain pictures (one textured quad or blit per visible square per frame); measured on a 60 x 40 map in the headless player (300 frames): 2D 0.68 s without the layer, 0.77 s with; isometric 0.56 s / 0.63 s; 3D isometric 0.76 s / 1.23 s and full 3D 0.87 s / 1.44 s with the software 3D drawer (the extra is the 2,400 tile quads a frame).
 
 In memory: `Graphics::tilesets` (`TilesetDef`: `sheet`, `cols`, `rows`, `anims`; `frame(tile, ms)`, `cell(tile)`: `engine/core/data/tileset.h`), the map's

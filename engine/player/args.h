@@ -13,6 +13,7 @@ struct Args {
   std::string font;       // --font: built-in id, "pixel", or a font file; empty = the game decides
   int fontSize = 0;       // --font-size, logical pixels; 0 = default
   int fontSmooth = -1;    // --font-smooth 0|1; -1 = default
+  int integerScale = -1;  // --integer-scale on|off: whole-number scaling for this run (docs/GRAPHICS.md); -1 = not given
   std::string style;      // --style ID: visual style (a game without it keeps its default)
   int uiScale = 0;        // --ui-scale PERCENT (multiplies the font size); 0 = default
   std::string settings;   // --settings PATH; empty = <user data folder>/settings.json

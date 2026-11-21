@@ -3,13 +3,14 @@
 #include <cmath>
 
 #include "core/base/log.h"
+#include "platform/common/whole_scale.h"
 
 namespace ote {
 
 // Atlas textures for the text engine. Handles index into tex_.
 class SdlRenderer::Target : public TextTarget {
  public:
-  Target(SDL_Renderer* r, int* lw, int* lh, const OutputMap* map) : r_(r), lw_(lw), lh_(lh), map_(map) {}
+  Target(SDL_Renderer* r, int* lw, const OutputMap* map) : r_(r), lw_(lw), map_(map) {}
   ~Target() override {
     for (SDL_Texture* t : tex_)
       if (t) SDL_DestroyTexture(t);
@@ -50,9 +51,12 @@ class SdlRenderer::Target : public TextTarget {
     SDL_FRect dst = {(float)dx, (float)dy, (float)dw, (float)dh};
     if (!outputSpace) snapRect(*map_, dx, dy, dw, dh, dst.x, dst.y, dst.w, dst.h);  // whole device pixels (pixel_snap.h)
     if (outputSpace) {  // real window pixels: step out of the logical presentation for this one draw
+      int plw = 0, plh = 0;
+      SDL_RendererLogicalPresentation mode = SDL_LOGICAL_PRESENTATION_LETTERBOX;  // (letterbox or integer scale: put back what was)
+      SDL_GetRenderLogicalPresentation(r_, &plw, &plh, &mode);
       SDL_SetRenderLogicalPresentation(r_, 0, 0, SDL_LOGICAL_PRESENTATION_DISABLED);
       SDL_RenderTexture(r_, t, &src, &dst);
-      SDL_SetRenderLogicalPresentation(r_, *lw_, *lh_, SDL_LOGICAL_PRESENTATION_LETTERBOX);
+      SDL_SetRenderLogicalPresentation(r_, plw, plh, mode);
     } else {
       SDL_RenderTexture(r_, t, &src, &dst);
     }
@@ -73,14 +77,13 @@ class SdlRenderer::Target : public TextTarget {
  private:
   SDL_Renderer* r_;
   int* lw_;
-  int* lh_;
   const OutputMap* map_;
   std::vector<SDL_Texture*> tex_;
 };
 
 SdlRenderer::SdlRenderer(SDL_Window* window, SDL_Renderer* renderer, int w, int h, bool headless, int headlessScale)
     : window_(window), r_(renderer), w_(w), h_(h), headless_(headless), headlessScale_(headlessScale) {
-  target_.reset(new Target(r_, &w_, &h_, &map_));
+  target_.reset(new Target(r_, &w_, &map_));
   text_.reset(new TextEngine(*target_));
 }
 
@@ -91,7 +94,31 @@ SdlRenderer::~SdlRenderer() {
   target_.reset();
 }
 
+// Whole-number scaling (platform/common/whole_scale.h): SDL's INTEGER_SCALE mode when the output holds at least 1x the logical
+// size, else the letterbox (SDL's own integer mode would clamp to 1x and cut the picture off). The mode follows the output size,
+// so this runs every frame (clear()) and whenever the setting or the logical size changes. Headless output is a whole multiple
+// of the logical size by construction: it stays on the letterbox, screenshots unchanged.
+void SdlRenderer::applyPresentation() {
+  SDL_RendererLogicalPresentation want = SDL_LOGICAL_PRESENTATION_LETTERBOX;
+  int ow = 0, oh = 0;
+  if (integerScale_ && !headless_ && SDL_GetRenderOutputSize(r_, &ow, &oh) && wholeScaleRect(w_, h_, ow, oh).k >= 1)
+    want = SDL_LOGICAL_PRESENTATION_INTEGER_SCALE;
+  if (want == mode_ && presentedW_ == w_ && presentedH_ == h_) return;
+  if (!SDL_SetRenderLogicalPresentation(r_, w_, h_, want)) OTE_WARN("logical presentation failed: %s", SDL_GetError());
+  mode_ = want;
+  presentedW_ = w_;
+  presentedH_ = h_;
+}
+
+void SdlRenderer::setIntegerScale(bool on) {
+  if (on == integerScale_) return;
+  integerScale_ = on;
+  applyPresentation();
+  refreshMap();
+}
+
 void SdlRenderer::refreshMap() {
+  applyPresentation();  // the output may have changed size since the last frame
   SDL_FRect rc;
   if (SDL_GetRenderLogicalPresentationRect(r_, &rc) && w_ > 0 && h_ > 0 && rc.w > 0 && rc.h > 0) {
     // SDL3 (SDL_render.c, UpdateLogicalPresentation): the scale is the rect's size over the logical size on each axis, and the
@@ -119,9 +146,7 @@ void SdlRenderer::setLogicalSize(int width, int height) {
     SDL_SetWindowSize(window_, w_ * headlessScale_, h_ * headlessScale_);
     SDL_SyncWindow(window_);
   }
-  if (!SDL_SetRenderLogicalPresentation(r_, w_, h_, SDL_LOGICAL_PRESENTATION_LETTERBOX))
-    OTE_WARN("logical presentation failed: %s", SDL_GetError());
-  refreshMap();
+  refreshMap();  // sets the presentation for the new logical size
   OTE_INFO("logical size %dx%d", w_, h_);
 }
 

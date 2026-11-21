@@ -13,6 +13,7 @@ import {
   type PlayMode, type TestLevel,
 } from './playOptions'
 import { T } from './text'
+import { useWholeFit, viewSize } from './wholeFit'
 
 export { PLAY_CAMPAIGN, playerUrl }
 
@@ -28,6 +29,9 @@ type Status = { state: 'loading' } | { state: 'ready' } | { state: 'error'; mess
 export function PlayPanel({ store, maps, initialMap, onClose }: Props) {
   const dialog = useRef<HTMLDialogElement>(null)
   const frame = useRef<HTMLIFrameElement>(null)
+  const stage = useRef<HTMLDivElement>(null)
+  const head = useRef<HTMLElement>(null)
+  const foot = useRef<HTMLElement>(null)
   const [map, setMap] = useState(initialMap)
   const [status, setStatus] = useState<Status>({ state: 'loading' })
   const [saveFailed, setSaveFailed] = useState(false)
@@ -36,6 +40,18 @@ export function PlayPanel({ store, maps, initialMap, onClose }: Props) {
   // Every style can be played. With one there is nothing to choose.
   const doc = useDoc()
   const playable = doc.game?.styles ?? []
+  // The dialog is sized from the window: the frame is the largest whole multiple of the game's view that fits it, in device pixels (wholeFit.ts).
+  const layout = useWholeFit({ dialog, head, stage, foot }, viewSize(doc.game?.view))
+  const fitCss = layout.frame
+  // The player sizes its canvas (css size x devicePixelRatio, rounded) on the frame's `resize` events, and in a frame whose size is a
+  // fraction of a css pixel the backing store was left one pixel short (1919 for 1920 at 1.75): ask it to measure again once the new
+  // size is laid out, and when it has started.
+  const [readyCount, setReadyCount] = useState(0)
+  useEffect(() => {
+    const poke = () => frame.current?.contentWindow?.dispatchEvent(new Event('resize'))
+    const timers = [0, 120, 400, 1000].map((ms) => window.setTimeout(() => requestAnimationFrame(poke), ms))
+    return () => timers.forEach((t) => window.clearTimeout(t))
+  }, [fitCss, readyCount])
   // A game with a campaign can also be played as its story, from the first chapter.
   const choices = [...(doc.campaign ? [{ value: PLAY_CAMPAIGN, label: T.campaignChoice }] : []), ...maps.map((m) => ({ value: m.id, label: m.name }))]
   const [storedStyle, setStoredStyle] = useStored<string>(`ote.playStyle.${store.id}`, '')
@@ -121,7 +137,7 @@ export function PlayPanel({ store, maps, initialMap, onClose }: Props) {
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
       if (e.source !== frame.current?.contentWindow || !e.data) return
-      if (e.data.type === 'ote-player-ready') { setStatus({ state: 'ready' }); frame.current?.focus(); emitSignal('played') }
+      if (e.data.type === 'ote-player-ready') { setStatus({ state: 'ready' }); setReadyCount((n) => n + 1); frame.current?.focus(); emitSignal('played') }
       else if (e.data.type === 'ote-player-testlevel') setAutoLevel(typeof e.data.level === 'number' && e.data.level > 0 ? e.data.level : null)
       else if (e.data.type === 'ote-player-error') setStatus({ state: 'error', message: String(e.data.message ?? 'Unknown error') })
     }
@@ -147,8 +163,8 @@ export function PlayPanel({ store, maps, initialMap, onClose }: Props) {
   }
 
   return (
-    <dialog ref={dialog} className="play-dialog" aria-label={T.panelTitle} onCancel={(e) => { e.preventDefault(); onClose() }}>
-      <header className="play-head">
+    <dialog ref={dialog} className="play-dialog" style={layout.dialog} aria-label={T.panelTitle} onCancel={(e) => { e.preventDefault(); onClose() }}>
+      <header className="play-head" ref={head}>
         <h2>{T.panelTitle}</h2>
         <label className="play-map">
           <span>{T.mapLabel}</span>
@@ -199,9 +215,9 @@ export function PlayPanel({ store, maps, initialMap, onClose }: Props) {
           <button type="button" className="btn" onClick={onClose}><Icon name="close" />{T.close}</button>
         </div>
       </header>
-      <div className="play-stage">
+      <div className="play-stage" ref={stage} style={layout.stage}>
         <iframe key={`${map}:${style}:${showAll}:${sound}:${difficulty}:${chapter ?? ''}:${testLevel.kind}${testLevel.kind === 'number' ? testLevel.n : ''}`} ref={frame}
-          src={playerUrl(store.id, map, { style: style !== playable[0]?.id ? style : undefined, showAll, muted: !sound, difficulty: difficulty || undefined, chapter, testLevel })} title="Game preview" className="play-frame"
+          src={playerUrl(store.id, map, { style: style !== playable[0]?.id ? style : undefined, showAll, muted: !sound, difficulty: difficulty || undefined, chapter, testLevel })} title="Game preview" className="play-frame" style={fitCss}
           allow="fullscreen" onLoad={() => frame.current?.focus()} />
         {status.state === 'loading' && <div className="play-overlay" role="status" data-testid="play-loading"><span className="spinner" aria-hidden="true" />{T.loading}</div>}
         {status.state === 'error' && (
@@ -213,7 +229,7 @@ export function PlayPanel({ store, maps, initialMap, onClose }: Props) {
         )}
         {saveFailed && <div className="play-banner" role="alert">{T.unsavedTitle}</div>}
       </div>
-      <footer className="play-foot">
+      <footer className="play-foot" ref={foot}>
         <p className="play-hint"><strong>{T.controlsTitle}:</strong> {T.controls.map(([what, keys]) => `${what}: ${keys}`).join(' · ')}</p>
       </footer>
     </dialog>

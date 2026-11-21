@@ -37,6 +37,7 @@ class SdlRenderer : public Renderer {
   void drawRect(int x, int y, int w, int h, Color c) override;
   void setLogicalSize(int width, int height) override;
   void setSafeArea(int percent) override;
+  void setIntegerScale(bool on) override;  // desktop windows only (the fixed screen of the original Xbox ignores it)
   bool setFont(const FontRequest& font) override { return text_->setFont(font); }
   void drawText(int x, int y, const char* text, Color c, int scale = 1) override {
     text_->drawText(x, y, text, c, scale);
@@ -69,6 +70,7 @@ class SdlRenderer : public Renderer {
   // One textured / filled rectangle of the logical frame, on whole device pixels where SDL can take fractional coordinates.
   void copyLogical(SDL_Texture* t, const SDL_Rect& src, const SDL_Rect& dst);
   void fillLogical(const SDL_Rect& rect);
+  void applyIntegerScale();  // desktop windows: SDL's integer-scale mode while the output holds at least 1x (whole_scale.h)
   void applyLogical();       // SDL_RenderSetLogicalSize, or the fixed-screen rectangle
   void enterOutputSpace();   // fixed screen only: draw in screen pixels until leaveOutputSpace()
   void leaveOutputSpace();
@@ -88,6 +90,8 @@ class SdlRenderer : public Renderer {
   ScreenFit fit_;
   int safePercent_ = 0;  // 0 = the default for the kind of display
   bool outputMode_ = false;
+  bool integerScale_ = true;   // setIntegerScale (platform/common/whole_scale.h)
+  bool integerActive_ = false; // SDL's integer scale is on right now (only while the output holds at least 1x the logical size)
   OutputMap map_;  // unknown (rectangles unchanged) with a fixed screen and before the first frame
 #ifdef OTE_NXDK
   // Chip scaling (docs/XBOX_OG.md "Picture"): the 2D layer is drawn at the game's own size times `canvasFactor_` (a whole number,

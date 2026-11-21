@@ -162,7 +162,8 @@ Where things live (`engine/player/`):
   (no game) the game level is skipped. An explicit font size wins, else the
   size belonging to the font in use; `uiScale` then multiplies it.
 - `app_look.cpp`: loads/saves settings (saved on every scene switch and on
-  exit) and applies the result through `Renderer::setFont` / `setLogicalSize`.
+  exit) and applies the result through `Renderer::setFont` / `setLogicalSize` / `setIntegerScale` (whole-number
+  scaling, docs/GRAPHICS.md).
 - `scene_home|game|options*.cpp`, `game_library.*` (discovery),
   `ui/chrome.*` and `ui/row_list.*` (shared look, scrolling lists).
 

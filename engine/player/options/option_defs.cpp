@@ -65,6 +65,18 @@ std::vector<OptionChoice> styleChoices(const OptionContext& ctx) {
 }
 void applyStyle(const Json& v, LookLayer& l) { l.style = v.asString(); }
 
+#ifndef OTE_NXDK  // (the original Xbox has a fixed screen with its own fitting: docs/XBOX_OG.md "Picture"; no row there)
+// ---- whole-number scaling (docs/GRAPHICS.md "Whole-number scaling") -----------------------------------------------
+// On (the default): the picture is shown at 1x, 2x, 3x... of the game's size, centred, with a plain border; off: it is
+// stretched to fit the window at any size. The global screen has two states ("On" is the unset one: nothing is stored for the
+// default); a game's screen adds "Use global" in front.
+std::vector<OptionChoice> integerScaleChoices(const OptionContext& ctx) {
+  if (!ctx.game) return {choice("On"), choice("Off", Json::makeBool(false))};
+  return {choice("Use global"), choice("On", Json::makeBool(true)), choice("Off", Json::makeBool(false))};
+}
+void applyIntegerScale(const Json& v, LookLayer& l) { l.integerScale = v.asBool(true) ? 1 : 0; }
+#endif
+
 #ifndef OTE_NXDK  // (the original Xbox has neither row: docs/XBOX_OG.md "3D")
 // ---- what draws 3D (docs/RENDER3D.md) ----------------------------------------
 // The software drawer works everywhere; OpenGL falls back to it by itself on
@@ -140,6 +152,9 @@ const std::vector<OptionDef>& optionDefs() {
       {"fontSize", "Text size", sizeChoices, applySize},
       {"uiScale", "UI scale", scaleChoices, applyScale},
       {"style", "Visual style", styleChoices, applyStyle},
+#ifndef OTE_NXDK
+      {"integerScale", "Whole-number scaling", integerScaleChoices, applyIntegerScale},
+#endif
 #ifndef OTE_NXDK
       // Not on the original Xbox: its chip always draws 3D at the screen's resolution and software 3D is unusably slow there.
       {"draw3d", "3D graphics", draw3dChoices, applyDraw3d},

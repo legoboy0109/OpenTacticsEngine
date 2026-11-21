@@ -146,6 +146,21 @@ address and the remembered choices in `src/play/playOptions.ts`; each change sta
   that level for this run (docs/DIFFICULTY.md "Test level"); the player gets `testlevel=auto|N`. Remembered per map of the project.
   "Automatic" is the hostile units' average level + 2. It shows the number the player settled on, read back from the player's own log line (the embedded page posts
   `{type:"ote-player-testlevel", level}`), e.g. "Automatic (7)", once the game has started.
+- **Panel and frame size** (no choice, nothing to switch): the Play DIALOG is sized from the browser window. The player's frame is exactly the
+  largest whole multiple k (1x, 2x, 3x...) of the game's view (`view.width` x `view.height` of game.json, default 480x270) that fits the window minus the
+  dialog's own chrome (border, header rows, controls line; measured, since the header wraps at narrow widths) and a 16 px margin each side, in device
+  pixels (CSS size = k x view / `devicePixelRatio`, so the canvas backing store is k x view and one canvas pixel is one device pixel). The dialog is
+  as wide as the frame (never narrower than 600 px, which the header needs; a narrower frame is centred on the dialog's own background) and as tall as
+  header + frame + footer, so there is no black area around the picture (2560x1401 at ratio 1 gives 4x = 1920x1080; 1920x1080 gives 3x; 1280x900 gives 2x). It is
+  worked out again when the window or the header changes size or the ratio changes (`ResizeObserver`; `src/play/wholeFit.ts`), and the picture grows in steps.
+  Windows narrower than 720 px keep the full-screen phone dialog and only the frame is fitted into the space it has. The picture is never scaled by a
+  fraction (the player's own "Whole-number scaling", docs/GRAPHICS.md). A frame is laid out in
+  whole CSS pixels (its inner size is rounded, and the player sizes its canvas from that), so the panel picks the whole CSS size whose canvas is exactly
+  k x view device pixels (`cssFor`); where none is (e.g. 960 px at ratio 1.75) it takes the next size up, which leaves the canvas a pixel over, never
+  short (a short canvas would show the picture at (k-1)x), and the picture is still exactly k x. After each size change (and when the player is ready) the panel
+  sends the frame a `resize` event so the player measures its canvas again (the player left it a pixel short at fractional sizes otherwise). When even 1x
+  does not fit, the dialog keeps its old size, the frame fills the space and the player fits the picture to it as before. Tests: `tests/unit/wholeFit.test.ts`, `tests/e2e/play-fit.spec.ts`
+  (windows 1280x900, 1920x1080, 2560x1401 and ratios 1.25, 1.1, 1.75, then a smaller window and back).
 - The embedded player never saves (`--no-saving`), so a test run cannot touch a real Continue save or slot, and there is no Continue to
   continue: Restart starts the same test run again. Tests: `tests/unit/playOptions.test.ts`, `tests/e2e/testplay.spec.ts` (desktop and
   360 px; it judges the iframe's address only).

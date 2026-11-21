@@ -13,7 +13,9 @@ export const name = 'hex';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(here, '../../..');
 
-const K = 640 / 480;  // the host page shows the player in a 640 x 360 iframe: 480 x 270 logical pixels, scaled up
+// The host page shows the player in a 640 x 360 iframe: 480 x 270 logical pixels, scaled up by 4/3. This suite is about hexagon drawing and
+// picking, so it keeps that fractional framing (integerscale=off); the whole-number framing is intscale.mjs's.
+const K = 640 / 480;
 const BACKGROUND = [10, 10, 16];
 const COLOURS = { '.': [156, 204, 101], r: [201, 195, 176], f: [67, 128, 60], m: [141, 123, 104], '~': [59, 120, 196] };
 
@@ -75,7 +77,7 @@ export async function run(env) {
       const g = geometry(layout);
       const { page, close } = await env.newContext({ viewport: { width: 700, height: 420 } });
       const s = new Session(page, env.out, 'h-' + layout);
-      await s.goto(`${srv.url}/host.html?embed=${encodeURIComponent('project=hex-' + layout + '&map=skirmish')}`);
+      await s.goto(`${srv.url}/host.html?embed=${encodeURIComponent('project=hex-' + layout + '&map=skirmish&integerscale=off')}`);
       await page.waitForFunction(() => window.msgs.some((m) => m.type === 'ote-player-ready'), null, { timeout: 30000 });
       C.check(`${layout}: the hexagon game loads and starts in the embed page`,
         s.logs.some((l) => /loaded game 'hex-/.test(l)) && !s.errors.length, s.errors.join('; '));

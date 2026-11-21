@@ -9,7 +9,7 @@ const char* usageText() {
   return "usage: ote-player [--games DIR=games] [--assets DIR=assets] [--content-root DIR] [--extra-games DIR] [--game ID] [--map ID] [--autoplay] [--seed N]\n"
          "                  [--headless] [--frames N] [--fixed-dt SECONDS] [--screenshot FILE.bmp]\n"
          "                  [--input \"tok,tok,...\"] [--input-interval FRAMES=6] [--scale N]\n"
-         "                  [--font NAME_OR_FILE] [--font-size N] [--font-smooth 0|1] [--style ID] [--ui-scale PERCENT]\n"
+         "                  [--font NAME_OR_FILE] [--font-size N] [--font-smooth 0|1] [--style ID] [--ui-scale PERCENT] [--integer-scale on|off]\n"
          "                  [--settings FILE=<user data folder>/settings.json | --no-settings]\n"
          "                  [--saves DIR=<user data folder>/saves | --no-saving] [--continue | --load-slot N | --campaign] [--test-3d]\n"
          "                  [--3d auto|software|hardware] [--3d-res auto|display|game] [--3d-scale N]\n"
@@ -25,6 +25,8 @@ const char* usageText() {
          "campaign: --campaign starts a New game of --game's campaign; --map ID starts that map as a free battle (also in a\n"
          "       campaign game, whatever its freeBattles says) and never touches campaign saves.\n"
          "--scale N (1..16): the window is N times the game's logical size; default: the largest that fits the screen.\n"
+         "--integer-scale on|off: show the picture only at whole multiples (1x, 2x, 3x...) of the game's size, centred with a plain border (default: on, or the saved option);\n"
+         "      off fits it to the window at any size. A window smaller than 1x always fits the picture whole.\n"
          "--test-3d shows the built-in 3D test scene (docs/RENDER3D.md) instead of the launcher.\n"
          "--3d: what draws 3D. hardware = the graphics chip (OpenGL ES 3 / WebGL 2), software = the processor;\n"
          "      auto = hardware where it works (software with --headless). hardware falls back to software.\n"
@@ -117,6 +119,9 @@ Args parseArgs(int argc, char** argv) {
     else if (!strcmp(arg, "--extra-games")) { if (value(v)) a.extraGames = v; }
     else if (!strcmp(arg, "--font")) { if (value(v)) a.font = v; }
     else if (!strcmp(arg, "--style")) { if (value(v)) a.style = v; }
+    else if (!strcmp(arg, "--integer-scale")) {
+      if (value(v)) { if (!strcmp(v, "on")) a.integerScale = 1; else if (!strcmp(v, "off")) a.integerScale = 0; else a.error = "bad --integer-scale (on or off)"; }
+    }
     else if (!strcmp(arg, "--settings")) { if (value(v)) a.settings = v; }
     else if (!strcmp(arg, "--game")) { if (value(v)) a.game = v; }
     else if (!strcmp(arg, "--map")) { if (value(v)) a.map = v; }

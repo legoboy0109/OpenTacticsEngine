@@ -36,7 +36,7 @@ export async function run(env) {
       const context = await browser.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: dpr });
       const page = await context.newPage();
       const s = new Session(page, env.out, 'm');
-      const q = 'project=tiles-sparse&map=scroll&noaudio=1';
+      const q = 'project=tiles-sparse&map=scroll&noaudio=1&integerscale=off';      // fractional scales are the point here (whole-number scaling, the default, would hide the bug)
       if (frame) {
         await s.goto(`${srv.url}/host.html?embed=${encodeURIComponent(q)}`);
         await page.evaluate(([fw, fh]) => { const f = document.getElementById('f'); f.removeAttribute('width'); f.removeAttribute('height'); f.style.width = fw + 'px'; f.style.height = fh + 'px'; }, frame);

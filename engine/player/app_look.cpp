@@ -47,6 +47,7 @@ LookLayer argsLayer(const Args& a) {
   l.battleScene = a.battleScene;
   l.musicVolume = a.musicVolume;
   l.soundVolume = a.soundVolume;
+  l.integerScale = a.integerScale;
   l.res3d = a.res3d == "display" || a.res3d == "game" ? a.res3d : "";
   // A headless run asked to draw 3D bigger has no display to follow: that is the point of --3d-scale.
   if (l.res3d.empty() && a.headless && a.scale3d > 1) l.res3d = "display";
@@ -58,6 +59,7 @@ void PlayerApp::applyLook(const std::string& gameId, const GameLook& game, int w
   LookLayer perGame = gameId.empty() ? LookLayer() : overrideLayer(settings_, gameId);
   look_ = resolveLook(args_.assetsDir, argsLayer(args_), perGame, globalLayer(settings_), game);
   renderer_->setLogicalSize(w, h);
+  renderer_->setIntegerScale(look_.integerScale);
   renderer_->setSafeArea(look_.safeArea);  // only the original Xbox backend acts on it
   show3d_.setResolution(look_.res3d);
   audio_.setVolumes(look_.musicVolume, look_.soundVolume);

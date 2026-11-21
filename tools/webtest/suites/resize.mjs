@@ -23,8 +23,11 @@ export async function run(env) {
       info.css[0] === w && info.css[1] === h && info.backing[0] === w * dpr && info.backing[1] === h * dpr, JSON.stringify(info));
     const box = await contentBox(env.analysisPage, png);
     const cw = box.x1 - box.x0 + 1, ch = box.y1 - box.y0 + 1;
-    const k = Math.min(w / 480, h / 270) * dpr;  // expected picture size in screenshot pixels
-    C.check(`${w}x${h}: picture is 16:9, fits, and is centered`,
+    // Expected picture size in screenshot pixels: the player shows a whole multiple of the view by default (whole-number scaling,
+    // docs/GRAPHICS.md); below 1x it fits the window.
+    const fit = Math.min(w / 480, h / 270) * dpr;
+    const k = fit >= 1 ? Math.floor(fit) : fit;
+    C.check(`${w}x${h}: picture is a whole multiple (${k}x), 16:9, fits, and is centered`,
       Math.abs(cw / ch - 16 / 9) < 0.03 && Math.abs(cw - 480 * k) < 8 &&
       Math.abs((box.x0 + box.x1) / 2 - (w * dpr) / 2) < 8 && Math.abs((box.y0 + box.y1) / 2 - (h * dpr) / 2) < 8,
       JSON.stringify(box));
