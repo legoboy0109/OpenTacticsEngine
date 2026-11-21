@@ -99,6 +99,18 @@ void Battle::abilityOptions(int unit, Cell from, std::vector<AbilityOption>& out
         o.ok = false;
         o.why = "nothing to target";
         o.noTarget = true;
+        if (db->abilities[(size_t)a].effect == AbilityEffect::Unlock) {
+          // A door or chest close by that the trait cannot open from here only because of where the user stands ("from": "on" / "next"):
+          // say so, instead of "nothing to target".
+          const int reach = std::max(1, db->abilities[(size_t)a].maxRange);
+          for (size_t s = 0; s < structures.size() && o.why == "nothing to target"; ++s) {
+            if (placeDistance((int)s, from) > reach) continue;
+            std::vector<Cell> sc;
+            structureCells((int)s, sc);
+            std::string why;
+            if (!sc.empty() && !unlockTargetOk(u, a, from, sc[0], &why) && (why.rfind("stand on", 0) == 0 || why.rfind("step off", 0) == 0)) o.why = why;
+          }
+        }
       }
     }
     out.push_back(o);

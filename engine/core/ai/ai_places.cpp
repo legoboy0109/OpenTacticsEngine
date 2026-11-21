@@ -3,7 +3,7 @@
 // Only a unit the maker MARKED (map unit / addUnit "goesFor": chests, villages, doors) does any of this; an unmarked unit never
 // opens, visits or walks toward them. Closed doors are walls in every distance field already (their movement cost is 0), so a
 // unit that cannot get through simply finds no way and waits; it never oscillates.
-//   chests:   open one it can reach (unlocked, or it carries a key), and walk toward the nearest one it could open.
+//   chests:   open one it can reach (unlocked, or it carries a key, or its trait fits: an "on" chest is opened from its own square), and walk toward the nearest one it could open.
 //   villages: visit one it may, destroy one that is the enemy's, and walk toward the nearest.
 //   doors:    only while the enemy cannot be reached at all (a door is in the way): open a door with a key it carries (or an unlocked
 //             door), and walk toward the nearest such door.
@@ -23,24 +23,53 @@ constexpr double kHeadFor = 120;   // walking toward a goal; minus a little for 
 // What the unit's side believes the structure is (an upgrade or opening it did not see does not count).
 const PlaceDef& believed(const Battle& b, const Unit& u, int s) { return b.db->structures[(size_t)b.seenKindForSide(u.side, s)].place; }
 
+// The trait: from `from`, the first unlock ability of `u` that opens structure `s` (a locked one the unit has no usable key for).
+// unlockTargetOk reads the kind's "from" (an "on" chest is opened from its own square), so the walk to a square
+// where this is true makes the unit step ONTO such a chest first (approachCells asks interaction() for every square near it).
+bool traitOpens(const Battle& b, const Unit& u, int s, Cell from, Order& out) {
+  std::vector<AbilityOption> menu;
+  b.abilityOptions(u.id, from, menu);  // the ability's own state (uses, cooldown, afterMove) and "has a door or chest to open from here"
+  std::vector<Cell> cells;
+  b.structureCells(s, cells);
+  for (const AbilityOption& o : menu) {
+    const AbilityDef& d = b.db->abilities[(size_t)o.ability];
+    if (!o.ok || d.effect != AbilityEffect::Unlock || b.abilityCharges(o.ability) || (d.free && from != u.cell)) continue;
+    std::vector<int> units;
+    std::vector<Cell> targets;
+    b.abilityTargets(u.id, o.ability, from, units, targets);  // asks the kind's "from" and the range, as the player's menu does
+    for (Cell c : cells) {
+      if (std::find(targets.begin(), targets.end(), c) == targets.end()) continue;
+      out.kind = ActionType::Ability;
+      out.ability = o.ability;
+      out.cell = c;
+      out.structure = s;
+      return true;
+    }
+  }
+  return false;
+}
+
 // Can `u` do something useful to structure `s` from `from`? Fills the order's verb and key slot.
 bool interaction(const Battle& b, const Unit& u, int s, Cell from, bool enemyBlocked, Order& out) {
   const PlaceDef& p = believed(b, u, s);
   const StructureState& st = b.structures[(size_t)s];
-  if (!b.placeInReach(s, from)) return false;
   if (p.isChest() || p.isDoor()) {
     if (!(u.aiGoals & (p.isChest() ? kAiChests : kAiDoors))) return false;
     if (p.isDoor() && !enemyBlocked) return false;
     if (!b.isClosedChest(s) && !b.isClosedDoor(s)) return false;  // it was opened already
+    if (b.placeOf(s).isChest() && !b.roomForLoot(u, s)) return false;
     std::vector<int> keys;
     b.placeKeySlots(u.id, s, keys);
-    if (st.locked && keys.empty()) return false;
-    if (b.placeOf(s).isChest() && !b.roomForLoot(u, s)) return false;
-    out.kind = ActionType::OpenPlace;
-    out.slot = st.locked ? keys[0] : -1;
-    out.structure = s;
-    return true;
+    if (b.placeInReach(s, from) && (!st.locked || !keys.empty())) {  // by hand, or with a key
+      out.kind = ActionType::OpenPlace;
+      out.slot = st.locked ? keys[0] : -1;
+      out.structure = s;
+      return true;
+    }
+    // Locked and no key that works from here: the unit's trait, if it has one (reach as the ability and the kind's "from" say).
+    return st.locked && traitOpens(b, u, s, from, out);
   }
+  if (!b.placeInReach(s, from)) return false;
   if (p.isVisit() && (u.aiGoals & kAiPlaces) && b.placeOf(s).isVisit() && (!st.used || b.placeOf(s).repeat)) {
     if (!b.visitAllowed(u, s) && !b.destroyAllowed(u, s)) return false;
     out.kind = ActionType::VisitPlace;
@@ -93,7 +122,7 @@ void considerPlaces(Context& cx, const Unit& u, const Reach& reach, const std::v
       const int travel = s == u.cell ? 0 : reach.cost[(size_t)s];
       const double score = kInteract - 0.5 * travel;
       if (score <= best.score) continue;
-      if (automatic) {
+      if (automatic && o.kind != ActionType::Ability) {  // (the trait is always an explicit ability use)
         // The move itself does it (rules.places "auto"); standing still does nothing.
         if (s == u.cell) continue;
         best = Order();
