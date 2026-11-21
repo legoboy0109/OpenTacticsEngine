@@ -129,13 +129,13 @@ void ScalarField::commit() {
   edit_->setStyleSheet(QString());
   if (text == shown_) return;
   if (text.isEmpty()) {
-    if (node_->kind == SchemaNode::Kind::String && node_->required) ctx_->set(path_, ote::Json::makeString(""));
+    if (node_->kind == SchemaNode::Kind::String && node_->required) ctx_->setField(*node_, path_, ote::Json::makeString(""));
     else if (node_->required) return fail(tr("This key is required."));
     else ctx_->erase(path_);
     return;
   }
   if (node_->kind == SchemaNode::Kind::String) {
-    ctx_->set(path_, ote::Json::makeString(edit_->text().toStdString()));
+    ctx_->setField(*node_, path_, ote::Json::makeString(edit_->text().toStdString()));
     return;
   }
   bool ok = false;
@@ -144,7 +144,7 @@ void ScalarField::commit() {
   if (node_->kind == SchemaNode::Kind::Int && d != std::floor(d)) return fail(tr("This key takes a whole number."));
   if ((node_->min && d < *node_->min) || (node_->max && d > *node_->max))
     return fail(tr("Must be %1.").arg(rangeText(node_)));
-  ctx_->set(path_, ote::Json::makeNumber(d));
+  ctx_->setField(*node_, path_, ote::Json::makeNumber(d));
 }
 
 // --- BoolField --------------------------------------------------------------------------------------------------
@@ -156,7 +156,7 @@ BoolField::BoolField(FormContext* ctx, FormView* view, const SchemaNode* node, J
   box_->setObjectName("boolBox");
   clear_ = makeClearButton(this, node_);
   rowLayout(this, box_, clear_, nullptr);
-  connect(box_, &QCheckBox::clicked, this, [this](bool on) { ctx_->set(path_, ote::Json::makeBool(on)); });
+  connect(box_, &QCheckBox::clicked, this, [this](bool on) { ctx_->setField(*node_, path_, ote::Json::makeBool(on)); });
   connect(clear_, &QToolButton::clicked, this, [this] { ctx_->erase(path_); });
   refresh();
 }
@@ -191,7 +191,7 @@ ChoiceField::ChoiceField(FormContext* ctx, FormView* view, const SchemaNode* nod
   connect(combo_, &QComboBox::activated, this, [this](int i) {
     const QString id = combo_->itemData(i).toString();
     if (id.isEmpty()) ctx_->erase(path_);
-    else ctx_->set(path_, ote::Json::makeString(id.toStdString()));
+    else ctx_->setField(*node_, path_, ote::Json::makeString(id.toStdString()));
   });
   connect(clear_, &QToolButton::clicked, this, [this] { ctx_->erase(path_); });
   refreshItems();
@@ -205,7 +205,7 @@ QStringList ChoiceField::items() const {
     for (const std::string& s : node_->values) l << QString::fromStdString(s);
     return l;
   }
-  QStringList l = ctx_->ids() ? ctx_->ids()->ids(node_->refs) : QStringList();
+  QStringList l = ctx_->idsOf(node_->refs);
   for (const std::string& s : node_->values) l << QString::fromStdString(s);  // words such as "choose" beside the ids
   return l;
 }

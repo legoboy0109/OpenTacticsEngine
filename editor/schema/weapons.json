@@ -8,9 +8,9 @@
       "range": { "type": "list", "length": 2, "of": { "type": "int", "min": 0, "sample": 1 }, "sample": [1, 2], "help": "[min, max] distance in squares." },
       "counter": { "type": "bool", "default": true, "help": "Can answer attacks." },
       "afterMove": { "type": "bool", "default": true, "help": "Can be used after moving." },
-      "props": { "type": "json", "sample": { "might": 4 }, "help": "Numbers the formulas read as w.<name> (might, ...)." },
-      "damage": { "type": "string", "help": "Formula that replaces the game's damage formula for this weapon." },
-      "group": { "type": "string", "help": "Weapon group (triangle / locks)." },
+      "props": { "type": "map", "free": true, "of": { "type": "number" }, "help": "Numbers the formulas read as w.<name> (might, hit, weight ...)." },
+      "damage": { "type": "string", "sample": "1", "help": "Formula that replaces the game's damage formula for this weapon." },
+      "group": { "type": "string", "help": "Weapon group (triangle / locks / ranks); what a unit lists in wields." },
       "damageKind": { "type": "string", "help": "Free word that skills can test." },
       "damageType": { "type": "ref", "ref": "game.json#damageTypes", "help": "One of the game's damageTypes (first listed if absent)." },
       "fire": { "type": "enum", "values": ["direct", "line"], "default": "direct", "help": "line: the shot hits the first unit on a straight line." },
@@ -25,14 +25,22 @@
           "vertical": { "type": "int", "min": 0, "max": 999, "help": "Levels of height the blast reaches (needs rules.height)." } }
       },
       "apCost": { "type": "int", "min": 0, "max": 99, "help": "Action points for an attack (needs rules.actionPoints)." },
-      "heightRange": { "type": "object", "block": true, "help": "How many levels higher / lower the target may stand (needs rules.height).", "fields": {
+      "heightRange": { "type": "object", "block": true, "enable": { "up": 1 }, "help": "How many levels higher / lower the target may stand (needs rules.height).", "fields": {
         "up": { "type": "int", "min": 0, "max": 999, "help": "Levels higher." },
         "down": { "type": "int", "min": 0, "max": 999, "help": "Levels lower." } } },
       "chargeSpeed": { "type": "int", "min": 1, "max": 1000, "help": "Makes the weapon a charged action (needs turnOrder speed)." },
       "chargeTargets": { "type": "enum", "values": ["unit", "cell"], "help": "unit: follows the unit; cell: hits the square (needs chargeSpeed)." },
       "interruptedBy": { "type": "list", "of": { "type": "ref", "ref": "data/conditions.json" }, "help": "Conditions that cancel the charge (needs chargeSpeed)." },
       "wieldedBy": { "type": "list", "of": { "type": "ref", "ref": "data/characters.json" }, "help": "Only these characters may use it." },
-      "wieldedByTypes": { "type": "list", "of": { "type": "ref", "ref": "data/units.json" }, "help": "Only these unit types may use it." }
+      "wieldedByTypes": { "type": "list", "of": { "type": "ref", "ref": "data/units.json" }, "help": "Only these unit types may use it." },
+      "ammo": { "type": "int", "min": 1, "max": 99, "help": "Shots before the weapon is empty (a supply refills it). Not for weapons that are items." },
+      "skills": { "type": "list", "of": { "type": "ref", "ref": "data/skills.json" }, "help": "Skills the wielder has while using it." },
+      "inflict": { "use": "_common#inflictWeapon", "help": "A condition a hit may put on the unit struck." },
+      "rank": { "type": "ref", "ref": "data/ranks.json#ranks", "help": "Weapon rank a unit needs to use it (needs data/ranks.json)." },
+      "rankXp": { "type": "int", "min": 0, "max": 99, "help": "Weapon experience a use earns (0 = trains nothing; needs data/ranks.json)." },
+      "versus": { "type": "map", "free": true, "of": { "type": "number" }, "help": "Effectiveness by unit type or tag (numbers the damage formula reads as vs)." },
+      "versusDefault": { "type": "number", "help": "Effectiveness against anything versus does not name." },
+      "sounds": { "type": "map", "free": true, "of": { "type": "string" }, "help": "Sound ids by event (hit, miss ...; docs/SOUND.md)." }
     }
   }
 }

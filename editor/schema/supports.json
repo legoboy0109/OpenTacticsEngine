@@ -1,0 +1,32 @@
+{
+  "files": ["data/supports.json"],
+  "root": {
+    "type": "object",
+    "fields": {
+      "rules": { "type": "object", "block": true, "help": "How supports build up.", "fields": {
+        "levelNames": { "type": "list", "of": { "type": "string" }, "help": "Names of the levels, e.g. C, B, A." },
+        "points": { "type": "object", "help": "Points earned.", "fields": {
+          "endTurnAdjacent": { "type": "int", "min": 0, "max": 1000000, "help": "For ending a turn next to each other." },
+          "fightTogether": { "type": "int", "min": 0, "max": 1000000, "help": "For fighting near each other." },
+          "heal": { "type": "int", "min": 0, "max": 1000000, "help": "For healing the other." } } },
+        "range": { "type": "int", "min": 1, "max": 10, "help": "How close friends count as together (squares)." },
+        "maxLevels": { "type": "int", "min": 1, "max": 99, "help": "Highest support level." },
+        "conversations": { "type": "enum", "values": ["battle", "camp", "both"], "help": "Where support conversations happen." } } },
+      "pairs": { "type": "list", "required": true, "help": "Pairs of characters who can grow close.", "of": { "type": "object", "fields": {
+        "a": { "type": "ref", "ref": "data/characters.json", "required": true, "help": "First character." },
+        "b": { "type": "ref", "ref": "data/characters.json", "required": true, "help": "Second character." },
+        "start": { "type": "int", "min": 0, "max": 1000000, "help": "Points they start with." },
+        "levels": { "type": "list", "required": true, "help": "Levels, rising in points (1 to 5).", "of": { "type": "object", "fields": {
+          "points": { "type": "int", "required": true, "min": 0, "max": 1000000, "help": "Points needed (rising)." },
+          "bonus": { "type": "object", "block": true, "help": "Bonus while the pair fights near each other.", "fields": {
+            "hit": { "type": "int", "min": -1000000, "max": 1000000, "help": "Hit chance bonus." },
+            "avoid": { "type": "int", "min": -1000000, "max": 1000000, "help": "Avoid bonus." },
+            "crit": { "type": "int", "min": -1000000, "max": 1000000, "help": "Critical chance bonus." },
+            "critAvoid": { "type": "int", "min": -1000000, "max": 1000000, "help": "Critical avoid bonus." },
+            "damage": { "type": "int", "min": -1000000, "max": 1000000, "help": "Damage bonus." },
+            "damageTaken": { "type": "int", "min": -1000000, "max": 1000000, "help": "Damage taken change." },
+            "stats": { "type": "map", "ref": "game.json#stats", "of": { "type": "int" }, "help": "Stat bonus." } } },
+          "talk": { "type": "list", "of": { "use": "_common#sayLine" }, "help": "The conversation at this level." } } } } } } }
+    }
+  }
+}

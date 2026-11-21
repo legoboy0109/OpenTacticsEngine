@@ -28,6 +28,8 @@ class SchemaTest : public QObject {
   void parsesEveryNodeKind();
   void mistakesInASchemaFileAreReportedNotFatal();
   void filePatternsMatchMaps();
+  void definitionsAreSharedAcrossFilesAndRecursionStops();
+  void variantsWhenAndNeedsParseAndMatch();
   void typeOkAndNodeAccepts();
   void defaultsAndSamples();
   void idSourcesFollowTheProject();
@@ -83,6 +85,71 @@ void SchemaTest::mistakesInASchemaFileAreReportedNotFatal() {
   QVERIFY(all.contains("enum without \"values\""));
   QVERIFY(all.contains("ref without \"ref\""));
   QVERIFY(all.contains("list without \"of\""));
+}
+
+void SchemaTest::definitionsAreSharedAcrossFilesAndRecursionStops() {
+  SchemaSet set;
+  set.addFromText("_defs.json", R"({ "defs": {
+    "pair": { "type": "list", "length": 2, "of": { "type": "int" } },
+    "cond": { "type": "variant", "variants": [
+      { "name": "plain", "kind": "string", "node": { "type": "string" } },
+      { "name": "all", "key": "all", "node": { "type": "object", "fields": { "all": { "type": "list", "of": { "use": "cond" } } } } } ] } } })");
+  set.addFromText("t.json", R"({ "files": ["data/t.json"], "rows": { "type": "object", "fields": {
+    "range": { "use": "_defs#pair", "help": "mine" },
+    "test": { "use": "_defs#cond" } } } })");
+  QVERIFY2(set.errors().isEmpty(), qPrintable(set.errors().join("\n")));
+  const SchemaNode& r = *set.forFile("data/t.json")->rows;
+  QCOMPARE(r.field("range")->length, 2);
+  QCOMPARE(r.field("range")->help, std::string("mine"));  // the use's own keys win
+  // the recursive def is expanded twice, then ends as raw JSON
+  const SchemaNode* c = r.field("test");
+  QCOMPARE((int)c->variants.size(), 2);
+  const SchemaNode* inner = c->variants[1].node->field("all")->of.get();
+  QCOMPARE((int)inner->variants.size(), 2);
+  const SchemaNode* deeper = inner->variants[1].node->field("all")->of.get();
+  QVERIFY(deeper->kind == SchemaNode::Kind::Json || deeper->variants.size() == 2);
+  // a def that does not exist is reported
+  SchemaSet bad;
+  bad.addFromText("x.json", R"({ "files": ["a.json"], "root": { "fields": { "k": { "use": "nothere" } } } })");
+  QVERIFY(bad.errors().join("\n").contains("unknown def"));
+}
+
+void SchemaTest::variantsWhenAndNeedsParseAndMatch() {
+  SchemaSet set;
+  set.addFromText("t.json", R"({ "files": ["data/t.json"], "root": { "fields": {
+    "kind": { "type": "enum", "values": ["a", "b"], "default": "a" },
+    "x": { "type": "int", "when": { "kind": ["b"] } },
+    "v": { "type": "variant", "variants": [
+      { "name": "word", "value": "sides" },
+      { "name": "text", "kind": "string", "node": { "type": "string" } },
+      { "name": "obj", "key": "hp", "node": { "type": "object", "fields": { "hp": { "type": "int", "required": true } } } } ] },
+    "blk": { "type": "object", "block": true, "needs": { "ref": "data/ids.json", "hint": "add an id" }, "enable": { "n": 1 }, "fields": { "n": { "type": "int" } } },
+    "free": { "type": "map", "free": true, "of": { "type": "int" } } } } })");
+  QVERIFY2(set.errors().isEmpty(), qPrintable(set.errors().join("\n")));
+  const SchemaNode& r = *set.forFile("data/t.json")->root;
+  const SchemaNode& v = *r.field("v");
+  auto J = [](const char* t) { ote::Json j; std::string e; ote::Json::parse(t, j, e); return j; };
+  QCOMPARE(variantIndex(v, J("\"sides\"")), 0);  // a constant beats the kind "text"
+  QCOMPARE(variantIndex(v, J("\"other\"")), 1);
+  QCOMPARE(variantIndex(v, J("{\"hp\":3}")), 2);
+  QCOMPARE(variantIndex(v, J("{\"mp\":3}")), -1);
+  QVERIFY(typeOk(v, J("\"sides\"")) && !typeOk(v, J("5")));
+  // `when`: the sibling's word, or its default when the key is absent
+  const SchemaNode& x = *r.field("x");
+  QVERIFY(!fieldApplies(r, x, nullptr));
+  QVERIFY(!fieldApplies(r, x, &(const ote::Json&)J("{}")));
+  QVERIFY(fieldApplies(r, x, &(const ote::Json&)J("{\"kind\":\"b\"}")));
+  // Enable writes the schema's own value; a free map needs no ref; defaults of a variant are its first shape
+  QCOMPARE(QString::fromStdString(defaultValue(*r.field("blk"), nullptr).dump(0)), QString("{\"n\":1}"));
+  QVERIFY(r.field("free")->free);
+  QCOMPARE(QString::fromStdString(defaultValue(v, nullptr).dump(0)), QString("\"sides\""));
+  QCOMPARE(r.field("blk")->needs->hint, std::string("add an id"));
+  // mistakes are reported
+  SchemaSet bad;
+  bad.addFromText("x.json", R"({ "files": ["a.json"], "root": { "fields": { "v": { "type": "variant", "variants": [ { "name": "n", "key": "a", "kind": "string", "node": {} }, { "node": {} } ] } } } })");
+  const QString all = bad.errors().join("\n");
+  QVERIFY(all.contains("exactly one of"));
+  QVERIFY(all.contains("needs a \"name\""));
 }
 
 void SchemaTest::filePatternsMatchMaps() {
@@ -181,6 +248,7 @@ void SchemaTest::theProgramsSchemasLoadWithoutErrors() {
   // Every node that points at ids says where they come from; every enum has words (checked by the loader); every help line is one line.
   for (const auto& fs : source.all()) {
     const SchemaNode* top = fs->rows ? fs->rows.get() : fs->root.get();
+    if (!top) continue;  // a file of shared definitions only (reached through the files that use it)
     std::function<void(const SchemaNode&, const QString&)> walk = [&](const SchemaNode& n, const QString& path) {
       QVERIFY2(n.help.find('\n') == std::string::npos, qPrintable(path));
       for (const auto& f : n.fields) {
@@ -188,6 +256,8 @@ void SchemaTest::theProgramsSchemasLoadWithoutErrors() {
         walk(*f.second, path + "." + QString::fromStdString(f.first));
       }
       if (n.of) walk(*n.of, path + "[]");
+      for (const auto& v : n.variants)
+        if (v.node) walk(*v.node, path + "{" + QString::fromStdString(v.name) + "}");
     };
     walk(*top, QString::fromStdString(fs->name));
   }

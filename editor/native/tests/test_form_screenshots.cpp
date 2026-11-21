@@ -205,10 +205,18 @@ void FormScreenshotTest::scene() {
     QVERIFY(s.open(ote_test::copyDemoGame(s.tmp)));
     TableEditor* t = s.table("data/units.json", 0);
     QVERIFY(t);
+    // The schemas now describe every key of the demo's units, so the box is shown with a key a future engine version might add.
+    {
+      JsonPath p = {PathStep::member("units"), PathStep::at(0), PathStep::member("futureKey")};
+      ote::Json v = ote::Json::makeObject();
+      v.set("note", ote::Json::makeString("a key the schema does not know yet"));
+      v.set("level", ote::Json::makeNumber(3));
+      t->formContext()->set(p, v);
+    }
     QTest::qWait(80);  // the deferred form retarget runs (it rebuilds the form), then layouts settle
     t->form()->flush();
     auto* toggle = t->form()->findChild<QToolButton*>("otherKeysToggle");
-    QVERIFY2(toggle, "the demo's units have keys the schema does not describe");
+    QVERIFY2(toggle, "an unknown key shows the Other keys box");
     toggle->setChecked(true);
     QTest::qWait(80);
     t->form()->ensureWidgetVisible(toggle->parentWidget(), 0, 200);

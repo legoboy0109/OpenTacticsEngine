@@ -1,0 +1,35 @@
+{
+  "files": ["data/conditions.json"],
+  "rows": {
+    "type": "object",
+    "fields": {
+      "id": { "type": "string", "required": true, "help": "Unique id; weapons, items, skills and events name it." },
+      "name": { "type": "string", "help": "Display name (defaults to the id)." },
+      "description": { "type": "string", "help": "Text shown on the unit." },
+      "tag": { "type": "string", "sample": "Tg", "help": "Short text (1 to 4 characters) shown on the map." },
+      "turns": { "type": "int", "min": 1, "max": 99, "excludes": ["until"], "help": "Lasts this many of the unit's own turns (use turns or until)." },
+      "until": { "type": "enum", "values": ["cured", "mapEnd"], "excludes": ["turns", "scale"], "help": "Lasts until it is cured, or until the map ends (use turns or until)." },
+      "wearOff": { "type": "int", "min": 1, "max": 99, "help": "Percent chance each turn that it ends early." },
+      "endsWhenStruck": { "type": "bool", "help": "Ends when the unit is hit." },
+      "replaces": { "type": "list", "of": { "type": "ref", "ref": "data/conditions.json" }, "help": "Conditions it removes when it is put on." },
+      "scale": { "type": "enum", "values": ["turnsLeft"], "help": "The numbers of its always blocks count as many times as it has turns left (needs turns)." },
+      "blocks": { "type": "list", "required": true, "help": "What the condition does (at least one block); same blocks as a skill, plus cannotAct, cannotMove, forbid, berserk.", "of": {
+        "use": "_skills#block", "moreFields": {
+          "do": { "type": "list", "required": true, "help": "Effects (at least one).", "of": {
+            "use": "_skills#effect", "moreVariants": [
+              { "name": "cannotAct", "key": "cannotAct", "node": { "type": "object", "fields": {
+                "cannotAct": { "type": "variant", "required": true, "help": "The unit loses its action (always blocks).", "variants": [
+                  { "name": "cannot act", "value": true },
+                  { "name": "with options", "key": "counter", "node": { "type": "object", "fields": {
+                    "counter": { "type": "bool", "help": "It can still counterattack." }, "dodge": { "type": "bool", "help": "It can still dodge." } } } },
+                  { "name": "with options (dodge)", "key": "dodge", "node": { "type": "object", "fields": {
+                    "counter": { "type": "bool", "help": "It can still counterattack." }, "dodge": { "type": "bool", "help": "It can still dodge." } } } } ] } } } },
+              { "name": "cannotMove", "key": "cannotMove", "node": { "type": "object", "fields": { "cannotMove": { "use": "_skills#flag", "help": "The unit cannot move (always blocks)." } } } },
+              { "name": "forbid", "key": "forbid", "node": { "type": "object", "fields": {
+                "forbid": { "type": "object", "required": true, "help": "Weapon groups or item kinds the unit cannot use (always blocks).", "fields": {
+                  "groups": { "type": "list", "of": { "type": "ref", "ref": ["field:group:data/weapons.json", "field:group:data/items.json"] }, "help": "Weapon or staff groups." },
+                  "kinds": { "type": "list", "of": { "type": "enum", "values": ["staff", "usable", "weapon"] }, "help": "Item kinds." } } } } } },
+              { "name": "berserk", "key": "berserk", "node": { "type": "object", "fields": { "berserk": { "use": "_skills#flag", "help": "The computer controls the unit (always blocks)." } } } } ] } } } } }
+    }
+  }
+}

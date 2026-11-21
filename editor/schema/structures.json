@@ -1,0 +1,62 @@
+{
+  "files": ["data/structures.json"],
+  "defs": {
+    "from": { "type": "enum", "values": ["on", "next", "either"], "help": "Where the unit stands: on the square, next to it, or either." },
+    "by": { "type": "list", "of": { "type": "enum", "values": ["key", "trait", "break"] }, "help": "How it can be opened: a key, a unit's trait (a thief's skill), or by breaking it (doors with hp)." },
+    "keys": { "type": "list", "of": { "type": "ref", "ref": "data/items.json" }, "help": "Only these key items open it (they need an opens list; needs by to hold key)." }
+  },
+  "rows": {
+    "type": "object",
+    "fields": {
+      "id": { "type": "string", "required": true, "help": "Unique id; map legends, factions and upgrades name it." },
+      "name": { "type": "string", "help": "Display name (defaults to the id)." },
+      "color": { "type": "string", "sample": "#102030", "help": "Placeholder colour as #rrggbb." },
+      "glyph": { "type": "string", "help": "Placeholder letter." },
+      "width": { "type": "int", "min": 1, "max": 8, "default": 1, "help": "Squares wide (square games)." },
+      "height": { "type": "int", "min": 1, "max": 8, "default": 1, "help": "Squares high (square games)." },
+      "rings": { "type": "int", "min": 0, "max": 1, "help": "Hexagon games instead of width / height: 0 = one hexagon, 1 = it and its six neighbours." },
+      "moveCost": { "type": "map", "ref": "game.json#moveTypes", "of": { "type": "int", "min": 0 }, "help": "Cost per move type, replacing the terrain's (0 = cannot enter)." },
+      "props": { "type": "map", "free": true, "of": { "type": "number" }, "help": "Numbers that replace or add to the terrain's (defense ...)." },
+      "tags": { "type": "list", "of": { "type": "string" }, "help": "Free words; hq marks the headquarters (defeat: lostHq)." },
+      "capturePoints": { "type": "int", "min": 0, "help": "More than 0 = it can be captured." },
+      "income": { "type": "map", "ref": "game.json#resources", "of": { "type": "int" }, "help": "Resources per turn to the owner (needs rules.economy)." },
+      "produces": { "type": "list", "of": { "type": "ref", "ref": "data/units.json" }, "help": "Unit types the owner can build here (needs rules.production)." },
+      "sells": { "type": "list", "of": { "type": "ref", "ref": "data/items.json" }, "help": "Items it sells (each needs a price)." },
+      "research": { "type": "bool", "help": "Counts as a research structure (needs rules.research needsStructure)." },
+      "repairs": { "type": "list", "of": { "type": "ref", "ref": ["data/units.json", "tags:data/units.json"] }, "help": "Unit types or tags it repairs (missing = all, [] = none; rules.supply.repair)." },
+      "blocksSight": { "type": "bool", "help": "Fog of war: units do not see past it." },
+      "light": { "type": "int", "min": 1, "max": 10, "help": "Fog of war: it lights this many squares around it." },
+      "upgrades": { "type": "list", "help": "Kinds it can be built up into (same size).", "of": { "type": "object", "fields": {
+        "to": { "type": "ref", "ref": "data/structures.json", "required": true, "help": "The kind it becomes." },
+        "cost": { "type": "map", "ref": "game.json#resources", "of": { "type": "int", "min": 0 }, "help": "Price per resource." },
+        "requires": { "type": "ref", "ref": "data/research.json", "help": "A technology that must be researched first." } } } },
+      "door": { "type": "object", "block": true, "help": "A door: blocks some move types until opened, then becomes another kind (docs/SRPG.md section 10).", "fields": {
+        "opens": { "type": "ref", "ref": "data/structures.json", "required": true, "help": "The kind it becomes when opened." },
+        "locked": { "type": "bool", "help": "Starts locked." },
+        "from": { "use": "from" },
+        "by": { "use": "by" },
+        "keys": { "use": "keys" },
+        "hp": { "type": "int", "min": 1, "max": 9999, "help": "Hit points: makes the door something that can be attacked." },
+        "stats": { "type": "map", "ref": "game.json#stats", "of": { "type": "int" }, "help": "Numbers its damage formula reads (needs hp)." },
+        "word": { "type": "string", "help": "What the menu calls it when attacked (letters, at most 16), e.g. wall." } } },
+      "chest": { "type": "object", "block": true, "help": "A chest: opened for what is inside (the map says what).", "fields": {
+        "opens": { "type": "ref", "ref": "data/structures.json", "required": true, "help": "The kind it becomes when opened." },
+        "locked": { "type": "bool", "help": "Starts locked." },
+        "from": { "use": "from" },
+        "by": { "use": "by" },
+        "keys": { "use": "keys" } } },
+      "visit": { "type": "object", "block": true, "help": "A place a unit can visit (a village).", "fields": {
+        "becomes": { "type": "ref", "ref": "data/structures.json", "help": "The kind it becomes after a visit." },
+        "ruin": { "type": "ref", "ref": "data/structures.json", "help": "The kind it becomes when destroyed." },
+        "repeat": { "type": "bool", "help": "It can be visited again." },
+        "from": { "use": "from" } } },
+      "weapon": { "type": "ref", "ref": "data/items.json", "help": "A map weapon (ballista): the weapon item a unit standing here attacks with." },
+      "uses": { "type": "int", "min": 1, "help": "Shots of the map weapon (leave out for unlimited)." },
+      "ignoreRank": { "type": "bool", "help": "Any unit may use the map weapon whatever its weapon rank." },
+      "by": { "type": "object", "block": true, "help": "Who may use the map weapon.", "fields": {
+        "types": { "type": "list", "of": { "type": "ref", "ref": "data/units.json" }, "help": "Unit types." },
+        "tags": { "type": "list", "of": { "type": "ref", "ref": "tags:data/units.json" }, "help": "Unit tags." } } },
+      "becomes": { "type": "ref", "ref": "data/structures.json", "help": "The kind the map weapon turns into when used up." }
+    }
+  }
+}

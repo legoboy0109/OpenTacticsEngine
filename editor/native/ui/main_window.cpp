@@ -233,6 +233,14 @@ void MainWindow::openFile(const QString& rel) {
     auto* t = new TableEditor(p, doc, *arrayPath, tabs_, schema, ids_);
     connect(t, &TableEditor::messageShown, this, [this](const QString& m) { statusBar()->showMessage(m, 8000); });
     connect(t, &TableEditor::showInTreeRequested, this, [this, rel](const JsonPath& path) { openTreeView(rel, path); });
+    if (schema && schema->rows) {  // the table | table + form | form choice is remembered per kind of file
+      const QString kind = QString::fromStdString(schema->name);
+      t->setViewMode(appSettings_.tableViewMode(kind));
+      connect(t, &TableEditor::viewModeChanged, this, [this, kind](int mode) {
+        appSettings_.setTableViewMode(kind, mode);
+        appSettings_.sync();
+      });
+    }
     editor = t;
   } else {
     auto* t = new TreeEditor(p, doc, tabs_, schema, ids_);

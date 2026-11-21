@@ -22,11 +22,16 @@ class FormContext : public QObject {
   JsonDocument* doc() const { return doc_; }
   IdSource* ids() const { return ids_; }
   IdLookup lookup() const;
+  // Ids of id sources: another file ("data/units.json", "game.json#stats") or, with a leading "@", a list of this very file.
+  QStringList idsOf(const std::vector<std::string>& sources) const;
 
   // The node at `path` or nullptr (absent keys are nullptr, a stored null is a Null node).
   const ote::Json* at(const JsonPath& path) const;
   // Sets the value: replaces it, or inserts the key (creating the objects it lives in when they are absent).
   bool set(const JsonPath& path, const ote::Json& value, const QString& undoText = QString());
+  // Like set(), for a field of a schema: keys the node `excludes` (turns / until: one of the two) are removed in the same
+  // undo step.
+  bool setField(const SchemaNode& node, const JsonPath& path, const ote::Json& value);
   // Removes the key or list item.
   bool erase(const JsonPath& path);
   // Appends an item to the list at `path`, creating the list when it is absent.

@@ -1,0 +1,233 @@
+{
+  "defs": {
+    "op": { "type": "enum", "values": ["=", "!=", "<", "<=", ">", ">="], "help": "How to compare (default: >=)." },
+    "who": { "type": "enum", "values": ["foe"], "help": "foe: judge the other fighter instead of the owner." },
+    "flag": { "type": "bool", "required": true, "default": true, "sample": true, "help": "Must be true (leave the effect out to turn it off)." },
+    "opValue": {
+      "type": "object", "help": "A comparison.",
+      "fields": {
+        "op": { "use": "op" },
+        "value": { "type": "int", "required": true, "min": 0, "max": 1000000, "help": "The number to compare with." } }
+    },
+
+    "condition": {
+      "type": "variant", "help": "One condition; all conditions of a block must hold.",
+      "variants": [
+        { "name": "hp", "key": "hp", "node": { "type": "object", "fields": {
+          "hp": { "type": "object", "required": true, "help": "Compare the hit points, in percent of the maximum.", "fields": {
+            "op": { "use": "op" }, "percent": { "type": "int", "required": true, "min": 0, "max": 100, "help": "Hit points in percent of the maximum." } } },
+          "who": { "use": "who" } } } },
+        { "name": "near", "key": "near", "node": { "type": "object", "fields": {
+          "near": { "type": "enum", "required": true, "values": ["ally", "enemy"], "help": "Which units count." },
+          "within": { "type": "int", "min": 1, "max": 10, "help": "Distance in squares (default 1)." },
+          "op": { "use": "op" },
+          "count": { "type": "int", "min": 0, "max": 1000, "help": "How many (default: at least 1)." },
+          "match": { "type": "ref", "ref": ["data/units.json", "tags:data/units.json"], "help": "Only units of this type id or tag." } } } },
+        { "name": "weapon", "key": "weapon", "node": { "type": "object", "fields": {
+          "weapon": { "type": "ref", "required": true, "ref": ["data/weapons.json", "field:group:data/weapons.json"], "help": "A weapon id or group." }, "who": { "use": "who" } } } },
+        { "name": "terrain", "key": "terrain", "node": { "type": "object", "fields": {
+          "terrain": { "type": "variant", "required": true, "help": "Terrain id or tag, or a list of them (any one will do).", "variants": [
+            { "name": "one", "kind": "string", "node": { "type": "ref", "ref": ["data/terrain.json", "tags:data/terrain.json"] } },
+            { "name": "a list", "kind": "array", "node": { "type": "list", "of": { "type": "ref", "ref": ["data/terrain.json", "tags:data/terrain.json"] } } } ] },
+          "who": { "use": "who" } } } },
+        { "name": "structure", "key": "structure", "node": { "type": "object", "fields": {
+          "structure": { "type": "variant", "required": true, "help": "true: on any structure; false: on none; or a structure id or tag.", "variants": [
+            { "name": "any / none", "kind": "bool", "node": { "type": "bool", "sample": true } },
+            { "name": "id or tag", "kind": "string", "node": { "type": "ref", "ref": ["data/structures.json", "tags:data/structures.json"] } } ] },
+          "who": { "use": "who" } } } },
+        { "name": "unit", "key": "unit", "node": { "type": "object", "fields": {
+          "unit": { "type": "ref", "required": true, "ref": ["data/units.json", "tags:data/units.json"], "help": "A unit type id or tag." }, "who": { "use": "who" } } } },
+        { "name": "carrying", "key": "carrying", "node": { "type": "object", "fields": {
+          "carrying": { "type": "bool", "required": true, "help": "Carrying another unit." }, "who": { "use": "who" } } } },
+        { "name": "round", "key": "round", "node": { "type": "object", "fields": { "round": { "use": "opValue", "required": true, "help": "The battle round number compared." } } } },
+        { "name": "initiating", "key": "initiating", "node": { "type": "object", "fields": {
+          "initiating": { "type": "bool", "required": true, "help": "true: the owner started the fight; false: it was attacked (combat blocks)." } } } },
+        { "name": "distance", "key": "distance", "node": { "type": "object", "fields": { "distance": { "use": "opValue", "required": true, "help": "Distance between the fighters (combat blocks)." } } } },
+        { "name": "formula", "key": "formula", "node": { "type": "object", "fields": {
+          "formula": { "type": "string", "required": true, "sample": "1", "help": "A formula; true when it is not 0 (not in always blocks)." } } } },
+        { "name": "condition", "key": "condition", "node": { "type": "object", "fields": {
+          "condition": { "type": "ref", "required": true, "ref": "data/conditions.json", "help": "The unit has this status condition." }, "who": { "use": "who" } } } },
+        { "name": "weaponKind", "key": "weaponKind", "node": { "type": "object", "fields": {
+          "weaponKind": { "type": "ref", "required": true, "ref": "field:damageKind:data/weapons.json", "help": "The damage kind a weapon's damageKind says." }, "who": { "use": "who" } } } },
+        { "name": "turn", "key": "turn", "node": { "type": "object", "fields": {
+          "turn": { "type": "variant", "required": true, "help": "Which battle turns.", "variants": [
+            { "name": "odd turns", "key": "odd", "node": { "type": "object", "fields": { "odd": { "use": "flag" } } } },
+            { "name": "even turns", "key": "even", "node": { "type": "object", "fields": { "even": { "use": "flag" } } } },
+            { "name": "from turn", "key": "from", "node": { "type": "object", "fields": {
+              "from": { "type": "int", "min": 1, "max": 1000000, "help": "First turn." }, "to": { "type": "int", "min": 1, "max": 1000000, "help": "Last turn." } } } },
+            { "name": "until turn", "key": "to", "node": { "type": "object", "fields": {
+              "from": { "type": "int", "min": 1, "max": 1000000, "help": "First turn." }, "to": { "type": "int", "min": 1, "max": 1000000, "help": "Last turn." } } } },
+            { "name": "every n turns", "key": "every", "node": { "type": "object", "fields": {
+              "every": { "type": "int", "required": true, "min": 2, "max": 1000, "help": "Every this many turns." },
+              "offset": { "type": "int", "min": 0, "max": 999, "help": "Turns to skip first (less than every)." } } } } ] } } } },
+        { "name": "counterattack", "key": "counterattack", "node": { "type": "object", "fields": {
+          "counterattack": { "type": "bool", "required": true, "help": "The foe answers this fight (strike and struck blocks)." } } } },
+        { "name": "carries", "key": "carries", "node": { "type": "object", "fields": {
+          "carries": { "type": "ref", "required": true, "ref": "data/items.json", "help": "The unit carries this item." }, "who": { "use": "who" } } } },
+        { "name": "inventory", "key": "inventory", "node": { "type": "object", "fields": {
+          "inventory": { "type": "variant", "required": true, "help": "The inventory is full, not full, or has a number of items.", "variants": [
+            { "name": "full", "value": "full" }, { "name": "not full", "value": "notFull" },
+            { "name": "count", "key": "value", "node": { "type": "object", "fields": {
+              "op": { "use": "op" }, "value": { "type": "int", "required": true, "min": 0, "max": 1000, "help": "Number of items." } } } } ] },
+          "who": { "use": "who" } } } },
+        { "name": "strike", "key": "strike", "node": { "type": "object", "fields": {
+          "strike": { "type": "variant", "required": true, "help": "Which strike of the fight (strike and struck blocks).", "variants": [
+            { "name": "first", "value": "first" }, { "name": "follow-up", "value": "followUp" },
+            { "name": "number", "kind": "number", "node": { "type": "int", "min": 1, "max": 1000 } },
+            { "name": "compare", "key": "value", "node": { "type": "object", "fields": {
+              "op": { "use": "op" }, "value": { "type": "int", "required": true, "min": 1, "max": 1000, "help": "Strike number." } } } } ] } } } },
+        { "name": "marked", "key": "marked", "node": { "type": "object", "fields": {
+          "marked": { "type": "string", "required": true, "help": "A mark (1 to 40 characters) another block's mark effect sets." },
+          "is": { "type": "bool", "help": "false: the mark is NOT set." }, "who": { "use": "who" } } } },
+        { "name": "damageType", "key": "damageType", "node": { "type": "object", "fields": {
+          "damageType": { "type": "ref", "required": true, "ref": "game.json#damageTypes", "help": "The weapon's damage type." }, "who": { "use": "who" } } } },
+        { "name": "arc", "key": "arc", "node": { "type": "object", "fields": {
+          "arc": { "type": "enum", "required": true, "values": ["front", "side", "back"], "help": "The arc the attack comes from (needs rules.facing)." }, "who": { "use": "who" } } } } ]
+    },
+
+    "numberOrFormula": {
+      "type": "variant",
+      "variants": [
+        { "name": "number", "kind": "number", "node": { "type": "int", "min": -1000, "max": 1000 } },
+        { "name": "formula", "kind": "string", "node": { "type": "string" }, "sample": "1" } ]
+    },
+    "percentOrFormula": {
+      "type": "variant",
+      "variants": [
+        { "name": "percent", "kind": "number", "node": { "type": "int", "min": 0, "max": 1000 } },
+        { "name": "formula", "kind": "string", "node": { "type": "string" }, "sample": "100" } ]
+    },
+    "toFoeSelf": { "type": "enum", "values": ["foe", "self"], "sample": "self", "help": "foe: the other fighter (combat blocks); default: the owner." },
+    "amount": {
+      "type": "variant",
+      "variants": [
+        { "name": "number", "kind": "number", "node": { "type": "int", "min": 1, "max": 1000000 } },
+        { "name": "formula", "kind": "string", "node": { "type": "string" }, "sample": "5" },
+        { "name": "fixed amount", "key": "amount", "node": { "type": "object", "fields": { "amount": { "type": "int", "required": true, "min": 1, "max": 1000000, "help": "Fixed amount." } } } },
+        { "name": "percent of max", "key": "percent", "node": { "type": "object", "fields": { "percent": { "type": "int", "required": true, "min": 1, "max": 100, "help": "Percent of the maximum." } } } },
+        { "name": "formula (object)", "key": "formula", "node": { "type": "object", "fields": { "formula": { "type": "string", "required": true, "sample": "5", "help": "Formula." } } } } ]
+    },
+
+    "effect": {
+      "type": "variant", "help": "One effect. Where each works is in its help line; the loader refuses an effect in the wrong kind of block.",
+      "variants": [
+        { "name": "stats", "key": "stats", "node": { "type": "object", "fields": {
+          "stats": { "type": "map", "ref": "game.json#stats", "required": true, "min": 1, "of": { "type": "variant", "variants": [
+            { "name": "number", "kind": "number", "node": { "type": "int", "min": -1000, "max": 1000 } },
+            { "name": "formula", "kind": "string", "node": { "type": "string" }, "sample": "1" } ] }, "help": "Stat bonus per stat (always and combat blocks; formulas except in always)." },
+          "to": { "use": "toFoeSelf" } } } },
+        { "name": "growths", "key": "growths", "node": { "type": "object", "fields": {
+          "growths": { "type": "map", "ref": "game.json#stats", "required": true, "min": 1, "of": { "type": "int", "min": -1000, "max": 1000 }, "help": "Growth bonus per stat (always blocks)." } } } },
+        { "name": "maxMoveCost", "key": "maxMoveCost", "node": { "type": "object", "fields": {
+          "maxMoveCost": { "type": "int", "required": true, "min": 1, "max": 100, "help": "Terrain never costs more than this to enter (always blocks)." } } } },
+        { "name": "pass", "key": "pass", "node": { "type": "object", "fields": {
+          "pass": { "type": "enum", "required": true, "values": ["enemies"], "help": "Can walk through enemy units (always blocks)." } } } },
+        { "name": "moveAgain", "key": "moveAgain", "node": { "type": "object", "fields": {
+          "moveAgain": { "type": "variant", "required": true, "help": "May move again after acting (always blocks).", "variants": [
+            { "name": "always", "value": true },
+            { "name": "not after attacking", "key": "notAfterAttack", "node": { "type": "object", "fields": { "notAfterAttack": { "use": "flag" } } } } ] } } } },
+        { "name": "xpPercent", "key": "xpPercent", "node": { "type": "object", "fields": {
+          "xpPercent": { "type": "int", "required": true, "min": 1, "max": 1000, "help": "Experience gained in percent (always blocks)." } } } },
+        { "name": "ability", "key": "ability", "node": { "type": "object", "fields": {
+          "ability": { "type": "ref", "required": true, "ref": "data/abilities.json", "help": "Gives this menu ability (always blocks, no conditions)." } } } },
+        { "name": "hit", "key": "hit", "node": { "type": "object", "fields": {
+          "hit": { "use": "numberOrFormula", "required": true, "help": "Hit chance change (combat and strike blocks)." }, "to": { "use": "toFoeSelf" } } } },
+        { "name": "crit", "key": "crit", "node": { "type": "object", "fields": {
+          "crit": { "use": "numberOrFormula", "required": true, "help": "Critical chance change (combat and strike blocks)." }, "to": { "use": "toFoeSelf" } } } },
+        { "name": "damage", "key": "damage", "node": { "type": "object", "fields": {
+          "damage": { "use": "numberOrFormula", "required": true, "help": "Damage dealt change (combat and strike blocks)." }, "to": { "use": "toFoeSelf" } } } },
+        { "name": "avoid", "key": "avoid", "node": { "type": "object", "fields": {
+          "avoid": { "use": "numberOrFormula", "required": true, "help": "Avoid change (combat and struck blocks)." }, "to": { "use": "toFoeSelf" } } } },
+        { "name": "critAvoid", "key": "critAvoid", "node": { "type": "object", "fields": {
+          "critAvoid": { "use": "numberOrFormula", "required": true, "help": "Critical avoid change (combat and struck blocks)." }, "to": { "use": "toFoeSelf" } } } },
+        { "name": "damageTaken", "key": "damageTaken", "node": { "type": "object", "fields": {
+          "damageTaken": { "use": "numberOrFormula", "required": true, "help": "Damage taken change (combat and struck blocks)." }, "to": { "use": "toFoeSelf" } } } },
+        { "name": "damagePercent", "key": "damagePercent", "node": { "type": "object", "fields": {
+          "damagePercent": { "use": "percentOrFormula", "required": true, "help": "Damage dealt in percent (combat and strike blocks)." } } } },
+        { "name": "damageTakenPercent", "key": "damageTakenPercent", "node": { "type": "object", "fields": {
+          "damageTakenPercent": { "use": "percentOrFormula", "required": true, "help": "Damage taken in percent (combat and struck blocks)." } } } },
+        { "name": "strikes", "key": "strikes", "node": { "type": "object", "fields": {
+          "strikes": { "type": "int", "required": true, "min": -7, "max": 7, "help": "Strikes per fight added (combat blocks)." }, "to": { "use": "toFoeSelf" } } } },
+        { "name": "multiStrike", "key": "multiStrike", "node": { "type": "object", "fields": {
+          "multiStrike": { "type": "int", "required": true, "min": 2, "max": 4, "help": "Every hit lands this many times (combat blocks)." } } } },
+        { "name": "strikeFirst", "key": "strikeFirst", "node": { "type": "object", "fields": { "strikeFirst": { "use": "flag", "help": "Strikes first even when attacked (combat blocks)." } } } },
+        { "name": "counterAnyRange", "key": "counterAnyRange", "node": { "type": "object", "fields": { "counterAnyRange": { "use": "flag", "help": "Answers at any range (combat blocks)." } } } },
+        { "name": "noCounter", "key": "noCounter", "node": { "type": "object", "fields": { "noCounter": { "use": "flag", "help": "The foe cannot answer (combat blocks)." } } } },
+        { "name": "drain", "key": "drain", "node": { "type": "object", "fields": {
+          "drain": { "type": "int", "required": true, "min": 1, "max": 100, "help": "Percent of the damage dealt restored as hit points (strike blocks)." } } } },
+        { "name": "strikeAgain", "key": "strikeAgain", "node": { "type": "object", "fields": { "strikeAgain": { "use": "flag", "help": "Strike again at once (strike blocks)." } } } },
+        { "name": "survive", "key": "survive", "node": { "type": "object", "fields": { "survive": { "use": "flag", "help": "Survives a lethal hit with 1 hit point (struck blocks)." } } } },
+        { "name": "heal", "key": "heal", "node": { "type": "object", "fields": {
+          "heal": { "use": "amount", "required": true, "help": "Hit points restored (turnStart, defeat, afterCombat, staffUse blocks)." },
+          "to": { "type": "enum", "values": ["self", "allies"], "sample": "self", "help": "Who is healed (default: the owner)." },
+          "within": { "type": "int", "min": 1, "max": 10, "when": { "to": ["allies"] }, "help": "Distance for allies (default 1)." } } } },
+        { "name": "hurt", "key": "hurt", "node": { "type": "object", "fields": {
+          "hurt": { "type": "variant", "required": true, "help": "Damage dealt (turnStart and afterCombat blocks).", "variants": [
+            { "name": "number", "kind": "number", "node": { "type": "int", "min": 1, "max": 1000000 } },
+            { "name": "formula", "kind": "string", "node": { "type": "string" }, "sample": "5" },
+            { "name": "random range", "kind": "array", "node": { "type": "list", "length": 2, "of": { "type": "int", "min": 1, "max": 1000000 } }, "sample": [1, 3] },
+            { "name": "amount", "key": "amount", "node": { "type": "object", "fields": {
+              "amount": { "type": "int", "required": true, "min": 1, "max": 1000000, "help": "Fixed amount." },
+              "canKill": { "type": "bool", "help": "May reduce the unit to 0 (default: stops at 1)." }, "lethal": { "type": "bool", "help": "Same as canKill." } } } },
+            { "name": "percent", "key": "percent", "node": { "type": "object", "fields": {
+              "percent": { "type": "int", "required": true, "min": 1, "max": 100, "help": "Percent of the maximum." },
+              "canKill": { "type": "bool", "help": "May reduce the unit to 0." } } } },
+            { "name": "formula (object)", "key": "formula", "node": { "type": "object", "fields": {
+              "formula": { "type": "string", "required": true, "sample": "5", "help": "Formula for the damage." },
+              "canKill": { "type": "bool", "help": "May reduce the unit to 0 (default: stops at 1)." } } } } ] },
+          "to": { "type": "enum", "values": ["foe", "enemies", "self"], "sample": "self", "help": "Whom it hurts: self and enemies in turnStart, foe in afterCombat." },
+          "within": { "type": "int", "min": 1, "max": 10, "when": { "to": ["enemies"] }, "help": "Distance for enemies (default 1)." } } } },
+        { "name": "actAgain", "key": "actAgain", "node": { "type": "object", "fields": { "actAgain": { "use": "flag", "help": "The owner may act again (defeat and afterCombat blocks)." } } } },
+        { "name": "immune", "key": "immune", "node": { "type": "object", "fields": {
+          "immune": { "type": "list", "required": true, "min": 1, "of": { "type": "ref", "ref": "data/conditions.json" }, "help": "Conditions the unit cannot get (always blocks)." } } } },
+        { "name": "inflict", "key": "inflict", "node": { "type": "object", "fields": {
+          "inflict": { "use": "_common#inflictPlain", "required": true, "help": "Puts a condition on the other fighter (strike and struck blocks)." } } } },
+        { "name": "followUp", "key": "followUp", "node": { "type": "object", "fields": {
+          "followUp": { "type": "enum", "required": true, "values": ["force", "forbid"], "help": "Always / never make a follow-up strike (combat blocks)." }, "to": { "use": "toFoeSelf" } } } },
+        { "name": "followShift", "key": "followShift", "node": { "type": "object", "fields": {
+          "followShift": { "type": "int", "required": true, "min": -100, "max": 100, "help": "Shifts the follow-up threshold (combat blocks)." }, "to": { "use": "toFoeSelf" } } } },
+        { "name": "trianglePercent", "key": "trianglePercent", "node": { "type": "object", "fields": {
+          "trianglePercent": { "type": "int", "required": true, "min": 0, "max": 1000, "help": "Weapon triangle strength in percent (combat blocks)." }, "to": { "use": "toFoeSelf" } } } },
+        { "name": "weaponXpPercent", "key": "weaponXpPercent", "node": { "type": "object", "fields": {
+          "weaponXpPercent": { "type": "int", "required": true, "min": 1, "max": 1000, "help": "Weapon experience gained in percent (always blocks)." } } } },
+        { "name": "noCarryPenalty", "key": "noCarryPenalty", "node": { "type": "object", "fields": { "noCarryPenalty": { "use": "flag", "help": "No stat penalty for carrying (always blocks)." } } } },
+        { "name": "cancelEffective", "key": "cancelEffective", "node": { "type": "object", "fields": {
+          "cancelEffective": { "type": "variant", "required": true, "help": "Effectiveness it cancels (always blocks).", "variants": [
+            { "name": "all", "value": true },
+            { "name": "these tags", "kind": "array", "node": { "type": "list", "of": { "type": "string" } }, "sample": ["flier"] } ] } } } },
+        { "name": "cure", "key": "cure", "node": { "type": "object", "fields": {
+          "cure": { "use": "_common#cureList", "required": true, "help": "Conditions removed (turnStart, defeat, afterCombat, staffUse blocks)." } } } },
+        { "name": "vision", "key": "vision", "node": { "type": "object", "fields": {
+          "vision": { "type": "int", "required": true, "min": -10, "max": 10, "sample": 1, "help": "Sight added in fog of war, not 0 (always blocks)." } } } },
+        { "name": "recoil", "key": "recoil", "node": { "type": "object", "fields": {
+          "recoil": { "type": "variant", "required": true, "help": "Hit points the wielder loses (strike blocks); `dealt` = the strike's damage.", "variants": [
+            { "name": "number", "kind": "number", "node": { "type": "int", "min": 1, "max": 1000000 } },
+            { "name": "formula", "kind": "string", "node": { "type": "string" }, "sample": "dealt / 2" },
+            { "name": "amount", "key": "amount", "node": { "type": "object", "fields": {
+              "amount": { "type": "variant", "help": "Number or formula (default: dealt).", "variants": [
+                { "name": "number", "kind": "number", "node": { "type": "int", "min": 1, "max": 1000000 } },
+                { "name": "formula", "kind": "string", "node": { "type": "string" }, "sample": "dealt" } ] },
+              "instead": { "type": "bool", "help": "true: the foe takes none of the damage." } } } },
+            { "name": "instead only", "key": "instead", "node": { "type": "object", "fields": { "instead": { "type": "bool", "required": true, "help": "true: the foe takes none of the damage." } } } } ] } } } },
+        { "name": "mark", "key": "mark", "node": { "type": "object", "fields": {
+          "mark": { "type": "string", "required": true, "help": "Sets a mark (1 to 40 characters) a marked condition of another block can ask (strike and struck blocks)." } } } } ]
+    },
+    "block": {
+      "type": "object", "help": "One block: when it applies, its conditions, and its effects.",
+      "fields": {
+        "when": { "type": "enum", "required": true, "values": ["always", "combat", "strike", "struck", "turnStart", "defeat", "afterCombat", "staffUse"], "help": "always: a permanent bonus; combat: while a fight is worked out; strike / struck: at each strike made / suffered; turnStart; defeat; afterCombat; staffUse." },
+        "if": { "type": "list", "of": { "use": "condition" }, "help": "Conditions (at most 8) that must all hold." },
+        "chance": { "type": "variant", "help": "Percent or formula (not in always and combat blocks).", "variants": [
+          { "name": "percent", "kind": "number", "node": { "type": "int" } },
+          { "name": "formula", "kind": "string", "node": { "type": "string" }, "sample": "50" } ] },
+        "aura": { "type": "object", "block": true, "enable": { "to": "allies" }, "help": "The block gives its effects to other units near the owner instead (combat blocks).", "fields": {
+          "to": { "type": "enum", "required": true, "values": ["allies", "enemies"], "help": "Whom it reaches." },
+          "within": { "type": "int", "min": 1, "max": 10, "help": "Distance in squares (default 1)." },
+          "match": { "type": "ref", "ref": ["data/units.json", "tags:data/units.json"], "help": "Only units of this type id or tag." },
+          "weapon": { "type": "ref", "ref": ["data/weapons.json", "field:group:data/weapons.json"], "help": "Only while the receiver uses this weapon id or group." },
+          "weaponKind": { "type": "ref", "ref": "field:damageKind:data/weapons.json", "help": "Only while the receiver's weapon has this damage kind." },
+          "test": { "type": "string", "sample": "1", "help": "Formula (a = the owner, b = the receiver) that must be true." } } }
+      }
+    }
+  }
+}

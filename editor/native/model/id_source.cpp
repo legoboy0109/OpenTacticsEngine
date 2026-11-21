@@ -9,7 +9,9 @@ namespace ote_native {
 IdSource::IdSource(Project* project, QObject* parent) : QObject(parent), project_(project) {}
 
 QString IdSource::fileOf(const std::string& source) {
-  const QString s = QString::fromStdString(source);
+  QString s = QString::fromStdString(source);
+  if (s.startsWith("tags:")) s = s.mid(5);
+  else if (s.startsWith("field:")) s = s.mid(s.indexOf(':', 6) + 1);
   const int hash = s.indexOf('#');
   return hash < 0 ? s : s.left(hash);
 }
@@ -34,6 +36,20 @@ QStringList IdSource::ids(const std::vector<std::string>& sources) {
     watch(rel);
     const ote::Json* list = &doc->root();
     const QString s = QString::fromStdString(src);
+    if (s.startsWith("tags:") || s.startsWith("field:")) {
+      // "tags:data/units.json" / "field:group:data/weapons.json": the free words a key of the rows holds (text or list of
+      // texts): what unit filters, conditions and weapon locks may name.
+      const std::string key = s.startsWith("tags:") ? "tags" : s.mid(6, s.indexOf(':', 6) - 6).toStdString();
+      if (auto p = findTableArray(doc->root()))
+        for (const ote::Json& row : resolvePath(doc->root(), *p)->items()) {
+          std::vector<const ote::Json*> words;
+          if (row[key].isString()) words.push_back(&row[key]);
+          for (const ote::Json& t : row[key].items()) words.push_back(&t);
+          for (const ote::Json* w : words)
+            if (w->isString() && !w->asString().empty() && !out.contains(QString::fromStdString(w->asString()))) out.append(QString::fromStdString(w->asString()));
+        }
+      continue;
+    }
     const int hash = s.indexOf('#');
     if (hash >= 0) {
       for (const QString& part : s.mid(hash + 1).split('.')) {

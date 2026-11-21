@@ -1,6 +1,7 @@
 #include "table_editor.h"
 
 #include <QApplication>
+#include <QButtonGroup>
 #include <QClipboard>
 #include <QHBoxLayout>
 #include <QHeaderView>
@@ -16,6 +17,7 @@
 
 #include <QRegularExpression>
 #include <QSplitter>
+#include <QToolButton>
 
 #include "form_context.h"
 #include "form_view.h"
@@ -104,10 +106,22 @@ TableEditor::TableEditor(Project* project, JsonDocument* doc, JsonPath arrayPath
     formPane->setObjectName("formPane");
     auto* fl = new QVBoxLayout(formPane);
     fl->setContentsMargins(4, 4, 4, 4);
-    fl->addWidget(formTitle_);
+    // Title with previous / next row buttons: in the form-only view there is no table to pick a row from.
+    auto* titleBar = new QHBoxLayout;
+    prevRow_ = smallRowButton(QStringLiteral("‹"), tr("Previous row"), "formPrevRow");
+    nextRow_ = smallRowButton(QStringLiteral("›"), tr("Next row"), "formNextRow");
+    titleBar->addWidget(formTitle_, 1);
+    titleBar->addWidget(prevRow_);
+    titleBar->addWidget(nextRow_);
+    fl->addLayout(titleBar);
     fl->addWidget(form_, 1);
+    connect(prevRow_, &QToolButton::clicked, this, [this] { stepRow(-1); });
+    connect(nextRow_, &QToolButton::clicked, this, [this] { stepRow(+1); });
     auto* split = new QSplitter(Qt::Horizontal, this);
     split->setObjectName("tableFormSplitter");
+    split_ = split;
+    formPane_ = formPane;
+    tablePane_ = pane;
     split->setChildrenCollapsible(false);
     split->addWidget(pane);
     split->addWidget(formPane);
@@ -116,7 +130,28 @@ TableEditor::TableEditor(Project* project, JsonDocument* doc, JsonPath arrayPath
     split->setSizes({440, 520});
     pane->setMinimumWidth(260);
     formPane->setMinimumWidth(340);
+    // View toggle: table | table + form | form. The choice is the caller's to remember (per kind of file).
+    auto* modeBar = new QHBoxLayout;
+    modeBar->setContentsMargins(4, 2, 4, 0);
+    modeBar->addStretch(1);
+    auto* group = new QButtonGroup(this);
+    group->setExclusive(true);
+    const QPair<QString, QString> modes[3] = {{tr("Table"), tr("Only the table")}, {tr("Table + form"), tr("Table with the form of the selected row")}, {tr("Form"), tr("Only the form of the selected row (use the arrows to change rows)")}};
+    for (int i = 0; i < 3; ++i) {
+      auto* b = new QToolButton(this);
+      b->setObjectName(QStringLiteral("viewMode%1").arg(i));
+      b->setText(modes[i].first);
+      b->setToolTip(modes[i].second);
+      b->setCheckable(true);
+      b->setAutoRaise(false);
+      group->addButton(b, i);
+      modeBar->addWidget(b);
+      modeButtons_[i] = b;
+    }
+    connect(group, &QButtonGroup::idClicked, this, [this](int id) { setViewMode(id); });
+    root->addLayout(modeBar);
     root->addWidget(split);
+    setViewMode(1);
     connect(form_, &FormView::showInTreeRequested, this, &TableEditor::showInTreeRequested);
     connect(view_->selectionModel(), &QItemSelectionModel::currentRowChanged, this, [this] { syncForm(); });
     // Rows added, removed, moved or the whole table reset: the row the form shows may now be another one.
@@ -153,6 +188,32 @@ TableEditor::TableEditor(Project* project, JsonDocument* doc, JsonPath arrayPath
   connect(model_, &QAbstractItemModel::columnsInserted, this, &TableEditor::autoSizeColumns);
   autoSizeColumns();
   updateRowButtons();
+}
+
+QToolButton* TableEditor::smallRowButton(const QString& text, const QString& tip, const char* name) {
+  auto* b = new QToolButton(this);
+  b->setObjectName(name);
+  b->setText(text);
+  b->setToolTip(tip);
+  b->setAutoRaise(true);
+  return b;
+}
+
+void TableEditor::setViewMode(int mode) {
+  if (!split_ || mode < 0 || mode > 2) return;
+  viewMode_ = mode;
+  tablePane_->setVisible(mode != 2);
+  formPane_->setVisible(mode != 0);
+  for (int i = 0; i < 3; ++i) modeButtons_[i]->setChecked(i == mode);
+  emit viewModeChanged(mode);
+}
+
+void TableEditor::stepRow(int delta) {
+  const QModelIndex cur = view_->currentIndex();
+  const int next = (cur.isValid() ? cur.row() : -1) + delta;
+  if (next < 0 || next >= proxy_->rowCount()) return;
+  view_->selectRow(next);
+  view_->setCurrentIndex(proxy_->index(next, cur.isValid() ? cur.column() : 0));
 }
 
 void TableEditor::autoSizeColumns() {

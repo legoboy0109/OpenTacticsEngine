@@ -10,6 +10,7 @@
 
 class QLabel;
 class QSplitter;
+class QToolButton;
 class QLineEdit;
 class QPushButton;
 class QTableView;
@@ -59,6 +60,9 @@ class TableEditor : public QWidget {
   void showMessage(const QString& text, bool isError);
   void autoSizeColumns();
 
+  // The three views of a table file with a schema: 0 table only, 1 table + form (default), 2 form only.
+  void setViewMode(int mode);
+  int viewMode() const { return viewMode_; }
   FormView* form() const { return form_; }
   FormContext* formContext() const { return formCtx_; }
   // Selects row `sourceRow` (file order) and shows it in the form.
@@ -71,6 +75,7 @@ class TableEditor : public QWidget {
  signals:
   void messageShown(const QString& text);
   void showInTreeRequested(const JsonPath& path);
+  void viewModeChanged(int mode);
 
  protected:
   bool eventFilter(QObject* obj, QEvent* ev) override;
@@ -78,6 +83,8 @@ class TableEditor : public QWidget {
  private:
   QList<int> selectedSourceRows() const;
   void updateRowButtons();
+  void stepRow(int delta);
+  QToolButton* smallRowButton(const QString& text, const QString& tip, const char* name);
   void syncForm();         // deferred, coalesced
   void applyFormTarget();  // now
 
@@ -94,6 +101,13 @@ class TableEditor : public QWidget {
   FormContext* formCtx_ = nullptr;
   FormView* form_ = nullptr;
   QLabel* formTitle_ = nullptr;
+  QSplitter* split_ = nullptr;
+  QWidget* tablePane_ = nullptr;
+  QWidget* formPane_ = nullptr;
+  QToolButton* prevRow_ = nullptr;
+  QToolButton* nextRow_ = nullptr;
+  QToolButton* modeButtons_[3] = {nullptr, nullptr, nullptr};
+  int viewMode_ = 1;
   bool syncPending_ = false;
   int rowBeforeReset_ = -1;
 };

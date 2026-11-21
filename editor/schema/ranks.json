@@ -1,0 +1,13 @@
+{
+  "files": ["data/ranks.json"],
+  "root": {
+    "type": "object",
+    "fields": {
+      "growth": { "type": "enum", "values": ["fixed", "use"], "help": "fixed: ranks are given; use: ranks grow with use." },
+      "ranks": { "type": "list", "required": true, "help": "The ladder of weapon ranks, lowest first.", "of": { "type": "object", "fields": {
+        "id": { "type": "string", "required": true, "help": "Lowercase letters, digits, _ and -; weapons and units name it." },
+        "name": { "type": "string", "help": "Display name." },
+        "xp": { "type": "int", "required": true, "min": 0, "max": 9999, "sample": 0, "help": "Weapon experience at which it starts (rising)." } } } }
+    }
+  }
+}

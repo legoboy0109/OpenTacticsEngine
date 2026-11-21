@@ -13,14 +13,14 @@
         "units": { "type": "list", "of": { "type": "ref", "ref": "data/units.json" }, "help": "Unit types it unlocks." } } },
       "bonus": { "type": "object", "block": true, "help": "Side-wide bonus when researched.", "fields": {
         "types": { "type": "list", "of": { "type": "ref", "ref": "data/units.json" }, "help": "Only these unit types get the stat bonus." },
-        "stats": { "type": "map", "ref": "game.json#stats", "of": { "type": "int", "sample": 1 }, "help": "Stat bonus per stat (at least one non-zero)." },
+        "stats": { "type": "map", "ref": "game.json#stats", "required": true, "min": 1, "of": { "type": "int", "sample": 1 }, "help": "Stat bonus per stat (at least one non-zero)." },
         "income": { "type": "map", "ref": "game.json#resources", "of": { "type": "int", "sample": 1 }, "help": "Income per resource (needs rules.economy)." } } },
       "tree": { "type": "string", "help": "Name of the tree (branch) shown in the research screen." },
       "tier": { "type": "int", "min": 0, "max": 99, "help": "Row of the technology inside its tree." },
       "exclusiveGroup": { "type": "string", "help": "Technologies of one group exclude each other: a side takes only one." },
       "requiresStructures": { "type": "list", "of": { "type": "ref", "ref": "data/structures.json" }, "help": "Structures a side must own to research it." },
       "grants": { "type": "object", "block": true, "help": "Skills given to units of the side.", "fields": {
-        "skills": { "type": "list", "required": true, "of": { "type": "json" }, "help": "Skill ids or { skill, filter } entries." } } }
+        "skills": { "type": "list", "required": true, "of": { "use": "_common#skillGrant" }, "help": "Skills as plain ids or { skill, filter } entries." } } }
     }
   }
 }
