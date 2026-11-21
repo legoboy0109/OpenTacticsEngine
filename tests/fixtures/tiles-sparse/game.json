@@ -81,6 +81,11 @@
       "id": "sparse",
       "name": "Sparse",
       "file": "maps/sparse.json"
+    },
+    {
+      "id": "scroll",
+      "name": "Scroll",
+      "file": "maps/scroll.json"
     }
   ]
 }
