@@ -4,6 +4,7 @@ import { FieldGroup } from '../../ui/Field'
 import { NumberInput } from '../../ui/NumberInput'
 import { Check } from '../../ui/Toggle'
 import { T } from './text'
+import { MOVE_COST_MAX } from '../../model/dataLimits'
 
 /** One row per movement type: a cost, or "cannot enter" (stored as 0). */
 export function MoveCosts({ id }: { id: string }) {
@@ -22,7 +23,7 @@ export function MoveCosts({ id }: { id: string }) {
               <tr key={m.id}>
                 <th scope="row">{m.name}</th>
                 <td>
-                  <NumberInput value={blocked ? undefined : cost} min={1} allowEmpty placeholder="1" disabled={blocked} aria-label={`${m.name} cost`}
+                  <NumberInput value={blocked ? undefined : cost} min={1} max={MOVE_COST_MAX} allowEmpty placeholder="1" disabled={blocked} aria-label={`${m.name} cost`}
                     onChange={(v) => edit((d) => setMoveCost(d, id, m.id, v), `terrain:${id}:cost:${m.id}`)} />
                 </td>
                 <td>

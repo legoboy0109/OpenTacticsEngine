@@ -10,6 +10,7 @@ import { NumberInput } from '../../ui/NumberInput'
 import { Select } from '../../ui/Select'
 import { TextInput } from '../../ui/TextInput'
 import { T } from './text'
+import { CRIT_MULTIPLIER_MAX } from '../../model/dataLimits'
 
 /** One formula as a preset picker + the preset's few blanks + a plain-language summary. */
 export function FormulaEditor({ fkey, label, help }: { fkey: FormulaKey; label?: string; help?: string }) {
@@ -43,7 +44,7 @@ export function FormulaEditor({ fkey, label, help }: { fkey: FormulaKey; label?:
 
       {fkey === 'crit' && view.preset !== 'none' && (
         <Field label={T.critMultiplier} help={T.critMultiplierHelp}>
-          <NumberInput value={game.formulas?.critMultiplier} integer={false} min={1} allowEmpty placeholder="3"
+          <NumberInput value={game.formulas?.critMultiplier} integer={false} min={1} max={CRIT_MULTIPLIER_MAX} allowEmpty placeholder="3"
             onChange={(v) => edit((d) => setCritMultiplier(d, v), 'game:crit-mult')} />
         </Field>
       )}

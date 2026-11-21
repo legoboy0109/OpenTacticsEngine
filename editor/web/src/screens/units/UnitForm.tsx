@@ -19,6 +19,7 @@ import { SightCard } from '../fog/SightCard'
 import { SupplyCard } from './SupplyCard'
 import { UnitSrpgCards } from './srpg/UnitSrpgCards'
 import { T } from './text'
+import { STAT_LIMIT } from '../../model/dataLimits'
 
 export function UnitForm({ id }: { id: string }) {
   const doc = useDoc()
@@ -65,8 +66,8 @@ export function UnitForm({ id }: { id: string }) {
       <Card>
         <KeyNumberTable label={T.stats} help={growth ? `${T.statsHelp} ${T.growthHelp}` : T.statsHelp} rows={statRows} emptyText={T.noStats}
           columns={[
-            { title: T.statCol, values: unit.stats, min: 0, placeholder: '0', onChange: (k, v) => edit((d) => setUnitNumber(d, id, 'stats', k, v), `${key}:stat:${k}`) },
-            ...(growth ? [{ title: T.growthCol, values: unit.growths, min: 0, placeholder: '0', suffix: '%', onChange: (k: string, v: number | undefined) => edit((d) => setUnitNumber(d, id, 'growths', k, v), `${key}:growth:${k}`) }] : []),
+            { title: T.statCol, values: unit.stats, min: 0, max: STAT_LIMIT, placeholder: '0', onChange: (k, v) => edit((d) => setUnitNumber(d, id, 'stats', k, v), `${key}:stat:${k}`) },
+            ...(growth ? [{ title: T.growthCol, values: unit.growths, min: 0, max: STAT_LIMIT, placeholder: '0', suffix: '%', onChange: (k: string, v: number | undefined) => edit((d) => setUnitNumber(d, id, 'growths', k, v), `${key}:growth:${k}`) }] : []),
           ]} />
       </Card>
 

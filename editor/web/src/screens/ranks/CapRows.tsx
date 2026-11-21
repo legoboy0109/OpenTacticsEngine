@@ -4,6 +4,7 @@ import { MAX_CAP, resultingCap } from '../../model/ranks'
 import { useDoc } from '../../store/context'
 import { NumberInput } from '../../ui/NumberInput'
 import { R } from './text'
+import { STAT_LIMIT } from '../../model/dataLimits'
 
 interface Props {
   values: Record<string, number> | undefined
@@ -38,7 +39,7 @@ export function CapRows({ values, onChange, mode, base, fallback, testId }: Prop
             {mode === 'adjust' && <td className="muted-cell" data-testid={`cap-base-${s.id}`}>{word(base?.(s.id))}</td>}
             <td>
               {mode === 'adjust'
-                ? <NumberInput value={values?.[s.id]} allowEmpty placeholder="0" aria-label={`${s.name} cap adjustment`} onChange={(v) => onChange(s.id, v)} />
+                ? <NumberInput value={values?.[s.id]} allowEmpty min={-STAT_LIMIT} max={STAT_LIMIT} placeholder="0" aria-label={`${s.name} cap adjustment`} onChange={(v) => onChange(s.id, v)} />
                 : <NumberInput value={values?.[s.id]} allowEmpty min={1} max={MAX_CAP} placeholder={word(fallback?.(s.id))} aria-label={R.capLabel(s.name)} onChange={(v) => onChange(s.id, v)} />}
             </td>
             {mode === 'adjust' && <td className="total-cell" data-testid={`cap-result-${s.id}`}><strong>{word(resultingCap(base?.(s.id), values?.[s.id]))}</strong></td>}

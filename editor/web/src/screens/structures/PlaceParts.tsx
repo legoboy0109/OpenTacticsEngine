@@ -15,6 +15,7 @@ import { Select } from '../../ui/Select'
 import { Check } from '../../ui/Toggle'
 import { D } from './placeText'
 import { DoorWord } from '../fog/LightParts'
+import { STAT_LIMIT } from '../../model/dataLimits'
 
 const PARTS: Array<{ part: PlaceKind; label: string; help: string }> = [
   { part: 'door', label: D.door, help: D.doorHelp },
@@ -99,7 +100,7 @@ function OpeningPart({ s, part }: { s: Structure; part: 'door' | 'chest' }) {
           </Field>
           {stats.length > 0 && (
             <KeyNumberTable label={D.stats} help={D.statsHelp} rows={stats}
-              columns={[{ title: D.statsCol, values: s.door.stats, placeholder: '0', onChange: (k, v) => edit((d) => setDoorStat(d, s.id, k, v), `structure:${s.id}:doorStat:${k}`) }]} />
+              columns={[{ title: D.statsCol, values: s.door.stats, min: -STAT_LIMIT, max: STAT_LIMIT, placeholder: '0', onChange: (k, v) => edit((d) => setDoorStat(d, s.id, k, v), `structure:${s.id}:doorStat:${k}`) }]} />
           )}
         </>
       )}

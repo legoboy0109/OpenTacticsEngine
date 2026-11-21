@@ -10,6 +10,7 @@ import { ItemConditionFields } from './ItemConditionFields'
 import { ItemKeyPart } from './ItemKeyPart'
 import { ItemTorch } from '../fog/LightParts'
 import { T } from './text'
+import { STAT_LIMIT } from '../../model/dataLimits'
 
 export function ItemKindFields({ id }: { id: string }) {
   const doc = useDoc()
@@ -32,7 +33,7 @@ export function ItemKindFields({ id }: { id: string }) {
         </Field>
         <Check label={T.healsAll} checked={full} onChange={(v) => edit((d) => setHeal(d, id, v ? 'full' : undefined))} />
         <KeyNumberTable label={T.raises} help={T.raisesHelp} rows={statRows}
-          columns={[{ title: T.raisesCol, values: item.raise, placeholder: '0', onChange: (k, v) => edit((d) => setStatNumber(d, id, 'raise', k, v), `${key}:raise:${k}`) }]} />
+          columns={[{ title: T.raisesCol, values: item.raise, min: -STAT_LIMIT, max: STAT_LIMIT, placeholder: '0', onChange: (k, v) => edit((d) => setStatNumber(d, id, 'raise', k, v), `${key}:raise:${k}`) }]} />
         <ItemConditionFields id={id} />
         <ItemKeyPart id={id} />
         <ItemTorch id={id} />
@@ -54,6 +55,6 @@ export function ItemKindFields({ id }: { id: string }) {
 
   return (
     <KeyNumberTable label={T.bonus} help={T.bonusHelp} rows={statRows}
-      columns={[{ title: T.bonusCol, values: item.bonus, placeholder: '0', onChange: (k, v) => edit((d) => setStatNumber(d, id, 'bonus', k, v), `${key}:bonus:${k}`) }]} />
+      columns={[{ title: T.bonusCol, values: item.bonus, min: -STAT_LIMIT, max: STAT_LIMIT, placeholder: '0', onChange: (k, v) => edit((d) => setStatNumber(d, id, 'bonus', k, v), `${key}:bonus:${k}`) }]} />
   )
 }
