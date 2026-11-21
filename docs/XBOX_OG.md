@@ -252,11 +252,15 @@ the frame number as 16 white squares in the screen corner as the last thing of e
 picture without its number or HUD (torn), whether the numbers ever go backwards, jump over 4 between two shots or repeat. Scripts used:
 `OpenTacticsEngine-OGXbox/scripts/flk-*` (a scripted camera turn with cursor moves in full 3D, 3D isometric and Hex Wars, at 480, 480
 16:9 and 720p, each with and without `OTE_XBOX_FLIP=unsafe`).
-Measured (60 screenshots a burst, quiet host): without the rule 1 to 5 of 120 shots in a scripted turn showed no frame number or went
-backwards (full 3D, 3D isometric, Hex Wars; the launcher in 2D showed numbers going backwards and 13% repeats); with four busy loops
-on the host 18 of 120 shots in 3D isometric were half-drawn (`shots/flicker-before-loaded-host-torn.png`). With the rule: no incomplete
-shot, nothing backwards, in 2D, full 3D, 3D isometric and Hex Wars at 480, 480 16:9 and 720p, also with the loops
-(`flicker-after-loaded-host-ok.png`); the frame interval stays 16.66 ms (`perf2-*`).
+Measured (bursts of 2 x 60 screenshots of a scripted camera turn with cursor moves; "incomplete" = the shot has no frame number, the
+picture was shown before the chip had finished it): without the rule, 3D isometric at 640x480 4:3 showed **44 of 120 shots
+incomplete** (`shots/flicker-before-43-iso-torn.png`: no ground, no HUD; the same scene complete: `flicker-after-43-iso.png`), full 3D
+and Hex Wars 0 to 5 of 120 with frames going backwards now and then, the launcher in 2D numbers going backwards and 13% repeats;
+with four busy loops on the host 18 of 120 (`flicker-before-loaded-host-torn.png`). With the rule: **0 incomplete and 0 backwards** in
+every run: full 3D, 3D isometric and Hex Wars, three runs each at 4:3 and at least two each at 16:9 480 and 720p, the 2D battle and
+the launcher, also with the loops (`flicker-after-loaded-host-ok.png`); the frame interval stays 16.66 ms (`perf2-*`); the composed
+pictures are the same with and without the rule (3 scenes, 0.0% of pixels differ). Repeats of a number between shots only appear when
+the host stalls the emulator (a scene change, another job). Mind that `WIDE=1` of run-xemu.sh stays in xemu's EEPROM until `WIDE=0`.
 
 What is certain about a real console is the structure, not the numbers: 1.0 MB or less copied to write-combined memory a frame, a few
 hundred thousand pixels of CPU drawing, 80 to 90 KB of vertex data written, 8 to 10 draws, 2,600 triangles and 22 KB of push buffer
