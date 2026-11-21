@@ -15,6 +15,7 @@
 #include <hal/video.h>
 
 #include "platform/nxdk/nxdk.h"
+#include "platform/nxdk/hw3d_gpu.h"
 #include "platform/nxdk/nxdk_present.h"
 #include "platform/nxdk/nxdk_prof.h"
 #endif
@@ -130,6 +131,11 @@ void frame(Loop& L) {
       char prof[900];  // where the frame went (nxdk_prof.h); the present / vbl part of this window is added at the next window
       prof::format(prof, (int)sizeof(prof), kTimedFrames);
       OTE_DEBUG("frame prof: %s", prof);
+      if (hw3d::running()) {  // (flip diagnostics, hw3d_gpu.h)
+        char flip[300];
+        hw3d::flipStats(flip, (int)sizeof(flip));
+        OTE_DEBUG("frame flip: %s", flip);
+      }
     } else {
       char discard[900];  // the first window includes loading: only reset the counters
       prof::format(discard, (int)sizeof(discard), kTimedFrames);

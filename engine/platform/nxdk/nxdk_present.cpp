@@ -88,6 +88,18 @@ void drawLayer(bool opaque) {
   hw3d::setScissor(all);
   hw3d::setConstants(c);
   hw3d::setPipe(pipe, tex);
+  if (!opaque) {
+    // Debug: OTE_XBOX_CHIPLOAD=N (args.txt) draws N tiny rectangles (4 x 4 pixels in the corner) before the last layer, the HUD:
+    // the chip is busy for a good part of the frame with the HUD still missing, so a frame shown while the chip is drawing it (a race
+    // in the flip, hw3d_gpu.cpp beginFrame) is caught by many screenshots instead of one in a few hundred
+    // (tools/xbox-og/flicker_check.py).
+    static int load = -1;
+    if (load < 0) {
+      const char* e = getenv("OTE_XBOX_CHIPLOAD");
+      load = e ? atoi(e) : 0;
+    }
+    for (int i = 0; i < load; ++i) hw3d::drawQuad(0, 0, 4, 4, 0, 0, 1, 1, 0xFFFFFFFFu);
+  }
   if (g_fit.canvasW > 0) {
     // Chip scaling: the canvas covers only the fitted rectangle, so the first layer blacks out the margin around it first
     // (the 3D picture and the later layers only draw inside it).
@@ -99,6 +111,46 @@ void drawLayer(bool opaque) {
     hw3d::drawQuad(0, 0, (float)w, (float)h, 0, 0, (float)w, (float)h, 0xFFFFFFFFu);
   }
   ++g_layers;
+}
+
+// Debug: OTE_XBOX_FRAMEMARK=1 (args.txt) paints this frame's number as 16 white 8 x 8 squares (bit 15 first, x = 2 + 10 i, y = 2) in the
+// screen's top-left corner, drawn last. tools/xbox-og/flicker_check.py --framemark reads them from emulator screenshots and says
+// whether the frames reach the screen in order and without repeats beyond what the pacing allows.
+void drawFrameMark(int number) {
+  static int on = -1;
+  static void* white = nullptr;
+  if (on < 0) {
+    const char* e = getenv("OTE_XBOX_FRAMEMARK");
+    on = e && *e && *e != '0';
+    if (on) {
+      white = hw3d::alloc(4096);
+      if (white) memset(white, 0xFF, 4096);
+      hw3d::flushWrites();
+    }
+  }
+  if (!on || !white) return;
+  hw3d::HwTexture tex;
+  tex.offset = hw3d::physical(white);
+  tex.format = (1u << 16) | (0x12u << 8) | 0x2Au;
+  tex.pitch = 4;
+  tex.rect = (1u << 16) | 1u;
+  tex.linear = true;
+  hw3d::Pipe pipe;
+  pipe.mix = hw3d::Mix::Replace;
+  pipe.depthTest = false;
+  pipe.depthWrite = false;
+  pipe.cull = false;
+  pipe.edge = hw3d::Edge::Clamp;
+  hw3d::VsConstants c;
+  hw3d::screenSpaceConstants(c, 1, 1, 1, 1);
+  hw3d::Rect all;
+  all.w = hw3d::width();
+  all.h = hw3d::height();
+  hw3d::setScissor(all);
+  hw3d::setConstants(c);
+  hw3d::setPipe(pipe, tex);
+  for (int i = 0; i < 16; ++i)
+    if (number & (0x8000 >> i)) hw3d::drawQuad((float)(2 + 10 * i), 2, (float)(10 + 10 * i), 10, 0, 0, 1, 1, 0xFFFFFFFFu);
 }
 
 bool saveBmp(const std::string& path, const uint8_t* pixels, int w, int h, int pitch, Uint32 format = SDL_PIXELFORMAT_ARGB8888) {
@@ -163,6 +215,7 @@ void nxdkPresent(const std::string& shotIn) {
   }
   hw3d::beginFrame();  // (already open when a 3D picture was drawn)
   drawLayer(g_layers == 0);
+  drawFrameMark(frame);
   if (!shot.empty()) {
     hw3d::waitIdle();  // the picture is complete only when the chip is done
     int w = 0, h = 0, pitch = 0;

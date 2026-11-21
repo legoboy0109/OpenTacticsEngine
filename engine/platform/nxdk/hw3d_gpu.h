@@ -82,6 +82,10 @@ uint32_t noteUse();
 uint32_t idleSeq();
 // Sends the frame to the screen at the next vertical blank (waits for the chip first).
 void endFrame();
+// Debug check: counts a mesh being rewritten while the chip may still be reading that very buffer (must stay 0; in flipStats()).
+void noteHazard();
+// One line of flip diagnostics since the last call (debug log): frames drawn into the buffer on the screen, blanks between frames.
+void flipStats(char* out, int size);
 // Number of draw commands dropped this frame because the push buffer was full (0 normally).
 int droppedDraws();
 

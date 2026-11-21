@@ -147,6 +147,7 @@ bool NxdkRenderer3D::fill(Mesh& m, const MeshData& data, bool allocate) {
     }
     into = &m.buf[m.cur];
   }
+  if (into->lastUse > hw3d::idleSeq()) hw3d::noteHazard();  // debug check: the chip may still read this buffer (never, by the logic above)
   memcpy(into->mem, data.vertices.data(), vcount * sizeof(Vertex3D));
   prof::count(prof::kMeshBytes, (double)(vcount * sizeof(Vertex3D)));
   hw3d::flushWrites();
