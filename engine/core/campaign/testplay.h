@@ -24,7 +24,8 @@ bool beginPlaythroughAt(const Database& db, Playthrough& pt, const std::string& 
                         std::string& err);
 
 // Raises every roster unit of every party (not the gone ones) that is below `level` to it, by level-ups at the average growth
-// (Battle::levelUnitTo: caps and maxLevel respected, no promotion, no dice). Returns how many units were raised.
+// (Battle::levelUnitTo: caps and maxLevel respected, no promotion, no dice); each unit's weapon ranks gain the experience of the levels it
+// gained (Battle::raiseTestRanks), so a unit already at the level gets nothing more. Returns how many units were raised.
 int levelRoster(const Database& db, Playthrough& pt, int level);
 
 // The test level for the chapter battle about to be built (phase Battle): `option` 0 = off, N > 0 = N, -1 = automatic, the rounded

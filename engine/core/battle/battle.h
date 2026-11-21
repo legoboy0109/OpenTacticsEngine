@@ -822,11 +822,36 @@ class Battle {
   int testLevel = 0;
   int testLevelUsed = 0;  // the number the last pass used (0 = none), for the on-screen tag
   // The rounded (halves up) average level of the units on the map of the computer sides hostile to the first human side; 0 when none.
+  int enemyAverageLevel() const;
+  // Automatic: a player fields their best units, which sit above the average, so the aim is kAutoTestLevelBonus above it; 0 when
+  // there are no hostile units. (levelUnitTo's caps still apply to what is reached.)
+  static constexpr int kAutoTestLevelBonus = 2;
   int autoTestLevel() const;
   // Raises `u` to `target` by level-ups at the average growth (the difficulty mechanism: docs/DIFFICULTY.md section 2), no dice:
   // stops at the unit type's maxLevel (else the game's); a unit already there or above is untouched; no promotion; the skills of the
   // new levels are learned; experience 0, hit points full. `u` needs its character set. Returns the levels gained (0 = untouched).
   int levelUnitTo(Unit& u, int target) const;
+  // The test level's weapon ranks: after `levels` level-ups every weapon group `u` can wield gains testRankXpPerLevel() x levels of
+  // weapon experience (capped at the top rank, no events, no dice; nothing in a game without ranks). Returns the changes as log
+  // text like ", sword E -> C" (empty = none). A stand-alone roster unit is first raised to its class's ranks (rankRaiseToClass).
+  // Promotion by the test level (game.json rules.promotion.testAt; 0 = never, and everything below is then the plain levelling). The
+  // test level counts EFFECTIVE levels: the level of a unit that can still promote, level + testAt for a unit that already is promoted.
+  // "Can promote" = its type has a promotion entry a player could trigger (items, or atLevel offer / auto; story-only entries are
+  // ignored, whatever they point at); "is promoted" = its type is the target of such an entry of some type (a type that is both counts
+  // as promoted: one promotion per unit, never a third tier).
+  struct TestRaise {
+    bool changed = false;
+    int reached = 0;       // the level it got to in the class it had (the whole climb when it did not promote)
+    std::string tail;      // log text after "Lv a -> b": ", promoted to Hero, Lv 3, sword D -> B"
+  };
+  int effectiveTestLevel(const Unit& u) const;
+  bool testPromotedType(int type) const;
+  const PromotionDef* testPromotionOf(const Unit& u) const;
+  // Raises `u` to the effective level `target` (levelUnitTo, weapon ranks, and the promotion when `target` reaches testAt).
+  // `onBoard`: u.cell is its square, and a promotion that it could not stand on is skipped (it stops at testAt); a roster unit has no square.
+  TestRaise raiseUnitForTest(Unit& u, int target, bool onBoard);
+  int testRankXpPerLevel() const;  // ceil(top rank xp / (2 x the game's top level)), at least 1; 0 without ranks
+  std::string raiseTestRanks(Unit& u, int levels) const;
   bool choiceWaiting() const { return choice_.wait != nullptr; }
   // The pick is a position in the Choice entry's answers. Appends the entries that follow the question (up to the
   // next one, if there is another). False (nothing changed) when no question is waiting or the pick is out of range.

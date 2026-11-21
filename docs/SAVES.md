@@ -641,8 +641,9 @@ battle save and `playthrough.variables` of a campaign save. A Battle with a ques
 
 A maker's way into a late chapter (the editor's Play panel "From this chapter of the campaign"). **`ote-player --game ID --campaign --chapter CH`**
 starts a NEW playthrough at chapter `CH` instead of the first: its `before` scene, its preparation if the map has one, the battle, its `after`
-scene, then on to the next chapter as normal. **`--test-level auto|N`** lifts the human side's units (docs/DIFFICULTY.md "Test level"); in a
-campaign the whole roster is raised at each chapter. `--chapter` needs `--campaign` and `--game`; an unknown id is an error that lists the
+scene, then on to the next chapter as normal. **`--test-level auto|N`** lifts the human side's units (docs/DIFFICULTY.md "Test level": `auto` = the hostile units' average level + 2; weapon ranks rise with the levels, and units
+promote at `rules.promotion.testAt` when the game says so); in a
+campaign the whole roster is raised at each chapter, once per level gained (a unit the test level promoted stays promoted). `--chapter` needs `--campaign` and `--game`; an unknown id is an error that lists the
 chapters; a game without a campaign cannot be started this way.
 
 **The roster is approximated** (`core/campaign/testplay.cpp`): the playthrough is walked along the campaign's **main path** from chapter 1 up to

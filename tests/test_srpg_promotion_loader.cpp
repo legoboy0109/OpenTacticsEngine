@@ -74,6 +74,26 @@ TEST(promo_rules_promotion) {
   refuses("game.json", "\"counterAttacks\": true,", "\"counterAttacks\": true, \"promotion\": 3,", "rules.promotion: must be an object");
 }
 
+TEST(promo_testat_is_read_and_checked) {
+  Game g("promo_loader");
+  g.swap("game.json", "\"counterAttacks\": true,", "\"counterAttacks\": true, \"promotion\": { \"testAt\": 15 },");
+  Database db;
+  std::string err;
+  CHECK(loadGame(g.dir, db, err));
+  CHECK_EQ(db.rules.promotion.testAt, 15);
+  Database plain;
+  Game g2("promo_loader");
+  CHECK(loadGame(g2.dir, plain, err));
+  CHECK_EQ(plain.rules.promotion.testAt, 0);  // missing = the test level never promotes
+  const std::string head = "game.json: rules.promotion: \"testAt\" must be ";
+  refuses("game.json", "\"counterAttacks\": true,", "\"counterAttacks\": true, \"promotion\": { \"testAt\": 0 },",
+          head + "a whole number from 1 up to the game's top level (rules.progression.maxLevel)");
+  refuses("game.json", "\"counterAttacks\": true,", "\"counterAttacks\": true, \"promotion\": { \"testAt\": 2.5 },", "\"testAt\"");
+  refuses("game.json", "\"counterAttacks\": true,", "\"counterAttacks\": true, \"promotion\": { \"testAt\": \"15\" },", "\"testAt\"");
+  refuses("game.json", "\"counterAttacks\": true,", "\"counterAttacks\": true, \"promotion\": { \"testAt\": 21 },",
+          head + "from 1 to the game's top level (20, rules.progression.maxLevel)");
+}
+
 TEST(promo_refuses_a_bad_entry) {
   const std::string head = "data/units.json: unit \"recruit\": \"promotions\" entry 1: ";
   entry(R"({"to":"nobody"})", head + "unknown unit type \"nobody\"");

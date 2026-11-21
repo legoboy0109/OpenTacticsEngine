@@ -271,7 +271,8 @@
               "pairBonus": { "type": "map", "ref": "game.json#stats", "of": { "type": "int" }, "when": { "mode": "pairUp" }, "help": "Stat bonus of a pair (not the hit points stat)." } } },
           "promotion": { "type": "object", "block": true, "help": "Promotion options (docs/SRPG.md Promotion).", "fields": {
             "levelAfter": { "type": "enum", "values": ["reset", "keep"], "help": "Level after promoting." },
-            "classSkills": { "type": "enum", "values": ["keep", "replace"], "help": "Does the new class keep or replace the old class's skills?" } } },
+            "classSkills": { "type": "enum", "values": ["keep", "replace"], "help": "Does the new class keep or replace the old class's skills?" },
+            "testAt": { "type": "int", "min": 1, "help": "The level at which the test level promotes a unit that can promote (docs/DIFFICULTY.md Test level). Missing: it never promotes." } } },
           "places": { "type": "object", "block": true, "help": "Doors, chests and visitable places (docs/SRPG.md section 10).", "fields": {
             "actions": { "type": "enum", "values": ["menu", "auto"], "help": "menu: Open / Visit in the unit's menu; auto: happens when a unit ends its move there." } } },
           "ai": { "type": "object", "block": true, "help": "The computer player (docs/AI.md).", "fields": {

@@ -238,13 +238,36 @@ changes: sims, saves and behaviour are identical (the battle's random numbers ar
   A unit already at or above the level is untouched (nothing is lowered, its experience stays).
 - **`auto`.** The rounded (halves up) average level of the units **on the map when the battle is built** that belong to computer-controlled
   sides on another team than the **first** human side (difficulty shifts already applied, units that appear only on other difficulties
-  absent). No such unit: no change (logged).
+  absent), **plus 2** (`Battle::kAutoTestLevelBonus`: a player fields their best units, which sit above the average; the usual caps still
+  stop the climb). With `rules.promotion.testAt` the average is of the units' effective levels (below). No such unit: no change (logged).
+  An explicit number is not touched by the bonus.
+- **Weapon ranks.** A unit raised by L levels gains, in every weapon group it **can wield** (its class's or character's `wields`, or a
+  weapon its class lists; staves and any other ranked group included), `perLevel x L` weapon experience, with
+  `perLevel = ceil(top rank xp / (2 x the game's top level))`, at least 1: a unit that climbs the whole level range twice (before and after a
+  promotion) just reaches the top rank. The engine cannot tell a group "at the lowest rank" from one nobody gave a value, so every wieldable
+  group counts; a group the unit cannot wield gets nothing. The top rank's xp is the cap (there are no per-class rank caps); no events, no
+  dice; nothing in a game without `data/ranks.json`. Only the levels actually gained count, so raising the same roster unit again in a later
+  chapter adds only the new levels (`Battle::raiseTestRanks`).
+- **Promotion (`rules.promotion.testAt`, optional; missing = the test level never promotes).** With `testAt` the test level works in
+  **effective levels**: a unit that can still promote counts its level, a unit that already is promoted counts level + `testAt`. "Can
+  promote" = its type has a promotion entry a player could trigger (`items`, or `atLevel` `"offer"` / `"auto"`; story-only entries with
+  neither are ignored, wherever they point); "is promoted" = its type is the `to` of such an entry of some type (a type that is both counts as
+  promoted: one promotion per unit, never a third tier). `auto` averages the hostile units' effective levels (+ 2); an explicit number is an
+  effective level too (with `testAt` 15, `--test-level 20` means level 5 in the new class for a unit that can promote). Raising a unit that can
+  promote to effective level E: below `testAt` it simply climbs to E; from `testAt` up it climbs to `testAt` in its own class (so that class's
+  skills up to there are learned), takes **the first triggerable entry** with the engine's own promotion (`Battle::changeType`, the core of
+  `promote`: stat gains, hit points, level rule `levelAfter`, skills, ranks raised to the new class), then climbs on: level `1 + (E - testAt)`
+  after a reset, or E when the promotion keeps the level, within the new type's level cap. If the unit could not stand on its square as the new
+  type it stays what it is at `testAt`. A promoted unit is raised to `E - testAt`. Nobody is lowered, and the weapon-rank rule above applies on
+  both sides of the promotion. A character's own promotion level does not matter: `testAt` decides. No events or animations.
 - **Campaign (`--campaign`, docs/SAVES.md "Test playthroughs").** Before each chapter's battle is built the **whole roster** (every party,
   the benched too) is raised the same way and stays raised in the playthrough, so reserves and later chapters keep it. A number is applied
   at every chapter (upward only: a unit that is already higher keeps its level). `auto` is **re-evaluated at each chapter start from that
   chapter's map, upward only**: the roster never goes down.
-- **Telling you.** The log says `[info] test level: 7 (auto) (3 units raised)` (or `test level: 7 (...)`) and one `test level: Kell Lv 2 -> 7`
-  line per unit (the roster ones say `(roster)`); the battle menu has a greyed row **Test level**, "7 (auto)" (new wording in
+- **Telling you.** The log says `[info] test level: auto aims at enemy average 7 + 2 = 9`, then `[info] test level: 9 (auto) (3 units raised)`
+  (or `test level: 7 (3 units raised)`; the web player reads the number off this line) and one line per unit, e.g.
+  `test level: Kell Lv 2 -> 9, sword E -> C` or `test level: Kell Lv 4 -> 15, promoted to Hero, Lv 3, sword D -> B` (the rank names are the
+  game's own; the roster ones say `(roster)`); the battle menu has a greyed row **Test level**, "9 (auto, +2)" (new wording in
   `engine/player/battle/battle_difficulty.cpp`; `ote-sim --test-level auto|N` also works for a map and for `--campaign`). Nothing new is saved: the
   raised stats are ordinary unit state, so a save made in such a run loads the same.
 - Code: `core/battle/test_level.cpp`, `core/campaign/testplay.{h,cpp}`. Tests: `tests/test_testplay.cpp`, `tests/test_testplay_campaign.cpp`,

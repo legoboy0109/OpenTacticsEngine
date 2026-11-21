@@ -94,7 +94,12 @@ bool loadPromotionRules(const LoadCtx& c, const Json& rules, Database& db) {
   const Json& p = rules["promotion"];
   if (!p.isObject()) return c.fail("rules.promotion", "must be an object such as { \"levelAfter\": \"reset\" }");
   for (const Json::Member& m : p.members())
-    if (m.first != "levelAfter" && m.first != "classSkills") return c.fail("rules.promotion", unknownKeyText(m.first, {"levelAfter", "classSkills"}));
+    if (m.first != "levelAfter" && m.first != "classSkills" && m.first != "testAt")
+      return c.fail("rules.promotion", unknownKeyText(m.first, {"levelAfter", "classSkills", "testAt"}));
+  if (p.has("testAt")) {  // the range (up to the game's top level) is checked once the progression rules are read
+    if (!p["testAt"].isNumber() || !c.integer(p, "testAt", "rules.promotion", db.rules.promotion.testAt) || db.rules.promotion.testAt < 1)
+      return c.fail("rules.promotion", "\"testAt\" must be a whole number from 1 up to the game's top level (rules.progression.maxLevel)");
+  }
   if (p.has("classSkills")) {
     const std::string v = p["classSkills"].isString() ? p["classSkills"].asString() : "";
     if (v != "keep" && v != "replace") return c.fail("rules.promotion", "\"classSkills\" must be \"keep\" (default) or \"replace\"");

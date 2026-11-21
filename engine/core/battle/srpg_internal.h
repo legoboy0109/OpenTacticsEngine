@@ -72,6 +72,7 @@ bool storyHasSkill(const Condition& c) const;
 // class change: base difference, rules.promotion.levelAfter). False (nothing happened) when the unit is not on
 // the board or could not stand on its square as the new type.
 bool promote(int unit, int toType, const PromotionDef* def, std::vector<Event>& events);
+std::vector<int> changeType(Unit& u, int toType, const PromotionDef* def);  // promote's unit-only core (also the test level's)
 bool validatePromote(const Action& action, std::string* why) const;
 void applyPromote(const Action& action, std::vector<Event>& events);
 void promotionLevelUp(int unit, std::vector<Event>& events);   // "atLevel": "auto"

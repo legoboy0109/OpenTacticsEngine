@@ -87,15 +87,22 @@ int raiseRoster(const Database& db, Battle& calc, Roster& roster, int level) {
     u.stats = r.stats;
     u.stats.resize(db.stats.size(), 0);
     u.learned = r.skills;
+    u.weaponXp = r.weaponXp;
     u.character = db.findCharacter(r.id);
-    if (calc.levelUnitTo(u, level) <= 0) continue;
+    u.jobs = r.jobs;
+    const int before = r.level;
+    const Battle::TestRaise t = calc.raiseUnitForTest(u, level, false);  // a roster unit has no square: a promotion is never refused for it
+    if (!t.changed) continue;  // already there (a later chapter again): no levels, no promotion, no rank experience either
+    r.weaponXp = u.weaponXp;
+    r.type = u.type;
+    r.jobs = u.jobs;
     r.level = u.level;
     r.xp = u.xp;
     r.merit = u.merit;
     r.stats = u.stats;
     r.skills = u.learned;
     ++raised;
-    OTE_INFO("test level: %s (roster) -> Lv %d", r.name.c_str(), r.level);
+    OTE_INFO("test level: %s (roster) Lv %d -> %d%s", r.name.c_str(), before, t.reached, t.tail.c_str());
   }
   return raised;
 }
@@ -150,6 +157,7 @@ int applyChapterTestLevel(const Database& db, Playthrough& pt, Formulas& formula
     Battle probe;  // the chapter's map as it starts: only its hostile units are looked at
     if (!prepareChapterBattle(db, pt, formulas, seed, probe, err)) return 0;
     level = probe.autoTestLevel();
+    if (level > 0) OTE_INFO("test level: auto aims at enemy average %d + %d = %d", probe.enemyAverageLevel(), Battle::kAutoTestLevelBonus, level);
     if (level <= 0) {
       OTE_INFO("test level: automatic, but this chapter's map has no hostile computer units: nothing changed");
       return 0;

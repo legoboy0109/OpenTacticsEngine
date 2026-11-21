@@ -144,7 +144,7 @@ address and the remembered choices in `src/play/playOptions.ts`; each change sta
   project. The embedded player gets `campaign=1&chapter=<id>` instead of `map=<id>`.
 - **Test level**: Off / Automatic / A number (a box, 1 to 99, applied on Enter or leaving the box). It lifts the human side's units to
   that level for this run (docs/DIFFICULTY.md "Test level"); the player gets `testlevel=auto|N`. Remembered per map of the project.
-  "Automatic" shows the number the player settled on, read back from the player's own log line (the embedded page posts
+  "Automatic" is the hostile units' average level + 2. It shows the number the player settled on, read back from the player's own log line (the embedded page posts
   `{type:"ote-player-testlevel", level}`), e.g. "Automatic (7)", once the game has started.
 - The embedded player never saves (`--no-saving`), so a test run cannot touch a real Continue save or slot, and there is no Continue to
   continue: Restart starts the same test run again. Tests: `tests/unit/playOptions.test.ts`, `tests/e2e/testplay.spec.ts` (desktop and

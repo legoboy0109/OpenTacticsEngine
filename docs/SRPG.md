@@ -257,6 +257,8 @@ learned skills, supports.
 ```jsonc
 // game.json
 "rules": { "promotion": { "levelAfter": "reset" } }   // "reset" (default): level 1, xp 0 after promoting; "keep"
+// "testAt": 15 (optional, 1 .. the game's top level): the level at which the maker's test level (docs/DIFFICULTY.md 10b) promotes a
+// unit that can promote. Missing = the test level never promotes. Nothing else reads it.
 
 // data/units.json, per unit type
 "promotions": [
@@ -4152,7 +4154,7 @@ untouched, sims identical).
   contract is worded as written; the message of an entry starts `"promotions" entry N: `. `"to"` is checked in
   `resolvePromotionRefs` (it may name a type further down), the other checks while reading. An item named in `items`
   that does not exist is refused with the same "not a promotion item" message. More than 8 entries (`kMaxPromotions`):
-  `too many "promotions" (at most 8)`. `rules.promotion` has one key (`levelAfter`); any other is `unknown key`. The
+  `too many "promotions" (at most 8)`. `rules.promotion` has the keys `levelAfter`, `classSkills` and `testAt`; any other is `unknown key`. `testAt` must be a whole number from 1 to `rules.progression.maxLevel` (and the game must level, not use the experience rank table). The
   "this game has no promotions" refusal of F1 stays for a game none of whose types promote.
 - Running: `promotion.cpp`. `promote` follows the eight steps of the contract in order; the event's `data` is the real
   change per stat after the floor at 0. The shared questions are `promotionCandidates` (by level and by item or offer)

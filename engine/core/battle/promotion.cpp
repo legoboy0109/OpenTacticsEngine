@@ -82,11 +82,28 @@ bool Battle::promote(int unit, int toType, const PromotionDef* def, std::vector<
   Unit& u = units[(size_t)unit];
   if (!u.alive || !canStandAs(u, toType) || jobBlocksPromotion(u)) return false;
 
+  const int oldType = u.type;
+  markSight();  // the unit may see differently as the new type; what was reported so far is stamped first
+  const std::vector<int> change = changeType(u, toType, def);
+  events.push_back(promotedEvent(unit, oldType, toType, u.level, change));
+  rankRaiseToClass(u, unit, &events);  // weapon ranks: raised to the new class's where that is higher (docs/SRPG.md section 7)
+
+  // Events waiting for a promotion; they may add units, so `u` is not used after this.
+  StoryOccurrence o;
+  o.kind = Trigger::Kind::Promoted;
+  o.unit = unit;
+  fireStory(o, events);
+  return true;
+}
+
+// The unit-only part of a promotion, shared with the test level (test_level.cpp), which promotes units that are not on a board (the
+// campaign roster): the new type, the stat gains, hit points, the level rule, ammunition, skills. No events, no story, no sight.
+// Returns the change per stat index.
+std::vector<int> Battle::changeType(Unit& u, int toType, const PromotionDef* def) {
   const UnitTypeDef& from = typeOf(u);
   const UnitTypeDef& to = db->unitTypes[(size_t)toType];
   const int oldType = u.type;
   const std::vector<int> before = u.stats;
-  markSight();  // the unit may see differently as the new type; what was reported so far is stamped first
 
   u.type = toType;
   if (u.jobs.on() && u.jobs.baseType >= 0) u.jobs.baseType = toType;  // an overlay job plays as the promoted class from now on
@@ -112,15 +129,7 @@ bool Battle::promote(int unit, int toType, const PromotionDef* def, std::vector<
 
   std::vector<int> change(u.stats.size(), 0);
   for (size_t s = 0; s < u.stats.size(); ++s) change[s] = u.stats[s] - before[s];
-  events.push_back(promotedEvent(unit, oldType, toType, u.level, change));
-  rankRaiseToClass(u, unit, &events);  // weapon ranks: raised to the new class's where that is higher (docs/SRPG.md section 7)
-
-  // Events waiting for a promotion; they may add units, so `u` is not used after this.
-  StoryOccurrence o;
-  o.kind = Trigger::Kind::Promoted;
-  o.unit = unit;
-  fireStory(o, events);
-  return true;
+  return change;
 }
 
 bool Battle::validatePromote(const Action& action, std::string* why) const {

@@ -329,6 +329,7 @@ struct PromotionDef {
 
 struct PromotionRules {
   bool keepLevel = false;  // "levelAfter": "keep" (default "reset": level 1, xp 0 after promoting)
+  int testAt = 0;  // "testAt": the level at which the test level promotes a unit that can promote (docs/DIFFICULTY.md "Test level"); 0 = never
   bool replaceClassSkills = false;  // "classSkills": "replace": skills the old class taught go away when promoting (default "keep")
 };
 

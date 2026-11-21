@@ -154,6 +154,10 @@ static bool loadRules(const LoadCtx& c, const Json& root, Database& db) {
   if (r.xpPerLevel > 1000000) return c.fail("rules.progression", "\"xpPerLevel\" must be at most 1000000");
   // Growth is rolled once per level a unit gains: the cap keeps a typo ("maxLevel": 100000000) from freezing a battle.
   if (r.maxLevel > 9999) return c.fail("rules.progression", "\"maxLevel\" must be at most 9999");
+  if (r.promotion.testAt > r.maxLevel)
+    return c.fail("rules.promotion", "\"testAt\" must be from 1 to the game's top level (" + std::to_string(r.maxLevel) + ", rules.progression.maxLevel)");
+  if (r.promotion.testAt > 0 && r.unitRanks.replacesLevels())
+    return c.fail("rules.promotion", "\"testAt\" needs levels, and this game uses the experience rank table (rules.progression \"levels\") instead");
 
   const Json* f;
   if (!c.object(root, "formulas", "", f)) return false;
