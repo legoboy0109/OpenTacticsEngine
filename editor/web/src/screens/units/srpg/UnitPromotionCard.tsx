@@ -15,6 +15,7 @@ import { Select } from '../../../ui/Select'
 import { SrpgChecks } from '../../srpg/SrpgChecks'
 import '../../srpg/e3.css'
 import { P } from './promotionText'
+import { STAT_LIMIT } from '../../../model/dataLimits'
 
 export function UnitPromotionCard({ id }: { id: string }) {
   const doc = useDoc()
@@ -110,7 +111,7 @@ function PromotionRow({ index, count, from, promo, patch, onUp, onDown, onRemove
       </Field>
       {hand && (
         <KeyNumberTable label={P.gains} rows={statRows}
-          columns={[{ title: P.gainsCol, values: gains, placeholder: '0', onChange: (k, v) => patch({ gains: setGain(gains, k, v) }, `gain:${k}`) }]} />
+          columns={[{ title: P.gainsCol, values: gains, min: -STAT_LIMIT, max: STAT_LIMIT, placeholder: '0', onChange: (k, v) => patch({ gains: setGain(gains, k, v) }, `gain:${k}`) }]} />
       )}
     </div>
   )

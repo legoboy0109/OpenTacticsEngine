@@ -8,6 +8,7 @@ import { Card } from '../../ui/Card'
 import { FieldGroup } from '../../ui/Field'
 import { NumberInput } from '../../ui/NumberInput'
 import { cap, T } from './text'
+import { STAT_LIMIT } from '../../model/dataLimits'
 
 interface TableProps {
   label: string
@@ -42,7 +43,7 @@ function ThreeColumns({ label, help, word, rows, base, bonus, suffix, boxName, o
               <th scope="row">{r.label}</th>
               <td className="muted-cell" data-testid={`base-${r.key}`}>{base?.[r.key] ?? 0}{suffix}</td>
               <td>
-                <NumberInput data-learn={i === 0 ? learn : undefined} value={bonus?.[r.key]} allowEmpty placeholder="0" suffix={suffix} aria-label={`${r.label} ${boxName}`}
+                <NumberInput data-learn={i === 0 ? learn : undefined} value={bonus?.[r.key]} allowEmpty min={-STAT_LIMIT} max={STAT_LIMIT} placeholder="0" suffix={suffix} aria-label={`${r.label} ${boxName}`}
                   onChange={(v) => onChange(r.key, v)} />
               </td>
               <td className="total-cell" data-testid={`total-${r.key}`}><strong>{totalStat(base?.[r.key], bonus?.[r.key])}{suffix}</strong></td>

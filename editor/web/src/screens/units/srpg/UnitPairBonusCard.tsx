@@ -9,6 +9,7 @@ import { Banner } from '../../../ui/Banner'
 import { Card } from '../../../ui/Card'
 import { KeyNumberTable } from '../../../ui/KeyNumberTable'
 import { P } from './promotionText'
+import { STAT_LIMIT } from '../../../model/dataLimits'
 
 export function UnitPairBonusCard({ id }: { id: string }) {
   const doc = useDoc()
@@ -24,7 +25,7 @@ export function UnitPairBonusCard({ id }: { id: string }) {
       <div className="stack" data-testid="unit-pair-bonus">
         {!pairUp && <Banner tone="warn">{P.pairNeedsPairUp}</Banner>}
         <KeyNumberTable label={P.pairTitle} rows={changeableStats(doc).map((s) => ({ key: s.id, label: s.name }))}
-          columns={[{ title: P.pairCol, values: bonus, placeholder: '0', onChange: change }]} />
+          columns={[{ title: P.pairCol, values: bonus, min: -STAT_LIMIT, max: STAT_LIMIT, placeholder: '0', onChange: change }]} />
       </div>
     </Card>
   )

@@ -16,6 +16,7 @@ import { Select } from '../../../ui/Select'
 import { TextInput } from '../../../ui/TextInput'
 import '../../srpg/e3.css'
 import { C } from './carryText'
+import { STAT_LIMIT } from '../../../model/dataLimits'
 
 const MODES: RescueMode[] = ['off', 'carry', 'pairUp']
 
@@ -41,7 +42,7 @@ export function CarryingCard() {
             <WhileCarrying stats={stats} />
             {mode === 'pairUp' && (
               <KeyNumberTable label={C.behind} help={C.behindHelp} rows={stats.map((s) => ({ key: s.id, label: s.name }))}
-                columns={[{ title: C.behindCol, values: rescueOf(doc)?.pairBonus, placeholder: '0', onChange: (k, v) => edit((d) => setRulesPairBonus(d, k, v), `rescue:pairBonus:${k}`) }]} />
+                columns={[{ title: C.behindCol, values: rescueOf(doc)?.pairBonus, min: -STAT_LIMIT, max: STAT_LIMIT, placeholder: '0', onChange: (k, v) => edit((d) => setRulesPairBonus(d, k, v), `rescue:pairBonus:${k}`) }]} />
             )}
           </>
         )}

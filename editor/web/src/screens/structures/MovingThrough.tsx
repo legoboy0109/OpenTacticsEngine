@@ -4,6 +4,7 @@ import { FieldGroup } from '../../ui/Field'
 import { NumberInput } from '../../ui/NumberInput'
 import { Select } from '../../ui/Select'
 import { T } from './text'
+import { MOVE_COST_MAX } from '../../model/dataLimits'
 
 /** One row per movement type: the ground's cost, a cost of the structure's own, or cannot enter (stored as 0). */
 export function MovingThrough({ id }: { id: string }) {
@@ -29,7 +30,7 @@ export function MovingThrough({ id }: { id: string }) {
                 </td>
                 <td>
                   {mode === 'cost' && (
-                    <NumberInput value={s.moveCost?.[m.id]} min={1} aria-label={`${m.name} cost`}
+                    <NumberInput value={s.moveCost?.[m.id]} min={1} max={MOVE_COST_MAX} aria-label={`${m.name} cost`}
                       onChange={(v) => { if (v !== undefined) edit((d) => setMoveRule(d, id, m.id, 'cost', v), `structure:${id}:cost:${m.id}`) }} />
                   )}
                 </td>

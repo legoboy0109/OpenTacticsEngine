@@ -32,6 +32,7 @@ import { UnitBehaviour } from './UnitBehaviour'
 import { UnitRankOverride } from './UnitRankOverride'
 import { UnitSkills } from './UnitSkills'
 import { T } from '../text'
+import { STAT_LIMIT } from '../../../../model/dataLimits'
 
 interface Props { mapId: string; cell: Cell; say: (m: string | null) => void; /** Selects another variant of the square's stack. */ onSelect?: (c: Cell) => void }
 
@@ -143,5 +144,5 @@ export function UnitProps({ mapId, cell, say, onSelect }: Props) {
 function StatCell({ label, override, base, onChange }: { label: string; override: number | undefined; base: number; onChange: (v: number | undefined) => void }) {
   const [typed, setTyped] = useState<number | undefined>()
   const shown = override ?? (typed === base ? typed : undefined)
-  return <NumberInput aria-label={label} value={shown} allowEmpty placeholder={String(base)} onChange={(v) => { setTyped(v); onChange(v) }} />
+  return <NumberInput aria-label={label} value={shown} allowEmpty min={-STAT_LIMIT} max={STAT_LIMIT} placeholder={String(base)} onChange={(v) => { setTyped(v); onChange(v) }} />
 }

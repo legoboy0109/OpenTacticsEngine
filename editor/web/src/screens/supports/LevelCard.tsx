@@ -10,6 +10,7 @@ import { KeyNumberTable, type KvRow } from '../../ui/KeyNumberTable'
 import { NumberInput } from '../../ui/NumberInput'
 import { SceneCommands, type SceneSource } from '../campaign/SceneCommands'
 import { T } from './text'
+import { SUPPORT_BONUS_LIMIT } from '../../model/dataLimits'
 
 export function LevelCard({ pairKey, level }: { pairKey: string; level: number }) {
   const doc = useDoc()
@@ -53,7 +54,7 @@ export function LevelCard({ pairKey, level }: { pairKey: string; level: number }
           <NumberInput value={lv.points} min={level === 0 ? 0 : 1} max={MAX_POINTS} aria-label={T.neededFor(level + 1)} onChange={(v) => { if (v !== undefined) edit((d) => setLevelPoints(d, i, level, v), `${key}:points`) }} />
         </Field>
         <KeyNumberTable label={T.bonus} help={`${T.bonusHelp} ${T.bonusTakenHelp}`} rows={have} emptyText={T.bonusNone}
-          columns={[{ title: T.bonusAmount, values: amounts, onChange: (k, v) => { if (v !== undefined) edit((d) => setBonus(d, i, level, k, v), `${key}:bonus:${k}`) } }]}
+          columns={[{ title: T.bonusAmount, values: amounts, min: -SUPPORT_BONUS_LIMIT, max: SUPPORT_BONUS_LIMIT, onChange: (k, v) => { if (v !== undefined) edit((d) => setBonus(d, i, level, k, v), `${key}:bonus:${k}`) } }]}
           onRemove={(k) => edit((d) => setBonus(d, i, level, k, undefined))}
           addOptions={options} onAdd={(k) => { if (options.some((o) => o.key === k)) edit((d) => setBonus(d, i, level, k, 1)) }} addLabel={T.bonusAdd} />
         <div>

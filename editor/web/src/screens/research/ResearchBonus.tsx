@@ -7,6 +7,7 @@ import { Select } from '../../ui/Select'
 import { Field } from '../../ui/Field'
 import { Toggle } from '../../ui/Toggle'
 import { T } from './text'
+import { STAT_LIMIT } from '../../model/dataLimits'
 
 export function ResearchBonus({ id }: { id: string }) {
   const doc = useDoc()
@@ -40,7 +41,7 @@ export function ResearchBonus({ id }: { id: string }) {
             ? <p className="help">{T.bonusNoStats}</p>
             : (
               <KeyNumberTable label={T.bonusStats} help={T.bonusStatsHelp} rows={rows}
-                columns={[{ title: T.bonusCol, values: bonus.stats, placeholder: '0', onChange: (k, v) => edit((d) => setBonusStat(d, id, k, v), `${key}:bonus:${k}`) }]} />
+                columns={[{ title: T.bonusCol, values: bonus.stats, min: -STAT_LIMIT, max: STAT_LIMIT, placeholder: '0', onChange: (k, v) => edit((d) => setBonusStat(d, id, k, v), `${key}:bonus:${k}`) }]} />
             )}
         </>
       )}

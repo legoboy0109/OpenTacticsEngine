@@ -10,6 +10,7 @@ import { TextInput } from '../../ui/TextInput'
 import { Num } from './Num'
 import { unitOptions, weaponOptions } from './options'
 import { T } from './text'
+import { CHANCE_PERCENT } from '../../model/dataLimits'
 
 interface Props { doc: ProjectDoc; block: Extra; setBlock: (fn: (b: Extra) => Extra, key?: string) => void }
 
@@ -25,7 +26,7 @@ export function ChanceRow({ doc, block, setBlock }: Props) {
       <Field label={T.chance} help={T.chanceHelp}>
         <Select value={mode} options={modes} onChange={(m) => setBlock((b) => setChanceMode(b, m as ChanceMode, stats))} />
       </Field>
-      {mode === 'percent' && <Field label={T.chancePercent}><Num value={Number(block.chance)} min={-1000} max={1000} suffix="%" onChange={(n) => setBlock((b) => setChance(b, n), 'chance')} /></Field>}
+      {mode === 'percent' && <Field label={T.chancePercent}><Num value={Number(block.chance)} min={CHANCE_PERCENT.min} max={CHANCE_PERCENT.max} suffix="%" onChange={(n) => setBlock((b) => setChance(b, n), 'chance')} /></Field>}
       {mode === 'stat' && (
         <>
           <Field label={T.chanceStat}><Select value={stat} options={stats.map((s) => ({ value: s, label: name(s) }))} onChange={(s) => setBlock((b) => setChance(b, statChanceText(s, times)))} /></Field>

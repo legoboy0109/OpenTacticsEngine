@@ -16,6 +16,7 @@ import { WeaponRankCard } from '../../weapons/srpg/WeaponRankCard'
 import { StaffEffectCard } from './StaffEffectCard'
 import { StaffUseCard } from './StaffUseCard'
 import { S } from './text'
+import { STAT_LIMIT } from '../../../model/dataLimits'
 
 const titleCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
@@ -38,7 +39,7 @@ export function StaffMainCards({ id }: { id: string }) {
       </Card>
       <Card>
         <KeyNumberTable label={S.bonus} help={S.bonusHelp} rows={(doc.game?.stats ?? []).map((s) => ({ key: s.id, label: s.name }))}
-          columns={[{ title: S.bonusCol, values: item.bonus, placeholder: '0', onChange: (k, v) => edit((d) => setStatNumber(d, id, 'bonus', k, v), `item:${id}:bonus:${k}`) }]} />
+          columns={[{ title: S.bonusCol, values: item.bonus, min: -STAT_LIMIT, max: STAT_LIMIT, placeholder: '0', onChange: (k, v) => edit((d) => setStatNumber(d, id, 'bonus', k, v), `item:${id}:bonus:${k}`) }]} />
       </Card>
     </>
   )
