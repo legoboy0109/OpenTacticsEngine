@@ -1,0 +1,28 @@
+{
+  "title": "Sides and units",
+  "files": ["maps/*.json"],
+  "root": {
+    "type": "object",
+    "fields": {
+      "sides": { "type": "list", "help": "The sides of the battle (at least two).", "of": { "type": "object", "fields": {
+        "id": { "type": "string", "required": true, "help": "Unique id inside the map." },
+        "name": { "type": "string", "help": "Display name." },
+        "team": { "type": "string", "help": "Sides of one team do not fight each other." },
+        "controller": { "type": "enum", "values": ["human", "ai"], "default": "human", "help": "Who plays the side." },
+        "color": { "type": "string", "help": "#rrggbb." },
+        "aiSeesAll": { "type": "bool", "help": "A computer side sees everything (true) or is bound by fog (false)." },
+        "difficultyShift": { "type": "bool", "help": "The difficulty setting changes this side." },
+        "faction": { "type": "ref", "ref": "data/factions.json", "values": ["choose"], "help": "Faction of the side; \"choose\" lets the person pick (needs factions.json)." },
+        "commander": { "type": "ref", "ref": "data/commanders.json", "values": ["choose"], "help": "Commander of the side; \"choose\" lets the person pick (needs commanders.json)." },
+        "resources": { "type": "map", "ref": "game.json#resources", "of": { "type": "int", "sample": 5 }, "help": "Resources the side starts with." } } } },
+      "units": { "type": "list", "help": "Units placed on the map.", "of": { "type": "object", "fields": {
+        "id": { "type": "string", "help": "Id of the unit (events and story name it)." },
+        "type": { "type": "ref", "ref": "data/units.json", "required": true, "help": "Unit type." },
+        "side": { "type": "string", "required": true, "help": "Id of one of the map's sides." },
+        "x": { "type": "int", "required": true, "min": 0, "help": "Column." },
+        "y": { "type": "int", "required": true, "min": 0, "help": "Row." },
+        "leader": { "type": "bool", "help": "The side's leader (leaderDead defeat)." },
+        "facing": { "type": "string", "help": "Direction the unit looks (needs rules.facing); the names depend on the grid, e.g. north, east." } } } }
+    }
+  }
+}

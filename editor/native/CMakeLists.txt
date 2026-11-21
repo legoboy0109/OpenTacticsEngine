@@ -30,6 +30,11 @@ ote_native_target(ote_native_ui)
 target_include_directories(ote_native_ui PUBLIC ui)
 target_link_libraries(ote_native_ui PUBLIC Qt6::Widgets ote_native_model)
 
+# The schema files (editor/schema/*.json) are also compiled into the program, so it works without them next to it.
+# At run time a folder next to the program ("schema") or one named with --schema-dir / OTE_SCHEMA_DIR wins.
+file(GLOB OTE_SCHEMA_FILES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/editor/schema/*.json)
+qt_add_resources(ote_native_ui ote_schemas PREFIX "/schema" BASE "${CMAKE_SOURCE_DIR}/editor/schema" FILES ${OTE_SCHEMA_FILES})
+
 add_executable(ote-editor-native main.cpp)
 ote_native_target(ote-editor-native)
 target_link_libraries(ote-editor-native PRIVATE ote_native_ui)

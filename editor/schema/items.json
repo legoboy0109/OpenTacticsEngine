@@ -1,0 +1,17 @@
+{
+  "files": ["data/items.json"],
+  "rows": {
+    "type": "object",
+    "fields": {
+      "id": { "type": "string", "required": true, "help": "Unique id." },
+      "name": { "type": "string", "help": "Display name." },
+      "description": { "type": "string", "help": "Text shown in the item menu." },
+      "kind": { "type": "enum", "required": true, "values": ["usable", "weapon", "accessory", "staff"], "help": "Decides which other keys the item takes (heal, weapon, bonus, ...: shown under Other keys)." },
+      "uses": { "type": "int", "min": 1, "max": 999, "help": "Uses before it breaks (leave out for unlimited)." },
+      "repairable": { "type": "bool", "help": "A staff's repair may mend it (needs uses)." },
+      "stealable": { "type": "bool", "help": "A steal ability may take it." },
+      "sellable": { "type": "bool", "help": "A shop that buys items takes it." },
+      "price": { "type": "map", "ref": "game.json#resources", "expand": true, "of": { "type": "int", "min": 0, "sample": 10 }, "help": "Shop price per resource (not negative)." }
+    }
+  }
+}

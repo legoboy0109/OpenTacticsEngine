@@ -11,6 +11,7 @@
 #include <QUndoView>
 
 #include "file_list_dock.h"
+#include "id_source.h"
 #include "names.h"
 #include "problems_dock.h"
 #include "project_session.h"
@@ -36,6 +37,8 @@ MainWindow::MainWindow(QSettings* settings, QWidget* parent)
     tabs_->removeTab(i);
     for (auto it = editors_.begin(); it != editors_.end(); ++it)
       if (it.value() == w) { editors_.erase(it); break; }
+    for (auto it = treeEditors_.begin(); it != treeEditors_.end(); ++it)
+      if (it.value() == w) { treeEditors_.erase(it); break; }
     w->deleteLater();
   });
   connect(tabs_, &QTabWidget::currentChanged, this, [this] { updateUndoActions(); });
@@ -71,10 +74,7 @@ void MainWindow::buildDocks() {
 
   problems_ = new ProblemsDock(this);
   addDockWidget(Qt::BottomDockWidgetArea, problems_);
-  connect(problems_, &ProblemsDock::openFileRequested, this, [this](const QString& rel) {
-    if (session_ && session_->project()->jsonFiles().contains(rel)) openFile(rel);
-    else statusBar()->showMessage(tr("%1 is not a data file this editor can open yet.").arg(rel), 6000);
-  });
+  connect(problems_, &ProblemsDock::locateRequested, this, &MainWindow::locateProblem);
 
   auto* historyDock = new QDockWidget(tr("Undo history"), this);
   historyDock->setObjectName("historyDock");
@@ -91,7 +91,18 @@ QString MainWindow::currentRel() const {
   QWidget* w = tabs_->currentWidget();
   for (auto it = editors_.constBegin(); it != editors_.constEnd(); ++it)
     if (it.value() == w) return it.key();
+  for (auto it = treeEditors_.constBegin(); it != treeEditors_.constEnd(); ++it)
+    if (it.value() == w) return it.key();
   return {};
+}
+
+const SchemaSet& MainWindow::schemas() {
+  if (!schemasLoaded_) {
+    const QString dir = schemaDir_.isEmpty() ? qEnvironmentVariable("OTE_SCHEMA_DIR") : schemaDir_;
+    schemaSet_ = SchemaSet::loadDefault(dir, appDir_);
+    schemasLoaded_ = true;
+  }
+  return schemaSet_;
 }
 
 QString MainWindow::tabTitle(const QString& rel) const {
@@ -137,6 +148,7 @@ void MainWindow::showProblems() {
 void MainWindow::closeProject() {
   for (const auto& c : sessionConnections_) disconnect(c);
   sessionConnections_.clear();
+  treeEditors_.clear();
   while (tabs_->count() > 0) {
     QWidget* w = tabs_->widget(0);
     tabs_->removeTab(0);
@@ -144,6 +156,8 @@ void MainWindow::closeProject() {
   }
   editors_.clear();
   if (undoView_) undoView_->setStack(nullptr);
+  delete ids_;  // the id lists watch documents of the project that is about to go
+  ids_ = nullptr;
   delete session_;
   session_ = nullptr;
 }
@@ -151,6 +165,7 @@ void MainWindow::closeProject() {
 void MainWindow::attachSession(ProjectSession* s) {
   session_ = s;
   Project* p = s->project();
+  ids_ = new IdSource(p, this);
   undoView_->setStack(p->undoStack());
   auto link = [this](auto&&... args) { sessionConnections_ << connect(args...); };
   link(p, &Project::fileStateChanged, this, [this](const QString& rel) { updateFileState(rel); });
@@ -213,18 +228,47 @@ void MainWindow::openFile(const QString& rel) {
     return;
   }
   QWidget* editor;
+  const FileSchema* schema = schemas().forFile(rel);  // none: the plain table / tree of milestone 1
   if (auto arrayPath = findTableArray(doc->root())) {
-    auto* t = new TableEditor(p, doc, *arrayPath, tabs_);
+    auto* t = new TableEditor(p, doc, *arrayPath, tabs_, schema, ids_);
     connect(t, &TableEditor::messageShown, this, [this](const QString& m) { statusBar()->showMessage(m, 8000); });
+    connect(t, &TableEditor::showInTreeRequested, this, [this, rel](const JsonPath& path) { openTreeView(rel, path); });
     editor = t;
   } else {
-    auto* t = new TreeEditor(p, doc, tabs_);
+    auto* t = new TreeEditor(p, doc, tabs_, schema, ids_);
     connect(t, &TreeEditor::messageShown, this, [this](const QString& m) { statusBar()->showMessage(m, 8000); });
     editor = t;
   }
   editors_.insert(rel, editor);
   tabs_->setCurrentIndex(tabs_->addTab(editor, tabTitle(rel)));
   refreshTabTitles();
+}
+
+void MainWindow::locateProblem(const QString& rel, const QString& message) {
+  if (!session_ || !session_->project()->jsonFiles().contains(rel)) {
+    statusBar()->showMessage(tr("%1 is not a data file this editor can open yet.").arg(rel), 6000);
+    return;
+  }
+  openFile(rel);
+  QWidget* e = editors_.value(rel, nullptr);
+  if (auto* t = qobject_cast<TableEditor*>(e)) t->locateProblem(message);
+  else if (auto* tr2 = qobject_cast<TreeEditor*>(e)) tr2->locateProblem(message);
+}
+
+void MainWindow::openTreeView(const QString& rel, const JsonPath& path) {
+  if (!session_) return;
+  QWidget* w = treeEditors_.value(rel, nullptr);
+  if (!w) {
+    JsonDocument* doc = session_->project()->document(rel);
+    if (!doc) return;
+    auto* t = new TreeEditor(session_->project(), doc, tabs_);  // no schema: the plain tree of every key
+    connect(t, &TreeEditor::messageShown, this, [this](const QString& m) { statusBar()->showMessage(m, 8000); });
+    treeEditors_.insert(rel, t);
+    tabs_->addTab(t, tr("%1 (tree)").arg(rel.section('/', -1)));
+    w = t;
+  }
+  tabs_->setCurrentWidget(w);
+  static_cast<TreeEditor*>(w)->selectPath(path);
 }
 
 void MainWindow::closeEvent(QCloseEvent* ev) {

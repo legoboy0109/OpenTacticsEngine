@@ -1,0 +1,22 @@
+{
+  "files": ["data/jobs.json"],
+  "rows": {
+    "type": "object",
+    "fields": {
+      "id": { "type": "string", "required": true, "help": "Unique id: letters, digits, _ and -." },
+      "name": { "type": "string", "help": "Display name, 1 to 24 characters." },
+      "description": { "type": "string", "help": "Text shown in the job menu." },
+      "unitType": { "type": "ref", "ref": "data/units.json", "help": "Unit type the job turns the unit into; leave out for an overlay job that keeps the unit's class." },
+      "bonus": { "type": "map", "ref": "game.json#stats", "of": { "type": "int", "sample": 1 }, "help": "Stat bonus per stat while in this job." },
+      "requires": { "type": "list", "help": "Jobs (and levels) needed to unlock this one; no loops.", "of": { "type": "object", "fields": {
+        "job": { "type": "ref", "ref": "data/jobs.json", "required": true, "help": "Required job." },
+        "level": { "type": "int", "required": true, "min": 1, "max": 20, "help": "Level of that job needed." } } } },
+      "jpLevels": { "type": "list", "of": { "type": "int", "min": 1, "max": 99999 }, "help": "Own JP totals of the job levels, rising (replaces rules.jobs.jpLevels)." },
+      "learn": { "type": "list", "help": "Skills and abilities this job can teach (at most 40).", "of": { "type": "object", "fields": {
+        "skill": { "type": "ref", "ref": "data/skills.json", "help": "A skill to learn (give skill or ability, not both)." },
+        "ability": { "type": "ref", "ref": "data/abilities.json", "help": "A menu ability to learn." },
+        "cost": { "type": "int", "required": true, "min": 0, "max": 99999, "help": "JP to learn it." },
+        "slot": { "type": "enum", "required": true, "values": ["action", "reaction", "support", "movement"], "help": "Slot it occupies." } } } }
+    }
+  }
+}

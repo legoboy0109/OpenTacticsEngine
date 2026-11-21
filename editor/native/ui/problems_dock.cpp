@@ -6,6 +6,7 @@ namespace ote_native {
 
 namespace {
 constexpr int kFileRole = Qt::UserRole + 1;
+constexpr int kMessageRole = Qt::UserRole + 2;
 }
 
 ProblemsDock::ProblemsDock(QWidget* parent) : QDockWidget(tr("Problems"), parent) {
@@ -17,7 +18,9 @@ ProblemsDock::ProblemsDock(QWidget* parent) : QDockWidget(tr("Problems"), parent
   setWidget(list_);
   connect(list_, &QListWidget::itemActivated, this, [this](QListWidgetItem* it) {
     const QString file = it->data(kFileRole).toString();
-    if (!file.isEmpty()) emit openFileRequested(file);
+    if (file.isEmpty()) return;
+    emit openFileRequested(file);
+    emit locateRequested(file, it->data(kMessageRole).toString());
   });
 }
 
@@ -42,6 +45,7 @@ void ProblemsDock::setProblems(const std::vector<ote_editor::Problem>& problems)
     const QString msg = QString::fromStdString(p.message);
     auto* item = new QListWidgetItem(file.isEmpty() ? msg : QStringLiteral("%1: %2").arg(file, msg), list_);
     item->setData(kFileRole, file);
+    item->setData(kMessageRole, msg);
     item->setToolTip(msg);
     if (file.isEmpty()) item->setFlags(item->flags() & ~Qt::ItemIsSelectable);
   }

@@ -10,8 +10,10 @@
 #include <memory>
 
 #include "app_settings.h"
+#include "json_path.h"
 #include "play_command.h"
 #include "prompter.h"
+#include "schema.h"
 
 class QAction;
 class QLabel;
@@ -23,6 +25,7 @@ class QUndoView;
 namespace ote_native {
 
 class FileListDock;
+class IdSource;
 class ProblemsDock;
 class ProjectSession;
 
@@ -49,6 +52,8 @@ class MainWindow : public QMainWindow {
   void setPlayerChooser(std::function<QString()> f) { playerChooser_ = std::move(f); }
   void setPlayLauncher(std::function<bool(const PlayCommand&)> f) { launcher_ = std::move(f); }
   void setApplicationDir(const QString& dir) { appDir_ = dir; }
+  // A folder of schema files that replaces the built-in ones (set before opening a project; --schema-dir does this).
+  void setSchemaDir(const QString& dir) { schemaDir_ = dir; schemasLoaded_ = false; }
 
   // --- what tests look at ---
   ProjectSession* session() const { return session_; }
@@ -57,6 +62,13 @@ class MainWindow : public QMainWindow {
   FileListDock* fileListDock() const { return files_; }
   QUndoView* undoView() const { return undoView_; }
   QWidget* editorFor(const QString& rel) const { return editors_.value(rel, nullptr); }
+  // The generic tree tab of a table file, opened from "Show in tree view" (null until then).
+  QWidget* treeEditorFor(const QString& rel) const { return treeEditors_.value(rel, nullptr); }
+  const SchemaSet& schemas();
+  IdSource* idSource() const { return ids_; }
+  // Opens the file and jumps to the row / key a problem message names (falls back to just opening the file).
+  void locateProblem(const QString& rel, const QString& message);
+  void openTreeView(const QString& rel, const JsonPath& path);
   QAction* action(const QString& name) const { return actions_.value(name, nullptr); }
   QString statusText() const;
   AppSettings& appSettings() { return appSettings_; }
@@ -94,6 +106,11 @@ class MainWindow : public QMainWindow {
   QMenu* recentMenu_ = nullptr;
   QHash<QString, QAction*> actions_;
   QHash<QString, QWidget*> editors_;
+  QHash<QString, QWidget*> treeEditors_;
+  SchemaSet schemaSet_;
+  bool schemasLoaded_ = false;
+  QString schemaDir_;
+  IdSource* ids_ = nullptr;
   QList<QMetaObject::Connection> sessionConnections_;
   std::function<QString()> folderChooser_, playerChooser_;
   std::function<bool(const PlayCommand&)> launcher_;

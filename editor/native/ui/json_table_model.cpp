@@ -4,15 +4,74 @@
 #include <QSet>
 #include <algorithm>
 
+#include <QApplication>
+#include <QIcon>
+#include <QStyle>
+
 #include "cell_text.h"
+#include "id_source.h"
 #include "json_commands.h"
 #include "project.h"
+#include "table_columns.h"
 
 namespace ote_native {
 
 namespace {
 bool sameJson(const ote::Json& a, const ote::Json& b) { return a.dump(0) == b.dump(0); }
+
+// The member `key` of an object, or nullptr (the Json lookups return a shared Null, which cannot tell "absent" from null).
+const ote::Json* member(const ote::Json* obj, const std::string& key) {
+  if (!obj || !obj->isObject()) return nullptr;
+  for (const auto& m : obj->members())
+    if (m.first == key) return &m.second;
+  return nullptr;
+}
 }  // namespace
+
+QString JsonTableModel::columnKey(int col) const {
+  QStringList parts;
+  for (const std::string& s : columns_[(size_t)col].path) parts << QString::fromStdString(s);
+  return parts.join('.');
+}
+
+void JsonTableModel::setSchema(const SchemaNode* rows, IdSource* ids) {
+  rowsSchema_ = rows;
+  ids_ = ids;
+  beginResetModel();
+  rebuildColumns();
+  endResetModel();
+  if (ids_) connect(ids_, &IdSource::idsChanged, this, &JsonTableModel::refreshPlan, Qt::UniqueConnection);
+}
+
+void JsonTableModel::refreshPlan() {
+  if (!rowsSchema_) return;
+  const std::vector<ColumnSpec> now = planColumns(*rowsSchema_, ids_);
+  bool same = now.size() == plan_.size();
+  for (size_t i = 0; same && i < now.size(); ++i) same = now[i].path == plan_[i].path;
+  if (same) return;
+  beginResetModel();
+  rebuildColumns();
+  endResetModel();
+}
+
+int JsonTableModel::columnOfKey(const QString& key) const {
+  const std::string k = key.toStdString();
+  for (size_t i = 0; i < columns_.size(); ++i)
+    if (columns_[i].path.front() == k) return (int)i;
+  return -1;
+}
+
+bool JsonTableModel::cellMismatch(int row, int col, QString* why) const {
+  const SchemaNode* n = columns_[(size_t)col].node;
+  const ote::Json* v = cellValue(row, col);
+  return n && v && !nodeAccepts(*n, *v, why);
+}
+
+bool JsonTableModel::covered(const std::string& key) const {
+  for (const ColumnSpec& c : columns_)
+    if (c.path.front() == key) return true;
+  return false;
+}
 
 JsonTableModel::JsonTableModel(Project* project, JsonDocument* doc, JsonPath arrayPath, QObject* parent)
     : QAbstractTableModel(parent), project_(project), doc_(doc), arrayPath_(std::move(arrayPath)) {
@@ -33,7 +92,11 @@ const ote::Json* JsonTableModel::array() const {
 
 void JsonTableModel::rebuildColumns() {
   columns_.clear();
-  hints_.clear();
+  plan_.clear();
+  if (rowsSchema_) {
+    plan_ = planColumns(*rowsSchema_, ids_);
+    columns_ = plan_;
+  }
   growColumns();
 }
 
@@ -44,14 +107,15 @@ bool JsonTableModel::growColumns() {
   for (const ote::Json& row : a->items()) {
     if (!row.isObject()) continue;
     for (const auto& m : row.members()) {
-      auto it = std::find(columns_.begin(), columns_.end(), m.first);
-      if (it == columns_.end()) {
-        columns_.push_back(m.first);
-        hints_.push_back(m.second.type());
+      if (!covered(m.first)) {
+        ColumnSpec c;
+        c.path = {m.first};
+        c.hint = m.second.type();
+        columns_.push_back(c);
       } else {
         // A column's usual type is the first non-null one, so a leading null does not hide it.
-        ote::Json::Type& h = hints_[(size_t)(it - columns_.begin())];
-        if (h == ote::Json::Type::Null) h = m.second.type();
+        for (ColumnSpec& c : columns_)
+          if (c.path.size() == 1 && c.path[0] == m.first && c.hint == ote::Json::Type::Null) c.hint = m.second.type();
       }
     }
   }
@@ -75,9 +139,12 @@ const ote::Json* JsonTableModel::rowValue(int row) const {
 const ote::Json* JsonTableModel::cellValue(int row, int col) const {
   const ote::Json* r = rowValue(row);
   if (!r || !r->isObject() || col < 0 || (size_t)col >= columns_.size()) return nullptr;
-  for (const auto& m : r->members())
-    if (m.first == columns_[(size_t)col]) return &m.second;
-  return nullptr;
+  const ote::Json* v = r;
+  for (const std::string& step : columns_[(size_t)col].path) {
+    v = member(v, step);
+    if (!v) return nullptr;
+  }
+  return v;
 }
 
 bool JsonTableModel::isNestedCell(int row, int col) const {
@@ -95,8 +162,16 @@ QVariant JsonTableModel::data(const QModelIndex& index, int role) const {
     case Qt::CheckStateRole:
       if (v && v->isBool()) return v->asBool() ? Qt::Checked : Qt::Unchecked;
       return {};
-    case Qt::ToolTipRole:
+    case Qt::ToolTipRole: {
+      QString why;
+      if (cellMismatch(index.row(), index.column(), &why))
+        return QStringLiteral("Does not match the schema: %1. The value is kept as it is.").arg(why);
       if (v && (v->isObject() || v->isArray())) return QString::fromStdString(v->dump(2));
+      if (const SchemaNode* n = columns_[(size_t)index.column()].node) return QString::fromStdString(n->help);
+      return {};
+    }
+    case Qt::DecorationRole:
+      if (cellMismatch(index.row(), index.column())) return QApplication::style()->standardIcon(QStyle::SP_MessageBoxWarning);
       return {};
     case Qt::FontRole:
       if (v && (v->isObject() || v->isArray())) {
@@ -157,13 +232,21 @@ bool JsonTableModel::setData(const QModelIndex& index, const QVariant& value, in
 void JsonTableModel::setCellValue(int row, int col, const ote::Json& value) {
   const ote::Json* cur = cellValue(row, col);
   if (cur && sameJson(*cur, value)) return;
+  JsonPath p = rowPath(row);
+  for (const std::string& step : columns_[(size_t)col].path) p.push_back(PathStep::member(step));
   if (cur) {
-    JsonPath p = rowPath(row);
-    p.push_back(PathStep::member(columns_[(size_t)col]));
     project_->push(doc_, new SetValueCommand(doc_, p, value));
-  } else if (const ote::Json* r = rowValue(row)) {
-    project_->push(doc_, new InsertCommand(doc_, rowPath(row), r->members().size(), columns_[(size_t)col], value));
+    return;
   }
+  // Absent: insert the key, creating the nested object it lives in first ("stats" of a row that has none yet).
+  QUndoStack* stack = project_->undoStack();
+  const bool macro = columns_[(size_t)col].path.size() > 1 && !member(rowValue(row), columns_[(size_t)col].path[0]);
+  if (macro) stack->beginMacro(QStringLiteral("Set %1").arg(pathToString(p)));
+  JsonPath parent(p.begin(), p.end() - 1);
+  if (macro) project_->push(doc_, new InsertCommand(doc_, rowPath(row), rowValue(row)->members().size(), columns_[(size_t)col].path[0], ote::Json::makeObject()));
+  if (const ote::Json* host = resolvePath(doc_->root(), parent))
+    project_->push(doc_, new InsertCommand(doc_, parent, host->members().size(), p.back().key, value));
+  if (macro) stack->endMacro();
 }
 
 bool JsonTableModel::applyTextEdits(const QList<CellEdit>& edits, QString* error) {
@@ -195,7 +278,7 @@ void JsonTableModel::clearCells(const QList<QPoint>& cells) {
   for (const QPoint& c : cells)
     if (cellValue(c.y(), c.x())) {
       JsonPath p = rowPath(c.y());
-      p.push_back(PathStep::member(columns_[(size_t)c.x()]));
+      for (const std::string& step : columns_[(size_t)c.x()].path) p.push_back(PathStep::member(step));
       paths.push_back(std::move(p));
     }
   if (paths.empty()) return;
@@ -212,9 +295,17 @@ void JsonTableModel::clearCells(const QList<QPoint>& cells) {
 void JsonTableModel::addRow(int at) {
   at = std::clamp(at, 0, rowCount());
   ote::Json row = ote::Json::makeObject();
-  for (size_t c = 0; c < columns_.size(); ++c) {
-    ote::Json d = defaultValueFor(hints_[c]);
-    if (!d.isNull()) row.set(columns_[c], d);
+  for (const ColumnSpec& c : columns_) {
+    ote::Json d = defaultValueFor(c.hint);
+    if (d.isNull()) continue;
+    if (c.path.size() == 1) {
+      row.set(c.path[0], d);
+    } else {
+      // A nested member: make the parent object (once) and give the member its default, so the new row is complete.
+      ote::Json parent = member(&row, c.path[0]) ? *member(&row, c.path[0]) : ote::Json::makeObject();
+      parent.set(c.path[1], d);
+      row.set(c.path[0], parent);
+    }
   }
   project_->push(doc_, new InsertCommand(doc_, arrayPath_, (size_t)at, "", row));
 }
@@ -332,19 +423,20 @@ void JsonTableModel::onChanged(const JsonChange& c) {
     }
     if (c.kind == JsonChange::Kind::Move) return;  // key order inside a row does not change the columns
     if (columnReset()) return;
-    auto it = std::find(columns_.begin(), columns_.end(), c.key);
-    if (it != columns_.end()) {
-      const QModelIndex i = index(row, (int)(it - columns_.begin()));
-      emit dataChanged(i, i);
-    }
+    changedKey(row, c.key);
     return;
   }
   const PathStep& keyStep = c.path[arrayPath_.size() + 1];
-  auto it = std::find(columns_.begin(), columns_.end(), keyStep.key);
-  if (it != columns_.end()) {
-    const QModelIndex i = index(row, (int)(it - columns_.begin()));
-    emit dataChanged(i, i);
-  }
+  changedKey(row, keyStep.key);
+}
+
+// Every column that starts with `key` may show something new (a nested column when only part of its object changed).
+void JsonTableModel::changedKey(int row, const std::string& key) {
+  for (size_t i = 0; i < columns_.size(); ++i)
+    if (columns_[i].path.front() == key) {
+      const QModelIndex ix = index(row, (int)i);
+      emit dataChanged(ix, ix);
+    }
 }
 
 }  // namespace ote_native

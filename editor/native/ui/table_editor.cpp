@@ -8,11 +8,18 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
+#include <QTimer>
 #include <QTableView>
 #include <QVBoxLayout>
 #include <algorithm>
 #include <set>
 
+#include <QRegularExpression>
+#include <QSplitter>
+
+#include "form_context.h"
+#include "form_view.h"
+#include "id_source.h"
 #include "json_table_model.h"
 #include "json_text_dialog.h"
 #include "project.h"
@@ -21,10 +28,12 @@
 
 namespace ote_native {
 
-TableEditor::TableEditor(Project* project, JsonDocument* doc, JsonPath arrayPath, QWidget* parent)
-    : QWidget(parent), doc_(doc) {
+TableEditor::TableEditor(Project* project, JsonDocument* doc, JsonPath arrayPath, QWidget* parent, const FileSchema* schema,
+                         IdSource* ids)
+    : QWidget(parent), doc_(doc), schema_(schema && schema->rows ? schema : nullptr) {
   setObjectName("tableEditor");
   model_ = new JsonTableModel(project, doc, std::move(arrayPath), this);
+  if (schema_) model_->setSchema(schema_->rows.get(), ids);
   proxy_ = new TableProxy(this);
   proxy_->setSourceModel(model_);
 
@@ -47,7 +56,8 @@ TableEditor::TableEditor(Project* project, JsonDocument* doc, JsonPath arrayPath
 
   filter_ = new QLineEdit(this);
   filter_->setObjectName("tableFilter");
-  filter_->setPlaceholderText(tr("Filter rows (only changes what you see, never the file)"));
+  filter_->setPlaceholderText(tr("Filter rows"));
+  filter_->setToolTip(tr("Only changes what you see in the table, never the file"));
   filter_->setClearButtonEnabled(true);
 
   auto button = [this](const QString& text, const QString& name, const QString& tip) {
@@ -70,11 +80,65 @@ TableEditor::TableEditor(Project* project, JsonDocument* doc, JsonPath arrayPath
   auto* bar = new QHBoxLayout;
   bar->addWidget(filter_, 1);
   for (QPushButton* b : {addB, dupB, delB, upButton_, downButton_}) bar->addWidget(b);
-  auto* layout = new QVBoxLayout(this);
+  // The table part lives in its own pane so a form can sit beside it; without a schema the pane is the whole editor.
+  auto* pane = new QWidget(this);
+  auto* layout = new QVBoxLayout(pane);
   layout->setContentsMargins(4, 4, 4, 4);
   layout->addLayout(bar);
   layout->addWidget(message_);
   layout->addWidget(view_, 1);
+  auto* root = new QVBoxLayout(this);
+  root->setContentsMargins(0, 0, 0, 0);
+  if (!schema_) {
+    root->addWidget(pane);
+  } else {
+    formCtx_ = new FormContext(project, doc, ids, this);
+    form_ = new FormView(formCtx_, schema_->rows.get(), this);
+    formTitle_ = new QLabel(this);
+    formTitle_->setObjectName("formTitle");
+    QFont f = formTitle_->font();
+    f.setBold(true);
+    f.setPointSizeF(f.pointSizeF() * 1.1);
+    formTitle_->setFont(f);
+    auto* formPane = new QWidget(this);
+    formPane->setObjectName("formPane");
+    auto* fl = new QVBoxLayout(formPane);
+    fl->setContentsMargins(4, 4, 4, 4);
+    fl->addWidget(formTitle_);
+    fl->addWidget(form_, 1);
+    auto* split = new QSplitter(Qt::Horizontal, this);
+    split->setObjectName("tableFormSplitter");
+    split->setChildrenCollapsible(false);
+    split->addWidget(pane);
+    split->addWidget(formPane);
+    split->setStretchFactor(0, 4);
+    split->setStretchFactor(1, 5);
+    split->setSizes({440, 520});
+    pane->setMinimumWidth(260);
+    formPane->setMinimumWidth(340);
+    root->addWidget(split);
+    connect(form_, &FormView::showInTreeRequested, this, &TableEditor::showInTreeRequested);
+    connect(view_->selectionModel(), &QItemSelectionModel::currentRowChanged, this, [this] { syncForm(); });
+    // Rows added, removed, moved or the whole table reset: the row the form shows may now be another one.
+    connect(model_, &QAbstractItemModel::rowsInserted, this, [this] { syncForm(); });
+    connect(model_, &QAbstractItemModel::rowsRemoved, this, [this] { syncForm(); });
+    connect(model_, &QAbstractItemModel::rowsMoved, this, [this] { syncForm(); });
+    // A new column (the form just added a key no row had) resets the model, which would drop the selection and blank the
+    // form under the user's hands: remember the current row across a reset.
+    connect(model_, &QAbstractItemModel::modelAboutToBeReset, this, [this] { rowBeforeReset_ = currentSourceRow(); });
+    connect(model_, &QAbstractItemModel::modelReset, this, [this] {
+      if (rowBeforeReset_ >= 0 && rowBeforeReset_ < model_->rowCount()) {
+        const QModelIndex pi = proxy_->mapFromSource(model_->index(rowBeforeReset_, 0));
+        if (pi.isValid()) {
+          view_->setCurrentIndex(pi);
+          view_->selectRow(pi.row());
+        }
+      }
+      rowBeforeReset_ = -1;
+      syncForm();
+    });
+    syncForm();
+  }
 
   connect(addB, &QPushButton::clicked, this, &TableEditor::addRow);
   connect(dupB, &QPushButton::clicked, this, &TableEditor::duplicateSelectedRows);
@@ -220,6 +284,75 @@ void TableEditor::editNestedCell(const QModelIndex& viewIndex) {
     if (accepted) result = dlg.value();
   }
   if (accepted) model_->setCellValue(s.row(), s.column(), result);
+}
+
+int TableEditor::currentSourceRow() const {
+  const QModelIndex cur = view_->currentIndex();
+  return cur.isValid() ? proxy_->mapToSource(cur).row() : -1;
+}
+
+void TableEditor::syncForm() {
+  if (!form_ || syncPending_) return;
+  // Coalesced to the next event-loop turn: a paste or a delete of many rows signals once per row.
+  syncPending_ = true;
+  QTimer::singleShot(0, this, [this] {
+    syncPending_ = false;
+    applyFormTarget();
+  });
+}
+
+void TableEditor::applyFormTarget() {
+  const int row = currentSourceRow();
+  if (row < 0 || row >= model_->rowCount()) {
+    form_->clearTarget();
+    formTitle_->setText(tr("No row selected"));
+    return;
+  }
+  JsonPath p = model_->arrayPath();
+  p.push_back(PathStep::at((size_t)row));
+  form_->setTarget(p);
+  const ote::Json* r = model_->rowValue(row);
+  const QString id = r ? QString::fromStdString((*r)["id"].asString()) : QString();
+  formTitle_->setText(id.isEmpty() ? tr("Row %1").arg(row + 1) : tr("Row %1: %2").arg(row + 1).arg(id));
+}
+
+void TableEditor::selectRow(int sourceRow) {
+  if (sourceRow < 0 || sourceRow >= model_->rowCount()) return;
+  QModelIndex pi = proxy_->mapFromSource(model_->index(sourceRow, 0));
+  if (!pi.isValid()) {  // a filter hides it: show everything rather than fail
+    filter_->clear();
+    pi = proxy_->mapFromSource(model_->index(sourceRow, 0));
+  }
+  view_->setCurrentIndex(pi);
+  view_->selectRow(pi.row());
+  view_->scrollTo(pi);
+  if (form_) applyFormTarget();
+}
+
+bool TableEditor::locateProblem(const QString& message) {
+  // Loader messages quote the entry and the key: weapon "mortar": "apCost" ... or name it by position: technologies[2].
+  QStringList quoted;
+  static const QRegularExpression quoteRe("\"([^\"]+)\"");
+  for (auto it = quoteRe.globalMatch(message); it.hasNext();) quoted << it.next().captured(1);
+  int row = -1;
+  static const QRegularExpression posRe("\\w+\\[(\\d+)\\]");
+  if (auto m = posRe.match(message); m.hasMatch() && m.captured(1).toInt() < model_->rowCount()) row = m.captured(1).toInt();
+  for (int r = 0; row < 0 && r < model_->rowCount(); ++r) {
+    const ote::Json* rv = model_->rowValue(r);
+    if (rv && (*rv)["id"].isString() && quoted.contains(QString::fromStdString((*rv)["id"].asString()))) row = r;
+  }
+  if (row < 0) return false;
+  selectRow(row);
+  // The field: the first quoted word that is a key the schema (or the table) knows.
+  for (const QString& q : quoted) {
+    if (form_ && form_->focusKey(q)) return true;
+    const int col = model_->columnOfKey(q);
+    if (col >= 0) {
+      view_->setCurrentIndex(proxy_->mapFromSource(model_->index(row, col)));
+      return true;
+    }
+  }
+  return true;
 }
 
 bool TableEditor::eventFilter(QObject* obj, QEvent* ev) {
