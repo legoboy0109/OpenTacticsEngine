@@ -61,7 +61,9 @@ def run_economy_checks(api, tmp, games, templates, check, get_project, put_proje
     st, pr = api.json("GET", "/api/projects/%s/problems" % pid)
     # (the template map may use structure kinds the test list leaves out: only the economy files matter here)
     econ = [p for p in pr["problems"] if p["file"] in ("game.json", "data/structures.json", "data/units.json", "data/weapons.json", "data/research.json")]
-    check("economy: the game files load with no problems", econ == [], econ)
+    # The structure kind with "futureKey" is refused by the loader (it names the key) but the server keeps the file as it was sent.
+    check("economy: the loader names the unknown key of a structure, and nothing else is wrong",
+          [p["message"] for p in econ] == ['structure "hq": unknown key "futureKey"'], econ)
     # The loader refuses a wrong option rule and the editor shows its message in the Problems list.
     bad = json.loads(json.dumps(game))
     bad["rules"]["fog"] = {"ambush": "never"}
@@ -97,6 +99,13 @@ def run_economy_checks(api, tmp, games, templates, check, get_project, put_proje
     check("economy: an edit elsewhere in units.json keeps fuel, fuelPerTurn, supplies and unknown keys",
           st == 200 and b'"fuel": 60' in text and b'"fuelPerTurn": 5' in text and b'"supplies": true' in text and b'"sounds"' in text)
     check("economy: unknown key on a structure survives", b'"futureKey"' in after["data/structures.json"])
+    # Take the unknown key away again: the rest of the checks start from a valid game.
+    st, d = get_project(api, pid)
+    d["structures"][3].pop("futureKey")
+    structures[3].pop("futureKey")
+    st, res = put_project(api, pid, d, d["revision"], structures=d["structures"])
+    check("economy: the unknown key is gone once the maker removes it, and the game loads again", st == 200 and b'"futureKey"' not in rawb(os.path.join(root, "data/structures.json")), res)
+    st, d = get_project(api, pid)
 
     # ---- 2. data/research.json like data/items.json ----
     os.remove(rfile)

@@ -13,14 +13,6 @@ namespace ote {
 
 namespace {
 
-bool knownKey(const std::string& k) {
-  static const char* const keys[] = {"id",      "name",   "description", "type",      "level", "stats",
-                                     "growths", "skills", "learns",      "abilities", "items",       "ranks", "capAdjust", "wields", "quotes", "tags", "promotion", "resist", "job", "jobs", "equipped", "learned"};
-  for (const char* n : keys)
-    if (k == n) return true;
-  return false;
-}
-
 // "learns": [ { "level": 8, "skill": "heavy_blow" } ]; the skill id is resolved later.
 bool readLearns(const LoadCtx& c, const Database& db, const Json& e, const std::string& where, CharacterDef& ch) {
   const Json* list;
@@ -34,7 +26,7 @@ bool readLearns(const LoadCtx& c, const Database& db, const Json& e, const std::
     if (d.level < 2 || d.level > db.rules.maxLevel)
       return c.fail(where, at + ": \"level\" must be from 2 to " + std::to_string(db.rules.maxLevel));
     for (const Json::Member& m : l.members())
-      if (m.first != "level" && m.first != "skill") return c.fail(where, at + ": unknown key \"" + m.first + "\"");
+      if (m.first != "level" && m.first != "skill") return c.fail(where, at + ": " + unknownKeyText(m.first, {"level", "skill"}));
     ch.learns.push_back(d);
   }
   return true;
@@ -48,8 +40,10 @@ bool readCharacter(const LoadCtx& c, const Database& db, const Json& e, size_t i
   where = "character \"" + ch.id + "\"";
   for (const CharacterDef& o : db.characters)
     if (o.id == ch.id) return c.fail(where, "duplicate id");
-  for (const Json::Member& m : e.members())
-    if (!knownKey(m.first)) return c.fail(where, "unknown key \"" + m.first + "\"");
+  if (!c.onlyKeys(e, {"id", "name", "description", "type", "level", "stats", "growths", "skills", "learns", "abilities", "items", "ranks",
+                      "capAdjust", "wields", "quotes", "tags", "promotion", "resist", "job", "jobs", "equipped", "learned"},
+                  where))
+    return false;
 
   ch.name = ch.id;
   std::string type;
@@ -101,6 +95,7 @@ bool loadCharacters(const std::string& path, Database& db, std::string& err) {
   if (!loadObjectFile(path, root, err)) return false;
   LoadCtx c(err, path);
   const Json* list;
+  if (!c.onlyKeys(root, {"characters"}, "")) return false;
   if (!c.array(root, "characters", "", list, true)) return false;
   if ((int)list->size() > kMaxCharacters)
     return c.fail("", "too many characters (at most " + std::to_string(kMaxCharacters) + ")");

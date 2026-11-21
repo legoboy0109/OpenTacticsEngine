@@ -74,8 +74,8 @@ TEST(damage_types_loader_refuses_bad_data_naming_the_key) {
   chr.swap("data/characters.json", "\"kinetic\": -1", "\"plasma\": -1");
   CHECK(saysIn(chr.gameError(), "\"resist\" names unknown damage type \"plasma\""));
   Copy none("dt_none", kFix);
-  none.swap("game.json", "\"damageTypes\":", "\"damageTypesX\":");
-  none.swap("game.json", "\"resistRange\":", "\"resistRangeX\":");
+  none.dropValue("game.json", "damageTypes");
+  none.dropValue("game.json", "resistRange");
   CHECK(saysIn(none.gameError(), "needs \"damageTypes\" in game.json"));
   Copy cond("dt_cond", kFix);
   cond.swap("data/skills.json", "\"damageType\": \"fire\" }", "\"damageType\": \"plasma\" }");

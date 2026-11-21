@@ -41,7 +41,7 @@ bool readWalk(const LoadCtx& c, const Database& db, const Json& j, const std::st
   for (const Json::Member& m : j.members()) {
     bool known = false;
     for (const char* k : kKnown) known |= m.first == k;
-    if (!known) return c.fail(w, "has an unknown key " + q(m.first) + " (use sheet, down, up, side, left, right and frameMs)");
+    if (!known) return c.fail(w, "has an unknown key " + q(m.first) + " (use sheet, down, up, side, left, right and frameMs)" + didYouMean(m.first, {"sheet", "down", "up", "side", "left", "right", "frameMs"}));
   }
   std::string sheetId;
   if (!c.str(j, "sheet", w, sheetId)) return false;
@@ -184,6 +184,7 @@ bool readModelLook(const LoadCtx& c, const Database& db, const Json& j, const st
                          "(\"isometric-3d\" or \"3d\"); give other styles a picture");
   for (const char* key : {"sheet", "cell", "frames", "frameMs", "sides", "walk"})
     if (j.has(key)) return c.fail(where, std::string("has a \"model\", so it cannot also have ") + q(key));
+  if (!c.onlyKeys(j, {"model", "height", "turn", "sideMaterial", "animations"}, where)) return false;
   if (!c.str(j, "model", where, out.file, true)) return false;
   if (!goodModelPath(out.file))
     return c.fail(where, "\"model\" must be a .glb or .gltf file inside the game folder (for example \"models/knight.glb\")");
@@ -238,7 +239,7 @@ bool readStand(const LoadCtx& c, const Database& db, const Json& j, const std::s
     const bool other = model ? in(kPicture, 6, m.first) : in(kModel, 4, m.first);
     if (other)
       return c.fail(where, std::string(model ? "has a \"model\", so it cannot also have " : "is a picture, so it cannot have ") + q(m.first));
-    return c.fail(where, "has an unknown key " + q(m.first));
+    return c.fail(where, "has an unknown key " + q(m.first) + didYouMean(m.first, {"sheet", "cell", "frames", "variants", "frameMs", "width", "model", "height", "turn", "scatter"}));
   }
   if (!c.boolean(j, "scatter", where, out.scatter)) return false;
 
@@ -307,12 +308,14 @@ bool readThingLooks(const LoadCtx& c, const Database& db, const Json& o, const s
       continue;
     }
     if (!readLook(c, db, e.second, where, false, -1, ul.base, subject.c_str())) return false;
+    if (!c.onlyKeys(e.second, {"sheet", "cell", "frames", "frameMs", "sides", "walk"}, where)) return false;  // (after readLook: its message about a "join" wins)
     const Json* sides;
     if (!c.object(e.second, "sides", where, sides)) return false;
     for (const Json::Member& s : sides->members()) {
       if (s.first.empty()) return c.fail(where, "\"sides\" has an empty side id");
       Look l;
       if (!readLook(c, db, s.second, where + " side " + q(s.first), false, -1, l, subject.c_str())) return false;
+      if (!c.onlyKeys(s.second, {"sheet", "cell", "frames", "frameMs", "walk"}, where + " side " + q(s.first))) return false;
       ul.sides.push_back(std::make_pair(s.first, l));
     }
   }
@@ -336,6 +339,7 @@ bool readPortraits(const LoadCtx& c, const Database& db, const Json& o, const st
     if (e.second.isNull()) continue;
     if (e.second.isObject() && (e.second.has("frames") || e.second.has("variants") || e.second.has("join")))
       return c.fail(where, "a portrait is one \"cell\" of a sheet");
+    if (!c.onlyKeys(e.second, {"sheet", "cell", "frameMs", "faces", "talk", "blink"}, where)) return false;
     Look look;
     if (!readLook(c, db, e.second, where, false, -1, look, "portraits")) return false;
     if (look.kind != Look::Still) return c.fail(where, "a portrait is one \"cell\" of a sheet");
@@ -379,6 +383,7 @@ bool readSet(const LoadCtx& c, const Database& db, const Json& o, const std::str
       continue;
     }
     if (!readLook(c, db, e.second, where, true, t, set.terrain[(size_t)t])) return false;
+    if (!c.onlyKeys(e.second, {"sheet", "cell", "variants", "frames", "join", "joinWith", "joinExcept", "joinEdge", "frameMs", "stand"}, where)) return false;
     if (e.second.has("stand") && !readStand(c, db, e.second["stand"], where, view3d, set.stands[(size_t)t])) return false;
   }
   if (!readThingLooks(c, db, o, prefix, "units", "unit", [&](const std::string& id) { return db.findUnitType(id); },
@@ -409,6 +414,8 @@ bool loadGraphics(const std::string& path, Database& db, std::string& err) {
   if (!loadObjectFile(path, root, err)) return false;
   LoadCtx c(err, path);
 
+  if (!c.onlyKeys(root, {"sheets", "unitMarker", "backgrounds", "tilesets", "terrain", "units", "structures", "portraits", "styles", "battle"}, ""))
+    return false;
   const Json* sheets;
   if (!c.array(root, "sheets", "", sheets)) return false;
   for (size_t i = 0; i < sheets->size(); ++i) {
@@ -419,6 +426,7 @@ bool loadGraphics(const std::string& path, Database& db, std::string& err) {
     if (!c.str(j, "id", where, sh.id, true)) return false;
     if (sh.id.empty()) return c.fail(where, "\"id\" must not be empty");
     where = "sheet " + q(sh.id);
+    if (!c.onlyKeys(j, {"id", "file", "cellWidth", "cellHeight", "smooth"}, where)) return false;
     if (db.graphics.findSheet(sh.id) >= 0) return c.fail(where, "duplicate id");
     if (!c.str(j, "file", where, sh.file, true)) return false;
     if (!goodArtPath(sh.file))
@@ -471,6 +479,7 @@ bool loadGraphics(const std::string& path, Database& db, std::string& err) {
     std::string where = "style " + q(e.first);
     if (s < 0) return c.fail(where, "there is no visual style with this id");
     if (!e.second.isObject()) return c.fail(where, "must be an object");
+    if (!c.onlyKeys(e.second, {"terrain", "units", "structures", "portraits"}, where)) return false;
     StyleView view = db.styles[(size_t)s].view;
     if (!readSet(c, db, e.second, where, view == StyleView::Isometric3D || view == StyleView::Full3D, sets[(size_t)s])) return false;
   }

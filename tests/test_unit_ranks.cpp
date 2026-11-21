@@ -136,7 +136,8 @@ TEST(a_save_keeps_the_rank_because_it_keeps_the_experience) {
 
 TEST(a_game_without_the_table_levels_up_as_before_and_refuses_xp_on_the_map) {
   skilltest::Copy c("ur_plain", "unit-ranks");
-  c.swap("game.json", "\"levels\": [", "\"xpPerLevel\": 15, \"ignored\": [");  // the table is not read: ordinary levelling
+  c.dropValue("game.json", "levels");
+  c.swap("game.json", "\"xpKill\": \"30\"", "\"xpKill\": \"30\", \"xpPerLevel\": 15");  // the table is not read: ordinary levelling
   CHECK_STR(c.mapError("field"), "");
   CHECK(saysIn(c.mapError("duel"), "\"xp\" needs a rank table"));
   skilltest::World w("field", c.dir);

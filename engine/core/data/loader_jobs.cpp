@@ -14,15 +14,7 @@ std::string q(const std::string& s) { return "\"" + s + "\""; }
 constexpr int kMaxSlotCount = 8;
 
 bool onlyThese(const LoadCtx& c, const Json& e, const std::string& at, std::initializer_list<const char*> keys) {
-  for (const Json::Member& m : e.members()) {
-    bool known = false;
-    for (const char* k : keys) known = known || m.first == k;
-    if (known) continue;
-    std::string list;
-    for (const char* k : keys) list += (list.empty() ? "" : ", ") + q(k);
-    return c.fail(at, "unknown key " + q(m.first) + " (expected " + list + ")");
-  }
-  return true;
+  return c.onlyKeys(e, keys, at);
 }
 
 // "jpLevels": [100, 300, 600]: total JP for job levels 2, 3, ...; rising, each from 1 to kMaxJobJp.
@@ -194,6 +186,7 @@ bool loadJobs(const std::string& path, Database& db, std::string& err) {
   if (!loadObjectFile(path, root, err)) return false;
   LoadCtx c(err, path);
   const Json* list;
+  if (!c.onlyKeys(root, {"jobs"}, "")) return false;
   if (!c.array(root, "jobs", "", list, true)) return false;
   if ((int)list->size() > kMaxJobs) return c.fail("", "too many jobs (at most " + std::to_string(kMaxJobs) + ")");
   if (list->size() == 0) {

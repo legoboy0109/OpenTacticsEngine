@@ -127,6 +127,8 @@ TEST(skills_loader_refusals_of_blocks_and_effects) {
          {R"({ "when": "always", "chance": 30, "do": [ { "pass": "enemies" } ] })", "\"chance\" cannot be used in an \"always\" block"},
          {R"({ "when": "combat", "chance": 30, "do": [ { "hit": 1 } ] })", "\"chance\" cannot be used in a \"combat\" block"},
          {R"({ "when": "strike", "chance": true, "do": [ { "hit": 1 } ] })", "\"chance\" must be a percent or a formula"},
+         {R"({ "when": "strike", "chance": 101, "do": [ { "hit": 1 } ] })", "skill \"x\": block 1: \"chance\" must be a percent from 0 to 100"},
+         {R"({ "when": "strike", "chance": -5, "do": [ { "hit": 1 } ] })", "skill \"x\": block 1: \"chance\" must be a percent from 0 to 100"},
          {R"({ "when": "strike", "aura": { "to": "allies" }, "do": [ { "hit": 1 } ] })",
           "\"aura\" cannot be used in a \"strike\" block (it belongs to: combat)"},
          {R"({ "when": "combat", "aura": { "to": "friends" }, "do": [ { "hit": 1 } ] })", "\"aura\".\"to\" must be \"allies\" or \"enemies\""},

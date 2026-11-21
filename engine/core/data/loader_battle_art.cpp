@@ -140,6 +140,7 @@ bool readSideSheets(const LoadCtx& c, const Database& db, const Json& owner, con
     const std::string w = where + " side " + q(e.first);
     if (e.first.empty()) return c.fail(where, "\"sides\" has an empty side id");
     if (!e.second.isObject()) return c.fail(w, "must be an object with a \"sheet\"");
+    if (!c.onlyKeys(e.second, {"sheet"}, w)) return false;
     std::string sheetId;
     if (!c.str(e.second, "sheet", w, sheetId, true)) return false;
     const int idx = db.graphics.findSheet(sheetId);
@@ -188,6 +189,7 @@ bool readSets(const LoadCtx& c, Database& db, const Json& b, BattleArt& art) {
     const std::string where = "battle set " + q(e.first);
     if (e.first.empty()) return c.fail("battle", "a set's id must not be empty");
     if (!e.second.isObject()) return c.fail(where, "must be an object");
+    if (!c.onlyKeys(e.second, {"faces", "mirror", "anchor", "animations", "sides"}, where)) return false;
     BattleSet s;
     s.id = e.first;
     std::string faces = "right";
@@ -205,6 +207,7 @@ bool readSets(const LoadCtx& c, Database& db, const Json& b, BattleArt& art) {
                                  " (use stand, attack, crit, ranged, cast, dodge, hurt, defeat, critRanged, dodgeRanged, standRanged or miss)");
       if (a.second.isNull()) continue;
       const std::string aw = where + ": animation " + q(a.first);
+      if (!c.onlyKeys(a.second, {"sheet", "frames", "ms", "loop", "hit", "spawn", "holdFrame", "startFrame", "startDelayMs", "sounds", "sides"}, aw)) return false;
       if (!readAnim(c, db, a.second, aw, id == BaStand || id == BaStandRanged, s.anims[id])) return false;
       if (!checkHolds(c, s.anims[id], id, aw)) return false;
       if (!readSideSheets(c, db, a.second, aw, s.anims[id].sideSheets)) return false;
@@ -331,7 +334,7 @@ bool readEffectExtras(const LoadCtx& c, const Json& j, const std::string& where,
       const std::string w = where + " atRange " + std::to_string(i + 1);
       if (!r[i].isObject()) return c.fail(w, "must be { \"from\": 2, \"delayMs\": 267 } (a travel effect's may also give an \"endOffset\")");
       for (const Json::Member& m : r[i].members())
-        if (m.first != "from" && m.first != "delayMs" && m.first != "endOffset") return c.fail(w, "unknown key " + q(m.first) + " (expected \"from\", \"delayMs\", \"endOffset\")");
+        if (m.first != "from" && m.first != "delayMs" && m.first != "endOffset") return c.fail(w, unknownKeyText(m.first, {"from", "delayMs", "endOffset"}));
       FxRange fr;
       if (!c.integer(r[i], "from", w, fr.from, true)) return false;
       if (fr.from < 1 || fr.from > 99) return c.fail(w, "\"from\" must be between 1 and 99 (the fight distance in squares the step starts at)");
@@ -359,7 +362,7 @@ bool readEffectExtras(const LoadCtx& c, const Json& j, const std::string& where,
       if (!h[i].isObject()) return c.fail(w, "must be { \"atMs\": 0, \"ms\": 1500, \"what\": [\"backdrop\", \"platforms\"] }");
       for (const Json::Member& m : h[i].members())
         if (m.first != "atMs" && m.first != "ms" && m.first != "what" && m.first != "color" && m.first != "atRangeFixed")
-          return c.fail(w, "unknown key " + q(m.first) + " (expected \"atMs\", \"ms\", \"what\", \"color\", \"atRangeFixed\")");
+          return c.fail(w, unknownKeyText(m.first, {"atMs", "ms", "what", "color", "atRangeFixed"}));
       FxHide hd;
       if (!c.boolean(h[i], "atRangeFixed", w, hd.fixed)) return false;
       if (!c.integer(h[i], "atMs", w, hd.atMs, true) || !c.integer(h[i], "ms", w, hd.ms, true)) return false;
@@ -396,7 +399,7 @@ bool readEffectExtras(const LoadCtx& c, const Json& j, const std::string& where,
       if (!f[i].isObject()) return c.fail(w, "must be { \"atMs\": 0, \"ms\": 300, \"to\": \"#000000\", \"alpha\": 0.8, \"holdMs\": 400, \"over\": \"all\" }");
       for (const Json::Member& m : f[i].members())
         if (m.first != "atMs" && m.first != "ms" && m.first != "to" && m.first != "alpha" && m.first != "holdMs" && m.first != "over" && m.first != "atRangeFixed")
-          return c.fail(w, "unknown key " + q(m.first) + " (expected \"atMs\", \"ms\", \"to\", \"alpha\", \"holdMs\", \"over\", \"atRangeFixed\")");
+          return c.fail(w, unknownKeyText(m.first, {"atMs", "ms", "to", "alpha", "holdMs", "over", "atRangeFixed"}));
       FxFade fd;
       if (!c.boolean(f[i], "atRangeFixed", w, fd.fixed)) return false;
       if (!c.integer(f[i], "atMs", w, fd.atMs, true) || !c.integer(f[i], "ms", w, fd.ms, true) || !c.integer(f[i], "holdMs", w, fd.holdMs)) return false;
@@ -427,6 +430,7 @@ bool readEffectExtras(const LoadCtx& c, const Json& j, const std::string& where,
       const std::string w = where + " flash " + std::to_string(i + 1);
       if (!f[i].isObject()) return c.fail(w, "must be { \"atMs\": 100, \"ms\": 80, \"color\": \"#ffffff\" }");
       FxFlash fl;
+      if (!c.onlyKeys(f[i], {"atMs", "ms", "color", "atRangeFixed"}, w)) return false;
       if (!c.boolean(f[i], "atRangeFixed", w, fl.fixed)) return false;
       if (!c.integer(f[i], "atMs", w, fl.atMs, true) || !c.integer(f[i], "ms", w, fl.ms, true)) return false;
       if (fl.atMs < 0 || fl.atMs > 60000) return c.fail(w, "\"atMs\" must be between 0 and 60000");
@@ -447,6 +451,7 @@ bool readEffectExtras(const LoadCtx& c, const Json& j, const std::string& where,
       const std::string w = where + " shake " + std::to_string(i + 1);
       if (!f[i].isObject()) return c.fail(w, "must be { \"atMs\": 100, \"ms\": 200, \"strength\": 2 }");
       FxShake sh;
+      if (!c.onlyKeys(f[i], {"atMs", "ms", "strength", "atRangeFixed"}, w)) return false;
       if (!c.boolean(f[i], "atRangeFixed", w, sh.fixed)) return false;
       if (!c.integer(f[i], "atMs", w, sh.atMs, true) || !c.integer(f[i], "ms", w, sh.ms, true) || !c.integer(f[i], "strength", w, sh.strength, true)) return false;
       if (sh.atMs < 0 || sh.atMs > 60000) return c.fail(w, "\"atMs\" must be between 0 and 60000");
@@ -488,6 +493,12 @@ bool readEffects(const LoadCtx& c, Database& db, const Json& b, BattleArt& art) 
     const Json& j = (*list)[i];
     const std::string where = "battle effect " + std::to_string(i + 1);
     if (!j.isObject()) return c.fail(where, "must be an object");
+    // (holdFrame, startFrame and startDelayMs are accepted so that readAnim can say they are for the animations of a set only.)
+    if (!c.onlyKeys(j, {"id", "weapon", "group", "effects", "byType", "mode", "travelMs", "anchor", "sheet", "frames", "ms", "loop", "hit", "spawn", "sounds",
+                        "hitAtMs", "layer", "mirror", "flash", "shake", "at", "returns", "lingerMs", "blend", "hide", "fade", "order", "speed",
+                        "endOffset", "atRange", "atRangeFixed", "panAtMs", "holdFrame", "startFrame", "startDelayMs"},
+                    where))
+      return false;
     BattleEffect fx;
     Pending pend;
     pend.where = where;
@@ -576,6 +587,7 @@ bool readAssign(const LoadCtx& c, Database& db, const Json& b, BattleArt& art) {
     const Json& j = (*list)[i];
     const std::string where = "battle assign " + std::to_string(i + 1);
     if (!j.isObject()) return c.fail(where, "must be an object");
+    if (!c.onlyKeys(j, {"set", "type", "character", "group", "weapon", "side"}, where)) return false;
     BattleAssign a;
     std::string set, type, character, group, weapon, side;
     if (!c.str(j, "set", where, set, true) || !c.str(j, "type", where, type) || !c.str(j, "character", where, character) ||
@@ -621,7 +633,7 @@ bool readPlatforms(const LoadCtx& c, Database& db, const Json& b, BattleArt& art
     if (e.first.empty() || e.first == "default" || !e.second.isObject()) return c.fail(where, "must be an object with \"sheet\" and \"cell\" (and optionally \"far\"); the id cannot be \"default\"");
     for (const Json::Member& k : e.second.members())
       if (k.first != "sheet" && k.first != "cell" && k.first != "far" && k.first != "right" && k.first != "farRight")
-        return c.fail(where, "unknown key " + q(k.first) + " (expected \"sheet\", \"cell\", \"far\", \"right\", \"farRight\")");
+        return c.fail(where, unknownKeyText(k.first, {"sheet", "cell", "far", "right", "farRight"}));
     BattlePlatform p;
     p.id = e.first;
     std::string sheetId;
@@ -673,6 +685,7 @@ bool readBackgrounds(const LoadCtx& c, Database& db, const Json& b, BattleArt& a
   for (const Json::Member& e : m->members()) {
     const std::string where = "battle background " + q(e.first);
     if (e.first.empty() || !e.second.isObject()) return c.fail(where, "must be an object with \"sheet\" and \"cell\"");
+    if (!c.onlyKeys(e.second, {"sheet", "cell"}, where)) return false;
     BattleBackground bg;
     bg.id = e.first;
     std::string sheetId;
@@ -740,7 +753,7 @@ bool readSceneTiming(const LoadCtx& c, const Json& b, BattleSceneTiming& out) {
   const Json& sc = b["scene"];
   if (!sc.isObject()) return c.fail("battle scene", "must be an object such as { \"resultHoldMs\": 533, \"resultHoldAgainMs\": 0 }");
   for (const Json::Member& m : sc.members())
-    if (m.first != "resultHoldMs" && m.first != "resultHoldAgainMs") return c.fail("battle scene", "unknown key " + q(m.first) + " (expected \"resultHoldMs\", \"resultHoldAgainMs\")");
+    if (m.first != "resultHoldMs" && m.first != "resultHoldAgainMs") return c.fail("battle scene", unknownKeyText(m.first, {"resultHoldMs", "resultHoldAgainMs"}));
   return c.integerIn(sc, "resultHoldMs", "battle scene", 0, 5000, out.resultHoldMs) && c.integerIn(sc, "resultHoldAgainMs", "battle scene", 0, 5000, out.resultHoldAgainMs);
 }
 
@@ -749,6 +762,10 @@ bool readBattleArt(const LoadCtx& c, Database& db, const Json& root) {
   if (!root.has("battle")) return true;
   const Json& b = root["battle"];
   if (!b.isObject()) return c.fail("", "\"battle\" must be an object");
+  if (!c.onlyKeys(b, {"sets", "effects", "assign", "backgrounds", "terrainBackground", "defaultBackground", "platforms", "terrainPlatform", "defaultPlatform",
+                      "stage", "scene"},
+                  "battle"))
+    return false;
   BattleArt art;
   art.terrainBackground.assign(db.terrains.size(), -1);
   art.terrainPlatform.assign(db.terrains.size(), -1);

@@ -55,7 +55,7 @@ TEST(skills_strike_chance_of_0_or_100_rolls_nothing) {
   o.aSkills = "\"never\", \"always\"";
   o.dSkills = "\"also\"";
   Duel d(skill("never", S("{ \"damage\": 10 }", "0")) + "," + skill("always", S("{ \"damage\": 5 }", "100")) + "," +
-         skill("also", T("{ \"damageTaken\": -1 }", "250")), o);
+         skill("also", T("{ \"damageTaken\": -1 }", "100")), o);
   const uint64_t before = d.b().rng.state;
   CHECK(d.attack());
   CHECK(d.b().rng.state == before);
