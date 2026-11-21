@@ -355,8 +355,9 @@ void BattleScene::draw(Renderer& r) {
                          : mode_ == Mode::Targeting ? aimOverlay() : mode_ == Mode::Facing ? faceOverlay() : supplyOverlay();
   addRangeTint(shownOverlay);  // the marked enemies' reach, under the player's own blue / red
   addChargeTint(shownOverlay);  // speed turn order: the squares of charged actions on their way
+  addPrepTint(shownOverlay);  // preparation: the deployment squares, as a ground tint under the units
   drawMap(r, ctx, shownOverlay, cursor_, human);
-  if (prep_) prepDrawSlots(r);  // the numbered deployment squares
+  if (prep_) prepDrawSlots(r);  // the numbers of the deployment squares
   drawFloats(r, ctx, false);
   drawStory(r);
   if (shaking) {

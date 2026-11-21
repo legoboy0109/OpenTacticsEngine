@@ -119,12 +119,19 @@ struct Overlay {
   // at (null = none; one entry per cell). Read through toneOf like the rest, so every kind of view paints them.
   const std::vector<uint8_t>* chargeFrom = nullptr;
   const std::vector<uint8_t>* chargeAim = nullptr;
-  bool any() const { return !reach.empty() || foeMove || chargeFrom; }
+  // The preparation screen's deployment squares (docs/SRPG.md "Preparation"): per cell 0 = not a slot, 1 = free, 2 = taken, 3 = the slot being
+  // carried (null = none). Painted as a ground tint under the units like the range tints, and winning over them on a slot square.
+  const std::vector<uint8_t>* prep = nullptr;
+  bool any() const { return !reach.empty() || foeMove || chargeFrom || prep; }
 };
 
-enum class Tone : uint8_t { None, Move, Attack, FoeMove, FoeAttack, ChargeFrom, ChargeAim };
+enum class Tone : uint8_t { None, Move, Attack, FoeMove, FoeAttack, ChargeFrom, ChargeAim, PrepFree, PrepTaken, PrepCarry };
 
 inline Tone toneOf(const Overlay& ov, Cell cell) {
+  if (ov.prep) {
+    const uint8_t k = (*ov.prep)[(size_t)cell];
+    if (k) return k == 3 ? Tone::PrepCarry : k == 2 ? Tone::PrepTaken : Tone::PrepFree;
+  }
   if (!ov.reach.empty()) {
     if (ov.reach[(size_t)cell]) return Tone::Move;
     if (ov.attack[(size_t)cell]) return Tone::Attack;
@@ -147,11 +154,17 @@ inline ToneRgb toneRgb(Tone t) {
     case Tone::FoeMove: return {150, 80, 230};
     case Tone::ChargeFrom: return {30, 200, 190};  // a unit that is charging an action (teal)
     case Tone::ChargeAim: return {235, 60, 190};   // the square (or unit) it will hit (magenta)
+    case Tone::PrepFree: return {90, 170, 255};    // deployment squares: free (light blue), taken (green), being carried (gold)
+    case Tone::PrepTaken: return {110, 220, 120};
+    case Tone::PrepCarry: return {255, 220, 90};
     default: return {255, 170, 20};
   }
 }
 // The enemies' tones are drawn a little more opaque: violet and orange over green ground would otherwise read as grey and olive.
 inline uint8_t toneAlpha(Tone t, int alpha) {
+  if (t == Tone::PrepFree) return 110;  // (their own strengths, the same as the box the screen used to draw over the units)
+  if (t == Tone::PrepTaken) return 130;
+  if (t == Tone::PrepCarry) return 170;
   return (uint8_t)(t == Tone::FoeMove || t == Tone::FoeAttack || t == Tone::ChargeFrom || t == Tone::ChargeAim ? alpha + 50 : alpha);
 }
 inline Color toneColor(Tone t, int alpha) {

@@ -18,7 +18,6 @@ namespace {
 
 enum PrepMenuId { kmUnits = 1, kmPositions, kmItems, kmShop, kmView, kmSave, kmLeave, kmBegin, kmJobs, kmShopBase = 100 };  // kmShopBase + n: the n-th shop of a `shops` list
 
-const Color kSlotFree(90, 170, 255, 110), kSlotTaken(110, 220, 120, 130), kSlotCarry(255, 220, 90, 170);
 
 }  // namespace
 
@@ -473,6 +472,20 @@ void BattleScene::prepInput(const InputEvent& e) {
 
 // ---- drawing
 
+// The slot squares' colours live in battle_draw.h (Tone::PrepFree / PrepTaken / PrepCarry), painted by every kind of view under the units.
+void BattleScene::addPrepTint(Overlay& ov) const {
+  if (!prep_) return;
+  const PrepUi& p = *prep_;
+  const PrepDef& def = *p.map.prep;
+  prepMask_.assign((size_t)battle_.grid.cellCount(), 0);
+  for (size_t i = 0; i < def.slots.size(); ++i) {
+    const Cell c = battle_.grid.at(def.slots[i].x, def.slots[i].y);
+    if (c == kNoCell) continue;
+    prepMask_[(size_t)c] = p.carrySlot == (int)i ? 3 : !deployedAt(*p.pt, (int)i).empty() ? 2 : 1;
+  }
+  ov.prep = &prepMask_;
+}
+
 void BattleScene::prepDrawSlots(Renderer& r) {
   PrepUi& p = *prep_;
   const PrepDef& def = *p.map.prep;
@@ -481,9 +494,6 @@ void BattleScene::prepDrawSlots(Renderer& r) {
     if (c == kNoCell) continue;
     int x, y, w, h;
     cellScreenBox(c, x, y, w, h);
-    const bool taken = !deployedAt(*p.pt, (int)i).empty();
-    const bool carried = p.carrySlot == (int)i;
-    fillCellBox(r, x, y, w, h, carried ? kSlotCarry : taken ? kSlotTaken : kSlotFree);
     const std::string num = intStr((int)i + 1);
     r.drawText(x + 2, y + 1, num.c_str(), Color(0, 0, 0, 200));  // the number in the corner, over a dark edge so it reads on any art
     r.drawText(x + 1, y, num.c_str(), Color(255, 255, 255));

@@ -278,7 +278,9 @@ class BattleScene : public Scene {
   void prepChanged();             // after any change: rebuild, redraw the picture, write the Continue save
   void prepInput(const InputEvent& e);
   void prepDraw(Renderer& r);     // the open screen, over the map
-  void prepDrawSlots(Renderer& r);  // the numbered deployment squares, over the map
+  void prepDrawSlots(Renderer& r);  // the numbers of the deployment squares, over the map (their tint is in the overlay: addPrepTint)
+  void addPrepTint(Overlay& ov) const;
+  mutable std::vector<uint8_t> prepMask_;  // addPrepTint's per-cell kind (Overlay::prep points here)
   void prepDrawPanelHead(Renderer& r);
   std::string prepHint() const;
   void prepMainMenu();

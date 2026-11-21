@@ -135,6 +135,9 @@ void Map3D::drawStands(const DrawCtx& c, const Overlay& ov) {
         case Tone::FoeAttack: wash = Rgba3D(1.0f, 0.82f, 0.55f); break;
         case Tone::ChargeFrom: wash = Rgba3D(0.6f, 1.0f, 0.97f); break;
         case Tone::ChargeAim: wash = Rgba3D(1.0f, 0.65f, 0.95f); break;
+        case Tone::PrepFree: wash = Rgba3D(0.7f, 0.85f, 1.0f); break;
+        case Tone::PrepTaken: wash = Rgba3D(0.75f, 1.0f, 0.78f); break;
+        case Tone::PrepCarry: wash = Rgba3D(1.0f, 0.95f, 0.65f); break;
         default: break;
       }
       float sx = 0, sz = 0, turn = 0;

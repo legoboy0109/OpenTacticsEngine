@@ -867,7 +867,8 @@ refused with the field named.
 
 **Player** (Mode::Prep in the battle scene; the Battle is set up but not started): menu Units / Positions / Items / Shop / View map /
 Save / Leave (Abandon in a free battle) / Begin (Items and Shop in a free battle too). Units: a list with "Slot N" / "Out", `*` for required, the reason in the detail line,
-"Deployed n / limit". Positions: slots numbered on the map, pick up / put down (swap), tap works, a Back button for pointers. Items:
+"Deployed n / limit". Positions: slots numbered on the map (each square is tinted light blue when free, green when taken, gold while its unit is carried; the tint is a ground tint
+under the units in every kind of view, like the move range, so a unit stands in front of it; the number stays on top), pick up / put down (swap), tap works, a Back button for pointers. Items:
 whose items, trade with another character or the storage (the battle's trade panel; the storage column and the Sell list for the storage show
 identical copies as one row with a count, `Potion  x3`, and a choice moves or sells one copy: docs/ITEMS.md "Stacked storage lists"). In a game with carried weapons the weapon in hand
 is marked, a weapon the character cannot wield is greyed with the reason in the detail line, and choosing a weapon of the character

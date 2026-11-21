@@ -360,6 +360,10 @@ if(OTE_BUILD_PLAYER AND OTE_BUILD_TESTS AND NOT EMSCRIPTEN AND TARGET ote-player
     add_test(NAME srpg_player_prep
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/srpg_player_prep_test.py
                      $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
+    # The preparation screen's slot squares are a ground tint under the units, in every kind of view (pixel checks).
+    add_test(NAME prep_tint_player
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/prep_tint_player_test.py
+                     $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
     # A free battle's preparation: Items, the shop and the stocked supply (docs/GAME_FORMAT.md "Free battles").
     add_test(NAME free_battle_prep_player
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/free_battle_prep_player_test.py
