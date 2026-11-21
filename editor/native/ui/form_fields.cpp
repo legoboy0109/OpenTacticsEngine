@@ -282,10 +282,11 @@ void TupleField::refresh() {
   }
   QString bad;
   for (int i = 0; i < edits_.size(); ++i) {
+    const SchemaNode& in = *node_->itemNode((size_t)i);
     edits_[i]->setText(v ? jsonToCellText((*v)[(size_t)i]) : QString());
-    edits_[i]->setPlaceholderText(node_->of->deflt.isNull() ? tr("not set") : jsonToCellText(node_->of->deflt));
+    edits_[i]->setPlaceholderText(in.deflt.isNull() ? tr("not set") : jsonToCellText(in.deflt));
     QString why;
-    if (v && !nodeAccepts(*node_->of, (*v)[(size_t)i], &why) && bad.isEmpty()) bad = tr("Item %1: %2. The file keeps it as it is.").arg(i + 1).arg(why);
+    if (v && !nodeAccepts(in, (*v)[(size_t)i], &why) && bad.isEmpty()) bad = tr("Item %1: %2. The file keeps it as it is.").arg(i + 1).arg(why);
   }
   clear_->setEnabled(v && !node_->required);
   showNote(note_, bad);
@@ -306,9 +307,10 @@ void TupleField::commit() {
     }
     bool ok = false;
     const double d = QLocale::c().toDouble(t, &ok);
-    if (node_->of->kind == SchemaNode::Kind::String) {
+    const SchemaNode& in = *node_->itemNode((size_t)i);
+    if (in.kind == SchemaNode::Kind::String || in.kind == SchemaNode::Kind::Ref || in.kind == SchemaNode::Kind::Enum) {
       arr.push(ote::Json::makeString(t.toStdString()));
-    } else if (!ok || (node_->of->kind == SchemaNode::Kind::Int && d != std::floor(d))) {
+    } else if (!ok || (in.kind == SchemaNode::Kind::Int && d != std::floor(d))) {
       showNote(note_, tr("\"%1\" is not a valid number here.").arg(t));
       return;
     } else {

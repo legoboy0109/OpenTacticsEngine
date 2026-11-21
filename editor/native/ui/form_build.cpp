@@ -293,7 +293,7 @@ QWidget* FormView::buildVariant(const SchemaNode& n, const JsonPath& path) {
         if (!value.has(m.first.c_str()))
           if (const SchemaNode* fld = shape->field(m.first))
             if (typeOk(*fld, m.second)) value.set(m.first, m.second);
-    ctx_->set(path, value, tr("Change %1 to %2").arg(pathToString(path), QString::fromStdString(n.variants[(size_t)i].name)));
+    ctx_->setField(n, path, value, tr("Change %1 to %2").arg(pathToString(path), QString::fromStdString(n.variants[(size_t)i].name)));
   });
   if (idx >= 0 && n.variants[(size_t)idx].node) v->addWidget(buildNode(*n.variants[(size_t)idx].node, path));
   return frame;

@@ -1,0 +1,14 @@
+{ "units": [
+  { "id": "fighter", "name": "Fighter", "glyph": "F", "moveType": "foot",
+    "stats": { "hp": 20, "str": 6, "def": 3, "mov": 4 }, "growths": { "hp": 50, "str": 60 },
+    "wields": ["sword", "staff"], "weapons": ["stick"],
+    "promotions": [ { "to": "veteran", "fromLevel": 1 } ] },
+  { "id": "veteran", "name": "Veteran", "glyph": "V", "moveType": "foot",
+    "stats": { "hp": 24, "str": 8, "def": 4, "mov": 4 }, "growths": { "hp": 50, "str": 60 },
+    "wields": ["sword", "staff"], "weapons": ["stick"] },
+  { "id": "archer", "name": "Archer", "glyph": "A", "moveType": "foot",
+    "stats": { "hp": 16, "str": 5, "def": 2, "mov": 4 }, "growths": { "hp": 40, "str": 50 },
+    "wields": ["sword", "staff"], "weapons": ["stick"] },
+  { "id": "grunt", "name": "Grunt", "glyph": "g", "moveType": "foot",
+    "stats": { "hp": 14, "str": 4, "def": 1, "mov": 4 }, "growths": { "hp": 30, "str": 40 },
+    "wields": ["sword"], "weapons": ["stick"] } ] }

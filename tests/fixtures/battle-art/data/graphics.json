@@ -1,0 +1,71 @@
+{
+  "sheets": [
+    { "id": "units", "file": "art/units.png", "cellWidth": 24, "cellHeight": 24 },
+    { "id": "red", "file": "art/units.png", "cellWidth": 24, "cellHeight": 24 },
+    { "id": "fx", "file": "art/units.png", "cellWidth": 24, "cellHeight": 24 }
+  ],
+  "portraits": { "hero": { "sheet": "units", "cell": [0, 0] } },
+  "battle": {
+    "sets": {
+      "hero_set": {
+        "faces": "left", "mirror": false, "anchor": [12, 22],
+        "sides": { "red": { "sheet": "red" } },
+        "animations": {
+          "stand": { "sheet": "units", "frames": [[0, 0], [1, 0]], "ms": 400, "loop": true },
+          "standRanged": { "sheet": "units", "frames": [[0, 1]] },
+          "attack": { "sheet": "units", "frames": [[0, 1], [1, 1], [0, 2]], "ms": [140, 90, 110], "hit": 1, "spawn": 1, "holdFrame": 2,
+                      "sounds": { "1": "swing" }, "sides": { "red": { "sheet": "red" } } },
+          "crit": { "sheet": "units", "frames": [[0, 1], [1, 1]], "hit": 1 },
+          "ranged": { "sheet": "units", "frames": [[0, 1], [1, 1]], "hit": 1 },
+          "critRanged": { "sheet": "units", "frames": [[0, 1], [1, 1]] },
+          "cast": { "sheet": "units", "frames": [[0, 2]] },
+          "miss": { "sheet": "units", "frames": [[0, 2], [1, 2]], "hit": 0, "holdFrame": 1 },
+          "dodge": { "sheet": "units", "frames": [[0, 3], [1, 3], [0, 4]], "startFrame": 1, "holdFrame": 2, "startDelayMs": 80 },
+          "dodgeRanged": { "sheet": "units", "frames": [[0, 3]] },
+          "hurt": { "sheet": "units", "frames": [[0, 4], [1, 4]], "holdFrame": 1, "loop": false },
+          "defeat": { "sheet": "units", "frames": [[0, 5]] }
+        }
+      },
+      "plain_set": { "animations": { "stand": { "sheet": "units", "frames": [[0, 0]] }, "attack": null } }
+    },
+    "effects": [
+      { "id": "spark", "sheet": "fx", "frames": [[0, 0], [1, 0, "units"]], "ms": 80, "loop": false, "hit": 1, "spawn": 0,
+        "sounds": { "0": "zap" }, "hitAtMs": 100, "layer": "behind", "at": "striker", "blend": "add", "panAtMs": 200,
+        "atRange": [{ "from": 2, "delayMs": 60 }], "atRangeFixed": false,
+        "hide": [{ "atMs": 0, "ms": 300, "what": ["backdrop", "platforms"], "color": "#102030", "atRangeFixed": true }],
+        "fade": [{ "atMs": 0, "ms": 200, "to": "#000000", "alpha": 0.8, "holdMs": 100, "over": "backdrop", "atRangeFixed": true }],
+        "flash": [{ "atMs": 50, "ms": 80, "color": "#ffffff", "atRangeFixed": true }],
+        "shake": [{ "atMs": 50, "ms": 200, "strength": 3, "atRangeFixed": true }],
+        "anchor": [12, 12] },
+      { "id": "arrow", "sheet": "fx", "frames": [[0, 0]], "mode": "travel", "travelMs": 220, "returns": true, "lingerMs": 100, "endOffset": -6,
+        "atRange": [{ "from": 3, "delayMs": 0, "endOffset": 4 }] },
+      { "id": "swift", "sheet": "fx", "frames": [[0, 0]], "mode": "travel", "speed": 300 },
+      { "id": "glow", "sheet": "fx", "frames": [[1, 1]], "layer": "screen", "mirror": true, "order": "front" },
+      { "weapon": "iron_sword", "effects": ["spark", "glow"], "byType": { "archer": "arrow", "fighter": ["swift"] } },
+      { "group": "sword", "effects": "spark" }
+    ],
+    "assign": [
+      { "set": "hero_set", "character": "hero" },
+      { "set": "plain_set", "type": "fighter", "group": "sword" },
+      { "set": "plain_set", "type": "archer", "weapon": "iron_sword", "side": "red" }
+    ],
+    "backgrounds": { "meadow": { "sheet": "units", "cell": [0, 0] } },
+    "terrainBackground": { "plain": "meadow" },
+    "defaultBackground": "meadow",
+    "platforms": { "grass": { "sheet": "units", "cell": [0, 0], "far": [1, 0], "right": [0, 1], "farRight": [1, 1] } },
+    "terrainPlatform": { "plain": "grass" },
+    "defaultPlatform": "grass",
+    "stage": {
+      "width": 240, "height": 160,
+      "feet": { "left": [60, 120], "right": [180, 120] }, "feetFar": { "left": [40, 120], "right": [200, 120] },
+      "platform": { "left": [60, 128], "right": [180, 128] }, "platformFar": { "left": [40, 128], "right": [200, 128] },
+      "align": "bottom", "fit": "contain", "rangeLine": true,
+      "ranges": [
+        { "from": 3, "feet": { "left": [50, 120], "right": [190, 120] }, "platform": { "left": [50, 128], "right": [190, 128] }, "view": "both" },
+        { "from": 6, "feet": { "left": [100, 120], "right": [400, 120] }, "view": "each",
+          "pan": { "panMs": 300, "leftView": 0, "rightView": 300, "backdrop": "scroll", "startMs": 100 } }
+      ]
+    },
+    "scene": { "resultHoldMs": 600, "resultHoldAgainMs": 100 }
+  }
+}

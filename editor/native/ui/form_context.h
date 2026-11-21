@@ -31,7 +31,7 @@ class FormContext : public QObject {
   bool set(const JsonPath& path, const ote::Json& value, const QString& undoText = QString());
   // Like set(), for a field of a schema: keys the node `excludes` (turns / until: one of the two) are removed in the same
   // undo step.
-  bool setField(const SchemaNode& node, const JsonPath& path, const ote::Json& value);
+  bool setField(const SchemaNode& node, const JsonPath& path, const ote::Json& value, const QString& undoText = QString());
   // Removes the key or list item.
   bool erase(const JsonPath& path);
   // Appends an item to the list at `path`, creating the list when it is absent.

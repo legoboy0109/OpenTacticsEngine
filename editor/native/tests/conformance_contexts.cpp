@@ -13,6 +13,7 @@ const std::vector<Context>& contexts() {
     addMapContexts(v);
     addEventContexts(v);
     addStoryContexts(v);
+    addBattleContexts(v);
     return v;
   }();
   return c;
@@ -43,8 +44,9 @@ const std::map<QString, QString>& skipped() {
       {"maps:prep.shops[].music", "the track must exist in data/audio.json; covered with audio.json"},
       {"audio:music", "a free map: its entries are tried one by one (replacing the whole map would drop the tracks the rest of the file names)"},
       {"audio:sounds", "a free map: its entries are tried one by one (replacing the whole map would drop the sounds the rest of the file names)"},
-      {"graphics:battle", "kept as raw JSON for now: the battle scene's animation sets (docs/BATTLE_SCENE.md) come with the battle-scene forms"},
-      {"graphics:battleBackground", "kept as raw JSON for now, with the rest of the battle scene's art"},
+      {"graphics:battle.sets", "a free map: its entries are tried one by one (replacing it would drop the set the assignments name)"},
+      {"graphics:battle.backgrounds", "a free map: its entries are tried one by one (replacing it would drop the backgrounds the terrain table names)"},
+      {"graphics:battle.platforms", "a free map: its entries are tried one by one (replacing it would drop the platforms the terrain table names)"},
       {"graphics:sheets", "a list of sheets: its entries are tried one by one (replacing the whole list would drop the sheets the rest of the file names)"},
       {"graphics:backgrounds", "a free map: its entries are tried one by one (replacing it would drop the backgrounds the story names)"},
       {"graphics:terrain", "a map by terrain id: its entries are tried one by one"},
@@ -59,7 +61,8 @@ const std::map<QString, QString>& skipped() {
       {"graphics:styles.*.terrain", "a map by terrain id: its entries are tried one by one"},
       {"graphics:styles.*.units", "a map by unit type id: its entries are tried one by one"},
       {"graphics:styles.*.structures", "a map by structure id: its entries are tried one by one"},
-      {"graphics:styles.*.terrain.*{picture}.join", "a joined picture needs a 4 x 4 block of cells; tried with the flat art at graphics:terrain"},
+      {"graphics:styles.*.terrain.*{picture}.join{one block}", "a joined picture needs a 4 x 4 block of cells; tried with the flat art at graphics:terrain"},
+      {"graphics:styles.*.terrain.*{picture}.join{animation*", "a joined picture needs a 4 x 4 block of cells; tried with the flat art at graphics:terrain"},
       {"campaign:chapters[].after*", "an after scene holds the same commands as a before scene: tried under campaign:chapters[].before{commands}[]"},
       {"campaign:chapters[].before{music and commands}.commands*", "the commands of the scene form with music are the same as the plain list: tried under campaign:chapters[].before{commands}[]"},
       {"campaign:chapters[].before{commands}[]{if}.then[]{*", "the commands in a nested list are the same definition as the scene's own list: tried there"},
@@ -89,6 +92,7 @@ const std::map<QString, QString>& extraSkips() {
     addMapExtraSkips(m);
     addEventExtraSkips(m);
     addStoryExtraSkips(m);
+    addBattleExtraSkips(m);
     return m;
   }();
   return s;

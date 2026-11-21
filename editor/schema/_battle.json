@@ -1,0 +1,249 @@
+{
+  "title": "Battle scene art (shared definitions)",
+  "defs": {
+    "point": { "type": "list", "length": 2, "sample": [1, 1], "of": { "type": "int", "min": 0, "max": 8191 }, "help": "[x, y] in pixels." },
+    "pointPair": {
+      "type": "object", "help": "Where the left and the right fighter (or platform) stand, in stage pixels.",
+      "fields": {
+        "left": { "use": "point", "required": true, "help": "The left-hand fighter's point [x, y]." },
+        "right": { "use": "point", "required": true, "help": "The right-hand fighter's point [x, y]." } }
+    },
+    "frameTime": {
+      "type": "variant", "help": "Milliseconds per frame: one number for every frame, or one number per frame (10 to 10000; default 120).",
+      "variants": [
+        { "name": "same for every frame", "kind": "number", "sample": 120, "node": { "type": "int", "min": 10, "max": 10000 } },
+        { "name": "one time per frame", "kind": "array", "sample": [120], "node": { "type": "list", "min": 1, "max": 512, "of": { "type": "int", "min": 10, "max": 10000 } } } ]
+    },
+    "soundByFrame": {
+      "type": "map", "free": true, "sample": { "0": "cursor" },
+      "help": "A sound that plays when a frame begins: the frame number (from 0), then a sound id of data/audio.json.",
+      "of": { "type": "ref", "ref": "keys:data/audio.json#sounds" }
+    },
+    "sideSheets": {
+      "type": "map", "free": true, "sample": { "blue": { "sheet": "units" } },
+      "help": "The fighter of a map side (by side id) draws from another sheet with the same cell size and layout.",
+      "of": { "type": "object", "fields": { "sheet": { "type": "ref", "ref": "@sheets", "required": true, "help": "The sheet that side uses." } } }
+    },
+    "anim": {
+      "type": "object", "alt": "null", "help": "One animation: frames of one sheet (a null in the file means none).", "summary": "{sheet}",
+      "fields": {
+        "sheet": { "type": "ref", "ref": "@sheets", "required": true, "help": "The sheet every frame is in; its cell size is the frame size." },
+        "frames": { "type": "list", "required": true, "min": 1, "max": 512, "enable": [[0, 0]], "sample": [[0, 0], [1, 0]], "of": { "use": "graphics#cell" },
+                    "help": "The cells [column, row] shown one after the other (1 to 512; a cell may repeat)." },
+        "ms": { "use": "frameTime" },
+        "loop": { "type": "bool", "help": "Plays again and again (default: yes for stand and standRanged, no for the others)." },
+        "hit": { "type": "int", "min": 0, "max": 511, "help": "The frame where the blow lands (default: the last frame)." },
+        "spawn": { "type": "int", "min": 0, "max": 511, "help": "The frame a projectile or effect appears on (default: the hit frame)." },
+        "sounds": { "use": "soundByFrame" },
+        "sides": { "use": "sideSheets" } }
+    },
+    "animHold": {
+      "use": "anim", "help": "One animation; it may wait on a pose until the result is known (a null in the file means none).",
+      "moreFields": {
+        "holdFrame": { "type": "int", "min": 0, "max": 511, "help": "Waits on this frame for the result (on or after the hit frame of a strike)." } }
+    },
+    "animDodge": {
+      "use": "anim", "help": "A dodge: it may start late and wait on a pose (a null in the file means none).",
+      "moreFields": {
+        "holdFrame": { "type": "int", "min": 0, "max": 511, "help": "Waits on this frame (not before startFrame)." },
+        "startFrame": { "type": "int", "min": 0, "max": 511, "help": "The frames before this one are the brace before the blow." },
+        "startDelayMs": { "type": "int", "min": 0, "max": 5000, "help": "Moves the start of the dodge from the miss by this long (needs startFrame or holdFrame)." } }
+    },
+    "battleSet": {
+      "type": "object", "help": "The animations of one kind of fighter.", "summary": "{faces}",
+      "fields": {
+        "faces": { "type": "enum", "values": ["right", "left"], "default": "right", "help": "Which way the art looks; the other side is drawn turned round." },
+        "mirror": { "type": "bool", "default": true, "help": "The right-hand fighter is the art turned round; off: never turned." },
+        "anchor": { "type": "list", "length": 2, "sample": [12, 20], "of": { "type": "int", "min": 0, "max": 4096 }, "help": "The foot point [x, y] in a frame, pixels from its top left (default: bottom middle)." },
+        "sides": { "use": "sideSheets", "help": "Another sheet for the fighters of a side: every animation without its own sides entry uses it." },
+        "animations": { "type": "object", "required": true, "help": "The animations by name; stand is needed, all others are optional.", "fields": {
+          "stand": { "use": "anim", "block": true, "required": true, "help": "Standing (needed). Loops by default." },
+          "attack": { "use": "animHold", "block": true, "help": "A strike in melee." },
+          "crit": { "use": "animHold", "block": true, "help": "A critical strike in melee (falls back to attack)." },
+          "ranged": { "use": "animHold", "block": true, "help": "A strike from a distance (falls back to attack)." },
+          "critRanged": { "use": "animHold", "block": true, "help": "A critical strike from a distance (falls back to crit)." },
+          "cast": { "use": "animHold", "block": true, "help": "Casting, for a weapon with an effect or a staff (falls back to attack)." },
+          "miss": { "use": "animHold", "block": true, "help": "A strike that misses (falls back to attack)." },
+          "dodge": { "use": "animDodge", "block": true, "help": "The struck fighter avoids the blow." },
+          "dodgeRanged": { "use": "animDodge", "block": true, "help": "Avoiding a blow from a distance (falls back to dodge)." },
+          "hurt": { "use": "animHold", "block": true, "help": "The struck fighter is hit." },
+          "defeat": { "use": "anim", "block": true, "help": "The struck fighter falls." },
+          "standRanged": { "use": "anim", "block": true, "help": "Standing while the fight is ranged (falls back to stand). Loops by default." } } } }
+    },
+    "effectFrame": {
+      "type": "variant", "help": "A frame of an effect: a cell of the effect's sheet, or a cell of another sheet with the same cell size.",
+      "variants": [
+        { "name": "cell", "kind": "array", "length": 2, "sample": [0, 0], "node": { "use": "graphics#cell" } },
+        { "name": "cell of another sheet", "kind": "array", "length": 3, "sample": [0, 0, "units"],
+          "node": { "type": "list", "help": "[column, row, \"sheet\"].", "tuple": [
+            { "type": "int", "min": 0, "max": 30000 }, { "type": "int", "min": 0, "max": 30000 }, { "type": "ref", "ref": "@sheets" } ] } } ]
+    },
+    "effectIds": {
+      "type": "variant", "help": "One effect of the library, or several (up to 8).",
+      "variants": [
+        { "name": "one effect", "kind": "string", "node": { "type": "ref", "ref": "@battle.effects" } },
+        { "name": "several effects", "kind": "array", "node": { "type": "list", "max": 8, "of": { "type": "ref", "ref": "@battle.effects" } } } ]
+    },
+    "rangeStep": {
+      "type": "object", "sample": { "from": 2, "delayMs": 100 }, "enable": { "from": 2, "delayMs": 100 }, "summary": "from {from} squares",
+      "help": "From this fight distance on: the effect starts later, or a flight stops short (one of the two is needed).",
+      "fields": {
+        "from": { "type": "int", "required": true, "min": 1, "max": 99, "help": "The fight distance in squares the step starts at (each used once)." },
+        "delayMs": { "type": "int", "min": 0, "max": 15000, "help": "Milliseconds the whole effect starts later." },
+        "endOffset": { "type": "int", "min": -400, "max": 400, "help": "A travel effect stops this many pixels short of the target (negative: flies past)." } }
+    },
+    "hideStep": {
+      "type": "object", "summary": "at {atMs} ms for {ms} ms",
+      "help": "Hides the backdrop and / or the platforms for a while.",
+      "fields": {
+        "atMs": { "type": "int", "required": true, "min": 0, "max": 60000, "help": "Milliseconds after the effect starts." },
+        "ms": { "type": "int", "required": true, "min": 10, "max": 60000, "help": "How long it stays hidden." },
+        "what": { "type": "list", "required": true, "min": 1, "max": 2, "enable": ["backdrop"], "of": { "type": "enum", "values": ["backdrop", "platforms"] }, "help": "What is hidden (each at most once)." },
+        "color": { "type": "string", "sample": "#102030", "help": "The colour shown in its place, such as #102030." },
+        "atRangeFixed": { "type": "bool", "help": "Not delayed by the effect's atRange." } }
+    },
+    "fadeStep": {
+      "type": "object", "summary": "at {atMs} ms",
+      "help": "A colour laid over the scene: in over ms, held, then out over ms.",
+      "fields": {
+        "atMs": { "type": "int", "required": true, "min": 0, "max": 60000, "help": "Milliseconds after the effect starts." },
+        "ms": { "type": "int", "required": true, "min": 10, "max": 5000, "help": "The time to fade in, and again to fade out." },
+        "to": { "type": "string", "default": "#000000", "sample": "#112233", "help": "The colour, such as #000000." },
+        "alpha": { "type": "number", "min": 0.01, "max": 1, "default": 1, "help": "How opaque it gets at its peak (above 0, at most 1)." },
+        "holdMs": { "type": "int", "min": 0, "max": 60000, "default": 0, "help": "How long it stays at its peak." },
+        "over": { "type": "enum", "values": ["all", "backdrop"], "default": "all", "help": "Over everything (the fighters too) or the backdrop only." },
+        "atRangeFixed": { "type": "bool", "help": "Not delayed by the effect's atRange." } }
+    },
+    "flashStep": {
+      "type": "object", "summary": "at {atMs} ms",
+      "help": "A flash of colour over the stage.",
+      "fields": {
+        "atMs": { "type": "int", "required": true, "min": 0, "max": 60000, "help": "Milliseconds after the effect starts." },
+        "ms": { "type": "int", "required": true, "min": 10, "max": 5000, "help": "How long it lasts." },
+        "color": { "type": "string", "default": "#ffffff", "sample": "#ffeedd", "help": "The colour, such as #ffffff." },
+        "atRangeFixed": { "type": "bool", "help": "Not delayed by the effect's atRange." } }
+    },
+    "shakeStep": {
+      "type": "object", "summary": "at {atMs} ms",
+      "help": "The picture shakes.",
+      "fields": {
+        "atMs": { "type": "int", "required": true, "min": 0, "max": 60000, "help": "Milliseconds after the effect starts." },
+        "ms": { "type": "int", "required": true, "min": 10, "max": 5000, "help": "How long it lasts." },
+        "strength": { "type": "int", "required": true, "min": 1, "max": 64, "help": "Stage pixels it moves by." },
+        "atRangeFixed": { "type": "bool", "help": "Not delayed by the effect's atRange." } }
+    },
+    "effect": {
+      "type": "object", "summary": "{id|weapon|group}",
+      "help": "A weapon's or weapon group's effect, a library effect (with an id) used in lists, or an assignment of library effects.",
+      "fields": {
+        "id": { "type": "string", "help": "Library name (letters, digits, _ and -): lets other entries use this effect in their effects lists." },
+        "weapon": { "type": "ref", "ref": ["data/weapons.json", "data/items.json"], "help": "The weapon (or staff item) it belongs to (or use group; one of the two, unless it has an id only)." },
+        "group": { "type": "ref", "ref": ["field:group:data/weapons.json", "field:group:data/items.json"], "help": "The weapon group it belongs to." },
+        "effects": { "use": "effectIds", "help": "Plays these library effects (an entry with a weapon or group, without pictures of its own)." },
+        "byType": { "type": "map", "ref": "data/units.json", "help": "Other library effects when this unit type strikes.", "of": { "use": "effectIds" } },
+        "mode": { "type": "enum", "values": ["target", "travel"], "default": "target", "help": "target: appears on the foe. travel: flies from the striker." },
+        "travelMs": { "type": "int", "min": 20, "max": 5000, "default": 250, "help": "Flight time of a travel effect." },
+        "speed": { "type": "int", "min": 1, "max": 10000, "help": "Travel only, instead of travelMs: stage pixels per second (needs a fixed stage)." },
+        "anchor": { "type": "list", "length": 2, "sample": [4, 4], "of": { "type": "int", "min": 0, "max": 4096 }, "help": "The point [x, y] of a frame that sits on the path or target (default: its middle)." },
+        "sheet": { "type": "ref", "ref": "@sheets", "help": "The sheet of the pictures." },
+        "frames": { "type": "list", "min": 1, "max": 512, "enable": [[0, 0]], "sample": [[0, 0], [1, 0]], "of": { "use": "effectFrame" }, "help": "The frames, one after the other (1 to 512)." },
+        "ms": { "use": "frameTime" },
+        "loop": { "type": "bool", "default": false, "help": "Plays again and again." },
+        "hit": { "type": "int", "min": 0, "max": 511, "help": "The frame where it lands." },
+        "spawn": { "type": "int", "min": 0, "max": 511, "help": "The frame it appears on." },
+        "sounds": { "type": "map", "free": true, "sample": { "0": "cursor" }, "of": { "type": "ref", "ref": "keys:data/audio.json#sounds" },
+                    "help": "Sounds by the milliseconds after the effect starts (0 to 60000), then a sound id of data/audio.json." },
+        "hitAtMs": { "type": "int", "min": 0, "max": 15000, "help": "The effect starts this long before the hit lands (not for travel)." },
+        "layer": { "type": "enum", "values": ["front", "behind", "screen"], "default": "front", "help": "In front of the fighters, behind them, or over the whole stage (screen)." },
+        "order": { "type": "enum", "values": ["backdrop", "behind", "front"], "default": "backdrop", "help": "Screen layers only: where it sits in the drawing order." },
+        "mirror": { "type": "bool", "help": "Screen layers only: turned round with the striker." },
+        "at": { "type": "enum", "values": ["target", "striker"], "default": "target", "help": "Appears on the foe or on the striker (not for travel or screen)." },
+        "returns": { "type": "bool", "help": "Travel only: flies back to the striker." },
+        "lingerMs": { "type": "int", "min": 0, "max": 5000, "help": "Travel only: stays at the target this long after arriving." },
+        "endOffset": { "type": "int", "min": -400, "max": 400, "help": "Travel only: stops this many pixels short of the target (negative: flies past)." },
+        "blend": { "type": "enum", "values": ["normal", "add"], "default": "normal", "help": "add: the pixels brighten what is under them." },
+        "panAtMs": { "type": "int", "min": 0, "max": 15000, "help": "A panning stage band: the camera moves to the struck fighter this long after the effect starts." },
+        "atRange": { "type": "list", "min": 1, "max": 16, "of": { "use": "rangeStep" }, "help": "Delays or shortened flights by fight distance (1 to 16 steps, each from used once)." },
+        "atRangeFixed": { "type": "bool", "help": "Not delayed by distance (not with its own atRange)." },
+        "hide": { "type": "list", "max": 32, "of": { "use": "hideStep" }, "help": "Hides the backdrop and / or platforms for a while (up to 32)." },
+        "fade": { "type": "list", "max": 32, "of": { "use": "fadeStep" }, "help": "Colour fades over the scene (up to 32)." },
+        "flash": { "type": "list", "max": 32, "of": { "use": "flashStep" }, "help": "Flashes of colour (up to 32)." },
+        "shake": { "type": "list", "max": 32, "of": { "use": "shakeStep" }, "help": "Shakes of the picture (up to 32)." } }
+    },
+    "assignRule": {
+      "type": "object", "summary": "{set}",
+      "help": "Which set a fighter uses: the most specific rule that fits wins (needs at least one of type, character, group, weapon, side).",
+      "fields": {
+        "set": { "type": "ref", "ref": "keys:@battle.sets", "required": true, "help": "The set the fighters use." },
+        "type": { "type": "ref", "ref": "data/units.json", "help": "Unit type." },
+        "character": { "type": "ref", "ref": "data/characters.json", "help": "Character." },
+        "group": { "type": "ref", "ref": ["field:group:data/weapons.json", "field:group:data/items.json"], "help": "Group of the weapon struck with (not together with weapon)." },
+        "weapon": { "type": "ref", "ref": "data/weapons.json", "help": "That very weapon (not together with group)." },
+        "side": { "type": "string", "help": "The fighter's map side id." } }
+    },
+    "backdrop": {
+      "type": "object", "summary": "{sheet}", "help": "A picture: one cell of a sheet, scaled up by a whole number to cover the screen.",
+      "fields": {
+        "sheet": { "type": "ref", "ref": "@sheets", "required": true, "help": "The sheet." },
+        "cell": { "use": "graphics#cell", "required": true, "help": "The cell." } }
+    },
+    "platform": {
+      "type": "object", "summary": "{sheet}", "help": "The ground a fighter stands on: a cell, with optional pictures for a far fight and for the right-hand fighter.",
+      "fields": {
+        "sheet": { "type": "ref", "ref": "@sheets", "required": true, "help": "The sheet." },
+        "cell": { "use": "graphics#cell", "required": true, "help": "The cell (the left-hand fighter's; the right one is it turned round unless right is given)." },
+        "far": { "use": "graphics#cell", "help": "Cell for a fight at a distance." },
+        "right": { "use": "graphics#cell", "help": "The right-hand fighter's own cell (fixed stage)." },
+        "farRight": { "use": "graphics#cell", "help": "The right-hand fighter's own far cell (needs far)." } }
+    },
+    "stageBand": {
+      "type": "object", "summary": "from {from} squares",
+      "help": "A layout for fights from this distance on.",
+      "fields": {
+        "from": { "type": "int", "required": true, "min": 2, "max": 99, "help": "The fight distance in squares the band starts at (1 is the close layout, feet; each used once)." },
+        "feet": { "use": "pointPair", "required": true, "help": "Where the fighters stand (a panning band may use x up to 8191)." },
+        "platform": { "use": "pointPair", "help": "Where the platforms are." },
+        "view": { "type": "enum", "values": ["both", "each"], "default": "both", "help": "both: both fighters in one picture. each: one fighter at a time, with a pan." },
+        "pan": { "type": "object", "required": true, "when": { "view": ["each"] }, "help": "How the camera moves between the fighters.",
+          "fields": {
+            "panMs": { "type": "int", "min": 0, "max": 5000, "default": 250, "help": "Milliseconds the camera takes (0: it cuts)." },
+            "leftView": { "type": "int", "required": true, "min": 0, "max": 8191, "help": "The stage x of the picture's left edge while on the left fighter (the fighter must be inside)." },
+            "rightView": { "type": "int", "required": true, "min": 0, "max": 8191, "help": "The same for the right fighter." },
+            "backdrop": { "type": "enum", "values": ["fixed", "scroll"], "default": "fixed", "help": "fixed: the picture stays put. scroll: it moves with the camera and repeats sideways." },
+            "startMs": { "type": "int", "min": 0, "max": 15000, "help": "The pan starts this long after the strike starts (default: timed to arrive at the hit)." } } } }
+    },
+    "stage": {
+      "type": "object", "block": true,
+      "help": "A fixed stage: the picture size, where the fighters and platforms stand, and how the background is cropped.",
+      "fields": {
+        "width": { "type": "int", "required": true, "min": 16, "max": 1024, "help": "Stage width in pixels." },
+        "height": { "type": "int", "required": true, "min": 16, "max": 1024, "help": "Stage height in pixels." },
+        "feet": { "use": "pointPair", "required": true, "help": "Where the fighters' feet are (close fight)." },
+        "feetFar": { "use": "pointPair", "help": "Their feet in a fight at a distance." },
+        "platform": { "use": "pointPair", "help": "Where the platforms are." },
+        "platformFar": { "use": "pointPair", "help": "The platforms in a fight at a distance (needs platform)." },
+        "align": { "type": "enum", "values": ["top", "center", "bottom"], "default": "center", "help": "Which part of the background is kept when it is cropped." },
+        "fit": { "type": "enum", "values": ["cover", "contain"], "default": "cover", "help": "cover: fills the stage (cropped). contain: shown whole." },
+        "rangeLine": { "type": "bool", "help": "Draw a line showing the fight distance." },
+        "ranges": { "type": "list", "min": 1, "max": 16, "of": { "use": "stageBand" }, "help": "Layouts by fight distance (1 to 16 bands)." } }
+    },
+    "battle": {
+      "type": "object", "block": true,
+      "help": "The battle scene's art (docs/BATTLE_SCENE.md): fighter animation sets, weapon effects, who uses which set, backgrounds, platforms, a fixed stage.",
+      "fields": {
+        "sets": { "type": "map", "free": true, "help": "Animation sets by name; a set needs a stand animation.", "of": { "use": "battleSet" } },
+        "assign": { "type": "list", "help": "Which fighters use which set.", "of": { "use": "assignRule" } },
+        "effects": { "type": "list", "collapsed": true, "help": "Weapon effects and the library effects they use.", "of": { "use": "effect" } },
+        "backgrounds": { "type": "map", "free": true, "help": "Background pictures by name.", "of": { "use": "backdrop" } },
+        "terrainBackground": { "type": "map", "ref": "data/terrain.json", "help": "The background to use for each terrain.", "of": { "type": "ref", "ref": "keys:@battle.backgrounds" } },
+        "defaultBackground": { "type": "ref", "ref": "keys:@battle.backgrounds", "help": "The background when the terrain has none." },
+        "platforms": { "type": "map", "free": true, "help": "Platform pictures by name (not default).", "of": { "use": "platform" } },
+        "terrainPlatform": { "type": "map", "ref": "data/terrain.json", "help": "The platform to use for each terrain.", "of": { "type": "ref", "ref": "keys:@battle.platforms" } },
+        "defaultPlatform": { "type": "ref", "ref": "keys:@battle.platforms", "help": "The platform when the terrain has none." },
+        "stage": { "use": "stage" },
+        "scene": { "type": "object", "block": true, "help": "How long a held pose waits after the result.", "fields": {
+          "resultHoldMs": { "type": "int", "min": 0, "max": 5000, "default": 533, "help": "The result is over this long after the hit or miss." },
+          "resultHoldAgainMs": { "type": "int", "min": 0, "max": 5000, "default": 0, "help": "Added when the same fighter strikes again next." } } } }
+    }
+  }
+}
