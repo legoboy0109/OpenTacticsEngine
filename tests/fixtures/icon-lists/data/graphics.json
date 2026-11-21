@@ -1,0 +1,10 @@
+// art/icons.png: 32 x 16 pixels, 8 x 8 cells, each cell one flat colour with a one-pixel dark frame (tests look for the colours):
+//   [0,0] red 221,41,43   [1,0] green 41,199,61   [2,0] blue 61,91,229   [3,0] yellow 231,201,41
+{
+  "sheets": [ { "id": "icons", "file": "art/icons.png", "cellWidth": 8, "cellHeight": 8 } ],
+  "icons": {
+    "iron_sword": { "sheet": "icons", "cell": [0, 0] },
+    "potion":     { "sheet": "icons", "cell": [1, 0] },
+    "bow":        { "sheet": "icons", "cell": [2, 0] }
+  }
+}

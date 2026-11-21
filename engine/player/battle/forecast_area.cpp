@@ -6,6 +6,7 @@
 #include "battle/battle_draw.h"
 #include "battle/item_text.h"
 #include "core/base/log.h"
+#include "ui/item_icon.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -52,10 +53,10 @@ void drawAreaForecast(Renderer& r, const DrawCtx& c, int attacker, int weapon, C
   const Layout& L = c.layout;
   const Unit& a = b.units[(size_t)attacker];
   const Color kText(235, 237, 245), kGrey(130, 136, 165), kNote(255, 220, 120), kWarn(255, 140, 120);
-  struct Line { std::string text; Color color; };
+  struct Line { std::string text; Color color; bool item = false; IconRef pic; };
   std::vector<Line> lines;
   lines.push_back({a.name, mix(Color::rgb(b.sides[a.side].color), Color(255, 255, 255), 0.35f)});
-  lines.push_back({b.db->weapons[(size_t)weapon].name, kGrey});
+  lines.push_back({b.db->weapons[(size_t)weapon].name, kGrey, true, itemicon::ofUnitWeapon(b, a, weapon)});
   int foes = 0, friends = 0;
   for (const AreaVictim& v : f.victims) {
     if (!v.seen) continue;
@@ -77,10 +78,12 @@ void drawAreaForecast(Renderer& r, const DrawCtx& c, int attacker, int weapon, C
     OTE_INFO("area forecast: %s", text.c_str());
   }
 
+  IconColumn icons;
+  for (const Line& ln : lines) icons.add(ln.pic);
   int colW = 0;
-  for (const Line& ln : lines) colW = std::max(colW, textW(r, ln.text));
+  for (const Line& ln : lines) colW = std::max(colW, textW(r, ln.text) + (ln.item ? icons.indent() : 0));
   colW = std::min(colW, L.W - 8 - 16);
-  const int rh = L.row, w = colW + 16, h = (int)lines.size() * rh + 12;
+  const int rh = std::max(L.row, icons.h), w = colW + 16, h = (int)lines.size() * rh + 12;
   const int x = std::max(4, std::min((L.vw - w) / 2, L.W - 4 - w));
   int ty = 0;
   int tx;
@@ -91,7 +94,8 @@ void drawAreaForecast(Renderer& r, const DrawCtx& c, int attacker, int weapon, C
   r.fillRect(x + 2, y + 2, w, h, Color(0, 0, 0, 110));
   r.fillRect(x, y, w, h, Color(22, 26, 46, 245));
   r.drawRect(x, y, w, h, Color(255, 220, 90));
-  for (size_t i = 0; i < lines.size(); ++i) r.drawText(x + 8, y + 6 + (int)i * rh, fitText(r, lines[i].text, colW).c_str(), lines[i].color);
+  for (size_t i = 0; i < lines.size(); ++i)
+    itemicon::drawBoxLine(r, x + 8, y + 6 + (int)i * rh, rh, L.row, icons, lines[i].pic, lines[i].item, false, lines[i].text, colW, lines[i].color);
 }
 
 }  // namespace ote

@@ -217,6 +217,28 @@ def run_graphics_checks(api, tmp, games, templates, check, get_project, put_proj
     st, res = put_project(api, pid, d, d["revision"], graphics=gfx)
     check("fixing graphics clears the problem", st == 200 and res["problems"] == [], res)
 
+    # item / weapon icons ("icons": weapon or item id -> sheet + cell): they round trip unchanged (order and unknown keys too), are no
+    # problem, and the loader's refusals show up as problems on data/graphics.json (the blank template has the weapon "sword")
+    icon_gfx = {"sheets": [{"id": "main", "file": "art/tiles.png", "cellWidth": 24, "cellHeight": 24}],
+                "icons": {"sword": {"sheet": "main", "cell": [1, 0]}}}
+    st, d = get_project(api, pid)
+    st, res = put_project(api, pid, d, d["revision"], graphics=icon_gfx)
+    check("icons: PUT graphics with icons -> 200, no problems", st == 200 and res["problems"] == [], (st, res))
+    st, d = get_project(api, pid)
+    check("icons: GET returns them exactly as written", d["graphics"] == icon_gfx, d["graphics"])
+    check("icons: written under a top-level key", '"icons": {' in open(gpath).read())
+    for name, icons, word in (("unknown id", {"nothing": {"sheet": "main", "cell": [0, 0]}}, "no weapon or item"),
+                              ("cell outside the sheet", {"sword": {"sheet": "main", "cell": [9, 0]}}, "outside sheet"),
+                              ("unknown sheet", {"sword": {"sheet": "nope", "cell": [0, 0]}}, "unknown sheet")):
+        bad = _json.loads(_json.dumps(icon_gfx))
+        bad["icons"] = icons
+        st, res = put_project(api, pid, d, d["revision"], graphics=bad)
+        check("icons: %s -> a problem on data/graphics.json" % name,
+              st == 200 and res["problems"] and res["problems"][0]["file"] == "data/graphics.json" and word in res["problems"][0]["message"], res)
+        st, d = get_project(api, pid)
+    st, res = put_project(api, pid, d, d["revision"], graphics=gfx)
+    check("icons: removing the key removes it from disk", st == 200 and res["problems"] == [] and '"icons"' not in open(gpath).read(), res)
+
     # a sheet's optional "smooth" flag (3D views blend its pixels) round-trips, and must be a boolean
     smooth_gfx = {"sheets": [{"id": "main", "file": "art/tiles.png", "cellWidth": 24, "cellHeight": 24, "smooth": True}]}
     st, d = get_project(api, pid)

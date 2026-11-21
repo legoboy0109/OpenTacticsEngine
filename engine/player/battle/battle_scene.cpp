@@ -204,6 +204,7 @@ void BattleScene::followCamera(double dt) {
     return;
   }
   if (map3d_ && !cam_.placed) cam_.centre(wx, wy, layout_, proj_.worldW(), proj_.worldH());
+  else if (cam_.placed && !view_.hasFocus && cursorUnderPointer()) return;  // the cursor is where the mouse rests: it is on screen
   else cam_.follow(wx, wy, layout_, proj_.worldW(), proj_.worldH(), dt);
 }
 
@@ -266,6 +267,8 @@ void BattleScene::update(double dt) {
   }
   logInspected();
   followCamera(dt);
+  updateEdgeScroll(dt);
+  logCamera();
   if (mode_ == Mode::ActionMenu) anchorActionMenu();
 }
 
@@ -326,6 +329,7 @@ std::string BattleScene::hintBase() const {
 }
 
 void BattleScene::draw(Renderer& r) {
+  itemicon::useSprites(host_.sprites());  // the textures every list's item icons are drawn from (ui/item_icon.h)
   if (covered_) {  // nothing of the map is drawn under the cover
     cover_.draw(r);
     return;

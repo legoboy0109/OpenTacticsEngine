@@ -8,6 +8,7 @@
 #include "battle/place_text.h"
 #include "battle/staff_text.h"
 #include "core/base/log.h"
+#include "ui/item_icon.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -16,6 +17,8 @@ namespace {
 struct Line {
   std::string text;
   Color color;
+  bool item = false;  // the staff's name line: its icon goes before it
+  IconRef pic;
 };
 
 const Color kText(235, 237, 245), kGrey(130, 136, 165), kNote(255, 220, 120), kGood(150, 240, 160);
@@ -30,7 +33,7 @@ void drawStaffForecast(Renderer& r, const DrawCtx& c, const StaffForecast& f, Ce
   std::vector<Line> lines;
   std::string head = b.db->items[(size_t)f.item].name;
   if (f.usesLeft >= 0) head += " " + intStr(f.usesLeft);
-  lines.push_back({head, kGrey});
+  lines.push_back({head, kGrey, true, itemicon::ofItem(*b.db, f.item)});
   for (const std::string& l : staffLightLines(f)) lines.push_back({l, kGood});
   if (f.isUnlock && f.unlockStructure >= 0 && (size_t)f.unlockStructure < b.structures.size()) {  // docs/SRPG.md section 10
     lines.push_back({std::string(PlaceWords::kOpens) + " " + b.defOf(b.structures[(size_t)f.unlockStructure]).name, kGood});
@@ -63,10 +66,12 @@ void drawStaffForecast(Renderer& r, const DrawCtx& c, const StaffForecast& f, Ce
   }
 
   // As wide as the widest line, never wider than the screen (longer lines are cut with "..").
+  IconColumn icons;
+  for (const Line& ln : lines) icons.add(ln.pic);
   int w = 0;
-  for (const Line& ln : lines) w = std::max(w, textW(r, ln.text));
+  for (const Line& ln : lines) w = std::max(w, textW(r, ln.text) + (ln.item ? icons.indent() : 0));
   w = std::min(w, L.W - 8 - 16) + 16;
-  const int rh = L.row, h = (int)lines.size() * rh + 12;
+  const int rh = std::max(L.row, icons.h), h = (int)lines.size() * rh + 12;
   const int x = std::max(4, std::min((L.vw - w) / 2, L.W - 4 - w));
   int ty = 0;
   if (targetCell >= 0) {
@@ -79,7 +84,8 @@ void drawStaffForecast(Renderer& r, const DrawCtx& c, const StaffForecast& f, Ce
   r.fillRect(x + 2, y + 2, w, h, Color(0, 0, 0, 110));
   r.fillRect(x, y, w, h, Color(22, 26, 46, 245));
   r.drawRect(x, y, w, h, Color(120, 230, 150));
-  for (size_t i = 0; i < lines.size(); ++i) r.drawText(x + 8, y + 6 + (int)i * rh, fitText(r, lines[i].text, w - 16).c_str(), lines[i].color);
+  for (size_t i = 0; i < lines.size(); ++i)
+    itemicon::drawBoxLine(r, x + 8, y + 6 + (int)i * rh, rh, L.row, icons, lines[i].pic, lines[i].item, false, lines[i].text, w - 16, lines[i].color);
 }
 
 }  // namespace ote

@@ -88,7 +88,7 @@ void BattleScene::openStaffList() {
     const int room = menuRoomAfter(r, layout_.vw, d.name);
     const ItemStack& stack = u.items[(size_t)o.slot];
     const std::string extra = o.ok ? fitUses(r, usesText(battle_, stack), stack.uses, room) : fitReason(r, o.why, room);
-    items.push_back({d.name, extra, o.ok, kStaffBase + o.slot});
+    items.push_back({d.name, extra, o.ok, kStaffBase + o.slot, itemicon::ofItem(*battle_.db, stack.item)});
     const std::string uses = usesText(battle_, stack);  // the log says it all, whatever fits on this screen
     log += (log.empty() ? "" : ", ") + d.name + (o.ok ? (uses.empty() ? "" : " " + uses) : " [" + staffReasonText(o.why, 0) + "]");
   }
@@ -244,7 +244,7 @@ void BattleScene::staffRepairMenu(int user, int slot, int target, std::function<
     const ItemDef& def = battle_.db->items[(size_t)st.item];
     const int after = fx.amount == StaffEffect::Amount::Full ? def.uses : std::min(def.uses, st.uses + fx.value);
     const std::string extra = fitUses(r, intStr(st.uses) + " > " + intStr(after), after, menuRoomAfter(r, layout_.vw, def.name));
-    items.push_back({def.name, extra, true, kStaffItemBase + s});
+    items.push_back({def.name, extra, true, kStaffItemBase + s, itemicon::ofItem(*battle_.db, st.item)});
     log += (log.empty() ? "" : ", ") + def.name + " " + intStr(st.uses) + ">" + intStr(after);
   }
   OTE_INFO("staff repair choices for %s: %s", t.name.c_str(), log.c_str());

@@ -18,6 +18,7 @@ void TradePanel::open(const std::string& nameA, const std::vector<PanelRow>& a, 
   name_[1] = nameB;
   rows_[0] = a;
   rows_[1] = b;
+  icons_ = iconColumnOf(a, b);  // one column for both lists: the names of the two sides line up as well
   col_ = col ? 1 : 0;
   for (int c = 0; c < 2; ++c) {
     list_[c] = RowList();
@@ -28,13 +29,13 @@ void TradePanel::open(const std::string& nameA, const std::vector<PanelRow>& a, 
 }
 
 void TradePanel::layout(const Renderer& r) {
-  const int lh = r.lineHeight(), rowH = lh + 4;
+  const int lh = r.lineHeight(), rowH = std::max(lh + 4, icons_.h);  // (an icon that fits the row changes nothing)
   w_ = std::min(aw_ - 8, std::max(220, std::min(320, aw_ - 20)));
   // What each list's widest row needs (marker, name, count, uses). A panel too narrow for them grows, up to the whole screen (a
   // stacked storage row, "Potion  x3  2/2", at a big UI scale next to the sidebar), then the columns share what there is.
   int need[2] = {0, 0};
   for (int c = 0; c < 2; ++c)
-    for (const PanelRow& row : rows_[c]) need[c] = std::max(need[c], panelRowWidth(r, row));
+    for (const PanelRow& row : rows_[c]) need[c] = std::max(need[c], panelRowWidth(r, row, icons_));
   w_ = std::min(std::max(w_, need[0] + need[1] + 2 * kPad + kGap), std::max(w_, r.width() - 8));
   int rows = std::max(1, std::max(list_[0].count, list_[1].count));
   int fixedTop = kPad + lh + 4, fixedBottom = 2 * lh + 4 + kPad;
@@ -126,7 +127,7 @@ void TradePanel::draw(Renderer& r) {
     int first = l.first();
     for (int i = 0; i < l.visible() && first + i < l.count; ++i) {
       int row = first + i;
-      drawPanelRow(r, l.x, l.rowY(row), l.w, l.rowH - 1, rows_[c][(size_t)row], c == col_ && row == l.sel);
+      drawPanelRow(r, l.x, l.rowY(row), l.w, l.rowH - 1, rows_[c][(size_t)row], c == col_ && row == l.sel, icons_);
     }
   }
   list_[col_].drawMore(r, chrome::kAccent);

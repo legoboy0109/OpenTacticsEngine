@@ -1,0 +1,7 @@
+{ "units": [
+  { "id": "hero", "name": "Hero", "moveType": "foot", "stats": { "hp": 30, "str": 7, "def": 3, "spd": 6, "mov": 4 },
+    "wields": ["blade", "bow"], "skills": ["tough"], "items": ["iron_sword", "hunting_bow", "potion", "charm"] },
+  { "id": "friend", "name": "Friend", "moveType": "foot", "stats": { "hp": 24, "str": 5, "def": 2, "spd": 5, "mov": 4 },
+    "wields": ["blade"], "items": ["salve", "cloak"] },
+  { "id": "grunt", "name": "Grunt", "moveType": "foot", "stats": { "hp": 30, "str": 3, "def": 1, "spd": 3, "mov": 3 },
+    "wields": ["blade"], "items": ["iron_sword"] } ] }

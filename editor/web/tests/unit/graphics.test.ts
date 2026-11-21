@@ -285,3 +285,15 @@ describe('art follows its terrain, unit and visual style', () => {
     expect(findUsages(d0(), 'unit', 'lord').some((u) => u.section === 'art')).toBe(true)
   })
 })
+
+describe('item icons (graphics.json "icons")', () => {
+  it('are kept as they are (no screen yet) and go with their image when it is removed', () => {
+    const g: Graphics = {
+      sheets: [{ id: 'a', file: 'art/a.png', cellWidth: 8, cellHeight: 8 }, { id: 'b', file: 'art/b.png', cellWidth: 8, cellHeight: 8 }],
+      icons: { sword: { sheet: 'a', cell: [0, 0] }, potion: { sheet: 'b', cell: [1, 0] } },
+    }
+    expect(setUnitMarker(withArt(g), false).graphics!.icons).toEqual(g.icons)  // an unrelated edit leaves them alone
+    expect(removeSheet(withArt(g), 'a').graphics!.icons).toEqual({ potion: { sheet: 'b', cell: [1, 0] } })
+    expect(removeSheet(removeSheet(withArt(g), 'a'), 'b').graphics!.icons).toBeUndefined()
+  })
+})

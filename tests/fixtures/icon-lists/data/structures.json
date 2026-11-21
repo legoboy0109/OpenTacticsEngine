@@ -1,0 +1,3 @@
+{ "structures": [
+  { "id": "shop", "name": "Shop", "color": "#b0a58c", "glyph": "S",
+    "sells": ["potion", "iron_sword", "hunting_bow", "cloak", "salve"] } ] }

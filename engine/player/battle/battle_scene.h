@@ -12,6 +12,7 @@
 #include "core/campaign/playthrough.h"
 #include "battle/battle_draw.h"
 #include "battle/battle_view.h"
+#include "battle/edge_scroll.h"
 #include "battle/layout.h"
 #include "battle/promotion_screen.h"
 #include "battle/srpg_menu_ids.h"
@@ -68,6 +69,15 @@ class BattleScene : public Scene {
   std::string hint() const;      // the line for the mode, with "(power ready)" added in the idle one (battle_commander.cpp)
   std::string hintBase() const;  // the line for the mode
   void followCamera(double dt);
+  // --- battle_edge_scroll.cpp: scrolling the map with a mouse at the edge of the picture (edge_scroll.h)
+  void trackPointer(const InputEvent& e);
+  bool cursorUnderPointer() const;
+  bool edgeScrollAllowed() const;
+  void updateEdgeScroll(double dt);
+  void logCamera();            // "camera: x,y" once the camera has been still for a while after moving (tests and bug reports)
+  void hoverAt(int x, int y);  // the pointer rests on (x, y): the cursor goes to that square
+  bool prepOnMap() const;      // battle_prep.cpp: the preparation screen shows the map (Positions / View)
+  bool prepOnMapView() const;  // ... and it is the View one
   Cell cellAt(int x, int y) const;
   // Box around a square on screen (its top face in the isometric view).
   void cellScreenBox(Cell c, int& x, int& y, int& w, int& h) const;
@@ -360,6 +370,9 @@ class BattleScene : public Scene {
   int fightSerial_ = -1;  // the view's fight (BattleView::FightRun::serial) the scene was started for
   Layout layout_;
   Camera cam_;
+  Cell hovered_ = kNoCell;  // the square the mouse last rested on (cursorUnderPointer)
+  int camLogX_ = 0, camLogY_ = 0, camStill_ = -1;  // logCamera: where it was, frames still (-1 = already logged)
+  EdgeScroll edge_;  // the mouse, for scrolling at the picture's edge
   MapProj proj_;  // where squares are on screen in the style in use
   std::unique_ptr<Map3D> map3d_;  // the drawer of the 3D kinds of view (only in those)
   FreeCam freeCam_;     // full 3D: the player's camera

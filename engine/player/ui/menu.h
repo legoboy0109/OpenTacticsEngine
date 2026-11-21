@@ -1,9 +1,11 @@
 // Small popup menu: keyboard/pad/pointer navigable list of items.
 #pragma once
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "platform/platform.h"
+#include "ui/item_icon.h"
 
 namespace ote {
 
@@ -12,6 +14,12 @@ struct MenuItem {
   std::string extra;   // right-aligned (e.g. a cost)
   bool enabled = true;  // disabled items are greyed and cannot be chosen
   int id = 0;           // caller-defined meaning
+  IconRef pic;          // an item's icon (graphics.json "icons", ui/item_icon.h) for a list of items; the menu keeps one column for it
+
+  MenuItem() = default;
+  // (A constructor, not an aggregate: the many `{label, extra, enabled, id}` lists leave `pic` alone without a compiler warning.)
+  MenuItem(std::string l, std::string e = std::string(), bool en = true, int i = 0, IconRef p = IconRef())
+      : label(std::move(l)), extra(std::move(e)), enabled(en), id(i), pic(p) {}
 };
 
 class Menu {
@@ -52,6 +60,7 @@ class Menu {
   int sel_ = -1, chosen_ = -1;
   int x_ = 0, y_ = 0, w_ = 0, h_ = 0;
   int titleH_ = 0, rowH_ = 12, arrowW_ = 12;
+  IconColumn icons_;  // the widest and tallest icon of the entries: every label moves right by its indent
 };
 
 }  // namespace ote

@@ -117,6 +117,14 @@ void SdlInput::translate(SDL_Event& e, SDL_Renderer* renderer, std::vector<Input
       else if (e.gaxis.axis == SDL_GAMEPAD_AXIS_LEFT_TRIGGER) triggers_.update(0, e.gaxis.value, out);
       else if (e.gaxis.axis == SDL_GAMEPAD_AXIS_RIGHT_TRIGGER) triggers_.update(1, e.gaxis.value, out);
       break;
+    case SDL_EVENT_WINDOW_MOUSE_LEAVE: {  // the pointer left the window / canvas: a move far outside the picture (docs/PORTING.md "Pointer scrolling")
+      InputEvent ev;
+      ev.type = InputEvent::PointerMove;
+      ev.device = InputDevice::None;
+      ev.x = ev.y = kPointerGone;
+      out.push_back(ev);
+      break;
+    }
     case SDL_EVENT_MOUSE_WHEEL:  // one press per notch: away from the player zooms in
       if (e.wheel.y != 0) {
         Button b = e.wheel.y > 0 ? Button::ZoomIn : Button::ZoomOut;

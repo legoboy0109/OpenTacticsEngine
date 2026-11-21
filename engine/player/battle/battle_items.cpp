@@ -17,6 +17,7 @@ namespace {
 PanelRow stackRow(const Battle& b, const ItemStack& s, bool equipped, const Unit* holder = nullptr) {
   PanelRow row;
   row.label = b.itemOf(s).name;
+  row.pic = itemicon::ofItem(*b.db, s.item);
   row.extra = usesText(b, s);
   row.detail = itemDetail(b, s);
   row.mark = equipped;

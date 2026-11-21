@@ -14,7 +14,14 @@ const Color kMark(255, 220, 90), kGreyed(120, 124, 148);
 constexpr int kTabGap = 10;
 }  // namespace
 
-void drawPanelRow(Renderer& r, int x, int y, int w, int h, const PanelRow& row, bool selected) {
+IconColumn iconColumnOf(const std::vector<PanelRow>& a, const std::vector<PanelRow>& b) {
+  IconColumn col;
+  for (const PanelRow& row : a) col.add(row.pic);
+  for (const PanelRow& row : b) col.add(row.pic);
+  return col;
+}
+
+void drawPanelRow(Renderer& r, int x, int y, int w, int h, const PanelRow& row, bool selected, const IconColumn& icons) {
   if (row.header) {
     const int hy = y + (h - r.lineHeight()) / 2;
     r.drawText(x + 4, hy, fitText(r, row.label, w - 8).c_str(), chrome::kAccent);
@@ -29,6 +36,10 @@ void drawPanelRow(Renderer& r, int x, int y, int w, int h, const PanelRow& row, 
   int s = std::max(3, lh / 3), tx = x + 4;
   if (row.mark) r.fillRect(tx, y + (h - s) / 2, s, s, kMark);  // a small square: this weapon is in hand
   tx += s + 3;  // names line up whether or not a marker is shown
+  if (icons.any()) {  // the item's icon: its own size, centred on the row; rows without one keep the column empty
+    itemicon::drawInRow(r, row.pic, tx, y, h, row.dim || row.blank);
+    tx += icons.indent();
+  }
   if (row.icon && row.iconSize > 0) {
     row.icon(r, tx, y + (h - row.iconSize) / 2, row.iconSize);
     tx += row.iconSize + 4;
@@ -67,9 +78,9 @@ void drawPanelRow(Renderer& r, int x, int y, int w, int h, const PanelRow& row, 
   if (twoLines) r.drawText(tx, ty + lh, fitText(r, row.sub, avail).c_str(), subColor);
 }
 
-int panelRowWidth(const Renderer& r, const PanelRow& row) {
+int panelRowWidth(const Renderer& r, const PanelRow& row, const IconColumn& icons) {
   int s = std::max(3, r.lineHeight() / 3);
-  int w = 4 + s + 3 + textW(r, row.count > 1 ? row.label + "  x" + intStr(row.count) : row.label) + 4;
+  int w = 4 + s + 3 + icons.indent() + textW(r, row.count > 1 ? row.label + "  x" + intStr(row.count) : row.label) + 4;
   if (!row.extra.empty()) w += 6 + textW(r, row.extra);
   return w;
 }
@@ -80,6 +91,7 @@ void ItemPanel::open(const std::string& title, const std::string& head, const st
   title_ = title;
   head_ = head;
   rows_ = rows;
+  icons_ = iconColumnOf(rows_);
   empty_ = emptyText;
   tabs_.clear();
   tab_ = 0;
@@ -101,6 +113,7 @@ void ItemPanel::layout(const Renderer& r) {
     if (!row.sub.empty()) rowH = std::max(rowH, 2 * lh + 4);
     if (row.icon) rowH = std::max(rowH, row.iconSize + 3);
   }
+  rowH = std::max(rowH, icons_.h);  // an icon taller than the text row makes the rows taller; one that fits changes nothing
   w_ = std::min(aw_ - 8, std::max(150, maxW_ > 0 ? maxW_ : std::min(260, aw_ * 3 / 4)));
   int fixedTop = kPad + lh + 4 + (head_.empty() ? 0 : lh + 2);
   int fixedBottom = detailLines_ * lh + 4 + kPad;
@@ -214,7 +227,7 @@ void ItemPanel::draw(Renderer& r) {
   int first = list_.first();
   for (int i = 0; i < list_.visible() && first + i < list_.count; ++i) {
     int row = first + i;
-    drawPanelRow(r, list_.x, list_.rowY(row), list_.w, list_.rowH - 1, rows_[(size_t)row], row == list_.sel);
+    drawPanelRow(r, list_.x, list_.rowY(row), list_.w, list_.rowH - 1, rows_[(size_t)row], row == list_.sel, icons_);
   }
   list_.drawMore(r, chrome::kAccent);
   const std::string d = hintText(rows_[(size_t)list_.sel].detail);

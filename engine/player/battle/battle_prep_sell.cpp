@@ -99,6 +99,7 @@ void BattleScene::prepSellItemsOpen(int sel) {
     const ItemStack s = stackOf(pack[(size_t)g.index]);
     PanelRow row;
     row.label = battle_.itemOf(s).name;
+    row.pic = itemicon::ofItem(db, s.item);
     row.detail = itemDetail(battle_, s);
     row.count = g.count;
     std::vector<Amount> value;

@@ -28,6 +28,9 @@ void BattleScene::openWeaponPick(int preferTarget, int selectRow) {
   for (const WeaponRow& w : weaponRows_) {
     PanelRow row;
     row.label = w.name;
+    // A carried weapon is an item (its own icon, else its weapon's); a type's own weapon or a structure's is just the weapon.
+    row.pic = w.slot >= 0 && w.slot < (int)u.items.size() ? itemicon::ofItem(session_.db, u.items[(size_t)w.slot].item)
+                                                          : itemicon::ofWeapon(session_.db, w.weapon);
     row.extra = w.uses;
     row.detail = w.stats;
     row.mark = w.equipped;

@@ -5,6 +5,7 @@
 #include "battle/item_text.h"
 #include "battle/mapweapon_text.h"
 #include "core/base/log.h"
+#include "ui/item_icon.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -13,6 +14,8 @@ namespace {
 struct Line {
   std::string text;
   Color color;
+  bool item = false;  // the weapon line: its icon (graphics.json "icons") goes before the name
+  IconRef pic;
 };
 using Column = std::vector<Line>;
 
@@ -36,7 +39,7 @@ Column makeColumn(Renderer& r, int maxW, const Battle& b, const Unit& u, const U
       int slot = b.weaponSlot(u, sf.weapon);
       if (slot >= 0 && u.items[(size_t)slot].uses >= 0) name += " " + intStr(u.items[(size_t)slot].uses);
     }
-    col.push_back({name, kGrey});
+    col.push_back({name, kGrey, true, itemicon::ofUnitWeapon(b, u, sf.weapon)});
     if (mapStructure >= 0) col.push_back({mapWeaponForecastFrom(b, mapStructure), kNote});
     // Damage types (docs/SRPG.md "Damage types"), only in a game that declares them: "Fire", or "Fire  res +3" with the foe's resistance.
     const int type = b.db->weapons[sf.weapon].damageType;
@@ -119,13 +122,17 @@ void drawForecast(Renderer& r, const DrawCtx& c, int attacker, int defender, int
 
   // Column width follows the widest line (capped so the box fits the map view);
   // longer lines are truncated with "..".
+  IconColumn icons;  // both weapon lines share the box's icon column, so the two names start at the same place
+  for (const Column* col : {&ca, &cd})
+    for (const Line& ln : *col) icons.add(ln.pic);
   int colW = 0;
   for (const Column* col : {&ca, &cd})
-    for (const Line& ln : *col) colW = std::max(colW, textW(r, ln.text));
+    for (const Line& ln : *col) colW = std::max(colW, textW(r, ln.text) + (ln.item ? icons.indent() : 0));
   // Up to the whole screen width (not only the map's): a narrow window would cut "Heavy Blow 40%" otherwise. The box
   // is centred on the map and pushed over the panel only as far as it needs.
   colW = std::min(colW, (L.W - 8 - 24) / 2);
-  int rh = L.row, w = colW * 2 + 24, h = (int)rows * rh + 12 + (extra.empty() ? 0 : rh);
+  const int rh = std::max(L.row, icons.h);
+  int w = colW * 2 + 24, h = (int)rows * rh + 12 + (extra.empty() ? 0 : rh);
   int x = std::max(4, std::min((L.vw - w) / 2, L.W - 4 - w));
   int ty = 0;
   if (targetCell >= 0) {
@@ -141,9 +148,9 @@ void drawForecast(Renderer& r, const DrawCtx& c, int attacker, int defender, int
   r.fillRect(x + w / 2, y + 4, 1, h - 8 - (extra.empty() ? 0 : rh), Color(70, 76, 110));
   if (!extra.empty()) r.drawText(x + 8, y + 6 + (int)rows * rh, fitText(r, extra, w - 16).c_str(), kNote);
   for (size_t i = 0; i < ca.size(); ++i)
-    r.drawText(x + 8, y + 6 + (int)i * rh, fitText(r, ca[i].text, colW).c_str(), ca[i].color);
+    itemicon::drawBoxLine(r, x + 8, y + 6 + (int)i * rh, rh, L.row, icons, ca[i].pic, ca[i].item, false, ca[i].text, colW, ca[i].color);
   for (size_t i = 0; i < cd.size(); ++i)
-    r.drawText(x + w / 2 + 8, y + 6 + (int)i * rh, fitText(r, cd[i].text, colW).c_str(), cd[i].color);
+    itemicon::drawBoxLine(r, x + w / 2 + 8, y + 6 + (int)i * rh, rh, L.row, icons, cd[i].pic, cd[i].item, false, cd[i].text, colW, cd[i].color);
 }
 
 }  // namespace ote

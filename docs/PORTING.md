@@ -89,6 +89,20 @@ Every screen is operable with a controller alone (d-pad or left stick, A confirm
 Prev/Next, X/Y = turn camera, right stick and triggers = free camera): all screens take their input as `Button`s; pointer
 handlers are additions that call the same actions. No screen has text entry. Skipping a dialogue is "hold Cancel or Menu".
 
+**Pointer scrolling (the battle map).** A mouse over the map only moves the cursor to the square under it; the camera does not chase
+that square, so resting on a square in the outer rows scrolls nothing. The map scrolls from the pointer only when the pointer is
+pushed against the **edge of the picture** (`battle/edge_scroll.h`, the one place for the numbers): inside a band along an edge a
+quarter of a tile wide (`kBandTiles`, at least 2 pixels; at the viewport's own edge and at the picture's edge, over the info panel
+or the hint line), for `kDwellSeconds` = 0.25 s, then at `kTilesPerSecond` = 8 tiles a second (frame-rate independent, so about 192
+pixels a second at a 24-pixel tile). It stops at once when the pointer leaves the band or the window; a corner scrolls both ways.
+It works with the cursor free (idle, a unit selected, choosing a facing, the preparation's Positions / View screens) and not while
+a menu or list is open, something is animating, a dialogue or fight scene plays, or in the full 3D view (its own camera). Only a
+mouse does it: a finger (`InputDevice::Touch`) never scrolls, and a key or pad press makes the pointer let go until it moves
+again; keys and pad keep their old behaviour (the cursor keeps two tiles of margin from the edge, the camera eases after it).
+A backend reports the pointer leaving the window as a `PointerMove` at `kPointerGone` (`platform.h`; SDL3 `WINDOW_MOUSE_LEAVE`, SDL2
+`WINDOWEVENT_LEAVE`), a new port should do the same. The player logs `camera: X,Y` once the camera has been still for 20 frames after
+moving; the script words `move:X:Y` (hover without clicking) and `leave` drive it in tests (`tests/edge_scroll_player_test.py`).
+
 **Hints name the device in use.** Every hint / reminder line (`Z:select`, `Confirm: open`, `tap: ...`) is a template with
 `{tokens}` that `player/ui/input_hints.h` expands for the device of the most recent real press: keyboard, controller
 (Xbox layout names: A confirm, B cancel, Start menu, LB/RB, X/Y turn the camera, D-pad; the original Xbox build says

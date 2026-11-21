@@ -13,6 +13,7 @@
 #include "core/view/hex_geo.h"
 #include "platform/platform.h"
 #include "ui/dialogue_text.h"
+#include "ui/item_icon.h"
 #include "ui/scene_stage.h"
 
 namespace ote {
@@ -46,6 +47,7 @@ struct FloatText {
   float age = 0, life = 0.9f;
   Color color;
   bool screen = false;
+  IconRef pic;  // an item the float names ("Got Potion"): its icon (graphics.json "icons") goes before the text
 };
 
 // The line of dialogue the view is waiting on (a Dialogue entry in the stream). The battle scene

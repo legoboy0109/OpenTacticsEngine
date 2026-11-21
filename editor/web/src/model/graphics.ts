@@ -87,6 +87,11 @@ function keepPortraits(all: NonNullable<Graphics['portraits']>, sheetId: string)
   return Object.keys(kept).length ? kept : undefined
 }
 
+function keepIcons(all: NonNullable<Graphics['icons']>, sheetId: string): Graphics['icons'] {
+  const kept = Object.fromEntries(Object.entries(all).filter(([, p]) => p.sheet !== sheetId))
+  return Object.keys(kept).length ? kept : undefined
+}
+
 /** Removes the image and clears every picture that used it (all in one edit). */
 export function removeSheet(doc: ProjectDoc, id: string): ProjectDoc {
   const g = doc.graphics
@@ -103,6 +108,8 @@ export function removeSheet(doc: ProjectDoc, id: string): ProjectDoc {
     styles: Object.keys(styles).length ? styles : undefined,
     // Dialogue portraits drawn from the image go with it.
     portraits: g.portraits && keepPortraits(g.portraits, id),
+    // ... and the item icons
+    icons: g.icons && keepIcons(g.icons, id),
     // ... and so do the story scene backgrounds
     backgrounds: keepBackgrounds(g.backgrounds, id),
   })

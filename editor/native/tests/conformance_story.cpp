@@ -53,6 +53,11 @@ void addStoryContexts(std::vector<Context>& c) {
                {"graphics:tilesets"},
                {{"graphics:tilesets.*.animations", R"({"0":{"frames":[0,1],"ms":200}})"}, {"graphics:tilesets.*.animations.*.frames", "[0,1]"}}});
   c.push_back({"gfx-extra", "scene-pres", {}, {"graphics:portraits", "graphics:backgrounds"}, {}});
+  // Item and weapon icons (docs/GRAPHICS.md "Icons"): by weapon or item id; demo-economy has weapons and a sheet "tiles" of cells.
+  c.push_back({"gfx-icons", "demo-economy",
+               {{"data/graphics.json", "icons", R"({"rifle":{"sheet":"tiles","cell":[0,0]}})"}},
+               {"graphics:icons"},
+               {}});
 
   // A 3D style of demo-srpg (the first entry of `styles` is what the keys are tried in): sprites, models and standing things.
   c.push_back({"gfx-style", "demo-srpg",

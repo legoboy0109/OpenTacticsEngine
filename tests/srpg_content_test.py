@@ -33,7 +33,8 @@ BATTLES = [('games/demo-srpg', 'bridge'), ('games/demo-srpg', 'north_road'), ('e
            ('tests/fixtures/srpg-supports', 'ch1'), ('tests/fixtures/srpg-supports', 'ch2'),
            ('tests/fixtures/srpg-staves', 'skirmish'), ('tests/fixtures/srpg-staves', 'clinic'),
            ('tests/fixtures/srpg-staves2', 'skirmish'), ('tests/fixtures/srpg-staves2', 'yard'), ('tests/fixtures/srpg-staves2', 'gate'),
-           ('tests/fixtures/srpg-conditions', 'skirmish'), ('tests/fixtures/srpg-conditions', 'field')]
+           ('tests/fixtures/srpg-conditions', 'skirmish'), ('tests/fixtures/srpg-conditions', 'field'),
+           ('tests/fixtures/icon-lists', 'field')]
 for game, map_id in BATTLES:
     code, out = run(os.path.join(root, game), map_id, '--runs', '20')
     last = out.strip().split('\n')[-1]

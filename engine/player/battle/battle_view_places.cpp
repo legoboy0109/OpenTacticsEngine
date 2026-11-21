@@ -51,8 +51,10 @@ bool BattleView::beginPlaces(const Battle& b) {
   const Event& e = cur_.ev;
   if (e.type == EventType::ItemGained && (e.flags & kLooted)) {  // a = unit (-1 = the storage), b = item
     const std::string what = std::string(PlaceWords::kFound) + itemName(b, e.b);
+    const size_t before = floats.size();
     if (e.a >= 0 && (size_t)e.a < units.size()) addFloat(what, units[(size_t)e.a].px + tile_ / 2.0f, units[(size_t)e.a].py - 2, Color(170, 235, 255), 1.1f);
     else if (gPlaceKnown) addFloat(what, gPlaceX, gPlaceY, Color(170, 235, 255), 1.1f);
+    if (floats.size() > before) floats.back().pic = itemicon::ofItem(*b.db, e.b);
     OTE_INFO("chest gave: %s%s", what.c_str(), e.a < 0 ? " (to the storage)" : "");
     cur_.dur = 0.3f;
     return true;

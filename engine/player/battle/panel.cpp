@@ -16,6 +16,7 @@
 #include "battle/speed_text.h"
 #include "battle/unit_info_rank.h"
 #include "ui/input_hints.h"
+#include "ui/item_icon.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -41,6 +42,15 @@ void row(Renderer& r, int x, int y, int w, const std::string& label, const std::
   int gap = std::max(4, r.lineHeight() / 2);
   r.drawText(x, y, fitText(r, label, w - vw - gap).c_str(), lc);
   r.drawText(x + w - vw, y, v.c_str(), vc);
+}
+
+// A row of a list whose names carry item icons (ui/item_icon.h): the icon at its own size, centred in the row's `pitch`, then the usual
+// label / value row moved right by the column (rows without an icon keep the column empty, so the names line up). `rh` is the panel's
+// usual row pitch: the text keeps its place in it, and moves down only when an icon made the rows taller.
+void iconRow(Renderer& r, int x, int y, int w, int pitch, int rh, const IconColumn& col, const IconRef& icon, bool dim,
+             const std::string& label, const std::string& value, Color lc, Color vc) {
+  itemicon::drawInRow(r, icon, x, y, pitch, dim);
+  row(r, x + col.indent(), y + (pitch - rh) / 2, w - col.indent(), label, value, lc, vc);
 }
 
 void rule(Renderer& r, int x, int& y, int w) {
@@ -141,12 +151,16 @@ void drawCarried(Renderer& r, const DrawCtx& c, const Unit& u, int x, int& y, in
   int n = (int)u.items.size(), shown = n <= fit ? n : std::max(0, fit - 1);
   int eq = b.db->rules.items.carriedWeapons ? b.equippedSlot(u) : -1;
   int sq = std::max(3, lh / 3);
+  IconColumn icons;  // the items' icons (graphics.json "icons"): one column, taller rows only when an icon is taller than the row
+  for (int i = 0; i < shown; ++i) icons.add(itemicon::ofItem(*b.db, u.items[(size_t)i].item));
+  const int pitch = std::max(rh, icons.h);
   for (int i = 0; i < shown; ++i) {
     const ItemStack& s = u.items[(size_t)i];
-    if (i == eq) r.fillRect(x, y + (lh - sq) / 2, sq, sq, Color(255, 220, 90));
+    if (i == eq) r.fillRect(x, y + (lh - sq) / 2 + (pitch - rh) / 2, sq, sq, Color(255, 220, 90));
     const bool blocked = !weaponBlockReason(b, u, s).empty();  // a weapon its rank does not allow is greyed (docs/SRPG.md section 7)
-    row(r, x + sq + 3, y, w - sq - 3, b.itemOf(s).name, s.uses >= 0 ? intStr(s.uses) : "", blocked ? Color(110, 114, 140) : kText, kLabel);  // the narrow panel: uses left only
-    y += rh;
+    iconRow(r, x + sq + 3, y, w - sq - 3, pitch, rh, icons, itemicon::ofItem(*b.db, s.item), blocked, b.itemOf(s).name,
+            s.uses >= 0 ? intStr(s.uses) : "", blocked ? Color(110, 114, 140) : kText, kLabel);  // the narrow panel: uses left only
+    y += pitch;
   }
   if (shown < n && fit > 0) {
     r.drawText(x, y, "...", kLabel);
@@ -262,16 +276,24 @@ void drawUnitInfo(Renderer& r, const DrawCtx& c, const Unit& u, int x, int& y, i
   if (db.rules.items.carriedWeapons && weapons.size() > 1) weapons.resize(1);
   // A fixed weapon out of ammunition is not in weaponsOf: list the type's weapons so it still shows, marked.
   else if (!db.rules.items.carriedWeapons) weapons = b.typeOf(u).weapons;
+  // The weapon's icon: a carried weapon in hand is an item (its own icon, else its weapon's); a type's own weapon is the weapon.
+  const int inHand = db.rules.items.carriedWeapons ? b.equippedSlot(u) : -1;
+  auto iconOf = [&](int wi) {
+    return inHand >= 0 && inHand < (int)u.items.size() ? itemicon::ofItem(db, u.items[(size_t)inHand].item) : itemicon::ofWeapon(db, wi);
+  };
+  IconColumn wicons;
+  for (int wi : weapons) wicons.add(iconOf(wi));
+  const int wpitch = std::max(rh, wicons.h);
   for (int wi : weapons) {
     if (y > bottom) break;
     const int maxAm = b.maxAmmo(u.id, wi), left = maxAm < 0 ? 0 : b.ammo(u.id, wi);
     if (maxAm >= 0 && left <= 0) {  // "EMPTY" in red instead of the range: it cannot be fired (short, so the name keeps its room)
-      row(r, x, y, w, db.weapons[wi].name, EconomyWords::kEmpty, kWarn, kWarn);
+      iconRow(r, x, y, w, wpitch, rh, wicons, iconOf(wi), true, db.weapons[wi].name, EconomyWords::kEmpty, kWarn, kWarn);
     } else {
       const std::string ammo = maxAm < 0 ? "" : intStr(left) + "/" + intStr(maxAm) + " ";  // "3/6 r1"
-      row(r, x, y, w, db.weapons[wi].name, ammo + "r" + rangeText(db.weapons[wi]), kText, kLabel);
+      iconRow(r, x, y, w, wpitch, rh, wicons, iconOf(wi), false, db.weapons[wi].name, ammo + "r" + rangeText(db.weapons[wi]), kText, kLabel);
     }
-    y += rh;
+    y += wpitch;
   }
   std::string mwLabel, mwValue;  // a unit standing on a structure with a weapon it may fire (docs/SRPG.md "Map weapons")
   if (y <= bottom && mapWeaponUnitRow(b, u, mwLabel, mwValue)) {

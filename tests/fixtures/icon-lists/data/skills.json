@@ -1,0 +1,2 @@
+// One skill, only so that the game counts as a strategy-RPG one: the unit details ("Info" in the action menu) exist then.
+{ "skills": [ { "id": "tough", "name": "Tough", "blocks": [ { "when": "always", "do": [ { "stats": { "hp": 5 } } ] } ] } ] }

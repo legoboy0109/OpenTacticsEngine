@@ -84,6 +84,12 @@ void SdlInput::translate(const SDL_Event& e, std::vector<InputEvent>& out) {
         InputEvent q;
         q.type = InputEvent::Quit;
         out.push_back(q);
+      } else if (e.window.event == SDL_WINDOWEVENT_LEAVE) {  // the pointer left the window: a move far outside the picture (docs/PORTING.md "Pointer scrolling")
+        InputEvent ev;
+        ev.type = InputEvent::PointerMove;
+        ev.device = InputDevice::None;
+        ev.x = ev.y = kPointerGone;
+        out.push_back(ev);
       }
       break;
     case SDL_KEYDOWN:

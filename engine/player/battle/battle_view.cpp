@@ -232,6 +232,7 @@ void BattleView::beginItemEvent(const Battle& b) {
     case EventType::ItemGained:
       if (e.a >= 0) {
         addFloat("Got " + itemName(b, e.b), units[e.a].px + cx, units[e.a].py - 2, Color(170, 235, 255), 1.1f);
+        floats.back().pic = itemicon::ofItem(*b.db, e.b);
         cur_.dur = 0.25f;
       } else if (showsResources(b, e.c)) {  // into the storage: nobody to float over, say it in the hint line
         notice = itemName(b, e.b) + " sent to storage";
