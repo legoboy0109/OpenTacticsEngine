@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include "platform/common/pixel_snap.h"
 #include "platform/common/text_engine.h"
 #include "platform/platform.h"
 
@@ -51,11 +52,13 @@ class SdlRenderer : public Renderer {
  private:
   class Target;  // TextTarget on top of SDL textures
   void setColor(Color c);
+  void refreshMap();  // re-reads the logical -> output mapping (pixel_snap.h); once per frame and when the logical size changes
   SDL_Window* window_;
   SDL_Renderer* r_;
   int w_, h_;
   bool headless_;
   int headlessScale_;
+  OutputMap map_;  // where the logical frame sits in the output, for placing rectangles on whole device pixels
   bool additive_ = false;  // setAdditiveBlend: the sheets are drawn with SDL_BLENDMODE_ADD
   std::vector<SDL_Texture*> images_;  // TextureId n lives at images_[n - 1]; null = free slot
   std::unique_ptr<Target> target_;

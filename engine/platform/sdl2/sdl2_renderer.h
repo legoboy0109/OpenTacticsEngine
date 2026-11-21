@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 
+#include "platform/common/pixel_snap.h"
 #include "platform/common/screen_fit.h"
 #include "platform/common/text_engine.h"
 #include "platform/platform.h"
@@ -64,6 +65,10 @@ class SdlRenderer : public Renderer {
  private:
   class Target;  // TextTarget on top of SDL textures
   void setColor(Color c);
+  void refreshMap();         // desktop windows: where SDL puts the logical frame in the output (pixel_snap.h); once per frame
+  // One textured / filled rectangle of the logical frame, on whole device pixels where SDL can take fractional coordinates.
+  void copyLogical(SDL_Texture* t, const SDL_Rect& src, const SDL_Rect& dst);
+  void fillLogical(const SDL_Rect& rect);
   void applyLogical();       // SDL_RenderSetLogicalSize, or the fixed-screen rectangle
   void enterOutputSpace();   // fixed screen only: draw in screen pixels until leaveOutputSpace()
   void leaveOutputSpace();
@@ -83,6 +88,7 @@ class SdlRenderer : public Renderer {
   ScreenFit fit_;
   int safePercent_ = 0;  // 0 = the default for the kind of display
   bool outputMode_ = false;
+  OutputMap map_;  // unknown (rectangles unchanged) with a fixed screen and before the first frame
 #ifdef OTE_NXDK
   // Chip scaling (docs/XBOX_OG.md "Picture"): the 2D layer is drawn at the game's own size times `canvasFactor_` (a whole number,
   // 1 by default) in the corner of the surface, and the graphics chip stretches it over the fitted rectangle `fit_`.

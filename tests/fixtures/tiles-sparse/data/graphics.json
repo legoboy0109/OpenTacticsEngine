@@ -1,0 +1,4 @@
+{
+  "sheets": [ { "id": "tiles", "file": "art/tiles.png", "cellWidth": 16, "cellHeight": 16 } ],
+  "tilesets": { "sparse": { "sheet": "tiles" } }
+}
