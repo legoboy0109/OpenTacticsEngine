@@ -1,6 +1,7 @@
 // The forecast of an area attack (docs/SRPG.md "Area attacks and line fire"): the box the player sees while aiming such a weapon.
 // With a unit on the aimed square this is the normal forecast box of that exchange plus one line for everybody else the attack hits;
 // aimed at an empty square it is a small box of its own. Display only.
+#include <utility>
 #include <algorithm>
 
 #include "battle/battle_draw.h"
@@ -53,7 +54,13 @@ void drawAreaForecast(Renderer& r, const DrawCtx& c, int attacker, int weapon, C
   const Layout& L = c.layout;
   const Unit& a = b.units[(size_t)attacker];
   const Color kText(235, 237, 245), kGrey(130, 136, 165), kNote(255, 220, 120), kWarn(255, 140, 120);
-  struct Line { std::string text; Color color; bool item = false; IconRef pic; };
+  struct Line {
+    std::string text;
+    Color color;
+    bool item;
+    IconRef pic;
+    Line(std::string t, Color col, bool isItem = false, IconRef icon = IconRef()) : text(std::move(t)), color(col), item(isItem), pic(icon) {}
+  };
   std::vector<Line> lines;
   lines.push_back({a.name, mix(Color::rgb(b.sides[a.side].color), Color(255, 255, 255), 0.35f)});
   lines.push_back({b.db->weapons[(size_t)weapon].name, kGrey, true, itemicon::ofUnitWeapon(b, a, weapon)});
