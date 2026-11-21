@@ -40,7 +40,10 @@
       "rankXp": { "type": "int", "min": 0, "max": 99, "help": "Weapon experience a use earns (0 = trains nothing; needs data/ranks.json)." },
       "versus": { "type": "map", "free": true, "of": { "type": "number" }, "help": "Effectiveness by unit type or tag (numbers the damage formula reads as vs)." },
       "versusDefault": { "type": "number", "help": "Effectiveness against anything versus does not name." },
-      "sounds": { "type": "map", "free": true, "of": { "type": "string" }, "help": "Sound ids by event (hit, miss ...; docs/SOUND.md)." }
+      "sounds": { "type": "object", "help": "Sounds this weapon makes instead of the standard ones (docs/SOUND.md).", "fields": {
+        "hit": { "type": "ref", "ref": "keys:data/audio.json#sounds", "values": [""], "help": "A strike with this weapon hits." },
+        "miss": { "type": "ref", "ref": "keys:data/audio.json#sounds", "values": [""], "help": "A strike misses." },
+        "critical": { "type": "ref", "ref": "keys:data/audio.json#sounds", "values": [""], "help": "A critical hit." } } }
     }
   }
 }

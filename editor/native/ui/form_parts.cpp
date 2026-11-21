@@ -1,6 +1,7 @@
 #include "form_parts.h"
 
-#include <QLabel>
+#include <QFontMetrics>
+#include <QPainter>
 #include <QToolButton>
 
 namespace ote_native {
@@ -37,15 +38,29 @@ QToolButton* smallButton(const QString& text, const QString& tip, QWidget* paren
   return b;
 }
 
+ElidedLabel::ElidedLabel(const QString& text, QWidget* parent) : QLabel(text, parent) { setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred); }
+
+QSize ElidedLabel::minimumSizeHint() const { return QSize(24, QLabel::minimumSizeHint().height()); }
+
+void ElidedLabel::paintEvent(QPaintEvent*) {
+  QPainter p(this);
+  p.setPen(palette().color(foregroundRole()));
+  p.setFont(font());
+  p.drawText(rect(), Qt::AlignLeft | Qt::AlignVCenter, fontMetrics().elidedText(text(), Qt::ElideRight, width()));
+}
+
 QString summaryOf(const SchemaNode& itemNode, const ote::Json& item) {
   if (itemNode.kind == SchemaNode::Kind::Variant) {
     const int i = variantIndex(itemNode, item);
+    if (i >= 0 && !itemNode.variants[(size_t)i].summary.empty())
+      return summaryText(QString::fromStdString(itemNode.variants[(size_t)i].summary), item);
     QString name = i >= 0 ? QString::fromStdString(itemNode.variants[(size_t)i].name) : QString();
     if (item.isString()) name += QStringLiteral(" ") + QString::fromStdString(item.asString());
     return name;
   }
   if (!item.isObject()) return {};
-  for (const char* k : {"id", "name", "at", "job", "skill", "ability", "when"}) {
+  if (!itemNode.summary.empty()) return summaryText(QString::fromStdString(itemNode.summary), item);
+  for (const char* k : {"id", "name", "at", "text", "job", "skill", "ability", "when"}) {
     const ote::Json& v = item[k];
     if (v.isString() && !v.asString().empty()) return QString::fromStdString(v.asString());
     if (v.isNumber()) return QStringLiteral("%1 %2").arg(k).arg(v.asNumber());

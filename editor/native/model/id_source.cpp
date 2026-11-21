@@ -11,6 +11,7 @@ IdSource::IdSource(Project* project, QObject* parent) : QObject(parent), project
 QString IdSource::fileOf(const std::string& source) {
   QString s = QString::fromStdString(source);
   if (s.startsWith("tags:")) s = s.mid(5);
+  else if (s.startsWith("keys:")) s = s.mid(5);
   else if (s.startsWith("field:")) s = s.mid(s.indexOf(':', 6) + 1);
   const int hash = s.indexOf('#');
   return hash < 0 ? s : s.left(hash);
@@ -51,6 +52,16 @@ QStringList IdSource::ids(const std::vector<std::string>& sources) {
       continue;
     }
     const int hash = s.indexOf('#');
+    if (s.startsWith("keys:")) {
+      // "keys:game.json#rules.ai.weights": the names of the entries of an object (named sets, change ids).
+      const ote::Json* obj = &doc->root();
+      if (hash >= 0)
+        for (const QString& part : s.mid(hash + 1).split('.')) obj = &(*obj)[part.toStdString()];
+      if (obj->isObject())
+        for (const auto& m : obj->members())
+          if (!out.contains(QString::fromStdString(m.first))) out.append(QString::fromStdString(m.first));
+      continue;
+    }
     if (hash >= 0) {
       for (const QString& part : s.mid(hash + 1).split('.')) {
         list = &(*list)[part.toStdString()];

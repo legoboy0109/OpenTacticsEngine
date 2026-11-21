@@ -37,6 +37,14 @@ class FormContext : public QObject {
   // Appends an item to the list at `path`, creating the list when it is absent.
   bool appendItem(const JsonPath& list, const ote::Json& item);
   bool moveItem(const JsonPath& list, size_t from, size_t to);
+  // Inserts `item` into the list at `index` (a duplicated command goes right after its original): one undo step.
+  bool insertItem(const JsonPath& list, size_t index, const ote::Json& item);
+
+  // The "which kind?" chooser of a list's Add button; tests replace it so no modal window ever opens. Returns the index into
+  // `entries` (name, help), or -1 when the user cancels.
+  using VariantPicker = std::function<int(const QString& title, const std::vector<std::pair<QString, QString>>& entries)>;
+  void setVariantPicker(VariantPicker f) { variantPicker_ = std::move(f); }
+  int pickVariant(const QString& title, const std::vector<std::pair<QString, QString>>& entries, QWidget* parent) const;
 
   // The JSON editing dialog; tests replace it so no modal window ever opens.
   using JsonEditor = std::function<bool(const QString& title, const ote::Json& initial, ote::Json* result)>;
@@ -52,6 +60,7 @@ class FormContext : public QObject {
   JsonDocument* doc_;
   IdSource* ids_;
   JsonEditor jsonEditor_;
+  VariantPicker variantPicker_;
 };
 
 }  // namespace ote_native

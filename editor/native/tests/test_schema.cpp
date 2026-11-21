@@ -30,6 +30,7 @@ class SchemaTest : public QObject {
   void filePatternsMatchMaps();
   void definitionsAreSharedAcrossFilesAndRecursionStops();
   void variantsWhenAndNeedsParseAndMatch();
+  void variantsMatchWithAndUnlessAndSummarise();
   void typeOkAndNodeAccepts();
   void defaultsAndSamples();
   void idSourcesFollowTheProject();
@@ -106,12 +107,48 @@ void SchemaTest::definitionsAreSharedAcrossFilesAndRecursionStops() {
   QCOMPARE((int)c->variants.size(), 2);
   const SchemaNode* inner = c->variants[1].node->field("all")->of.get();
   QCOMPARE((int)inner->variants.size(), 2);
+  // ... and then a placeholder that expands itself when a form opens it, as deep as the data goes
   const SchemaNode* deeper = inner->variants[1].node->field("all")->of.get();
-  QVERIFY(deeper->kind == SchemaNode::Kind::Json || deeper->variants.size() == 2);
+  QVERIFY(deeper->lazy);
+  QCOMPARE((int)deeper->resolved().variants.size(), 2);
+  const SchemaNode* deepest = deeper->resolved().variants[1].node->field("all")->of.get();
+  QVERIFY(deepest->lazy);
+  QCOMPARE((int)deepest->resolved().variants.size(), 2);
   // a def that does not exist is reported
   SchemaSet bad;
   bad.addFromText("x.json", R"({ "files": ["a.json"], "root": { "fields": { "k": { "use": "nothere" } } } })");
   QVERIFY(bad.errors().join("\n").contains("unknown def"));
+}
+
+// A command is named by its key; two kinds may share a key (a number or a reading from a unit: `with`; a `wait` command or
+// the `wait` of a focus: `unless`). The first variant that fits wins.
+void SchemaTest::variantsMatchWithAndUnlessAndSummarise() {
+  SchemaSet set;
+  set.addFromText("t.json", R"({ "files": ["data/t.json"], "root": { "fields": { "cmd": { "type": "variant", "variants": [
+    { "name": "focus", "key": "focus", "node": { "type": "object", "fields": { "focus": { "type": "string" } } } },
+    { "name": "set number", "key": "set", "unless": ["level"], "summary": "{set} = {to}", "node": { "type": "object", "fields": { "set": { "type": "string" } } } },
+    { "name": "set level", "key": "set", "with": ["level"], "summary": "[{who|name}: ]{set} <- {level.of}", "node": { "type": "object", "fields": { "set": { "type": "string" } } } },
+    { "name": "wait", "key": "wait", "unless": ["focus"], "node": { "type": "object", "fields": { "wait": { "type": "int" } } } } ] } } } })");
+  QVERIFY2(set.errors().isEmpty(), qPrintable(set.errors().join("\n")));
+  const SchemaNode& v = *set.forFile("data/t.json")->root->field("cmd");
+  auto name = [&](const char* json) {
+    const int i = variantIndex(v, parse(json));
+    return i < 0 ? std::string("-") : v.variants[(size_t)i].name;
+  };
+  QCOMPARE(name(R"({"set":"a","to":1})"), std::string("set number"));
+  QCOMPARE(name(R"({"set":"a","level":"hero"})"), std::string("set level"));
+  QCOMPARE(name(R"({"wait":5})"), std::string("wait"));
+  QCOMPARE(name(R"({"focus":"x","wait":5})"), std::string("focus"));
+  QCOMPARE(name(R"({"nothing":1})"), std::string("-"));
+  // Summaries: placeholders, nested paths, "a|b" alternatives, [parts] left out when a placeholder has no text, long texts shortened.
+  QCOMPARE(summaryText("{set} = {to}", parse(R"({"set":"a","to":3})")), QString("a = 3"));
+  QCOMPARE(summaryText("[{who|name}: ]{set} <- {level.of}", parse(R"({"name":"Eirik","set":"a","level":{"of":"hero"}})")), QString("Eirik: a <- hero"));
+  QCOMPARE(summaryText("[{who|name}: ]{set}", parse(R"({"set":"a"})")), QString("a"));
+  QCOMPARE(summaryText("{u}", parse(R"({"u":{"unit":"gorm"}})")), QString("gorm"));
+  QCOMPARE(summaryText("{u}", parse(R"({"u":{}})")), QString("any unit"));
+  QCOMPARE(summaryText("{u}", parse(R"({"u":{"side":"red"}})")), QString("side red"));
+  QCOMPARE(summaryText("{u}", parse(R"({"u":null})")), QString("none"));
+  QVERIFY(summaryText("{u}", parse(QString("{\"u\":\"%1\"}").arg(QString(300, 'x')).toUtf8().constData())).size() <= 60);
 }
 
 void SchemaTest::variantsWhenAndNeedsParseAndMatch() {

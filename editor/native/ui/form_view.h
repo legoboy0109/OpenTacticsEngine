@@ -42,6 +42,10 @@ class FormView : public QScrollArea {
   bool focusPath(const JsonPath& path);
   // Focus the field of this key of the target object ("apCost"), searching nested objects too.
   bool focusKey(const QString& key);
+  // True when a container (object, list, command ...) of this path is built in the form right now.
+  bool hasAnchor(const JsonPath& path) const { return anchors_.value(pathToString(path)) != nullptr; }
+  // The widget of such a container (screenshots and tests scroll to it), or nullptr.
+  QWidget* anchorWidget(const JsonPath& path) const { return anchors_.value(pathToString(path)).data(); }
   // Runs a pending rebuild now (tests; the form otherwise does it on the next event-loop turn).
   void flush();
   QList<FieldBase*> fields() const;
@@ -59,6 +63,7 @@ class FormView : public QScrollArea {
   int columns() const { return columns_; }
   static constexpr int kWideForm = 900;
   static constexpr int kBudget = 220;  // nodes built before new containers start collapsed
+  static constexpr size_t kPageSize = 50;  // list items built at once; longer lists get a page bar
 
   // --- used by the fields ---
   void registerField(FieldBase* f);
@@ -88,7 +93,7 @@ class FormView : public QScrollArea {
   QWidget* buildLeaf(const SchemaNode& node, const JsonPath& path);
   // A container body that is built when first opened. The toggle button is added to `header`; returns the holder widget
   // (to put under the header). `make` builds the body.
-  QWidget* lazyBody(const JsonPath& path, QBoxLayout* header, const std::function<QWidget*()>& make);
+  QWidget* lazyBody(const JsonPath& path, QBoxLayout* header, const std::function<QWidget*()>& make, bool startClosed = false);
 
   FormContext* ctx_;
   const SchemaNode* node_;
@@ -104,6 +109,7 @@ class FormView : public QScrollArea {
   QHash<QString, QPointer<QWidget>> anchors_;  // containers (lists, blocks, objects) by path, to scroll to
   QHash<QString, std::function<void()>> expanders_;  // collapsed containers: opens one
   QSet<QString> open_, closed_;                      // what the user opened / closed (survives rebuilds)
+  QHash<QString, size_t> pages_;                     // the page each long list shows (survives rebuilds)
   QSet<QString> discriminators_;  // paths whose change alters which fields / shape apply: the form is rebuilt for them
 };
 

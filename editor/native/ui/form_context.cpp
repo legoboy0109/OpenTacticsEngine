@@ -5,6 +5,8 @@
 #include "json_commands.h"
 #include "json_text_dialog.h"
 #include "project.h"
+#include "story_ids.h"
+#include "variant_picker_dialog.h"
 
 namespace ote_native {
 
@@ -15,27 +17,7 @@ IdLookup FormContext::lookup() const {
   return [this](const std::vector<std::string>& s) { return idsOf(s); };
 }
 
-QStringList FormContext::idsOf(const std::vector<std::string>& sources) const {
-  QStringList out;
-  std::vector<std::string> others;
-  for (const std::string& src : sources) {
-    if (src.empty() || src[0] != '@') {
-      others.push_back(src);
-      continue;
-    }
-    // "@units": the list under that key path of the file being edited (a map's own units, regions, ...).
-    const ote::Json* list = &doc_->root();
-    for (const QString& part : QString::fromStdString(src.substr(1)).split('.')) list = &(*list)[part.toStdString()];
-    for (const ote::Json& item : list->items()) {
-      const QString id = QString::fromStdString(item.isString() ? item.asString() : item["id"].asString());
-      if (!id.isEmpty() && !out.contains(id)) out.append(id);
-    }
-  }
-  if (!others.empty() && ids_)
-    for (const QString& id : ids_->ids(others))
-      if (!out.contains(id)) out.append(id);
-  return out;
-}
+QStringList FormContext::idsOf(const std::vector<std::string>& sources) const { return resolveSources(doc_->root(), ids_, sources); }
 
 const ote::Json* FormContext::at(const JsonPath& path) const { return resolvePath(doc_->root(), path); }
 
@@ -116,6 +98,18 @@ bool FormContext::moveItem(const JsonPath& list, size_t from, size_t to) {
   if (!l || !l->isArray() || from >= l->size() || to >= l->size() || from == to) return false;
   project_->push(doc_, new MoveCommand(doc_, list, from, to));
   return true;
+}
+
+bool FormContext::insertItem(const JsonPath& list, size_t index, const ote::Json& item) {
+  const ote::Json* l = at(list);
+  if (!l || !l->isArray() || index > l->size()) return false;
+  project_->push(doc_, new InsertCommand(doc_, list, index, "", item));
+  return true;
+}
+
+int FormContext::pickVariant(const QString& title, const std::vector<std::pair<QString, QString>>& entries, QWidget* parent) const {
+  if (variantPicker_) return variantPicker_(title, entries);
+  return VariantPickerDialog::pick(title, entries, parent);
 }
 
 bool FormContext::editJson(const QString& title, const ote::Json& initial, ote::Json* result, QWidget* parent) const {

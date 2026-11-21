@@ -38,8 +38,9 @@ struct Win {
     w->resize(1280, 720);
     w->show();
   }
-  bool open() {
-    folder = ote_test::copyDemoGame(tmp);
+  bool open(const QString& game = "demo-srpg") {
+    folder = tmp.file(game);
+    ote_test::copyTree(QStringLiteral(OTE_SOURCE_DIR "/games/") + game, folder);
     if (!w->openProject(folder)) return false;
     ProblemsRunner* r = w->session()->problems();
     QSignalSpy done(r, &ProblemsRunner::finished);
@@ -70,12 +71,9 @@ QStringList otherKeysOf(FormView* f) {
   return keys;
 }
 
-// Files whose schema deliberately leaves some keys raw (tile grids, events ...): their Other keys must be exactly these.
+// Files whose schema deliberately leaves some keys raw: a map's tile grid (a map painter is a later milestone).
 bool rawByDesign(const QString& rel, const QString& key) {
-  if (rel.startsWith("maps/"))
-    return QStringList{"tiles", "legend", "tileLayer", "heights", "events", "changes", "prep", "objectives", "storage", "behaviour", "character", "job",
-                       "learned", "equipped", "xp", "merit", "ranks", "goesFor"}.contains(key);
-  return false;
+  return rel.startsWith("maps/") && QStringList{"tiles", "tileLayer", "heights"}.contains(key);
 }
 
 }  // namespace
@@ -86,42 +84,60 @@ class FormDemoTest : public QObject {
   void everyDemoFileOpensCleanAndEveryRowShowsNoWarning();
   void savingWithoutEditsWritesNothingAndAnEditChangesOnlyItself();
   void theCheckSeesAWrongValueAndAnUnknownKey();
+  void savingUntouchedCopiesOfEveryDemoRewritesNothing();
 };
 
 void FormDemoTest::everyDemoFileOpensCleanAndEveryRowShowsNoWarning() {
-  Win s;
-  QVERIFY(s.open());
-  Project* p = s.w->session()->project();
-  int forms = 0, rows = 0;
+  int forms = 0, rows = 0, events = 0, commands = 0;
   QStringList problems;
-  for (const QString& rel : p->jsonFiles()) {
-    s.w->openFile(rel);
-    QWidget* e = s.w->editorFor(rel);
-    QVERIFY2(e, qPrintable(rel));
-    auto check = [&](FormView* f, const QString& where) {
-      f->expandAll();
-      f->flush();
-      QCoreApplication::processEvents();
-      ++forms;
-      for (const QString& w : warningsOf(f)) problems << where + ": warning shown: " + w.left(100);
-      for (const QString& k : otherKeysOf(f))
-        if (!rawByDesign(rel, k)) problems << where + ": key under Other keys: " + k;
-    };
-    if (auto* t = qobject_cast<TableEditor*>(e)) {
-      if (!t->form()) continue;  // no schema: the plain table
-      const int n = std::min(t->model()->rowCount(), 50);
-      for (int r = 0; r < n; ++r) {
-        t->selectRow(r);
-        QTest::qWait(0);
-        ++rows;
-        check(t->form(), rel + " row " + QString::number(r));
+  // The three demo games, as copies: every file opens, every table row and every event of every map shows its form completely.
+  for (const QString game : {"demo-srpg", "demo-economy", "demo-hex"}) {
+    Win s;
+    QVERIFY2(s.open(game), qPrintable(game));
+    Project* p = s.w->session()->project();
+    for (const QString& rel : p->jsonFiles()) {
+      s.w->openFile(rel);
+      QWidget* e = s.w->editorFor(rel);
+      QVERIFY2(e, qPrintable(rel));
+      auto check = [&](FormView* f, const QString& where) {
+        f->expandAll();
+        f->flush();
+        QCoreApplication::processEvents();
+        ++forms;
+        for (const QString& w : warningsOf(f)) problems << game + " " + where + ": warning shown: " + w.left(100);
+        for (const QString& k : otherKeysOf(f))
+          if (!rawByDesign(rel, k)) problems << game + " " + where + ": key under Other keys: " + k;
+      };
+      if (auto* t = qobject_cast<TableEditor*>(e)) {
+        if (!t->form()) continue;  // no schema: the plain table
+        const int n = std::min(t->model()->rowCount(), 50);
+        for (int r = 0; r < n; ++r) {
+          t->selectRow(r);
+          QTest::qWait(0);
+          ++rows;
+          check(t->form(), rel + " row " + QString::number(r));
+        }
+      } else if (auto* tr = qobject_cast<TreeEditor*>(e)) {
+        if (tr->form()) {
+          check(tr->form(), rel);
+          // Every command of every event is a form of its own: a command that no variant describes would stand in as raw JSON.
+          const Json* ev = tr->formContext()->at({PathStep::member("events")});
+          for (size_t i = 0; ev && i < ev->size(); ++i) {
+            ++events;
+            for (size_t c = 0; c < (*ev)[i]["do"].size(); ++c) {
+              ++commands;
+              JsonPath cp = {PathStep::member("events"), PathStep::at(i), PathStep::member("do"), PathStep::at(c)};
+              if (!tr->form()->hasAnchor(cp))
+                problems << game + " " + rel + ": command " + QString::number(c + 1) + " of event " + QString::number(i + 1) + " is not shown as a form";
+            }
+          }
+        }
       }
-    } else if (auto* tr = qobject_cast<TreeEditor*>(e)) {
-      if (tr->form()) check(tr->form(), rel);
     }
   }
-  qInfo("demo run: %d forms checked, %d table rows selected", forms, rows);
+  qInfo("demo run: %d forms checked, %d table rows selected, %d events with %d commands", forms, rows, events, commands);
   QVERIFY(forms > 40);
+  QVERIFY(events >= 8 && commands >= 20);
   QVERIFY2(problems.isEmpty(), qPrintable(problems.join("\n")));
 }
 
@@ -166,6 +182,25 @@ void FormDemoTest::savingWithoutEditsWritesNothingAndAnEditChangesOnlyItself() {
     if (m.first == "name") m.second = Json::makeString(oldName.toStdString());
   QCOMPARE(QString::fromStdString(b.dump(0)), QString::fromStdString(a.dump(0)));
   QVERIFY2(!saved.contains("//"), "the saved file keeps no comments (known: the JSON tree does not hold them)");
+}
+
+// Open every file of each demo copy (forms built, events expanded), change nothing, Save all: not one byte moves.
+void FormDemoTest::savingUntouchedCopiesOfEveryDemoRewritesNothing() {
+  for (const QString game : {"demo-srpg", "demo-economy", "demo-hex"}) {
+    Win s;
+    QVERIFY2(s.open(game), qPrintable(game));
+    Project* p = s.w->session()->project();
+    QMap<QString, QByteArray> before;
+    for (const QString& rel : p->jsonFiles()) {
+      before[rel] = ote_test::readFile(s.folder + "/" + rel);
+      s.w->openFile(rel);
+      if (auto* tr = qobject_cast<TreeEditor*>(s.w->editorFor(rel)))
+        if (tr->form()) tr->form()->expandAll();
+    }
+    QVERIFY(s.w->saveAll());
+    for (auto it = before.cbegin(); it != before.cend(); ++it)
+      QVERIFY2(ote_test::readFile(s.folder + "/" + it.key()) == it.value(), qPrintable(game + "/" + it.key() + " changed although nothing was edited"));
+  }
 }
 
 // The two checks above are only worth something when they can fail: break a row on purpose and they must notice.

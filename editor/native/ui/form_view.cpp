@@ -153,6 +153,16 @@ void FormView::onChanged(const JsonChange& c) {
 bool FormView::expandAlong(const JsonPath& path) {
   bool any = false;
   for (size_t n = target_.size() + 1; n <= path.size(); ++n) {
+    // A list item on another page of a long list: show that page first (the rebuild forgets the old openers).
+    if (path[n - 1].isIndex) {
+      const QString listKey = pathToString(JsonPath(path.begin(), path.begin() + (std::ptrdiff_t)(n - 1)));
+      const size_t want = path[n - 1].index / kPageSize;
+      if (pages_.value(listKey, 0) != want) {
+        pages_[listKey] = want;
+        rebuild();
+        any = true;
+      }
+    }
     const QString key = pathToString(JsonPath(path.begin(), path.begin() + (std::ptrdiff_t)n));
     auto it = expanders_.find(key);
     if (it == expanders_.end()) continue;

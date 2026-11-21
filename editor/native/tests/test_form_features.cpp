@@ -209,6 +209,7 @@ void FormFeaturesTest::variantItemsInAListAndConstantVariants() {
     if (l->property("path").toString() == "conds") addCond = l->findChild<QPushButton*>("addItem");
   QVERIFY(addCond);
   const size_t n = r.at({"conds"})->size();
+  r.ctx->setVariantPicker([](const QString&, const std::vector<std::pair<QString, QString>>&) { return 0; });  // Add asks which kind
   addCond->click();
   r.flush();
   QCOMPARE(r.at({"conds"})->size(), n + 1);

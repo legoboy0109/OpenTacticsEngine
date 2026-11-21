@@ -40,6 +40,12 @@ const char* SchemaNode::kindName(Kind k) {
   return "json";
 }
 
+const SchemaNode& SchemaNode::resolved() const {
+  if (!lazy) return *this;
+  if (!lazyCache) lazyCache = lazy();
+  return *lazyCache;
+}
+
 namespace {
 
 struct Parser {
@@ -47,7 +53,8 @@ struct Parser {
   QStringList* errors;
   std::string base;                              // this file's name without ".json" (for "use": "name" in the same file)
   const std::map<std::string, ote::Json>* defs;  // every "defs" entry of every schema file, "file#name"
-  std::vector<std::string> expanding;            // "use" chain being expanded (recursive definitions stop after two levels)
+  std::vector<std::string> expanding;            // "use" chain being expanded (recursive definitions go lazy after two levels)
+  std::shared_ptr<std::map<std::string, ote::Json>> ownedDefs;  // keeps the definitions alive for lazy placeholders
 
   static bool kindFrom(const std::string& t, SchemaNode::Kind& k) {
     static const std::pair<const char*, SchemaNode::Kind> table[] = {
@@ -81,8 +88,16 @@ struct Parser {
     int depth = 0;
     for (const std::string& e : expanding) depth += e == ref;
     if (depth >= 2) {
+      // Deeper than two levels: a placeholder that expands itself when a form first opens it (see SchemaNode::lazy).
       auto leaf = std::make_shared<SchemaNode>();
-      leaf->help = j["help"].asString().empty() ? "Nested deeper than the form goes: edit as JSON." : j["help"].asString();
+      leaf->help = j["help"].asString();
+      const std::shared_ptr<std::map<std::string, ote::Json>> keep = ownedDefs;
+      const std::string fileBase = base;
+      leaf->lazy = [keep, fileBase, j, ref, at]() -> NodePtr {
+        QStringList sink;  // the schema was checked when it was loaded; a second set of messages would only repeat them
+        Parser p{QStringLiteral("(lazy)"), &sink, fileBase, keep.get(), {ref}, keep};
+        return p.useNode(j, at);
+      };
       return leaf;
     }
     ote::Json merged = ote::Json::makeObject();
@@ -133,6 +148,8 @@ struct Parser {
     if (j["length"].isNumber()) n->length = j["length"].asInt();
     n->free = j["free"].asBool();
     n->excludes = strings(j["excludes"]);
+    n->collapsed = j["collapsed"].asBool();
+    n->summary = j["summary"].asString();
     if (j.has("enable")) n->enable = j["enable"];
     if (j["when"].isObject()) {
       SchemaNode::When w;
@@ -151,6 +168,10 @@ struct Parser {
         SchemaNode::Variant v;
         const QString vat = at + ".variants[" + QString::number(i++) + "]";
         v.name = vj["name"].asString();
+        v.help = vj["help"].asString();
+        v.summary = vj["summary"].asString();
+        v.matchWith = strings(vj["with"]);
+        v.matchUnless = strings(vj["unless"]);
         if (v.name.empty()) errors->append(where + ": " + vat + ": a variant needs a \"name\"");
         v.matchKey = vj["key"].asString();
         v.matchKind = vj["kind"].asString();
@@ -181,7 +202,7 @@ struct Parser {
 void SchemaSet::registerDefs(const QString& name, const ote::Json& j) {
   const std::string base = QFileInfo(name).completeBaseName().toStdString();
   if (j["defs"].isObject())
-    for (const auto& m : j["defs"].members()) defs_[base + "#" + m.first] = m.second;
+    for (const auto& m : j["defs"].members()) (*defs_)[base + "#" + m.first] = m.second;
 }
 
 void SchemaSet::build(const QString& name, const ote::Json& j) {
@@ -189,7 +210,7 @@ void SchemaSet::build(const QString& name, const ote::Json& j) {
   fs->name = QFileInfo(name).completeBaseName().toStdString();
   fs->source = name;
   fs->title = j["title"].asString();
-  Parser p{name, &errors_, fs->name, &defs_, {}};
+  Parser p{name, &errors_, fs->name, defs_.get(), {}, defs_};
   for (const ote::Json& f : j["files"].items()) if (f.isString()) fs->files.push_back(f.asString());
   if (j["defs"].isObject()) {  // a file of shared definitions: check them as well, so a mistake is reported once, here
     for (const auto& m : j["defs"].members()) p.node(m.second, "defs." + QString::fromStdString(m.first));
@@ -307,7 +328,11 @@ int variantIndex(const SchemaNode& n, const ote::Json& v) {
     if (m.matchIsValue) {
       continue;
     } else if (!m.matchKey.empty()) {
-      if (v.isObject() && v.has(m.matchKey.c_str())) return (int)i;
+      if (!v.isObject() || !v.has(m.matchKey.c_str())) continue;
+      bool ok = true;
+      for (const std::string& k : m.matchWith) ok = ok && v.has(k.c_str());
+      for (const std::string& k : m.matchUnless) ok = ok && !v.has(k.c_str());
+      if (ok) return (int)i;
     } else if (jsonKindIs(m.matchKind, v)) {
       return (int)i;
     }
@@ -416,6 +441,80 @@ ote::Json build(const SchemaNode& n, const IdLookup& ids, bool sample) {
   return ote::Json();
 }
 }  // namespace
+
+namespace {
+QString shortText(QString s, int max) {
+  s.replace('\n', ' ');
+  return s.size() > max ? s.left(max - 1) + QStringLiteral("…") : s;
+}
+
+QString compactValue(const ote::Json& v) {
+  if (v.isString()) return QString::fromStdString(v.asString());
+  if (v.isBool()) return v.asBool() ? QStringLiteral("yes") : QStringLiteral("no");
+  if (v.isNumber()) return QString::fromStdString(v.dump(0));
+  if (v.isNull()) return QStringLiteral("none");
+  if (v.isArray()) {
+    QStringList l;
+    for (const ote::Json& i : v.items()) l << compactValue(i);
+    return l.join(QStringLiteral(", "));
+  }
+  if (v.isObject()) {
+    if (v.size() == 0) return QStringLiteral("any unit");
+    const auto& first = v.members().front();
+    if (v.size() == 1) return first.first == "unit" ? compactValue(first.second) : QString::fromStdString(first.first) + QLatin1Char(' ') + compactValue(first.second);
+    QStringList l;
+    for (const auto& m : v.members()) l << QString::fromStdString(m.first) + QLatin1Char(' ') + compactValue(m.second);
+    return l.join(QStringLiteral(", "));
+  }
+  return {};
+}
+}  // namespace
+
+namespace {
+// One placeholder "a" or "a|b" (the first that has a text): the value at that key path of `value`.
+QString placeholder(const QString& names, const ote::Json& value) {
+  for (const QString& alt : names.split(QLatin1Char('|'))) {
+    const ote::Json* v = &value;
+    for (const QString& part : alt.split(QLatin1Char('.'))) {
+      if (!v->isObject() || !v->has(part.toStdString().c_str())) { v = nullptr; break; }  // an absent key has no text (a null does: "none")
+      v = &(*v)[part.toStdString()];
+    }
+    if (!v) continue;
+    const QString t = shortText(compactValue(*v), 60);
+    if (!t.isEmpty()) return t;
+  }
+  return {};
+}
+
+// Literal text and {placeholders}. `missing` is set when a placeholder had no text (a [group] with one is left out).
+QString expandTemplate(const QString& tmpl, const ote::Json& value, bool* missing) {
+  QString out;
+  for (int i = 0; i < tmpl.size();) {
+    const QChar ch = tmpl[i];
+    if (ch == QLatin1Char('{')) {
+      const int close = tmpl.indexOf(QLatin1Char('}'), i);
+      if (close < 0) { out += tmpl.mid(i); break; }
+      const QString t = placeholder(tmpl.mid(i + 1, close - i - 1), value);
+      if (t.isEmpty() && missing) *missing = true;
+      out += t;
+      i = close + 1;
+    } else if (ch == QLatin1Char('[')) {
+      const int close = tmpl.indexOf(QLatin1Char(']'), i);
+      if (close < 0) { out += tmpl.mid(i); break; }
+      bool inner = false;
+      const QString t = expandTemplate(tmpl.mid(i + 1, close - i - 1), value, &inner);
+      if (!inner) out += t;
+      i = close + 1;
+    } else {
+      out += ch;
+      ++i;
+    }
+  }
+  return out;
+}
+}  // namespace
+
+QString summaryText(const QString& tmpl, const ote::Json& value) { return expandTemplate(tmpl, value, nullptr).simplified(); }
 
 ote::Json defaultValue(const SchemaNode& n, const IdLookup& ids) { return build(n, ids, false); }
 ote::Json defaultValueOfVariant(const SchemaNode::Variant& v, const IdLookup& ids) { return variantValue(v, ids, false); }

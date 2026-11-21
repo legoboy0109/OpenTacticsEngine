@@ -44,7 +44,15 @@
         "step": { "type": "int", "min": 0, "max": 99, "help": "Points per square for this type." },
         "softCap": { "type": "int", "min": 0, "max": 999, "help": "Movement points at plain price for this type." } } },
       "jump": { "use": "_common#jump", "help": "Height jump of this type: one number, or separate up and down (needs rules.height)." },
-      "sounds": { "type": "map", "free": true, "of": { "type": "string" }, "help": "Sound ids by event (step, attack ...; docs/SOUND.md)." }
+      "sounds": { "type": "object", "help": "Sounds of this unit type instead of the standard ones (docs/SOUND.md).", "fields": {
+        "step": { "type": "ref", "ref": "keys:data/audio.json#sounds", "values": [""], "help": "A step of this unit type." },
+        "hit": { "type": "ref", "ref": "keys:data/audio.json#sounds", "values": [""], "help": "Its strikes hit." },
+        "miss": { "type": "ref", "ref": "keys:data/audio.json#sounds", "values": [""], "help": "Its strikes miss." },
+        "critical": { "type": "ref", "ref": "keys:data/audio.json#sounds", "values": [""], "help": "Its critical hits." },
+        "defeated": { "type": "ref", "ref": "keys:data/audio.json#sounds", "values": [""], "help": "It is defeated." },
+        "select": { "type": "ref", "ref": "keys:data/audio.json#sounds", "values": [""], "help": "It is selected." },
+        "heal": { "type": "ref", "ref": "keys:data/audio.json#sounds", "values": [""], "help": "It is healed." },
+        "stepInterval": { "type": "number", "min": 0.02, "max": 2, "help": "Seconds between two steps of a walk (0.02 to 2)." } } }
     }
   }
 }

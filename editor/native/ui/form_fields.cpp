@@ -19,6 +19,11 @@
 
 namespace ote_native {
 
+namespace {
+const QString kEmptyWord = QStringLiteral("\x01");  // item data of the "" word: an empty data string already means "not set"
+}
+
+
 QString warningStyle() { return QStringLiteral("color: #e5534b;"); }
 
 QColor mutedColor(const QWidget* w) {
@@ -190,7 +195,8 @@ ChoiceField::ChoiceField(FormContext* ctx, FormView* view, const SchemaNode* nod
   rowLayout(this, combo_, clear_, note_);
   connect(combo_, &QComboBox::activated, this, [this](int i) {
     const QString id = combo_->itemData(i).toString();
-    if (id.isEmpty()) ctx_->erase(path_);
+    if (id == kEmptyWord) ctx_->setField(*node_, path_, ote::Json::makeString(""));  // "" on purpose (silence), not "key absent"
+    else if (id.isEmpty()) ctx_->erase(path_);
     else ctx_->setField(*node_, path_, ote::Json::makeString(id.toStdString()));
   });
   connect(clear_, &QToolButton::clicked, this, [this] { ctx_->erase(path_); });
@@ -225,13 +231,16 @@ void ChoiceField::refresh() {
   combo_->addItem(node_->deflt.isString() ? tr("(default: %1)").arg(QString::fromStdString(node_->deflt.asString()))
                                           : (node_->required ? tr("(choose)") : tr("(not set)")),
                   QString());
-  for (const QString& s : list) combo_->addItem(s, s);
+  for (const QString& s : list) {
+    if (s.isEmpty()) combo_->addItem(tr("(none, on purpose)"), kEmptyWord);  // a schema word "" (no music, no sound)
+    else combo_->addItem(s, s);
+  }
   const bool known = list.contains(cur);
   if (v && !known) {
     combo_->addItem(tr("%1 (unknown)").arg(cur), cur);
     combo_->setItemData(combo_->count() - 1, QApplication::style()->standardIcon(QStyle::SP_MessageBoxWarning), Qt::DecorationRole);
   }
-  combo_->setCurrentIndex(!v ? 0 : combo_->findData(cur));
+  combo_->setCurrentIndex(!v ? 0 : combo_->findData(cur.isEmpty() && known ? kEmptyWord : cur));
   combo_->blockSignals(false);
   clear_->setEnabled(v && !node_->required);
   showNote(note_, (v && !known) ? (node_->kind == SchemaNode::Kind::Enum

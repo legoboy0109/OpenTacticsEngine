@@ -10,6 +10,8 @@ const std::vector<Context>& contexts() {
     addGameContexts(v);
     addDataContexts(v);
     addSrpgContexts(v);
+    addMapContexts(v);
+    addEventContexts(v);
     addStoryContexts(v);
     return v;
   }();
@@ -36,11 +38,43 @@ const std::map<QString, QString>& skipped() {
       {"maps:structures[].visitSides", "needs a visit place placed on the fixture's own map geometry; covered by the engine's place tests"},
       {"maps:structures[].visitUnits", "needs a visit place placed on the fixture's own map geometry; covered by the engine's place tests"},
       {"abilities:spendsItem", "needs an item whose skill gives the ability (cross-file rule); the probe ability has none"},
-      {"weapons:sounds", "sound ids need data/audio.json with sounds, and the keys are cue names (docs/SOUND.md); covered with audio.json"},
-      {"units:sounds", "sound ids need data/audio.json with sounds, and the keys are cue names (docs/SOUND.md); covered with audio.json"},
-      {"items:sounds", "sound ids need data/audio.json with sounds, and the keys are cue names (docs/SOUND.md); covered with audio.json"},
-      {"moveTypes:sounds", "sound ids need data/audio.json with sounds, and the keys are cue names (docs/SOUND.md); covered with audio.json"},
-      {"game:moveTypes[].sounds", "sound ids need data/audio.json with sounds, and the keys are cue names (docs/SOUND.md); covered with audio.json"},
+      {"maps:changes.*.cells[].tile", "needs a tile sheet image inside the game folder (graphics.json, tileLayer); the test only writes JSON"},
+      {"maps:prep.shop.music", "the track must exist in data/audio.json; covered with audio.json"},
+      {"maps:prep.shops[].music", "the track must exist in data/audio.json; covered with audio.json"},
+      {"audio:music", "a free map: its entries are tried one by one (replacing the whole map would drop the tracks the rest of the file names)"},
+      {"audio:sounds", "a free map: its entries are tried one by one (replacing the whole map would drop the sounds the rest of the file names)"},
+      {"graphics:battle", "kept as raw JSON for now: the battle scene's animation sets (docs/BATTLE_SCENE.md) come with the battle-scene forms"},
+      {"graphics:battleBackground", "kept as raw JSON for now, with the rest of the battle scene's art"},
+      {"graphics:sheets", "a list of sheets: its entries are tried one by one (replacing the whole list would drop the sheets the rest of the file names)"},
+      {"graphics:backgrounds", "a free map: its entries are tried one by one (replacing it would drop the backgrounds the story names)"},
+      {"graphics:terrain", "a map by terrain id: its entries are tried one by one"},
+      {"graphics:units", "a map by unit type id: its entries are tried one by one"},
+      {"graphics:structures", "a map by structure id: its entries are tried one by one"},
+      {"graphics:portraits", "a free map: its entries are tried one by one"},
+      {"graphics:styles", "a map by style id: its entries are tried one by one"},
+      {"graphics:tilesets", "a free map: its entries are tried one by one"},
+      {"graphics:terrain.*{picture}.stand*", "a standing thing needs a 3D style: tried under graphics:styles"},
+      {"graphics:units.*{3D model}*", "a model needs a 3D style: tried under graphics:styles"},
+      {"graphics:structures.*{3D model}*", "a model needs a 3D style: tried under graphics:styles"},
+      {"graphics:styles.*.terrain", "a map by terrain id: its entries are tried one by one"},
+      {"graphics:styles.*.units", "a map by unit type id: its entries are tried one by one"},
+      {"graphics:styles.*.structures", "a map by structure id: its entries are tried one by one"},
+      {"graphics:styles.*.terrain.*{picture}.join", "a joined picture needs a 4 x 4 block of cells; tried with the flat art at graphics:terrain"},
+      {"campaign:chapters[].after*", "an after scene holds the same commands as a before scene: tried under campaign:chapters[].before{commands}[]"},
+      {"campaign:chapters[].before{music and commands}.commands*", "the commands of the scene form with music are the same as the plain list: tried under campaign:chapters[].before{commands}[]"},
+      {"campaign:chapters[].before{commands}[]{if}.then[]{*", "the commands in a nested list are the same definition as the scene's own list: tried there"},
+      {"campaign:chapters[].before{commands}[]{if}.else[]{*", "the commands in a nested list are the same definition as the scene's own list: tried there"},
+      {"campaign:chapters[].before{commands}[]{choice}.answers[].do[]{*", "the commands in a nested list are the same definition as the scene's own list: tried there"},
+      {"campaign:chapters[].before{commands}[]{choice}.answers[].if[]{*", "the conditions are the same definition as the if command's own list: tried there"},
+      {"maps:events[].do[]{addUnit}.addUnit.*", "a unit an addUnit command adds has the keys of a map's unit (without facing): tried under maps:units[]"},
+      {"maps:events[].do[]{setBehaviour}.setBehaviour{*", "the behaviour is the same block as a unit's: tried under maps:units[].behaviour"},
+      {"maps:events[].do[]{objective}.objective.*", "the objectives are the same block as the map's own: tried under maps:objectives"},
+      {"maps:events[].do[]{if}.then[]{*", "the commands in a nested list are the same definition as the event's do list: tried there"},
+      {"maps:events[].do[]{if}.else[]{*", "the commands in a nested list are the same definition as the event's do list: tried there"},
+      {"maps:events[].do[]{if}.if[]{*", "the conditions are the same definition as the event's own if: tried there"},
+      {"maps:events[].do[]{choice}.answers[].do[]{*", "the commands in a nested list are the same definition as the event's do list: tried there"},
+      {"maps:events[].do[]{choice}.answers[].if[]{*", "the conditions are the same definition as the event's own if: tried there"},
+      {"maps:events[].do[]{setTerrain}.tile", "needs a tile sheet image inside the game folder (graphics.json, tileLayer); the test only writes JSON"},
   };
   return s;
 }
@@ -52,6 +86,8 @@ const std::map<QString, QString>& extraSkips() {
     addGameExtraSkips(m);
     addDataExtraSkips(m);
     addSrpgExtraSkips(m);
+    addMapExtraSkips(m);
+    addEventExtraSkips(m);
     addStoryExtraSkips(m);
     return m;
   }();
@@ -63,6 +99,10 @@ const std::map<QString, QString>& blockExcuses() {
       {"structures:by", "it must name at least one unit type or tag, which Enable alone cannot know (cross-key rule)"},
       {"structures:door", "the kind it opens into must have the same footprint as the structure, and the first kind of a game may not (cross-file rule)"},
       {"structures:chest", "the kind it opens into must have the same footprint as the structure, and the first kind of a game may not (cross-file rule)"},
+      {"maps:prep", "it needs at least one slot on a free square, which Enable alone cannot know"},
+      {"maps:events[].do[]{fight}.fight.weapon", "it must name at least one weapon, which Enable alone cannot know"},
+      {"maps:prep.shop", "it must sell at least one item, which Enable alone cannot know"},
+      {"maps:units[].behaviour{behaviour block}.retreat.to", "it needs at least one terrain id, which Enable alone cannot know"},
       {"game:grid", "the keys are tried in a hexagon fixture; Enable alone writes a square grid, which its structures (rings) refuse"},
   };
   return s;
@@ -76,32 +116,11 @@ bool excusedKey(const QString& schema, const QString& path, QString* why) {
     // What a map keeps raw for now, each with the reason. Everything else of a map is described.
     static const char* const kRaw[][2] = {
         {"tiles", "the tile grid: a map painter is a later milestone"},
-        {"legend", "the tile grid's legend: goes with the tile grid"},
         {"tileLayer", "the second tile layer: goes with the tile grid"},
         {"heights", "the height grid: goes with the tile grid"},
-        {"events", "story events: triggers and commands are a larger language (docs/EVENTS.md), milestone 4"},
-        {"changes", "named map changes (cells, structures) that story commands apply: milestone 4"},
-        {"prep", "the preparation screen (slots, required characters, shop): milestone 4"},
-        {"objectives", "win / lose rules with unit filters (docs/EVENTS.md): milestone 4"},
     };
     for (const auto& r : kRaw)
       if (seg[0] == r[0]) return yes(r[1]);
-    if (seg.size() == 2 && seg[0] == "sides[]" && seg[1] == "storage") return yes("a side's item storage: milestone 4");
-    if (seg.size() == 2 && seg[0] == "units[]") {
-      static const char* const kUnit[][2] = {
-          {"behaviour", "the computer behaviour of a unit (mode, route, retreat ...): milestone 4"},
-          {"character", "unit placement keys that name characters, jobs and learned skills: milestone 4"},
-          {"job", "unit placement keys that name characters, jobs and learned skills: milestone 4"},
-          {"learned", "unit placement keys that name characters, jobs and learned skills: milestone 4"},
-          {"equipped", "unit placement keys that name characters, jobs and learned skills: milestone 4"},
-          {"xp", "experience, merit and weapon ranks of a placed unit: milestone 4"},
-          {"merit", "experience, merit and weapon ranks of a placed unit: milestone 4"},
-          {"ranks", "experience, merit and weapon ranks of a placed unit: milestone 4"},
-          {"goesFor", "what a computer unit goes for (chests, villages ...): milestone 4"},
-      };
-      for (const auto& r : kUnit)
-        if (seg[1] == r[0]) return yes(r[1]);
-    }
     return false;
   }
   if (schema == "units" || schema == "weapons" || schema == "items" || schema == "terrain")
