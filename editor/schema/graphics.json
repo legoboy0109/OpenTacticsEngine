@@ -108,7 +108,8 @@
         "file": { "type": "string", "required": true, "help": "A .png file inside the game folder, such as art/tiles.png." },
         "cellWidth": { "type": "int", "required": true, "min": 1, "help": "Width of one cell in pixels." },
         "cellHeight": { "type": "int", "required": true, "min": 1, "help": "Height of one cell in pixels." },
-        "smooth": { "type": "bool", "help": "Scaled smoothly (for painted art) instead of with hard pixels." } } } },
+        "smooth": { "type": "bool", "help": "Scaled smoothly (for painted art) instead of with hard pixels." },
+        "name": { "type": "string", "help": "Display name of the image in the editors (the engine does not read it)." } } } },
       "unitMarker": { "type": "bool", "help": "Draw the side's colour marker under a unit's picture." },
       "backgrounds": { "type": "map", "free": true, "help": "Story backgrounds by id (letters, digits, _ and -): a whole sheet or one cell.", "of": { "type": "object", "fields": {
         "sheet": { "type": "ref", "ref": "@sheets", "required": true, "help": "The sheet." },

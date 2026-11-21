@@ -33,6 +33,7 @@ Keys the loader itself does not read but something else does are accepted (and n
 | Key | Where | Read by |
 | --- | --- | --- |
 | `editor` | root of `game.json` | the web editor, which keeps the formula presets of its text boxes there (`editor/web/src/model/formulas.ts`) |
+| `name` | each entry of `sheets` in `data/graphics.json` | the editors: the display name of an image (the web editor writes it on upload, `editor/web/src/model/graphics.ts`) |
 | `sounds` | rows of `weapons.json`, `units.json`, `items.json`, entries of `moveTypes` | the player's audio loader (docs/SOUND.md) |
 | `music`, `playerTurnMusic`, `enemyTurnMusic`, `prepMusic`, `phaseMusic`, `fewEnemies` | root of a map | the player's audio loader (docs/SOUND.md) |
 | `layout` | `grid` of a map | nobody: it belongs to `game.json` `grid`; a hexagon map that repeats it is tolerated and ignored |

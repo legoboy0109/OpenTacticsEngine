@@ -426,7 +426,8 @@ bool loadGraphics(const std::string& path, Database& db, std::string& err) {
     if (!c.str(j, "id", where, sh.id, true)) return false;
     if (sh.id.empty()) return c.fail(where, "\"id\" must not be empty");
     where = "sheet " + q(sh.id);
-    if (!c.onlyKeys(j, {"id", "file", "cellWidth", "cellHeight", "smooth"}, where)) return false;
+    // "name": the display name the editors keep for an image (the web editor writes it on upload); nothing in the engine reads it.
+    if (!c.onlyKeys(j, {"id", "file", "name", "cellWidth", "cellHeight", "smooth"}, where)) return false;
     if (db.graphics.findSheet(sh.id) >= 0) return c.fail(where, "duplicate id");
     if (!c.str(j, "file", where, sh.file, true)) return false;
     if (!goodArtPath(sh.file))

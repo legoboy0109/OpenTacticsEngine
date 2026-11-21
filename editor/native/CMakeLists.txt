@@ -51,7 +51,11 @@ if(OTE_BUILD_TESTS)
     target_link_libraries(native_${name} PRIVATE ote_native_ui Qt6::Test)
     target_compile_definitions(native_${name} PRIVATE OTE_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
     add_test(NAME native_${name} COMMAND native_${name})
-    set_tests_properties(native_${name} PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;OTE_TEST_TMP=${CMAKE_BINARY_DIR}/test-tmp")
+    # QTEST_FUNCTION_TIMEOUT: QtTest aborts a test function after 5 minutes by default. The conformance test writes a
+    # game folder and runs the whole project check once per schema key (thousands), which takes minutes on a busy
+    # machine with the scratch folder on disk; give every native test half an hour instead of a false failure.
+    set_tests_properties(native_${name} PROPERTIES TIMEOUT 1800
+      ENVIRONMENT "QT_QPA_PLATFORM=offscreen;OTE_TEST_TMP=${CMAKE_BINARY_DIR}/test-tmp;QTEST_FUNCTION_TIMEOUT=1800000")
   endforeach()
   # The conformance test's tables (which fixture tries which key) live in small files of their own.
   file(GLOB CONFORMANCE_TABLES CONFIGURE_DEPENDS tests/conformance_*.cpp)
