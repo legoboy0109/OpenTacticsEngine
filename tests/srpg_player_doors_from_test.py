@@ -32,7 +32,7 @@ def make(gid, x, y, kind_from='on'):
 def test_on_the_chest():
     G = make('from_on', 2, 0)
     code, log, battle = D.run('from_on', inp(*D.MENU, 'confirm', 'wait:3', 'confirm', 'wait:40'))
-    check('from on: standing on the chest the ability is offered', bool(lines(log, 'ability entries of Tink: Deft Hands')) and not lines(log, 'Deft Hands [')), str(lines(log, 'ability entries')))
+    check('from on: standing on the chest the ability is offered', bool(lines(log, 'ability entries of Tink: Deft Hands')) and not lines(log, 'Deft Hands ['), str(lines(log, 'ability entries')))
     check('from on: its square pick holds the chest square only', bool(lines(log, 'pick square: 1 candidates')), log[-300:])
     check('from on: it opens the chest, the contents are given', bool(lines(log, 'opened: Chest (c1) by Tink')) and G.structure(battle, 'hall', 'c1')[0] == 'chest_open', log[-300:])
 
