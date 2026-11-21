@@ -205,7 +205,7 @@ QStringList ChoiceField::items() const {
     for (const std::string& s : node_->values) l << QString::fromStdString(s);
     return l;
   }
-  QStringList l = ctx_->ids() ? ctx_->ids()->ids(node_->refs) : QStringList();
+  QStringList l = ctx_->idsOf(node_->refs);
   for (const std::string& s : node_->values) l << QString::fromStdString(s);  // words such as "choose" beside the ids
   return l;
 }

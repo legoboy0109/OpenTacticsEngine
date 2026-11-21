@@ -22,6 +22,8 @@ class FormContext : public QObject {
   JsonDocument* doc() const { return doc_; }
   IdSource* ids() const { return ids_; }
   IdLookup lookup() const;
+  // Ids of id sources: another file ("data/units.json", "game.json#stats") or, with a leading "@", a list of this very file.
+  QStringList idsOf(const std::vector<std::string>& sources) const;
 
   // The node at `path` or nullptr (absent keys are nullptr, a stored null is a Null node).
   const ote::Json* at(const JsonPath& path) const;

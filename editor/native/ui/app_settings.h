@@ -27,6 +27,10 @@ class AppSettings {
   QString playerPathOverride() const { return s_->value("play/playerPath").toString(); }
   void setPlayerPathOverride(const QString& path) { s_->setValue("play/playerPath", path); }
 
+  // Which view a table file kind (the schema's name: "units", "skills") opens in: 0 table, 1 table + form, 2 form.
+  int tableViewMode(const QString& kind) const { return s_->value("view/table/" + kind, 1).toInt(); }
+  void setTableViewMode(const QString& kind, int mode) { s_->setValue("view/table/" + kind, mode); }
+
   void sync() { s_->sync(); }
 
  private:

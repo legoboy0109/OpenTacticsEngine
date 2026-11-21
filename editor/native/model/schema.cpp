@@ -34,6 +34,7 @@ const char* SchemaNode::kindName(Kind k) {
     case Kind::Object: return "object";
     case Kind::Map: return "map";
     case Kind::Json: return "json";
+    case Kind::Variant: return "variant";
   }
   return "json";
 }
@@ -49,7 +50,7 @@ struct Parser {
         {"string", SchemaNode::Kind::String}, {"int", SchemaNode::Kind::Int},       {"number", SchemaNode::Kind::Number},
         {"bool", SchemaNode::Kind::Bool},     {"enum", SchemaNode::Kind::Enum},     {"ref", SchemaNode::Kind::Ref},
         {"list", SchemaNode::Kind::List},     {"object", SchemaNode::Kind::Object}, {"map", SchemaNode::Kind::Map},
-        {"json", SchemaNode::Kind::Json}};
+        {"json", SchemaNode::Kind::Json},     {"variant", SchemaNode::Kind::Variant}};
     for (const auto& e : table)
       if (t == e.first) { k = e.second; return true; }
     return false;
@@ -81,11 +82,43 @@ struct Parser {
     n->values = strings(j["values"]);
     n->refs = strings(j["ref"]);
     if (j["length"].isNumber()) n->length = j["length"].asInt();
+    n->free = j["free"].asBool();
+    if (j.has("enable")) n->enable = j["enable"];
+    if (j["when"].isObject()) {
+      SchemaNode::When w;
+      for (const auto& m : j["when"].members()) { w.key = m.first; w.values = strings(m.second); }
+      n->when = w;
+    }
+    if (j["needs"].isObject()) {
+      SchemaNode::Needs nd;
+      nd.refs = strings(j["needs"]["ref"]);
+      nd.hint = j["needs"]["hint"].asString();
+      n->needs = nd;
+    }
+    if (j["variants"].isArray()) {
+      int i = 0;
+      for (const ote::Json& vj : j["variants"].items()) {
+        SchemaNode::Variant v;
+        const QString vat = at + ".variants[" + QString::number(i++) + "]";
+        v.name = vj["name"].asString();
+        if (v.name.empty()) errors->append(where + ": " + vat + ": a variant needs a \"name\"");
+        v.matchKey = vj["key"].asString();
+        v.matchKind = vj["kind"].asString();
+        if (vj.has("value")) { v.matchValue = vj["value"]; v.matchIsValue = true; }
+        if (int(!v.matchKey.empty()) + int(!v.matchKind.empty()) + int(v.matchIsValue) != 1)
+          errors->append(where + ": " + vat + ": needs exactly one of \"key\", \"kind\", \"value\"");
+        if (vj.has("node")) v.node = node(vj["node"], vat + ".node");
+        else if (!v.matchIsValue) errors->append(where + ": " + vat + ": needs a \"node\"");
+        if (vj.has("sample")) v.sample = vj["sample"];
+        n->variants.push_back(std::move(v));
+      }
+    }
+    if (n->kind == SchemaNode::Kind::Variant && n->variants.empty()) errors->append(where + ": " + at + ": variant without \"variants\"");
     if (j.has("of")) n->of = node(j["of"], at + ".of");
     if (j["fields"].isObject())
       for (const auto& m : j["fields"].members()) n->fields.emplace_back(m.first, node(m.second, at + "." + QString::fromStdString(m.first)));
     if (n->kind == SchemaNode::Kind::Enum && n->values.empty()) errors->append(where + ": " + at + ": enum without \"values\"");
-    if ((n->kind == SchemaNode::Kind::Ref || n->kind == SchemaNode::Kind::Map) && n->refs.empty())
+    if ((n->kind == SchemaNode::Kind::Ref || (n->kind == SchemaNode::Kind::Map && !n->free)) && n->refs.empty())
       errors->append(where + ": " + at + ": " + SchemaNode::kindName(n->kind) + " without \"ref\"");
     if ((n->kind == SchemaNode::Kind::List || n->kind == SchemaNode::Kind::Map) && !n->of)
       errors->append(where + ": " + at + ": " + SchemaNode::kindName(n->kind) + " without \"of\"");
@@ -171,8 +204,48 @@ bool nodeAccepts(const SchemaNode& n, const ote::Json& v, QString* why) {
     }
     case K::List: return v.isArray() ? true : no(QStringLiteral("expected a list"));
     case K::Object: case K::Map: return v.isObject() ? true : no(QStringLiteral("expected an object { }"));
+    case K::Variant: return variantIndex(n, v) >= 0 ? true : no(QStringLiteral("not one of the known shapes"));
   }
   return true;
+}
+
+namespace {
+bool jsonKindIs(const std::string& kind, const ote::Json& v) {
+  if (kind == "string") return v.isString();
+  if (kind == "number") return v.isNumber();
+  if (kind == "bool") return v.isBool();
+  if (kind == "array") return v.isArray();
+  if (kind == "object") return v.isObject();
+  return false;
+}
+}  // namespace
+
+int variantIndex(const SchemaNode& n, const ote::Json& v) {
+  // A constant ("sides") beats a kind ("any other text"), whatever their order in the schema.
+  for (size_t i = 0; i < n.variants.size(); ++i)
+    if (n.variants[i].matchIsValue && n.variants[i].matchValue.dump(0) == v.dump(0)) return (int)i;
+  for (size_t i = 0; i < n.variants.size(); ++i) {
+    const SchemaNode::Variant& m = n.variants[i];
+    if (m.matchIsValue) {
+      continue;
+    } else if (!m.matchKey.empty()) {
+      if (v.isObject() && v.has(m.matchKey.c_str())) return (int)i;
+    } else if (jsonKindIs(m.matchKind, v)) {
+      return (int)i;
+    }
+  }
+  return -1;
+}
+
+bool fieldApplies(const SchemaNode& parent, const SchemaNode& field, const ote::Json* obj) {
+  if (!field.when) return true;
+  const SchemaNode* sib = parent.field(field.when->key);
+  std::string cur;
+  if (obj && obj->isObject() && obj->has(field.when->key.c_str()) && (*obj)[field.when->key].isString()) cur = (*obj)[field.when->key].asString();
+  else if (sib && sib->deflt.isString()) cur = sib->deflt.asString();
+  for (const std::string& w : field.when->values)
+    if (w == cur) return true;
+  return false;
 }
 
 bool isAlt(const SchemaNode& n, const ote::Json& v) {
@@ -191,6 +264,7 @@ bool typeOk(const SchemaNode& n, const ote::Json& v) {
     case K::Number: return v.isNumber();
     case K::List: return v.isArray() && (n.length < 0 || (int)v.size() == n.length);
     case K::Object: case K::Map: return v.isObject();
+    case K::Variant: return variantIndex(n, v) >= 0;
   }
   return true;
 }
@@ -202,9 +276,18 @@ double clampTo(const SchemaNode& n, double d) {
   return d;
 }
 
+ote::Json build(const SchemaNode& n, const IdLookup& ids, bool sample);
+
+ote::Json variantValue(const SchemaNode::Variant& v, const IdLookup& ids, bool sample) {
+  if (v.matchIsValue) return v.matchValue;
+  if (!v.sample.isNull()) return v.sample;
+  return build(*v.node, ids, sample);
+}
+
 ote::Json build(const SchemaNode& n, const IdLookup& ids, bool sample) {
   using K = SchemaNode::Kind;
   if (sample && !n.sample.isNull()) return n.sample;
+  if (!sample && !n.enable.isNull() && n.block) return n.enable;
   if (!sample && !n.deflt.isNull() && n.isScalar()) return n.deflt;
   switch (n.kind) {
     case K::String: return ote::Json::makeString(sample ? "sample" : "");
@@ -232,19 +315,26 @@ ote::Json build(const SchemaNode& n, const IdLookup& ids, bool sample) {
     }
     case K::Map: {
       ote::Json o = ote::Json::makeObject();
-      if (sample && n.of) {
+      if (sample && n.of && n.free) {
+        o.set("a", build(*n.of, ids, true));  // any key will do
+      } else if (sample && n.of) {
         const QStringList l = ids ? ids(n.refs) : QStringList();
         if (!l.isEmpty()) o.set(l.front().toStdString(), build(*n.of, ids, true));
       }
       return o;
     }
     case K::Json: return ote::Json();
+    case K::Variant: {
+      const SchemaNode::Variant& first = n.variants.front();
+      return variantValue(first, ids, sample);
+    }
   }
   return ote::Json();
 }
 }  // namespace
 
 ote::Json defaultValue(const SchemaNode& n, const IdLookup& ids) { return build(n, ids, false); }
+ote::Json defaultValueOfVariant(const SchemaNode::Variant& v, const IdLookup& ids) { return variantValue(v, ids, false); }
 ote::Json sampleValue(const SchemaNode& n, const IdLookup& ids) { return build(n, ids, true); }
 
 }  // namespace ote_native

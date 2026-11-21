@@ -12,8 +12,29 @@ FormContext::FormContext(Project* project, JsonDocument* doc, IdSource* ids, QOb
     : QObject(parent), project_(project), doc_(doc), ids_(ids) {}
 
 IdLookup FormContext::lookup() const {
-  IdSource* ids = ids_;
-  return [ids](const std::vector<std::string>& s) { return ids ? ids->ids(s) : QStringList(); };
+  return [this](const std::vector<std::string>& s) { return idsOf(s); };
+}
+
+QStringList FormContext::idsOf(const std::vector<std::string>& sources) const {
+  QStringList out;
+  std::vector<std::string> others;
+  for (const std::string& src : sources) {
+    if (src.empty() || src[0] != '@') {
+      others.push_back(src);
+      continue;
+    }
+    // "@units": the list under that key path of the file being edited (a map's own units, regions, ...).
+    const ote::Json* list = &doc_->root();
+    for (const QString& part : QString::fromStdString(src.substr(1)).split('.')) list = &(*list)[part.toStdString()];
+    for (const ote::Json& item : list->items()) {
+      const QString id = QString::fromStdString(item.isString() ? item.asString() : item["id"].asString());
+      if (!id.isEmpty() && !out.contains(id)) out.append(id);
+    }
+  }
+  if (!others.empty() && ids_)
+    for (const QString& id : ids_->ids(others))
+      if (!out.contains(id)) out.append(id);
+  return out;
 }
 
 const ote::Json* FormContext::at(const JsonPath& path) const { return resolvePath(doc_->root(), path); }
