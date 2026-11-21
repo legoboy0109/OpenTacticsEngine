@@ -337,7 +337,8 @@ contract and does the other backends' arithmetic; `framePixels()` is null.
   the frame). The cut is kept with the mesh and reused while the matrix and the guard band stay the same (a still camera: the ground
   is cut once, not every frame) and forgotten when the mesh changes.
 - **Commands** are written in one block per draw (state, constants, indices) and the chip is told once (`kick()`, hw3d_gpu.cpp); a frame
-  ends with `pb_finished()` (queue it for the flip at the next blank) and waits for a blank only when two frames are already queued.
+  ends with `pb_finished()` (queue it for the flip at the next blank); a frame never starts in the buffer that is on the screen
+  (`beginFrame` waits for the blank that moves the display on: docs/XBOX_OG.md "Pacing").
 - **`Caps3D`**: `maxTextureSize` 1024, `maxMeshVertices` 65535, `fullResolution` true. Over-size content is shrunk by the loaders
   (glTF images, art sheets: `sheets3d.cpp` shrinks a sheet over the size instead of refusing it, for every backend).
 - **Checked by** the host unit tests (`tests/test_nxdk_hw3d.cpp`: swizzle addresses, mipmaps, alpha-weighted halving, the cutting) and

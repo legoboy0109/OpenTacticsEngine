@@ -101,6 +101,46 @@ void drawLayer(bool opaque) {
   ++g_layers;
 }
 
+// Debug: OTE_XBOX_FRAMEMARK=1 (args.txt) paints this frame's number as 16 white 8 x 8 squares (bit 15 first, x = 2 + 10 i, y = 2) in the
+// screen's top-left corner, drawn last. tools/xbox-og/flicker_check.py --framemark reads them from emulator screenshots and says
+// whether the frames reach the screen in order and without repeats beyond what the pacing allows.
+void drawFrameMark(int number) {
+  static int on = -1;
+  static void* white = nullptr;
+  if (on < 0) {
+    const char* e = getenv("OTE_XBOX_FRAMEMARK");
+    on = e && *e && *e != '0';
+    if (on) {
+      white = hw3d::alloc(4096);
+      if (white) memset(white, 0xFF, 4096);
+      hw3d::flushWrites();
+    }
+  }
+  if (!on || !white) return;
+  hw3d::HwTexture tex;
+  tex.offset = hw3d::physical(white);
+  tex.format = (1u << 16) | (0x12u << 8) | 0x2Au;
+  tex.pitch = 4;
+  tex.rect = (1u << 16) | 1u;
+  tex.linear = true;
+  hw3d::Pipe pipe;
+  pipe.mix = hw3d::Mix::Replace;
+  pipe.depthTest = false;
+  pipe.depthWrite = false;
+  pipe.cull = false;
+  pipe.edge = hw3d::Edge::Clamp;
+  hw3d::VsConstants c;
+  hw3d::screenSpaceConstants(c, 1, 1, 1, 1);
+  hw3d::Rect all;
+  all.w = hw3d::width();
+  all.h = hw3d::height();
+  hw3d::setScissor(all);
+  hw3d::setConstants(c);
+  hw3d::setPipe(pipe, tex);
+  for (int i = 0; i < 16; ++i)
+    if (number & (0x8000 >> i)) hw3d::drawQuad((float)(2 + 10 * i), 2, (float)(10 + 10 * i), 10, 0, 0, 1, 1, 0xFFFFFFFFu);
+}
+
 bool saveBmp(const std::string& path, const uint8_t* pixels, int w, int h, int pitch, Uint32 format = SDL_PIXELFORMAT_ARGB8888) {
   SDL_Surface* s = SDL_CreateRGBSurfaceWithFormatFrom((void*)pixels, w, h, 32, pitch, format);
   if (!s) return false;
@@ -163,6 +203,7 @@ void nxdkPresent(const std::string& shotIn) {
   }
   hw3d::beginFrame();  // (already open when a 3D picture was drawn)
   drawLayer(g_layers == 0);
+  drawFrameMark(frame);
   if (!shot.empty()) {
     hw3d::waitIdle();  // the picture is complete only when the chip is done
     int w = 0, h = 0, pitch = 0;

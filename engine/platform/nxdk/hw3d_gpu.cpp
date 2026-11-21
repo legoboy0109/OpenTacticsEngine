@@ -3,6 +3,7 @@
 
 #include <hal/video.h>
 #include <pbkit/pbkit.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -42,6 +43,21 @@ void kick() {
   g_pending = nullptr;
   pb_end(p);
 }
+// Flip diagnostics (OTE_LOG_LEVEL=debug prints them with the frame prof line; see flipStats()). The scan-out address is what the
+// chip's display unit shows right now (PCRTC_START, set by pbkit at the vertical blank when a finished frame is ready).
+uint32_t shownBuffer() { return *(volatile uint32_t*)0xFD600800u & 0x03FFFFFFu; }
+uint32_t targetBuffer() { return (uint32_t)(uintptr_t)pb_back_buffer() & 0x03FFFFFFu; }
+// OTE_XBOX_FLIP=unsafe (args.txt, debug): no wait for the shown buffer, pbkit's own rotation only (to see the race it prevents).
+bool flipGuard() {
+  static int on = -1;
+  if (on < 0) {
+    const char* e = getenv("OTE_XBOX_FLIP");
+    on = !(e && strcmp(e, "unsafe") == 0);
+  }
+  return on != 0;
+}
+int g_hazards = 0, g_busyAtBlank = 0, g_onScreenBegin = 0, g_onScreenEnd = 0, g_framesCounted = 0, g_vblDelta[4] = {0, 0, 0, 0};
+uint32_t g_lastVbl = 0;
 int g_arrays = -1;  // which vertex array setup is current: 1 meshes, 0 loose vertices, -1 unknown (new frame)
 
 }  // namespace
@@ -180,6 +196,16 @@ void beginFrame() {
     }
     g_idleSeq = g_useSeq;
   }
+  // The buffer this frame draws into must not be the one on the screen: pbkit's three buffers rotate on their own, and a frame
+  // queued behind another one comes round to the buffer being shown (it would be drawn while it is scanned out: torn, flickering
+  // pictures). Wait for the vertical blank that moves the display on (docs/XBOX_OG.md "Pacing").
+  if (shownBuffer() == targetBuffer()) {
+    ++g_onScreenBegin;
+    if (flipGuard()) {
+      prof::Span wait(prof::kVblank);
+      while (shownBuffer() == targetBuffer()) pb_wait_for_vbl();
+    }
+  }
   pb_reset();
   pb_target_back_buffer();
   g_frameBase = pb_begin();
@@ -207,6 +233,7 @@ uint32_t idleSeq() { return g_idleSeq; }
 void endFrame() {
   if (!g_started || !g_frameOpen) return;
   kick();
+  const uint32_t drawnBuffer = targetBuffer();
   g_lastPush = (size_t)(pb_begin() - g_frameBase) * 4;
   // pbkit has three frame buffers and flips to a finished one at the next vertical blank by itself. pb_finished() queues this
   // frame for that flip and answers 1 when two frames are already waiting: that is the only time the player has to wait (for a
@@ -224,10 +251,27 @@ void endFrame() {
     if (everyBlank) pb_wait_for_vbl();
   }
   g_frameOpen = false;
+  {  // diagnostics: was the frame drawn into a buffer that is on the screen now, and how many blanks passed since the last frame
+    if (shownBuffer() == drawnBuffer) ++g_onScreenEnd;
+    if (pb_busy()) ++g_busyAtBlank;  // the chip was still drawing when the blank came (a picture shown half done, if it was this one)
+    const uint32_t v = pb_get_vbl_counter();
+    ++g_vblDelta[v - g_lastVbl > 3 ? 3 : v - g_lastVbl];
+    g_lastVbl = v;
+    ++g_framesCounted;
+  }
   if (g_dropped) {
     g_droppedTotal += g_dropped;
     OTE_WARN("3D drawing: %d draws dropped this frame, the push buffer was full (%d so far)", g_dropped, g_droppedTotal);
   }
+}
+
+void noteHazard() { ++g_hazards; }
+
+void flipStats(char* out, int size) {
+  snprintf(out, (size_t)size, "frames %d, chip still busy at the blank %d, drawn into the shown buffer: at start %d, at end %d; blanks since last frame 0:%d 1:%d 2:%d 3+:%d; meshes rewritten while the chip may read them %d",
+           g_framesCounted, g_busyAtBlank, g_onScreenBegin, g_onScreenEnd, g_vblDelta[0], g_vblDelta[1], g_vblDelta[2], g_vblDelta[3], g_hazards);
+  g_framesCounted = g_hazards = g_busyAtBlank = g_onScreenBegin = g_onScreenEnd = 0;
+  g_vblDelta[0] = g_vblDelta[1] = g_vblDelta[2] = g_vblDelta[3] = 0;
 }
 
 const uint8_t* backBuffer(int& w, int& h, int& pitch) {
