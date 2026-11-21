@@ -5,7 +5,7 @@
 //
 // --build  the web build output (default ../../build-web/engine/player)
 // --out    screenshots go here (default ./out, gitignored)
-// --only   comma list of suites: standalone pointer resize embed saves campaign views render3d audio perf hex smoke
+// --only   comma list of suites: standalone pointer resize embed saves campaign views render3d audio perf hex tiles smoke
 //          (default: all but smoke in chromium; smoke is the Firefox run)
 // --browser  engine for the selected suites (default chromium; "firefox" runs
 //          only the smoke, saves, campaign, views and render3d suites unless --only says otherwise)
@@ -25,7 +25,7 @@ const opt = (n, d) => { const i = argv.indexOf('--' + n); return i >= 0 ? argv[i
 const build = path.resolve(opt('build', path.join(here, '../../build-web/engine/player')));
 const out = ensureDir(path.resolve(opt('out', path.join(here, 'out'))));
 const browserName = opt('browser', 'chromium');
-const all = ['standalone', 'pointer', 'resize', 'embed', 'saves', 'campaign', 'views', 'render3d', 'audio', 'perf', 'hex', 'smoke'];
+const all = ['standalone', 'pointer', 'resize', 'embed', 'saves', 'campaign', 'views', 'render3d', 'audio', 'perf', 'hex', 'tiles', 'smoke'];
 const only = opt('only', browserName === 'firefox' ? 'smoke,saves,campaign,views,render3d' : all.filter((n) => n !== 'smoke').join(',')).split(',');
 
 const checks = new Checks();
