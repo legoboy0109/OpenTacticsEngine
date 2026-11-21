@@ -527,7 +527,7 @@ condition `{ "strike": "first" }` and the formula variable `strikeNo`; `healed` 
 the skill effect `recoil`; `"bonus"` on a staff item (the player lists it in the item info like an accessory's); `cancelEffective` with a list of tags; a light's `shrink`; and the computer opponent using cure and refresh abilities and cure items.
 
 **General skill blocks** (docs/SRPG.md section 3 "More skill blocks", optional): a weapon's `damageKind`, a character's `tags`, `skills` on a map unit and on
-`addUnit`, `rules.promotion.classSkills` (`"keep"` / `"replace"`), `rules.promotion.testAt` (the test level's promotion level, docs/DIFFICULTY.md 10b), and in skill blocks the tests `weaponKind`, `turn`, `counterattack`, `carries`,
+`addUnit`, `rules.promotion.classSkills` (`"keep"` / `"replace"`), `rules.promotion.testAt` (the test level's promotion level, docs/DIFFICULTY.md 10b) and `rules.promotion.testPromotedTag` (a tag that marks a class as already promoted for it), and in skill blocks the tests `weaponKind`, `turn`, `counterattack`, `carries`,
 `inventory`, an aura's `match`, formula amounts for combat bonuses, and the effects `followUp`, `followShift`, `trianglePercent`, `weaponXpPercent`,
 `noCarryPenalty`, `cancelEffective`, `cure` and `moveAgain` with `notAfterAttack`.
 

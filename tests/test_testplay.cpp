@@ -268,6 +268,24 @@ void addPromotions(Database& db) {
 
 }  // namespace
 
+TEST(testlevel_promoted_tag_counts_as_promoted) {
+  Arena a(kDuel);
+  addPromotions(a.db);
+  a.db.rules.promotion.testPromotedTag = "elite";
+  a.db.unitTypes[1].tags.push_back("elite");  // the archer: nothing promotes into it, the tag says it is a promoted class
+  CHECK(a.begin());
+  CHECK(a.battle.testPromotedType(1));
+  CHECK(!a.battle.testPromotedType(0));
+  Unit u = a.battle.units[0];
+  u.type = 1;
+  u.level = 3;
+  CHECK_EQ(a.battle.effectiveTestLevel(u), 8);  // level + testAt
+  const Battle::TestRaise r = a.battle.raiseUnitForTest(u, 7, true);
+  CHECK(!r.changed && u.type == 1 && u.level == 3);  // already past 7: nothing to do, and never promoted again
+  a.battle.raiseUnitForTest(u, 10, true);
+  CHECK(u.type == 1 && u.level == 5);  // 10 - 5
+}
+
 TEST(testlevel_promotion_below_at_and_above_testat) {
   Arena a(kDuel);
   addPromotions(a.db);

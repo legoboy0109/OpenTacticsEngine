@@ -31,6 +31,13 @@ int Battle::enemyAverageLevel() const {
 
 bool Battle::testPromotedType(int type) const {
   if (db->rules.promotion.testAt <= 0) return false;
+  // A class the game itself marks as a promoted tier (a tag): classes nobody promotes INTO in the data (an enemy-only or
+  // pre-promoted class) are found this way.
+  const std::string& tag = db->rules.promotion.testPromotedTag;
+  if (!tag.empty() && type >= 0 && (size_t)type < db->unitTypes.size()) {
+    const std::vector<std::string>& tags = db->unitTypes[(size_t)type].tags;
+    if (std::find(tags.begin(), tags.end(), tag) != tags.end()) return true;
+  }
   for (const UnitTypeDef& t : db->unitTypes)
     for (const PromotionDef& d : t.promotions)
       if (d.to == type && (!d.items.empty() || d.atLevel != PromoteAtLevel::Off)) return true;

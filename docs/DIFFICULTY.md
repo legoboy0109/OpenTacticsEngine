@@ -251,7 +251,9 @@ changes: sims, saves and behaviour are identical (the battle's random numbers ar
 - **Promotion (`rules.promotion.testAt`, optional; missing = the test level never promotes).** With `testAt` the test level works in
   **effective levels**: a unit that can still promote counts its level, a unit that already is promoted counts level + `testAt`. "Can
   promote" = its type has a promotion entry a player could trigger (`items`, or `atLevel` `"offer"` / `"auto"`; story-only entries with
-  neither are ignored, wherever they point); "is promoted" = its type is the `to` of such an entry of some type (a type that is both counts as
+  neither are ignored, wherever they point); "is promoted" = its type is the `to` of such an entry of some type, or carries the tag named by
+  the optional `rules.promotion.testPromotedTag` (for promoted classes nothing in the data promotes into: enemy-only or pre-promoted
+  ones; the key needs `testAt`) (a type that is both counts as
   promoted: one promotion per unit, never a third tier). `auto` averages the hostile units' effective levels (+ 2); an explicit number is an
   effective level too (with `testAt` 15, `--test-level 20` means level 5 in the new class for a unit that can promote). Raising a unit that can
   promote to effective level E: below `testAt` it simply climbs to E; from `testAt` up it climbs to `testAt` in its own class (so that class's

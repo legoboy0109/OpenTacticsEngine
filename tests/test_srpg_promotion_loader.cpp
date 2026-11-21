@@ -86,6 +86,8 @@ TEST(promo_testat_is_read_and_checked) {
   CHECK(loadGame(g2.dir, plain, err));
   CHECK_EQ(plain.rules.promotion.testAt, 0);  // missing = the test level never promotes
   const std::string head = "game.json: rules.promotion: \"testAt\" must be ";
+  refuses("game.json", "\"counterAttacks\": true,", "\"counterAttacks\": true, \"promotion\": { \"testPromotedTag\": \"promoted\" },", "needs \"testAt\"");
+  refuses("game.json", "\"counterAttacks\": true,", "\"counterAttacks\": true, \"promotion\": { \"testAt\": 15, \"testPromotedTag\": 3 },", "must be a tag name");
   refuses("game.json", "\"counterAttacks\": true,", "\"counterAttacks\": true, \"promotion\": { \"testAt\": 0 },",
           head + "a whole number from 1 up to the game's top level (rules.progression.maxLevel)");
   refuses("game.json", "\"counterAttacks\": true,", "\"counterAttacks\": true, \"promotion\": { \"testAt\": 2.5 },", "\"testAt\"");

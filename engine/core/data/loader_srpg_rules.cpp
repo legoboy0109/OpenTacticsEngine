@@ -94,8 +94,14 @@ bool loadPromotionRules(const LoadCtx& c, const Json& rules, Database& db) {
   const Json& p = rules["promotion"];
   if (!p.isObject()) return c.fail("rules.promotion", "must be an object such as { \"levelAfter\": \"reset\" }");
   for (const Json::Member& m : p.members())
-    if (m.first != "levelAfter" && m.first != "classSkills" && m.first != "testAt")
-      return c.fail("rules.promotion", unknownKeyText(m.first, {"levelAfter", "classSkills", "testAt"}));
+    if (m.first != "levelAfter" && m.first != "classSkills" && m.first != "testAt" && m.first != "testPromotedTag")
+      return c.fail("rules.promotion", unknownKeyText(m.first, {"levelAfter", "classSkills", "testAt", "testPromotedTag"}));
+  if (p.has("testPromotedTag")) {
+    if (!p["testPromotedTag"].isString() || p["testPromotedTag"].asString().empty())
+      return c.fail("rules.promotion", "\"testPromotedTag\" must be a tag name such as \"promoted\"");
+    if (!p.has("testAt")) return c.fail("rules.promotion", "\"testPromotedTag\" needs \"testAt\" (it only matters to the test level's promotion)");
+    db.rules.promotion.testPromotedTag = p["testPromotedTag"].asString();
+  }
   if (p.has("testAt")) {  // the range (up to the game's top level) is checked once the progression rules are read
     if (!p["testAt"].isNumber() || !c.integer(p, "testAt", "rules.promotion", db.rules.promotion.testAt) || db.rules.promotion.testAt < 1)
       return c.fail("rules.promotion", "\"testAt\" must be a whole number from 1 up to the game's top level (rules.progression.maxLevel)");
