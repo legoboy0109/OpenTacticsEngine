@@ -380,6 +380,10 @@ if(OTE_BUILD_PLAYER AND OTE_BUILD_TESTS AND NOT EMSCRIPTEN AND TARGET ote-player
     add_test(NAME srpg_player_doors
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/srpg_player_doors_test.py
                      $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
+    # The unlock ability on a chest that says "from": "on" (docs/SRPG.md section 10 "Reach"): offered on it, greyed with the reason next to it.
+    add_test(NAME srpg_player_doors_from
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/srpg_player_doors_from_test.py
+                     $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
     # Battle and defeat quotes (docs/EVENTS.md): the lines before the strikes and after a fall, the enemy turn, skip, autoplay.
     add_test(NAME srpg_player_quotes
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/srpg_player_quotes_test.py
