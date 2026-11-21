@@ -4,21 +4,43 @@ Current state of the build, for whoever (or whichever model) continues.
 Read docs/PLAN.md (roadmap + owner decisions), docs/ARCHITECTURE.md
 (structure + binding portability rules) and docs/GAME_FORMAT.md first.
 
-## Latest (2026-11-21, late night)
+## Latest (2026-11-21, afternoon) — START HERE
 
-- **Pushed (full checks 65 and 66 clean):** native editor map painter, battle-art forms, drag reordering; deployment slot tint
-  under the unit; whole-device-pixel 2D rectangles (black grid); unlock ability follows a chest/door's `from` (AI thieves now
-  use the trait).
-- **Merged locally, built, ote_tests 2680 both builds, NOT yet full-checked or pushed:** test level (weapon ranks rise per level,
-  `auto` = enemy average + 2, `rules.promotion.testAt` promotes and counts promoted units as level + testAt). Next full check = 67.
-- **Agents running:** (a) remaining vertical tile seams that depend on camera position (owner's web editor Play, ~5.19x);
-  (b) item icons in lists (`graphics.json` `icons`) + calmer pointer edge scrolling. After (b) merges: extract Vision Quest's item
-  icons in the private converter.
-- **Vision Quest port** (`/home/kadenm/Projects/VisionQuestPort`, private, steps 39–41 committed): promotion by item, turn events
-  once, thieves without Locktouch, chests from on top, creating-row order (Titus's Dire Thunder + 8 others), rescue from the ROM.
-  Uncommitted there: `conv_rules.py` `testAt: 15`; a conversion with it is being copied into `games/vision-quest` (git-ignored).
-- **Owner decisions still open:** native editor page/tool names; test-level +2 amount; slot number over the sprite; enemy thieves
-  opening chests with a lockpick; pointer edge-scroll numbers; older list below.
+The owner asked to stop here and continue in a fresh session. Everything below is merged into local `main`.
+
+**Pushed to GitHub (full checks 65, 66, 67 clean):** native editor map painter / battle-art forms / drag reordering; deployment slot
+tint under the unit; whole-device-pixel 2D rectangles; unlock ability follows a chest/door's `from` (AI thieves use the trait); test
+level (weapon ranks rise, `auto` = enemy average + 2, `rules.promotion.testAt` + `testPromotedTag`); item icons in lists
+(`graphics.json` `icons`); pointer scrolling only at the picture's edge (`engine/player/battle/edge_scroll.h`: band 0.25 tile, dwell
+0.25 s, 8 tiles/s); scrolling seam regression suite.
+
+**Merged locally, built, unit-tested; full check 68 was started on it** (log: scratchpad `combined68_verify.txt`; if this session
+ended before it finished, re-run the full check and push `main` when clean — pushing `main` after a clean full check is agreed):
+- Preparation lists ("Who fights", items, sell) show the deployed unit's class/level as it stands in the battle (`BattleScene::prepLive`).
+- No seams on SDL's SOFTWARE renderer (`OutputMap::nudge`, `tools/webtest/suites/software.mjs`). Cause of the owner's black lines:
+  their browser (Vivaldi) apparently gives no WebGL, so the web player runs on the software renderer. Inferred, not confirmed —
+  ask them to check `vivaldi://gpu` / hardware acceleration; without WebGL the game is also slower.
+- Whole-number scaling: player setting `integerScale` (default on), Options row after "Visual style", `--integer-scale on|off`,
+  `embed.html?integerscale=`; the editor's Play dialog sizes itself from the browser window to the largest whole multiple
+  (`editor/web/src/play/wholeFit.ts`). `tests/audio_player_test.py` was adjusted for the new row (down counts +1, the list scrolls one
+  row after a tap, left arrow at x=200).
+
+**Next steps, in order:**
+1. Confirm full check 68 (or re-run), push.
+2. Vision Quest item icons: the engine feature is in; the private converter (`/home/kadenm/Projects/VisionQuestPort`) must extract the
+   ROM's item icons into a sheet and write `graphics.json` `icons` (owner: art from the ROM is fine for the private port, never public).
+3. Ask the owner how the Play panel, the lines and the mouse scrolling feel now; they have not confirmed any of the three.
+4. Windows VM / UWP / Android / original Xbox builds have not been rebuilt with any of today's changes (nxdk path of the new Options
+   row was guarded out but not compiled).
+
+**Vision Quest port** (private, local git, last commit "Step 42…"; engine copy in git-ignored `games/vision-quest` is current, 0
+problems): steps 39–42 in its `docs/CONVERSION.md` — promotion by item, turn events once, thieves without Locktouch, chests from on
+top, creating-row order (Titus's Dire Thunder + 8 others), rescue from the ROM, test level promotes at 15 with the ROM's promoted
+bit as `testPromotedTag`. The last change (`testPromotedTag`) was patched into game.json by hand and into `conv_rules.py`; the next
+full conversion reproduces it.
+
+**Owner decisions still open:** native editor page/tool names; test-level +2 amount; slot number drawn over the sprite; enemy thieves
+opening chests with a lockpick; edge-scroll numbers; whole-number scaling row position; older list below.
 
 ## Earlier (2026-11-21, night)
 
