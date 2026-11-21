@@ -230,7 +230,7 @@ export function PlayPanel({ store, maps, initialMap, onClose }: Props) {
         {saveFailed && <div className="play-banner" role="alert">{T.unsavedTitle}</div>}
       </div>
       <footer className="play-foot" ref={foot}>
-        <p className="play-hint"><strong>{T.controlsTitle}:</strong> {T.controls.map(([what, keys]) => `${what}: ${keys}`).join(' · ')}</p>
+        <p className="play-hint" title={T.controls.map(([what, keys]) => `${what}: ${keys}`).join('\n')}><strong>{T.controlsTitle}:</strong> {T.controls.map(([what, keys]) => `${what}: ${keys}`).join(' · ')}</p>
       </footer>
     </dialog>
   )

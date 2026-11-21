@@ -49,6 +49,11 @@ describe('dialogFit', () => {
     expect(dialogFit(V, { w: 1920, h: 1080 }, chrome, 1)!.frame).toMatchObject({ width: '1440px' })
     expect(dialogFit(V, { w: 1280, h: 900 }, chrome, 1)!.frame).toMatchObject({ width: '960px' })
   })
+  it('gives 3x on a 1080p screen\'s browser window (about 900 px tall) with the slim one-row chrome', () => {
+    const slim = { borderW: 2, borderH: 2, head: 46, foot: 22 }
+    expect(dialogFit(V, { w: 1920, h: 900 }, slim, 1)!.frame).toMatchObject({ width: '1440px', height: '810px' })
+    expect(dialogFit(V, { w: 1536, h: 730 }, slim, 1.25)!.frame).toMatchObject({ width: '1152px', height: '648px' })  // 3x of 480x270 in device pixels
+  })
   it('keeps a narrow frame on a dialog wide enough for the header, and gives up below 1x', () => {
     expect(dialogFit(V, { w: 760, h: 700 }, chrome, 1)!.dialog).toMatchObject({ width: '602px' })
     expect(dialogFit(V, { w: 800, h: 300 }, chrome, 1)).toBeNull()

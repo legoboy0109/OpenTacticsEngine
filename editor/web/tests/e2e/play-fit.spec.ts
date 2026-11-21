@@ -9,6 +9,7 @@ import { copyDemo } from './campaignkit'
 import { openMap } from './mapkit'
 import { expect, test } from './fixtures'
 import { requirePlayer } from './fixtures'
+import { OUTER_MARGIN } from '../../src/play/wholeFit'
 
 test.beforeEach(() => requirePlayer())
 
@@ -70,7 +71,7 @@ function expectWhole(m: Measure, view: { width: number; height: number }): numbe
   expect(Math.round(dh) - k * view.height, 'frame height is k x view in device pixels').toBeGreaterThanOrEqual(0)
   expect(Math.round(dh) - k * view.height, 'frame height is k x view in device pixels').toBeLessThan(2)
   // the largest that fits: one more would not fit the window minus the chrome and the 16 px margins
-  const aw = Math.floor((m.win[0] - 32 - (m.dialog.w - m.stage.w)) * m.dpr + 1e-6), ah = Math.floor((m.win[1] - 32 - m.chrome) * m.dpr + 1e-6)
+  const aw = Math.floor((m.win[0] - 2 * OUTER_MARGIN - (m.dialog.w - m.stage.w)) * m.dpr + 1e-6), ah = Math.floor((m.win[1] - 2 * OUTER_MARGIN - m.chrome) * m.dpr + 1e-6)
   expect((k + 1) * view.width > aw || (k + 1) * view.height > ah, `${k + 1}x would also fit ${aw}x${ah}`).toBe(true)
   expect(k * view.width <= aw && k * view.height <= ah, `${k}x fits ${aw}x${ah}`).toBe(true)
   // the dialog stays inside the window, centred
