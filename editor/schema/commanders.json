@@ -7,7 +7,7 @@
       "name": { "type": "string", "help": "Display name." },
       "description": { "type": "string", "help": "Text shown when the person picks a commander." },
       "portrait": { "type": "string", "help": "Art id of the portrait (not drawn yet)." },
-      "passive": { "type": "list", "of": { "type": "json" }, "help": "Skills always active for the side: skill ids or { skill, filter }." },
+      "passive": { "type": "list", "of": { "use": "_common#skillGrant" }, "help": "Skills always active for the side: plain ids or { skill, filter } entries." },
       "meter": { "type": "object", "required": true, "help": "The power meter; it must fill by something.", "fields": {
         "max": { "type": "int", "required": true, "min": 1, "max": 100000, "help": "Meter size." },
         "perDamageDealt": { "type": "int", "min": 0, "max": 1000, "help": "Meter points per hit point of damage dealt." },
@@ -20,8 +20,8 @@
         "cost": { "type": "int", "required": true, "min": 1, "max": 100000, "help": "Meter points (at most the meter's max)." },
         "turns": { "type": "int", "min": 1, "max": 99, "help": "Turns the modifiers last (needs modifiers)." },
         "costGrowthPercent": { "type": "int", "min": 0, "max": 1000, "help": "Price rises by this % with each use." },
-        "modifiers": { "type": "list", "of": { "type": "json" }, "help": "Skills active while the power lasts." },
-        "effects": { "type": "list", "of": { "type": "json", "sample": { "heal": 5 } }, "help": "Instant effects: heal, damage, giveResource, refresh." } } } }
+        "modifiers": { "type": "list", "of": { "use": "_common#skillGrant" }, "help": "Skills active while the power lasts." },
+        "effects": { "type": "list", "of": { "use": "_common#commanderEffect" }, "help": "Instant effects, each one of heal, damage, giveResource, refresh." } } } }
     }
   }
 }

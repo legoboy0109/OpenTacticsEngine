@@ -25,7 +25,7 @@
           "vertical": { "type": "int", "min": 0, "max": 999, "help": "Levels of height the blast reaches (needs rules.height)." } }
       },
       "apCost": { "type": "int", "min": 0, "max": 99, "help": "Action points for an attack (needs rules.actionPoints)." },
-      "heightRange": { "type": "object", "block": true, "help": "How many levels higher / lower the target may stand (needs rules.height).", "fields": {
+      "heightRange": { "type": "object", "block": true, "enable": { "up": 1 }, "help": "How many levels higher / lower the target may stand (needs rules.height).", "fields": {
         "up": { "type": "int", "min": 0, "max": 999, "help": "Levels higher." },
         "down": { "type": "int", "min": 0, "max": 999, "help": "Levels lower." } } },
       "chargeSpeed": { "type": "int", "min": 1, "max": 1000, "help": "Makes the weapon a charged action (needs turnOrder speed)." },

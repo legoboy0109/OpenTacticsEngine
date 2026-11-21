@@ -53,4 +53,7 @@ if(OTE_BUILD_TESTS)
     add_test(NAME native_${name} COMMAND native_${name})
     set_tests_properties(native_${name} PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;OTE_TEST_TMP=${CMAKE_BINARY_DIR}/test-tmp")
   endforeach()
+  # The conformance test's tables (which fixture tries which key) live in small files of their own.
+  file(GLOB CONFORMANCE_TABLES CONFIGURE_DEPENDS tests/conformance_*.cpp)
+  target_sources(native_test_conformance PRIVATE ${CONFORMANCE_TABLES})
 endif()

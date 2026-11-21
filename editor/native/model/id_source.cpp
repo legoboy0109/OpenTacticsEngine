@@ -9,7 +9,8 @@ namespace ote_native {
 IdSource::IdSource(Project* project, QObject* parent) : QObject(parent), project_(project) {}
 
 QString IdSource::fileOf(const std::string& source) {
-  const QString s = QString::fromStdString(source);
+  QString s = QString::fromStdString(source);
+  if (s.startsWith("tags:")) s = s.mid(5);
   const int hash = s.indexOf('#');
   return hash < 0 ? s : s.left(hash);
 }
@@ -34,6 +35,14 @@ QStringList IdSource::ids(const std::vector<std::string>& sources) {
     watch(rel);
     const ote::Json* list = &doc->root();
     const QString s = QString::fromStdString(src);
+    if (s.startsWith("tags:")) {
+      // "tags:data/units.json": the free words in the rows' "tags" lists (what unit filters and conditions may name).
+      if (auto p = findTableArray(doc->root()))
+        for (const ote::Json& row : resolvePath(doc->root(), *p)->items())
+          for (const ote::Json& t : row["tags"].items())
+            if (t.isString() && !t.asString().empty() && !out.contains(QString::fromStdString(t.asString()))) out.append(QString::fromStdString(t.asString()));
+      continue;
+    }
     const int hash = s.indexOf('#');
     if (hash >= 0) {
       for (const QString& part : s.mid(hash + 1).split('.')) {

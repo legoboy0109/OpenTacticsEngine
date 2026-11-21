@@ -1,0 +1,57 @@
+{
+  "defs": {
+    "grantFilter": {
+      "type": "object", "help": "Which units get it: one of type or tag; {} means every unit of the side.",
+      "fields": {
+        "type": { "type": "ref", "ref": "data/units.json", "help": "Only units of this type." },
+        "tag": { "type": "ref", "ref": "tags:data/units.json", "help": "Only units whose type has this tag." } }
+    },
+    "skillGrant": {
+      "type": "variant",
+      "variants": [
+        { "name": "skill id", "kind": "string", "node": { "type": "ref", "ref": "data/skills.json" } },
+        { "name": "skill with filter", "key": "skill", "node": { "type": "object", "fields": {
+          "skill": { "type": "ref", "ref": "data/skills.json", "required": true, "help": "The skill." },
+          "filter": { "use": "grantFilter", "help": "Which units get it (default: every unit of the side)." } } } } ]
+    },
+    "commanderEffect": {
+      "type": "variant",
+      "variants": [
+        { "name": "heal", "key": "heal", "node": { "type": "object", "fields": {
+          "heal": { "type": "int", "required": true, "min": 1, "max": 9999, "help": "Hit points restored." },
+          "filter": { "use": "grantFilter", "help": "Which units are healed." } } } },
+        { "name": "damage", "key": "damage", "node": { "type": "object", "fields": {
+          "damage": { "type": "int", "required": true, "min": 1, "max": 9999, "help": "Hit points of damage." },
+          "filter": { "use": "grantFilter", "help": "Which units are hurt." },
+          "to": { "type": "enum", "values": ["enemies"], "default": "enemies", "help": "Whom it hurts (enemies is the only choice)." } } } },
+        { "name": "giveResource", "key": "giveResource", "node": { "type": "object", "fields": {
+          "giveResource": { "type": "map", "ref": "game.json#resources", "required": true, "min": 1, "of": { "type": "int", "min": 1, "max": 99999 }, "help": "Resources given (at least one)." } } } },
+        { "name": "refresh", "key": "refresh", "node": { "type": "object", "fields": {
+          "refresh": { "type": "variant", "required": true, "help": "Units that may act again.", "variants": [
+            { "name": "every unit", "value": true },
+            { "name": "filter", "kind": "object", "node": { "use": "grantFilter" } } ] } } } } ]
+    },
+    "aiWeights": {
+      "type": "object",
+      "fields": {
+        "dmg": { "type": "int", "min": 0, "max": 100, "help": "Weight of damage dealt." },
+        "left": { "type": "int", "min": 0, "max": 100, "help": "Weight of hit points left." },
+        "friends": { "type": "int", "min": 0, "max": 100, "help": "Weight of friends nearby." },
+        "class": { "type": "int", "min": 0, "max": 100, "help": "Weight of the target's class priority." },
+        "turn": { "type": "int", "min": 0, "max": 100, "help": "Weight of the turn count." },
+        "counter": { "type": "int", "min": 0, "max": 100, "help": "Weight of the counterattack taken." },
+        "danger": { "type": "int", "min": 0, "max": 100, "help": "Weight of the danger of the square." },
+        "wounds": { "type": "int", "min": 0, "max": 100, "help": "Weight of wounds." },
+        "killValue": { "type": "int", "min": 0, "max": 1000, "help": "Bonus for a kill." },
+        "dmgCap": { "type": "int", "min": 0, "max": 1000, "help": "Cap of the damage term." },
+        "leftBase": { "type": "int", "min": 0, "max": 1000, "help": "Base of the hit-points-left term." },
+        "friendsCap": { "type": "int", "min": 0, "max": 1000, "help": "Cap of the friends term." },
+        "counterCap": { "type": "int", "min": 0, "max": 1000, "help": "Cap of the counter term." },
+        "noCounterBonus": { "type": "int", "min": 0, "max": 1000, "help": "Bonus when the target cannot counter." },
+        "dangerDiv": { "type": "int", "min": 1, "max": 1000, "help": "Divisor of the danger term." },
+        "dangerCap": { "type": "int", "min": 0, "max": 1000, "help": "Cap of the danger term." },
+        "attackAtZero": { "type": "bool", "help": "Attack even for no gain." },
+        "priority": { "type": "map", "ref": "data/units.json", "of": { "type": "int", "min": -1000, "max": 1000 }, "help": "Extra weight per unit type." } }
+    }
+  }
+}

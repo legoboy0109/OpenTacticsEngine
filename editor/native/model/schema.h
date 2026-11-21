@@ -6,6 +6,7 @@
 #include <QString>
 #include <QStringList>
 #include <functional>
+#include <map>
 #include <memory>
 #include <optional>
 #include <string>
@@ -83,6 +84,8 @@ class SchemaSet {
  public:
   // Adds every *.json file of a folder (or of a Qt resource folder such as ":/schema"); problems are collected, never fatal.
   void loadFolder(const QString& dir);
+  // A schema file may also hold "defs" (named nodes other nodes pull in with "use": "name" or "file#name"); a file with only
+  // defs describes no data file.
   void addFromText(const QString& name, const QByteArray& text);
   const FileSchema* forFile(const QString& rel) const;
   const std::vector<std::shared_ptr<const FileSchema>>& all() const { return schemas_; }
@@ -92,6 +95,9 @@ class SchemaSet {
   static SchemaSet loadDefault(const QString& overrideDir, const QString& appDir);
 
  private:
+  void registerDefs(const QString& name, const ote::Json& j);
+  void build(const QString& name, const ote::Json& j);
+  std::map<std::string, ote::Json> defs_;
   std::vector<std::shared_ptr<const FileSchema>> schemas_;
   QStringList errors_;
 };
@@ -115,6 +121,8 @@ bool fieldApplies(const SchemaNode& parent, const SchemaNode& field, const ote::
 ote::Json defaultValue(const SchemaNode& n, const IdLookup& ids);
 // What the picker writes when the user switches a variant node to variant `v`.
 ote::Json defaultValueOfVariant(const SchemaNode::Variant& v, const IdLookup& ids);
+// A valid value of variant `v` for the conformance test.
+ote::Json sampleValueOfVariant(const SchemaNode::Variant& v, const IdLookup& ids);
 // A valid value for the conformance test (the node's "sample" when given).
 ote::Json sampleValue(const SchemaNode& n, const IdLookup& ids);
 

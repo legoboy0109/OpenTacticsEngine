@@ -1,9 +1,95 @@
 {
-  "title": "Rules",
+  "title": "General",
   "files": ["game.json"],
+  "defs": {
+    "idName": { "type": "list", "of": { "type": "object", "fields": {
+      "id": { "type": "string", "required": true, "help": "Unique id." },
+      "name": { "type": "string", "help": "Display name (defaults to the id)." } } } },
+    "rankLevels": { "type": "list", "required": true, "help": "The ranks, rising (1 to 20).", "of": { "type": "object", "fields": {
+      "at": { "type": "int", "required": true, "min": 0, "max": 1000000, "help": "Experience (or merit) at which the rank starts (rising)." },
+      "name": { "type": "string", "required": true, "help": "1 to 24 characters." },
+      "badge": { "type": "string", "help": "0 to 3 characters shown on the unit." },
+      "bonus": { "type": "map", "ref": "game.json#stats", "of": { "type": "int" }, "help": "Stat bonus per stat." },
+      "skills": { "type": "list", "of": { "type": "ref", "ref": "data/skills.json" }, "help": "Skills granted by the rank." } } } }
+  },
   "root": {
     "type": "object",
     "fields": {
+      "formatVersion": { "type": "int", "required": true, "min": 1, "max": 1, "help": "Always 1 (the game format version)." },
+      "name": { "type": "string", "help": "Name of the game." },
+      "description": { "type": "string", "help": "A short line shown in the launcher." },
+      "author": { "type": "string", "help": "Who made it." },
+      "saving": { "type": "enum", "values": ["any", "continue", "off"], "default": "any", "help": "any: Continue save and five slots; continue: only the automatic save; off: nothing is saved (docs/SAVES.md)." },
+      "battleScene": { "type": "enum", "values": ["map", "scene"], "default": "map", "help": "How fights are shown: quick on the map, or in the side-view battle scene (docs/BATTLE_SCENE.md)." },
+      "battleBackgroundFrom": { "type": "enum", "values": ["defender", "attacker"], "default": "defender", "help": "Whose square picks the battle scene's background and platform." },
+      "battlePlatformFrom": { "type": "enum", "values": ["same", "own"], "default": "same", "help": "same: both fighters on one platform; own: each on the platform of its own square." },
+      "battleSceneSides": { "type": "enum", "values": ["map", "playerRight", "playerLeft"], "default": "map", "help": "Which side of the scene each fighter stands on." },
+      "battleSceneStaves": { "type": "bool", "default": false, "help": "A staff used on one other unit plays in the scene." },
+      "menuUnavailable": { "type": "enum", "values": ["grey", "hide"], "default": "grey", "help": "An action with nothing to act on stays greyed in the menu, or is left out." },
+      "attackWeaponChoice": { "type": "enum", "values": ["equipped", "pick"], "default": "equipped", "help": "Attack goes straight to the targets, or first asks which weapon to use." },
+      "grid": {
+        "type": "object", "block": true, "help": "Hexagon games (docs/HEX.md); without this block the game is square.",
+        "fields": {
+          "type": { "type": "enum", "values": ["square", "hex"], "default": "square", "help": "The kind of squares." },
+          "layout": { "type": "enum", "values": ["pointy", "flat"], "required": true, "when": { "type": "hex" }, "help": "Hexagon orientation (hexagon games only)." } }
+      },
+      "view": {
+        "type": "object", "block": true, "help": "Logical screen size the game is drawn at.",
+        "fields": {
+          "width": { "type": "int", "min": 1, "help": "Screen width in logical pixels." },
+          "height": { "type": "int", "min": 1, "help": "Screen height in logical pixels." },
+          "tileSize": { "type": "int", "min": 1, "help": "Size of a square in logical pixels." } }
+      },
+      "font": {
+        "type": "object", "block": true, "help": "Text font; without it the built-in pixel font is used.",
+        "fields": {
+          "name": { "type": "string", "help": "A built-in font: pixel, pixel-ttf, arcade, sans, serif or mono." },
+          "file": { "type": "string", "help": "Your own .ttf / .otf inside the game folder (instead of name)." },
+          "size": { "type": "int", "min": 0, "max": 200, "help": "Text height in logical pixels." },
+          "smooth": { "type": "bool", "help": "true: anti-aliased at full screen resolution; false: hard pixel edges." } }
+      },
+      "stats": { "use": "idName", "required": true, "help": "The game's own stats (at least one); units, weapons and formulas use them." },
+      "roles": {
+        "type": "object", "required": true, "help": "Which stats the engine itself needs.",
+        "fields": {
+          "hp": { "type": "ref", "ref": "game.json#stats", "required": true, "help": "The hit points stat." },
+          "move": { "type": "ref", "ref": "game.json#stats", "required": true, "help": "The movement points stat." } }
+      },
+      "resources": {
+        "type": "list", "help": "Resources of the game (funds, action points ...); a resource may refill each turn.",
+        "of": { "type": "object", "fields": {
+          "id": { "type": "string", "required": true, "help": "Unique id." },
+          "name": { "type": "string", "help": "Display name." },
+          "refill": { "type": "object", "block": true, "help": "At the start of the side's turn the amount becomes min(left over, carryOver) + perTurn.", "fields": {
+            "perTurn": { "type": "int", "required": true, "min": 0, "max": 100000, "help": "Amount added each turn." },
+            "carryOver": { "type": "int", "min": 0, "max": 100000, "default": 0, "help": "Most of the old amount that survives into the next turn." } } } } }
+      },
+      "moveTypes": {
+        "type": "list", "required": true, "help": "How units move over terrain (at least one); terrain and structures price each.",
+        "of": { "type": "object", "fields": {
+          "id": { "type": "string", "required": true, "help": "Unique id." },
+          "name": { "type": "string", "help": "Display name." },
+          "sounds": { "type": "map", "free": true, "of": { "type": "json" }, "help": "Step sounds: { \"step\": sound id, \"stepInterval\": seconds } (docs/SOUND.md)." } } }
+      },
+      "switches": { "use": "idName", "help": "Story switches (off / on) that map events and the campaign read and set (docs/EVENTS.md)." },
+      "variables": { "use": "idName", "help": "Story variables (whole numbers, start at 0)." },
+      "scripts": { "type": "list", "of": { "type": "string" }, "help": "Lua files loaded in order, e.g. scripts/formulas.lua." },
+      "maps": {
+        "type": "list", "required": true, "help": "The battles of the game, in order.",
+        "of": { "type": "object", "fields": {
+          "id": { "type": "string", "required": true, "help": "Unique id; campaigns and events name it." },
+          "name": { "type": "string", "help": "Display name (defaults to the id)." },
+          "file": { "type": "string", "required": true, "help": "The map file, e.g. maps/first.json." } } }
+      },
+      "formulas": {
+        "type": "object", "required": true, "help": "The damage formulas (a = attacker, b = defender, w = weapon; docs/GAME_FORMAT.md).",
+        "fields": {
+          "damage": { "type": "string", "sample": "1", "required": true, "help": "Damage of a hit, e.g. a.str + w.might - b.def." },
+          "hit": { "type": "string", "sample": "1", "help": "Hit chance in percent; absent = always hits." },
+          "crit": { "type": "string", "sample": "1", "help": "Critical hit chance in percent." },
+          "strikes": { "type": "string", "sample": "1", "help": "Attacks per combat." },
+          "critMultiplier": { "type": "number", "help": "Damage multiplier of a critical hit." } }
+      },
       "damageTypes": {
         "type": "list", "help": "The game's own damage types (at most 16). Without this key a game has none. First one is the default of a weapon.",
         "of": { "type": "object", "fields": {
@@ -15,35 +101,101 @@
         "type": "list", "length": 2, "of": { "type": "int", "sample": 3 }, "sample": [-3, 3],
         "help": "[min, max] allowed for every resist value; must include 0 and needs damageTypes."
       },
-      "resources": {
-        "type": "list", "help": "Resources of the game (funds, action points ...); a resource may refill each turn.",
+      "difficulties": {
+        "type": "object", "block": true, "help": "The maker's own difficulties (docs/DIFFICULTY.md); without it the game has none.",
+        "enable": { "default": "normal", "list": [ { "id": "normal", "name": "Normal" } ] }, "sample": { "default": "normal", "list": [ { "id": "normal" } ] },
+        "fields": {
+          "default": { "type": "ref", "ref": "game.json#difficulties.list", "required": true, "help": "The difficulty chosen at first." },
+          "change": { "type": "enum", "values": ["never", "lowerOnly", "free"], "default": "lowerOnly", "help": "Whether the player may change it later." },
+          "percentStats": { "type": "list", "of": { "type": "ref", "ref": "game.json#stats" }, "help": "Stats a difficulty's statsPercent scales." },
+          "list": { "type": "list", "required": true, "help": "Easiest first (at most 12).", "of": { "type": "object", "fields": {
+            "id": { "type": "string", "required": true, "help": "Letters, digits, _ and -." },
+            "name": { "type": "string", "help": "Display name." },
+            "description": { "type": "string", "help": "Shown when choosing." },
+            "enemy": { "type": "object", "block": true, "help": "How enemy units are changed.", "fields": {
+              "levels": { "type": "int", "min": -98, "max": 98, "help": "Enemy level shift." },
+              "stats": { "type": "map", "ref": "game.json#stats", "of": { "type": "int", "min": -999, "max": 999 }, "help": "Flat stat change per stat." },
+              "statsPercent": { "type": "int", "min": 0, "max": 1000, "help": "Percent of the enemy's stats." } } },
+            "xpPercent": { "type": "int", "min": 0, "max": 1000, "help": "Experience multiplier in percent." },
+            "resourcePercent": { "type": "int", "min": 0, "max": 1000, "help": "Resource multiplier in percent." } } } } }
+      },
+      "styles": {
+        "type": "list", "help": "Switchable looks (docs/GAME_FORMAT.md Visual styles); the first is the default.",
         "of": { "type": "object", "fields": {
           "id": { "type": "string", "required": true, "help": "Unique id." },
-          "name": { "type": "string", "help": "Display name." },
-          "refill": { "type": "object", "block": true, "help": "At the start of the side's turn the amount becomes min(left over, carryOver) + perTurn.", "fields": {
-            "perTurn": { "type": "int", "required": true, "min": 0, "max": 100000, "help": "Amount added each turn." },
-            "carryOver": { "type": "int", "min": 0, "max": 100000, "default": 0, "help": "Most of the old amount that survives into the next turn." } } } } }
+          "name": { "type": "string", "help": "Display name (defaults to the id)." },
+          "view": { "type": "enum", "values": ["top-down", "isometric", "isometric-3d", "3d"], "default": "top-down", "help": "Kind of view: 2D, 2D isometric, 3D isometric, full 3D (docs/VIEWS.md)." },
+          "background": { "type": "string", "help": "Screen background colour as #rrggbb." },
+          "showGlyphs": { "type": "bool", "help": "Show the terrain letters (default: the style's own)." },
+          "largeArt": { "type": "bool", "default": false, "help": "This style's art needs a lot of memory; small consoles do not offer it." },
+          "isometric": { "type": "object", "block": true, "help": "Sizes of an isometric view (docs/VIEWS.md).", "fields": {
+            "tileWidth": { "type": "int", "min": 8, "max": 512, "help": "Even number, width of a diamond." },
+            "tileHeight": { "type": "int", "min": 4, "max": 256, "help": "Even number, height of a diamond (not on hexagon games)." },
+            "heightStep": { "type": "int", "min": 0, "max": 128, "help": "Pixels one level of height lifts a square." },
+            "unitWidth": { "type": "int", "min": 4, "max": 512, "help": "Width a unit sprite is drawn at." } } },
+          "terrainColors": { "type": "map", "ref": "data/terrain.json", "of": { "type": "string" }, "help": "Colour (#rrggbb) per terrain." },
+          "structureColors": { "type": "map", "ref": "data/structures.json", "of": { "type": "string" }, "help": "Colour (#rrggbb) per structure." } } }
       },
       "rules": {
         "type": "object", "help": "Game rules. Optional blocks have an Enable switch; a game without the block plays as before.",
         "fields": {
           "counterAttacks": { "type": "bool", "default": true, "help": "A defender answers an attack when it can." },
-          "defeat": { "type": "list", "help": "What loses a battle for a side.", "of": { "type": "enum", "values": ["noUnits", "leaderDead", "lostHq"] } },
+          "defeat": { "type": "list", "help": "What loses a battle for a side (default: noUnits).", "of": { "type": "enum", "values": ["noUnits", "leaderDead", "lostHq"] } },
+          "hitRoll": { "type": "enum", "values": ["single", "average2"], "default": "single", "help": "single: one roll; average2: the average of two rolls." },
           "turnOrder": {
-            "type": "object", "block": true, "alt": "string", "sample": { "mode": "speed", "stat": "spd" },
-            "help": "\"sides\" (default) or speed order: units act one at a time (docs/TURN_ORDER.md). A plain \"speed\" string is shown as JSON.",
-            "fields": {
-              "mode": { "type": "enum", "required": true, "values": ["sides", "speed"], "help": "speed: units act by their speed stat." },
-              "stat": { "type": "ref", "ref": "game.json#stats", "help": "Stat that fills the clock (default: a stat named speed)." },
-              "threshold": { "type": "int", "min": 1, "max": 100000, "help": "Clock value at which a unit may act." },
-              "preview": { "type": "int", "min": 1, "max": 30, "help": "Turns shown in the order preview." },
-              "roundTicks": { "type": "int", "min": 1, "max": 100000, "help": "Clock ticks per displayed round." },
-              "ctCost": { "type": "object", "help": "Clock cost of a finished turn by what the unit did (each at least 1).", "fields": {
-                "both": { "type": "int", "min": 1, "max": 100000, "help": "Moved and acted." },
-                "one": { "type": "int", "min": 1, "max": 100000, "help": "Moved or acted." },
-                "none": { "type": "int", "min": 1, "max": 100000, "help": "Did neither." } } } } },
+            "type": "variant", "help": "Who acts when: sides take turns (default), or units act one at a time by speed (docs/TURN_ORDER.md).",
+            "variants": [
+              { "name": "sides (default)", "value": "sides" },
+              { "name": "speed, defaults", "value": "speed" },
+              { "name": "speed, custom", "key": "mode", "sample": { "mode": "speed", "stat": "spd" }, "node": { "type": "object", "fields": {
+                "mode": { "type": "enum", "required": true, "values": ["sides", "speed"], "help": "speed: units act by their speed stat." },
+                "stat": { "type": "ref", "ref": "game.json#stats", "help": "Stat that fills the clock (default: a stat named speed)." },
+                "threshold": { "type": "int", "min": 1, "max": 100000, "help": "Clock value at which a unit may act." },
+                "preview": { "type": "int", "min": 1, "max": 30, "help": "Turns shown in the order preview." },
+                "roundTicks": { "type": "int", "min": 1, "max": 100000, "help": "Clock ticks per displayed round." },
+                "ctCost": { "type": "object", "help": "Clock cost of a finished turn by what the unit did (each at least 1).", "fields": {
+                  "both": { "type": "int", "min": 1, "max": 100000, "help": "Moved and acted." },
+                  "one": { "type": "int", "min": 1, "max": 100000, "help": "Moved or acted." },
+                  "none": { "type": "int", "min": 1, "max": 100000, "help": "Did neither." } } } } } } ]
+          },
+          "economy": { "type": "object", "block": true, "enable": { "enabled": true }, "help": "Funds, income and building (docs/ECONOMY.md).", "fields": {
+            "enabled": { "type": "bool", "default": false, "help": "The economy is on." } } },
+          "production": { "type": "object", "block": true, "enable": { "enabled": true }, "help": "Structures build units (docs/ECONOMY.md).", "fields": {
+            "enabled": { "type": "bool", "default": false, "help": "Production is on." },
+            "builtUnitsCanAct": { "type": "bool", "default": false, "help": "A unit built this turn may already act." } } },
+          "capture": { "type": "object", "block": true, "enable": { "enabled": true }, "help": "Units capture structures (docs/STRUCTURES.md).", "fields": {
+            "enabled": { "type": "bool", "default": false, "help": "Capturing is on." },
+            "amount": { "type": "string", "sample": "1", "default": "a.hp", "help": "Formula: capture points a unit takes off per turn." } } },
+          "items": { "type": "object", "block": true, "help": "Items and inventories (docs/ITEMS.md); a game has items when data/items.json lists some.", "fields": {
+            "weapons": { "type": "enum", "values": ["fixed", "carried"], "default": "fixed", "help": "fixed: weapons come with the unit type; carried: weapons are items." },
+            "storage": { "type": "enum", "values": ["off", "anywhere", "structure", "leader"], "default": "off", "help": "Where the shared item storage can be reached." },
+            "inventorySize": { "type": "int", "min": 1, "max": 20, "help": "Items one unit carries." },
+            "sellPercent": { "type": "int", "min": 0, "max": 100, "help": "Share of an item's price a buying shop pays." },
+            "freeBattleStorage": { "type": "object", "block": true, "help": "What the shared storage holds in a free battle (docs/ITEMS.md).", "fields": {
+              "each": { "type": "int", "min": 0, "max": 99, "help": "Copies of every item." },
+              "except": { "type": "list", "of": { "type": "ref", "ref": "data/items.json" }, "help": "Items left out of 'each' (needs each)." },
+              "items": { "type": "list", "help": "Extra items.", "of": { "type": "variant", "variants": [
+                { "name": "item id", "kind": "string", "node": { "type": "ref", "ref": "data/items.json" } },
+                { "name": "item with count", "key": "item", "node": { "type": "object", "fields": {
+                  "item": { "type": "ref", "ref": "data/items.json", "required": true, "help": "The item." },
+                  "count": { "type": "int", "min": 0, "max": 99, "help": "How many (default 1)." },
+                  "uses": { "type": "int", "min": 1, "help": "Uses left (at most the item's own uses; not for unlimited items)." } } } } ] } },
+              "funds": { "type": "map", "ref": "game.json#resources", "of": { "type": "int", "min": 0 }, "help": "Resources in the storage." } } } } },
+          "supply": { "type": "object", "block": true, "help": "Repair and supply (docs/ECONOMY.md).", "fields": {
+            "structures": { "type": "bool", "help": "Own structures also refill fuel and ammunition." },
+            "repair": { "type": "object", "block": true, "enable": { "amount": 20 }, "help": "Units on an own structure heal.", "fields": {
+              "amount": { "type": "int", "required": true, "min": 1, "max": 100, "help": "Percent of maximum HP per turn." },
+              "costShare": { "type": "int", "min": 0, "max": 100, "help": "Percent of the proportional unit cost paid (default 100)." } } } } },
+          "research": { "type": "object", "block": true, "help": "Research options (technologies live in data/research.json).", "fields": {
+            "needsStructure": { "type": "bool", "default": false, "help": "Research needs an owned structure with research: true." },
+            "cancelRefundPercent": { "type": "int", "min": 0, "max": 100, "default": 0, "help": "Share of the cost paid back when research is cancelled." } } },
+          "fog": { "type": "object", "block": true, "enable": { "ambush": "endsTurn" }, "help": "Fog of war options (maps switch fog on).", "fields": {
+            "ambush": { "type": "enum", "values": ["endsTurn", "canAct"], "default": "endsTurn", "help": "A unit that walks into a hidden enemy: its turn ends, or it may still act." } } },
+          "display": { "type": "object", "block": true, "enable": { "enemyRanges": true }, "help": "Player display options.", "fields": {
+            "enemyRanges": { "type": "bool", "default": true, "help": "false switches the enemy-range display off for this game." } } },
           "actionPoints": {
-            "type": "object", "block": true, "help": "One shared pool per side pays for walking and attacking (docs/SRPG.md Action points).",
+            "type": "object", "block": true, "needs": { "ref": "game.json#resources", "hint": "needs a resource: add one under resources" },
+            "help": "One shared pool per side pays for walking and attacking (docs/SRPG.md Action points).",
             "fields": {
               "resource": { "type": "ref", "ref": "game.json#resources", "required": true, "help": "Resource used as the pool." },
               "move": { "type": "object", "block": true, "help": "What walking costs.", "fields": {
@@ -73,39 +225,29 @@
                 "front": { "type": "object", "block": true, "help": "Front arc.", "fields": { "name": { "type": "string", "help": "1 to 16 characters." } } },
                 "side": { "type": "object", "block": true, "help": "Side arc.", "fields": { "name": { "type": "string", "help": "1 to 16 characters." } } },
                 "back": { "type": "object", "block": true, "help": "Back arc.", "fields": { "name": { "type": "string", "help": "1 to 16 characters." } } } } } } },
-          "research": {
-            "type": "object", "block": true, "help": "Research options (technologies live in data/research.json).",
-            "fields": {
-              "needsStructure": { "type": "bool", "default": false, "help": "Research needs an owned structure with research: true." },
-              "cancelRefundPercent": { "type": "int", "min": 0, "max": 100, "default": 0, "help": "Share of the cost paid back when research is cancelled." } } },
           "progression": {
             "type": "object", "block": true, "help": "Experience and levels, or (with levels) a rank table that replaces levelling.",
             "fields": {
               "enabled": { "type": "bool", "default": false, "help": "Units gain experience." },
               "xpPerLevel": { "type": "int", "min": 1, "help": "Experience for one level (not with a rank table)." },
               "maxLevel": { "type": "int", "min": 1, "help": "Highest level (not with a rank table)." },
-              "xpHit": { "type": "string", "help": "Formula: experience for a hit." },
-              "xpKill": { "type": "string", "help": "Formula: experience for a defeat." },
-              "levels": { "type": "list", "help": "Rank table that replaces levels (excludes xpPerLevel / maxLevel).", "of": { "type": "object", "fields": {
-                "at": { "type": "int", "required": true, "min": 0, "max": 1000000, "help": "Experience at which the rank starts (rising)." },
-                "name": { "type": "string", "required": true, "help": "1 to 24 characters." },
-                "badge": { "type": "string", "help": "0 to 3 characters shown on the unit." },
-                "bonus": { "type": "map", "ref": "game.json#stats", "of": { "type": "int" }, "help": "Stat bonus per stat." },
-                "skills": { "type": "list", "of": { "type": "ref", "ref": "data/skills.json" }, "help": "Skills granted by the rank." } } } } } },
+              "xpHit": { "type": "string", "sample": "1", "help": "Formula: experience for a hit." },
+              "xpKill": { "type": "string", "sample": "1", "help": "Formula: experience for a defeat." },
+              "xpNoDamage": { "type": "variant", "help": "Experience for a fight that did no damage: a number, or a formula (a = the unit, b = its foe).", "variants": [
+                { "name": "number", "kind": "number", "node": { "type": "int", "min": 0, "max": 1000 } },
+                { "name": "formula", "kind": "string", "node": { "type": "string" }, "sample": "1" } ] },
+              "computerGains": { "type": "bool", "help": "Computer-controlled units gain experience too." },
+              "levels": { "use": "rankLevels", "required": false, "help": "Rank table that replaces levels (excludes xpPerLevel / maxLevel)." } } },
           "ranks": {
-            "type": "object", "block": true, "help": "Merit ranks on their own counter, beside levelling (not with progression.levels).",
+            "type": "object", "block": true, "enable": { "levels": [ { "at": 1000, "name": "Rank" } ] },
+            "help": "Merit ranks on their own counter, beside levelling (not with progression.levels).",
             "fields": {
               "name": { "type": "string", "help": "Name of the counter, 1 to 16 characters." },
               "perHit": { "type": "int", "min": 0, "max": 100000, "help": "Merit for a hit." },
               "perDefeat": { "type": "int", "min": 0, "max": 100000, "help": "Merit for a defeat." },
-              "levels": { "type": "list", "required": true, "help": "The ranks, rising.", "of": { "type": "object", "fields": {
-                "at": { "type": "int", "required": true, "min": 0, "max": 1000000, "help": "Merit at which the rank starts (rising)." },
-                "name": { "type": "string", "required": true, "help": "1 to 24 characters." },
-                "badge": { "type": "string", "help": "0 to 3 characters shown on the unit." },
-                "bonus": { "type": "map", "ref": "game.json#stats", "of": { "type": "int" }, "help": "Stat bonus per stat." },
-                "skills": { "type": "list", "of": { "type": "ref", "ref": "data/skills.json" }, "help": "Skills granted by the rank." } } } } } },
+              "levels": { "use": "rankLevels" } } },
           "jobs": {
-            "type": "object", "block": true, "help": "Job system rules; the jobs are in data/jobs.json (docs/JOBS.md).",
+            "type": "object", "block": true, "enable": { "jpLevels": [100, 300, 600] }, "help": "Job system rules; the jobs are in data/jobs.json (docs/JOBS.md).",
             "fields": {
               "jp": { "type": "object", "help": "Job points earned.", "fields": {
                 "perAction": { "type": "int", "min": 0, "max": 99999, "help": "JP for an action." },
@@ -116,7 +258,25 @@
                 "support": { "type": "int", "min": 0, "max": 8, "help": "Support slots." },
                 "movement": { "type": "int", "min": 0, "max": 8, "help": "Movement slots." } } },
               "jpLevels": { "type": "list", "help": "JP totals of the job levels, rising.", "of": { "type": "int", "min": 1, "max": 99999 } },
-              "changeIn": { "type": "enum", "values": ["camp", "camp+prep"], "help": "Where jobs may be changed." } } }
+              "changeIn": { "type": "enum", "values": ["camp", "camp+prep"], "help": "Where jobs may be changed." } } },
+          "rescue": {
+            "type": "object", "block": true, "enable": { "mode": "carry" }, "help": "Units carry or pair up with allies (docs/SRPG.md Rescue and pair up).",
+            "fields": {
+              "mode": { "type": "enum", "required": true, "values": ["carry", "pairUp"], "help": "carry: pick an ally up; pairUp: stand together." },
+              "canCarry": { "type": "string", "sample": "1", "help": "Formula: may unit a carry unit b?" },
+              "carrierStats": { "type": "map", "ref": "game.json#stats", "of": { "type": "variant", "variants": [
+                { "name": "add", "kind": "number", "node": { "type": "int" } },
+                { "name": "percent", "key": "percent", "node": { "type": "object", "fields": { "percent": { "type": "int", "required": true, "min": 0, "max": 1000, "help": "Percent of the stat." } } } } ] },
+                "help": "How the carried unit changes the carrier's stats (not the hit points stat)." },
+              "pairBonus": { "type": "map", "ref": "game.json#stats", "of": { "type": "int" }, "when": { "mode": "pairUp" }, "help": "Stat bonus of a pair (not the hit points stat)." } } },
+          "promotion": { "type": "object", "block": true, "help": "Promotion options (docs/SRPG.md Promotion).", "fields": {
+            "levelAfter": { "type": "enum", "values": ["reset", "keep"], "help": "Level after promoting." },
+            "classSkills": { "type": "enum", "values": ["keep", "replace"], "help": "Does the new class keep or replace the old class's skills?" } } },
+          "places": { "type": "object", "block": true, "help": "Doors, chests and visitable places (docs/SRPG.md section 10).", "fields": {
+            "actions": { "type": "enum", "values": ["menu", "auto"], "help": "menu: Open / Visit in the unit's menu; auto: happens when a unit ends its move there." } } },
+          "ai": { "type": "object", "block": true, "help": "The computer player (docs/AI.md).", "fields": {
+            "turnOrder": { "type": "enum", "values": ["best", "order"], "default": "best", "help": "best: the single best action of any unit first; order: one unit at a time by its behaviour order." },
+            "weights": { "type": "map", "free": true, "help": "Named attack weight sets a unit's behaviour picks (\"weights\": \"classic\").", "of": { "use": "_common#aiWeights" } } } }
         }
       }
     }

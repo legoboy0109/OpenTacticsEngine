@@ -11,10 +11,10 @@
       "techs": { "type": "list", "of": { "type": "ref", "ref": "data/research.json" }, "help": "Technologies it may research (leave out for all)." },
       "start": { "type": "object", "block": true, "help": "What the side starts with, on top of the map's own.", "fields": {
         "resources": { "type": "map", "ref": "game.json#resources", "of": { "type": "int", "min": 0, "sample": 5 }, "help": "Resources added at the start (0 or more)." } } },
-      "modifiers": { "type": "list", "of": { "type": "json" }, "help": "Side-wide skills: skill ids or { skill, filter }." },
+      "modifiers": { "type": "list", "of": { "use": "_common#skillGrant" }, "help": "Side-wide skills as plain ids or { skill, filter } entries." },
       "commanders": { "type": "list", "of": { "type": "ref", "ref": "data/commanders.json" }, "help": "Commanders a side of this faction may pick (needs commanders.json; not empty)." },
       "ai": { "type": "object", "block": true, "help": "Computer-player settings of the faction.", "fields": {
-        "weights": { "type": "json", "sample": { "dmg": 3 }, "help": "One weight set of rules.ai.weights; unwritten keys keep the default." } } },
+        "weights": { "use": "_common#aiWeights", "sample": { "dmg": 3 }, "help": "One weight set of rules.ai.weights; unwritten keys keep the default." } } },
       "tags": { "type": "list", "of": { "type": "string" }, "help": "Free words (not empty)." }
     }
   }
