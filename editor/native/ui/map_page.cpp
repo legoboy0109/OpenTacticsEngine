@@ -37,6 +37,8 @@ const ToolDef kTools[] = {
     {MapTool::Lower, "Lower", "Click or drag to lower the height of squares by 1"},
     {MapTool::SetHeight, "Set height", "Click or drag to set squares to the number in the Height box"},
     {MapTool::Inspect, "Inspect", "Click a unit, structure or deployment slot to open its entry in the Form page"},
+    {MapTool::Slots, "Slots", "Deployment slots (preparation screen): click an empty square to add one, drag one to move it, right-click one to remove it"},
+    {MapTool::MoveUnit, "Move unit", "Drag a unit to another square"},
 };
 }  // namespace
 
@@ -142,18 +144,25 @@ MapPage::MapPage(Project* project, JsonDocument* doc, QWidget* parent) : QWidget
   note_ = new QLabel(this);
   note_->setObjectName("mapNote");
   note_->setWordWrap(true);
+  message_ = new QLabel(this);  // why the last slot / unit edit was refused
+  message_->setObjectName("mapMessage");
+  message_->setWordWrap(true);
+  message_->setStyleSheet(QStringLiteral("color: #b00020;"));
+  message_->hide();
   auto* root = new QVBoxLayout(this);
   root->setContentsMargins(4, 4, 4, 4);
   root->addLayout(bar);
   root->addLayout(overlays);
   root->addWidget(split, 1);
   root->addWidget(note_);
+  root->addWidget(message_);
   root->addWidget(status_);
 
   connect(view_, &MapView::terrainPicked, this, [this](const QString& id, int h) {
     selectTerrain(id);
     heightSpin_->setValue(h);
   });
+  connect(view_, &MapView::placementMessage, this, [this](const QString& t) { message_->setText(t); message_->setVisible(!t.isEmpty()); });
   connect(view_, &MapView::cellHovered, this, [this](int x, int y) { updateStatus(x, y); });
   connect(view_, &MapView::zoomChanged, this, [this](double z) {
     updateZoomLabel();
@@ -199,6 +208,8 @@ void MapPage::saveOverlay(const QString& name, bool on) {
 void MapPage::setTool(MapTool tool) {
   if (QAbstractButton* b = tools_->button((int)tool)) b->setChecked(true);
   view_->setTool(tool);
+  if (tool == MapTool::Slots && !structures_->isChecked()) structures_->setChecked(true);  // slots must be visible to be edited
+  if (tool == MapTool::MoveUnit && !units_->isChecked()) units_->setChecked(true);
   if (settings_) settings_->setMapTool(mapToolKey(tool));
 }
 

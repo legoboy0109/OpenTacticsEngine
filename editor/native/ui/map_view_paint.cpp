@@ -152,16 +152,29 @@ void MapView::paintEvent(QPaintEvent* ev) {
       p.setPen(QColor(255, 255, 255));
       p.drawText(r, Qt::AlignCenter, m.letter);
     } else {  // deployment slot: a small diamond
+      const double r = u >= 24 ? 0.3 : 0.22;
       QPolygonF d;
-      d << QPointF(c.x(), c.y() - u * 0.22) << QPointF(c.x() + u * 0.22, c.y()) << QPointF(c.x(), c.y() + u * 0.22) << QPointF(c.x() - u * 0.22, c.y());
+      d << QPointF(c.x(), c.y() - u * r) << QPointF(c.x() + u * r, c.y()) << QPointF(c.x(), c.y() + u * r) << QPointF(c.x() - u * r, c.y());
       p.drawPolygon(d);
+      if (u >= 24) {  // the slot's number (the order the preparation screen uses)
+        p.setPen(QColor(40, 30, 0));
+        p.drawText(QRectF(c.x() - u * 0.3, c.y() - u * 0.3, u * 0.6, u * 0.6), Qt::AlignCenter, m.letter);
+      }
     }
   };
-  for (const MapMarker& m : markers_)
+  // A marker being dragged is drawn on the square under the pointer (the one it would land on).
+  std::vector<MapMarker> shown = markers_;
+  if (dragging_ && g.inside(hoverX_, hoverY_))
+    for (MapMarker& m : shown)
+      if (m.kind == dragKind_ && m.index == dragIndex_) {
+        m.x = hoverX_;
+        m.y = hoverY_;
+      }
+  for (const MapMarker& m : shown)
     if (showStructures_) draw(m, MapMarker::Kind::PrepSlot);
-  for (const MapMarker& m : markers_)
+  for (const MapMarker& m : shown)
     if (showStructures_) draw(m, MapMarker::Kind::Structure);
-  for (const MapMarker& m : markers_)
+  for (const MapMarker& m : shown)
     if (showUnits_) draw(m, MapMarker::Kind::Unit);
 
   if (g.inside(hoverX_, hoverY_)) {  // the cell under the pointer

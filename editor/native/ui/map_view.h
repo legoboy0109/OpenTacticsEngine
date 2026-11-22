@@ -11,6 +11,7 @@
 #include "map_geometry.h"
 #include "map_markers.h"
 #include "map_painter.h"
+#include "map_placement.h"
 #include "map_tool.h"
 
 namespace ote_native {
@@ -53,6 +54,7 @@ class MapView : public QAbstractScrollArea {
   void cellHovered(int x, int y);  // -1, -1 outside the map
   void markerActivated(int kind, int index);  // MapMarker::Kind, index into the map's units / structures / prep.slots
   void strokeFinished();
+  void placementMessage(const QString& text);  // why a slot / unit edit was refused (empty: clear)
 
  protected:
   void paintEvent(QPaintEvent*) override;
@@ -90,6 +92,14 @@ class MapView : public QAbstractScrollArea {
   bool showUnits_ = true, showStructures_ = true, showHeights_ = true, showLayer_ = false;
   std::vector<MapMarker> markers_;  // refreshed after every change of the file
   bool markersStale_ = true;
+
+  // Slots and Move unit tools: a marker being dragged to another square (drawn at the pointer; written on release).
+  bool pressPlacement(const QPoint& pos, Qt::MouseButton button);
+  void releasePlacement(const QPoint& pos);
+  MapPlacement placement_;
+  bool dragging_ = false;
+  MapMarker::Kind dragKind_ = MapMarker::Kind::Unit;
+  size_t dragIndex_ = 0;
 
   bool stroking_ = false, panning_ = false, spaceDown_ = false;
   QPointF lastScene_;

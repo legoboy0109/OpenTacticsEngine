@@ -61,7 +61,7 @@ class MapPage : public QWidget {
   QListWidget* palette_;
   QButtonGroup* tools_;
   QSpinBox* heightSpin_;
-  QLabel *status_, *zoomLabel_, *note_;
+  QLabel *status_, *zoomLabel_, *note_, *message_;
   QCheckBox *units_, *structures_, *heights_, *layer_;
   AppSettings* settings_ = nullptr;
   QString paletteSignature_;

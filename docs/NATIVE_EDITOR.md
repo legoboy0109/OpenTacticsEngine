@@ -303,8 +303,17 @@ grid and edits `tiles`, `legend`, `heights` and, on resize, `tileLayer`; everyth
   `tiles`) with its first height edit; "set 0" on such a map changes nothing.
 - **Overlays** (read-only): units (circle, side colour, letter of the kind / character / job), structures (square; hexagon ring
   structures get a dashed ring; multi-square structures outline their footprint) and the preparation screen's deployment slots
-  (small diamonds, numbered; sides themselves have no start square). Tooltips name the thing, its side and its square. The
-  **Inspect** tool opens the clicked entry in the form page (the tree page for files without a schema).
+  (small diamonds, numbered once a square is 24 pixels or more; sides themselves have no start square). Tooltips name the thing,
+  its side and its square. The **Inspect** tool opens the clicked entry in the form page (the tree page for files without a schema).
+- **Placing** (`model/map_placement.*`, one undo step per action; a refusal shows in red under the canvas). **Slots** tool: click
+  an empty square = new deployment slot (a map without `prep` gets `"prep": { "slots": [...] }`, which switches its preparation
+  screen on), drag a slot to move it, right-click a slot to remove it. Removing slot n renumbers the later slots, so `required`
+  entries naming a slot number follow (the removed slot's own entry stays required but loses its `slot` key) and `limit` is lowered to
+  the slot count; the last slot cannot be removed (the loader wants one; delete `prep` in the Tree page to switch the screen off).
+  Two slots never share a square; at most 64. **Move unit** tool: drag a unit to another square (never onto another unit). Nothing is
+  written until the button is released; a drag released outside the map changes nothing. Structures cannot be moved on the canvas
+  (a multi-square or ring footprint must be checked to fit), and units / structures cannot be added there (they need a kind and a
+  side: use the form). The terrain a slot stands on is not checked here; the problems check reports a square nobody can stand on.
 - **Undo.** A stroke works on a copy of the grid (so the canvas can show it live) and is written when the button is released:
   the rows that changed, as `SetValue` commands inside one macro = one undo step ("Paint terrain", "Fill area", "Fill rectangle",
   "Raise height" ...). Nothing changed = no undo step. If the file changes under a half-made stroke (Ctrl+Z while dragging) the stroke
@@ -356,6 +365,9 @@ QT_QPA_PLATFORM=offscreen OTE_SHOT_DIR=/some/folder ./editor/native/native_test_
 - `native_test_map_view`: hit-testing on every cell of square / pointy / flat grids, real mouse strokes in the real window (fast
   drags, rectangle, fill, pick, inspect, heights, hexagon clicks), wheel zoom, pan, zoom / tool remembered across a restart, the
   resize questions, a 100 x 100 map (painting, a 300-event stroke and a fill take milliseconds).
+- `native_test_map_placement`: deployment slots added / moved / removed (byte-exact undo, `required` numbers and `limit` kept valid, a
+  map without `prep`), units moved, and the same through real mouse events with the Slots and Move unit tools; the saved map passes the
+  project check.
 - `native_test_map_screenshots`: square map, hexagon map (and a rectangle preview), heights at 100% / 250% / 40%, a tile layer, the
   resize dialog (`OTE_SHOT_DIR=... ./editor/native/native_test_map_screenshots`).
 - `native_test_conformance`: see above.
@@ -391,8 +403,8 @@ QT_QPA_PLATFORM=offscreen OTE_SHOT_DIR=/some/folder ./editor/native/native_test_
   nested-JSON dialog, a refused edit, and a dark palette, at 1280x720 and 1920x1080 where it matters.
 
 ## Not there yet
-- Map painter leftovers: no tool paints the `tileLayer` tiles (it is shown and kept on resize), units / structures / deployment
-  slots cannot be moved or placed on the canvas yet (Inspect only opens them in the form), no brush sizes, no 3D / isometric
+- Map painter leftovers: no tool paints the `tileLayer` tiles (it is shown and kept on resize), structures cannot be moved on the
+  canvas and units / structures cannot be added there (slots and units can be placed / moved, see "The map painter"), no brush sizes, no 3D / isometric
   preview, resize does not adjust coordinates inside story events, and `ote-mcp`'s `set_tiles` has its own copy of the legend
   logic instead of `editor/core/map_grid`.
 - Pickers that show the sound or the picture (the battle scene's frames are cell numbers, not a preview), and the table-level
