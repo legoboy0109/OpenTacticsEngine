@@ -104,7 +104,8 @@ describe('battle effects: editing', () => {
 
 describe('battle effects: checks mirror the loader', () => {
   it('a clean effect has none, in the effect checks and in the art screen\'s list', () => {
-    const d = doc([fx({ id: 'ok', sounds: { '0': 'zap' }, hitAtMs: 233, layer: 'behind', flash: [{ atMs: 0, ms: 80 }], shake: [{ atMs: 0, ms: 80, strength: 1 }], at: 'striker' })])
+    const d = doc([fx({ id: 'ok', sounds: { '0': 'zap' }, hitAtMs: 233, fromHitFrame: true, layer: 'behind', flash: [{ atMs: 0, ms: 80 }], shake: [{ atMs: 0, ms: 80, strength: 1 }], at: 'striker' }),
+      fx({ id: 'shot', weapon: undefined, mode: 'travel', hitAfterMs: 17 })])
     expect(effectChecks(d)).toEqual([])
     expect(battleChecks(d).filter((c) => c.blocks)).toEqual([])
   })
@@ -113,6 +114,10 @@ describe('battle effects: checks mirror the loader', () => {
     ['hit time on a flying effect', { mode: 'travel', hitAtMs: 100 }, 'a flying effect hits when it arrives'],
     ['returns when it does not fly', { returns: true }, 'only a flying effect can fly back'],
     ['stays when it does not fly', { lingerMs: 100 }, 'only a flying effect can stay'],
+    ['from the hit frame on a flying effect', { mode: 'travel', fromHitFrame: true }, 'is for an effect that appears in place'],
+    ['from the hit frame not on or off', { fromHitFrame: 1 as never }, 'must be on or off'],
+    ['hit after it leaves in place', { hitAfterMs: 20 }, 'only for a flying effect'],
+    ['hit after it leaves too big', { mode: 'travel', hitAfterMs: 15001 }, 'between 0 and 15000'],
     ['stays too long', { mode: 'travel', lingerMs: 9000 }, 'between 0 and 5000'],
     ['a layer that is not one', { layer: 'above' as never }, 'front, behind or screen'],
     ['a flying screen effect', { mode: 'travel', layer: 'screen' }, 'cannot fly'],

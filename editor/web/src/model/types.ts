@@ -461,7 +461,7 @@ export interface BattleEffectDef extends Extra {
   id?: string; weapon?: string; group?: string
   sheet?: string; frames?: Array<CellRef | [number, number, string]>; ms?: number | number[]
   mode?: 'target' | 'travel'; travelMs?: number; anchor?: [number, number]
-  sounds?: Record<string, string>; hitAtMs?: number; layer?: 'front' | 'behind' | 'screen'; mirror?: boolean
+  sounds?: Record<string, string>; hitAtMs?: number; fromHitFrame?: boolean; hitAfterMs?: number; layer?: 'front' | 'behind' | 'screen'; mirror?: boolean
   flash?: FxFlashDef[]; shake?: FxShakeDef[]; at?: 'target' | 'striker'; returns?: boolean; lingerMs?: number
   effects?: string | string[]; byType?: Record<string, string | string[]>
   blend?: 'normal' | 'add'; hide?: FxHideDef[]; fade?: FxFadeDef[]; order?: 'backdrop' | 'behind' | 'front'; speed?: number

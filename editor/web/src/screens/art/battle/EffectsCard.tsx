@@ -81,8 +81,8 @@ function EffectForm({ index }: { index: number }) {
             <Field label={ET.mode}>
               <Select aria-label={`Effect ${index + 1}: ${ET.mode}`} value={travel ? 'travel' : 'target'} options={[{ value: 'target', label: ET.modeTarget }, { value: 'travel', label: ET.modeTravel }]}
                 onChange={(v) => patch(v === 'travel'
-                  ? { mode: 'travel', hitAtMs: undefined, at: undefined, ...(layer === 'screen' ? { layer: undefined, mirror: undefined } : {}) }
-                  : { mode: undefined, travelMs: undefined, speed: undefined, returns: undefined, lingerMs: undefined, endOffset: undefined })} />
+                  ? { mode: 'travel', hitAtMs: undefined, fromHitFrame: undefined, at: undefined, ...(layer === 'screen' ? { layer: undefined, mirror: undefined } : {}) }
+                  : { mode: undefined, travelMs: undefined, speed: undefined, returns: undefined, lingerMs: undefined, endOffset: undefined, hitAfterMs: undefined })} />
             </Field>
             {travel && (
               <>
@@ -104,6 +104,9 @@ function EffectForm({ index }: { index: number }) {
                 </Field>
                 <Field label={ET.linger}>
                   <NumberInput aria-label={`Effect ${index + 1}: ${ET.linger}`} allowEmpty min={0} max={5000} value={e.lingerMs} onChange={(v) => patch({ lingerMs: v ? v : undefined }, group('linger'))} />
+                </Field>
+                <Field label={ET.hitAfter} help={ET.hitAfterHelp}>
+                  <NumberInput aria-label={`Effect ${index + 1}: ${ET.hitAfter}`} allowEmpty min={0} max={15000} value={e.hitAfterMs} onChange={(v) => patch({ hitAfterMs: v }, group('hitafter'))} />
                 </Field>
               </>
             )}
@@ -138,6 +141,7 @@ function EffectForm({ index }: { index: number }) {
                 onChange={(v) => edit((d) => setEffectBlend(d, index, v as 'normal' | 'add'))} />
             </Field>
           </div>
+          {!travel && <Toggle label={ET.fromHitFrame} help={ET.fromHitFrameHelp} checked={!!e.fromHitFrame} onChange={(v) => patch({ fromHitFrame: v ? true : undefined })} />}
           {travel && <Toggle label={ET.returns} help={ET.returnsHelp} checked={!!e.returns} onChange={(v) => patch({ returns: v ? true : undefined })} />}
           {(!e.atRange?.length || e.atRangeFixed) && <Toggle label={ET.rangeFixed} help={ET.rangeFixedHelp} checked={!!e.atRangeFixed} onChange={(v) => edit((d) => setEffectRangeFixed(d, index, v))} />}
           {layer === 'screen' && <Toggle label={ET.mirror} help={ET.mirrorHelp} checked={!!e.mirror} onChange={(v) => patch({ mirror: v ? true : undefined })} />}
