@@ -247,6 +247,15 @@ export function effectProblems(doc: ProjectDoc, index: number, dims?: (file: str
     if (!whole(e.hitAtMs) || e.hitAtMs < 0 || e.hitAtMs > 15000) bad('the hit time must be between 0 and 15000 milliseconds.')
     if (travel) bad('a flying effect hits when it arrives; the hit time is for an effect that appears in place.')
   }
+  // "fromHitFrame" / "hitAfterMs" (docs/BATTLE_SCENE.md "Lead-in from the hit frame", "A shot that hits before it arrives"), as the loader.
+  if (e.fromHitFrame !== undefined) {
+    if (typeof e.fromHitFrame !== 'boolean') bad('“counted from the hit frame” must be on or off.')
+    else if (e.fromHitFrame && travel) bad('“counted from the hit frame” is for an effect that appears in place; a flying effect uses “hit after it leaves”.')
+  }
+  if (e.hitAfterMs !== undefined) {
+    if (!whole(e.hitAfterMs) || e.hitAfterMs < 0 || e.hitAfterMs > 15000) bad('the hit after it leaves must be between 0 and 15000 milliseconds.')
+    else if (!travel) bad('“hit after it leaves” is only for a flying effect; an effect in place times its hit with the hit time.')
+  }
   if (e.layer !== undefined && !['front', 'behind', 'screen'].includes(e.layer)) bad('the layer must be front, behind or screen.')
   if (layer === 'screen' && travel) bad('an effect that covers the screen cannot fly.')
   if (e.mirror && layer !== 'screen') bad('“turn round” is only for an effect that covers the screen.')

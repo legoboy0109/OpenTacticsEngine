@@ -248,22 +248,28 @@ class TimelineBuilder {
   // When the strike's effect starts to travel: at the animation's spawn frame, else at the blow.
   double spawnTime(const Strike& k) const { return k.t0 + (k.ft.has[k.kind] && k.ft.spawnAt[k.kind] >= 0 ? sec(k.ft.spawnAt[k.kind]) : k.hitOffset); }
 
+  // When an effect's lead-in starts counting: the strike's start, or with "fromHitFrame" the striker animation's hit frame.
+  double leadBase(const Strike& k, const EffectTimes& e) const { return e.fromHitFrame ? k.t0 + k.hitOffset : k.t0; }
+  // How long after a shot leaves its hit lands: on arrival, or "hitAfterMs" (the shot may still be in the air).
+  static int shotHitMs(const EffectTimes& e) { return e.hitAfterMs >= 0 ? e.hitAfterMs : e.travelMs; }
+
   // The strike's effects (docs/BATTLE_SCENE.md "Timing of effects"). The hit lands at the strike animation's hit frame, but not before a
-  // travelling effect has arrived, and not before an effect that starts `hitAtMs` ahead of it has had that long to run since the strike began.
+  // travelling effect has arrived (or "hitAfterMs" has passed since it left), and not before an effect that starts `hitAtMs` ahead of it has
+  // had that long to run since the strike began (with "fromHitFrame": since the hit frame).
   // Then the camera, and the "atRange" delay of the effects (which starts them later, and the hit they lead to with them).
   void timeBlow(Strike& k) {
     k.hitT = k.t0 + k.hitOffset;
     k.hitNoDelay = k.hitT;
     for (const EffectTimes& e : k.fxs) {
-      if (e.travel) k.hitNoDelay = std::max(k.hitNoDelay, spawnTime(k) + sec(e.travelMs));  // the hit lands when the shot arrives
-      else if (e.hitAtMs > 0) k.hitNoDelay = std::max(k.hitNoDelay, k.t0 + sec(e.hitAtMs));
+      if (e.travel) k.hitNoDelay = std::max(k.hitNoDelay, spawnTime(k) + sec(shotHitMs(e)));  // the hit lands when the shot arrives
+      else if (e.hitAtMs > 0) k.hitNoDelay = std::max(k.hitNoDelay, leadBase(k, e) + sec(e.hitAtMs));
     }
     cameraToStruck(k);
     k.hitT = k.hitNoDelay;
     for (const EffectTimes& e : k.fxs) {
       if (e.delayMs <= 0) continue;
-      if (e.travel) k.hitT = std::max(k.hitT, spawnTime(k) + sec(e.delayMs + e.travelMs));
-      else k.hitT = std::max(k.hitT, std::max(k.hitNoDelay, k.t0 + sec(e.hitAtMs)) + sec(e.delayMs));
+      if (e.travel) k.hitT = std::max(k.hitT, spawnTime(k) + sec(e.delayMs + shotHitMs(e)));
+      else k.hitT = std::max(k.hitT, std::max(k.hitNoDelay, leadBase(k, e) + sec(e.hitAtMs)) + sec(e.delayMs));
     }
   }
 

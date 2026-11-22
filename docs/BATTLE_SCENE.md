@@ -223,7 +223,16 @@ effect's `id`, else its weapon id, else its group. The existing animation sound 
 lands**, so its peak meets the damage. 0 is today: the effect starts at the hit. The strike's hit moment (the striker animation's `hit` frame) is the reference;
 the effect is started early. If the lead-in is longer than the time since the strike began (the striker's animation reaches its hit frame sooner
 than `hitAtMs`), the hit **waits**: the effect starts when the strike starts and the hit lands `hitAtMs` later. A strike that misses plays its effects
-the same way (the `miss` beat takes the place of the hit). A `travel` effect refuses `hitAtMs` (it hits when it arrives).
+the same way (the `miss` beat takes the place of the hit). A `travel` effect refuses `hitAtMs` (it hits when it arrives; see `hitAfterMs`).
+
+**Lead-in from the hit frame.** `"fromHitFrame": true` (default false) on a `target` or `striker` effect: the effect starts **at the striker animation's hit frame**
+and the hit lands `hitAtMs` after that, so a spell's pictures and the hit come after the caster's own motion instead of overlapping it (a console game that starts
+its spell at the caster's hit frame and hits partway into the spell). Without it, `hitAtMs` counts back from the hit and the effect may start during the cast.
+With `hitAtMs` 0 it changes nothing. Refused on a `travel` effect.
+
+**A shot that hits before it arrives.** `"hitAfterMs": 17` (0 to 15000; default: on arrival) on a `travel` effect: the hit (or the miss) lands that long after the shot
+leaves, even while it is still in the air; the shot flies on to the target as before, and the next strike still waits for it to get there. Never before the striker's
+own hit frame. Refused on an effect that does not travel.
 
 **Layers.** `"layer"`: `"front"` (default: over the fighters, as always), `"behind"` (behind **both** fighters, in front of the backdrop, the range line
 and the platforms), `"screen"` (frames that cover the whole stage; drawn right after the backdrop, so the range line, platforms, fighters and
@@ -259,7 +268,8 @@ list in order. An entry without `sheet` / `frames` but with `effects` and / or `
 
 - a `target` or `striker` effect starts `hitAtMs` before the hit (0: at the hit);
 - a `travel` effect leaves at the striker animation's `spawn` frame (else its hit frame) and arrives `travelMs` later, as always;
-- the hit lands at the **latest** of: the striker animation's hit frame; every travelling effect's arrival; and the start of the strike plus the longest `hitAtMs` (so a charge
+- the hit lands at the **latest** of: the striker animation's hit frame; every travelling effect's arrival (or its `hitAfterMs` after it leaves); and the start of the strike
+  plus the longest `hitAtMs` (for an effect with `fromHitFrame`: the hit frame plus its `hitAtMs`) (so a charge
   of `hitAtMs: 300` on a 200 ms strike makes the hit land at 300 ms, and a bolt that arrives at 350 ms makes it 350, with the charge then starting at 50 ms).
 - the list order is the order of the start of the effects that start at the same moment and of the layers inside a layer (later is drawn over earlier). A weapon that has any effect
   makes the striker play `cast` when the set has it, as before.

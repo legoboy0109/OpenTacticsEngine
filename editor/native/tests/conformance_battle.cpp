@@ -70,7 +70,7 @@ void addBattleContexts(std::vector<Context>& c) {
                    {{"graphics:battle.effects", kListFx}}));
   // Keys only a travelling effect takes (`speed` also needs the fixed stage the base has).
   c.push_back(make("battle-travel", kTravelFx,
-                   {"graphics:battle.effects[].returns", "graphics:battle.effects[].lingerMs", "graphics:battle.effects[].endOffset",
+                   {"graphics:battle.effects[].returns", "graphics:battle.effects[].lingerMs", "graphics:battle.effects[].hitAfterMs", "graphics:battle.effects[].endOffset",
                     "graphics:battle.effects[].speed", "graphics:battle.effects[].atRange[].endOffset"},
                    {{"graphics:battle.effects", kTravelFx}}));
   // Keys only a screen layer takes.

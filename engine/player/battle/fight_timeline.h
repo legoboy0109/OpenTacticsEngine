@@ -38,6 +38,8 @@ struct EffectTimes {
   int total = 0;
   // The newer keys (docs/BATTLE_SCENE.md "Effects"); all off = the effect plays exactly as it always did.
   int hitAtMs = 0;        // starts this long before the hit lands (not for travel)
+  bool fromHitFrame = false;  // "fromHitFrame": hitAtMs counts from the striker's hit frame, not from the strike's start
+  int hitAfterMs = -1;    // travel: the hit lands this long after the shot leaves (-1 = on arrival)
   bool striker = false;   // drawn on the striker, not the target
   bool returns = false;   // travel: flies back after arriving
   int lingerMs = 0;       // travel: stays at the target this long after arriving
