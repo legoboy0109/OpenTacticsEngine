@@ -97,3 +97,22 @@ TEST(an_area_strike_refuses_conditions_on_a_target_unit) {
             }),
             "");
 }
+
+TEST(a_weapon_taught_skill_counts_only_for_that_weapon) {
+  // Carried weapons (fixture srpg-conditions): Kay holds the Iron Blade, which teaches "wary". Asked for another weapon (a forecast with it, a strike
+  // ability's weapon) or for no weapon, the blade's lesson is not there; the weapon in hand (-1) has it.
+  skilltest::Copy c("strikerev_wskill", "srpg-conditions");
+  c.swap("data/items.json", R"({ "id": "iron_blade", "name": "Iron Blade", "kind": "weapon", "weapon": "iron_blade" })",
+         R"({ "id": "iron_blade", "name": "Iron Blade", "kind": "weapon", "weapon": "iron_blade", "teaches": [ { "skill": "wary", "points": 50 } ] })");
+  skilltest::World w("field", c.dir);
+  const Unit& kay = w.unit("kay");
+  auto has = [&](int weapon) {
+    std::vector<int> list;
+    w.b().skillsOf(kay, weapon, list);
+    return std::find(list.begin(), list.end(), w.skill("wary")) != list.end();
+  };
+  CHECK(has(-1));
+  CHECK(has(w.db().findWeapon("iron_blade")));
+  CHECK(!has(w.db().findWeapon("short_sword")));
+  CHECK(!has(-2));
+}

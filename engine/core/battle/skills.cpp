@@ -68,7 +68,7 @@ void Battle::skillsOf(const Unit& u, int weapon, std::vector<int>& out) const {
   // What equipped items teach and what it mastered from them (docs/JOBS.md "Learning from equipment").
   if (db->teachingOn()) {
     std::vector<int> taught, kept;
-    teachFromItems(u, taught);
+    teachFromItems(u, taught, weapon);  // a weapon's lessons follow the weapon asked about (accessories always count)
     teachMasteredOf(u, kept);
     taught.insert(taught.end(), kept.begin(), kept.end());
     for (int t : taught)

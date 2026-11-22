@@ -15,7 +15,7 @@ void addOnce(std::vector<int>& out, int v) {
 
 }  // namespace
 
-void Battle::teachFromItems(const Unit& u, std::vector<int>& out) const {
+void Battle::teachFromItems(const Unit& u, std::vector<int>& out, int weapon) const {
   out.clear();
   if (!db->teachingOn()) return;
   auto consider = [&](const ItemDef& d) {
@@ -27,8 +27,14 @@ void Battle::teachFromItems(const Unit& u, std::vector<int>& out) const {
       addOnce(out, t);
     }
   };
-  const int hand = equippedSlot(u);  // the weapon in hand
-  if (hand >= 0) consider(itemOf(u.items[(size_t)hand]));
+  int slot = -1;  // the weapon item asked about
+  if (weapon == -1) {
+    slot = equippedSlot(u);  // the weapon in hand
+  } else if (weapon >= 0) {
+    for (size_t i = 0; i < u.items.size() && slot < 0; ++i)
+      if (itemOf(u.items[i]).kind == ItemKind::Weapon && itemOf(u.items[i]).weapon == weapon) slot = (int)i;
+  }
+  if (slot >= 0) consider(itemOf(u.items[(size_t)slot]));
   for (const ItemStack& s : u.items)  // accessories work while carried
     if (itemOf(s).kind == ItemKind::Accessory) consider(itemOf(s));
 }
