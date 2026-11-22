@@ -18,7 +18,7 @@ struct Line {
   std::string text;
   Color color;
   bool item = false;  // the staff's name line: its icon goes before it
-  IconRef pic;
+  IconRef pic{};
 };
 
 const Color kText(235, 237, 245), kGrey(130, 136, 165), kNote(255, 220, 120), kGood(150, 240, 160);
