@@ -116,3 +116,18 @@ TEST(a_weapon_taught_skill_counts_only_for_that_weapon) {
   CHECK(!has(w.db().findWeapon("short_sword")));
   CHECK(!has(-2));
 }
+
+TEST(the_ai_keeps_its_own_attack_when_a_strike_ability_scores_the_same) {
+  Duel d("strikerev_tie", false);
+  // The grunt's weapon and its ability "zap" strike alike (Fire, range 2..3: nobody can strike back, no MP spent), so they score the same; the
+  // attack of its own stays (docs/AI.md "Abilities that strike").
+  d.c.swap("data/weapons.json", R"("id": "fire_spell", "name": "Fire", "range": [1, 3])", R"("id": "fire_spell", "name": "Fire", "range": [2, 3])");
+  d.c.swap("data/abilities.json", R"({ "abilities": [)", R"({ "abilities": [
+      { "id": "zap", "name": "Zap", "effect": { "strike": "fire_spell" }, "cost": "action" },)");
+  d.c.swap("data/units.json", R"("stats": { "hp": 12, "str": 3, "def": 0, "mov": 3 }, "weapons": ["sword"] })",
+           R"("stats": { "hp": 12, "str": 3, "def": 0, "mov": 3 }, "weapons": ["fire_spell"], "abilities": ["zap"] })");
+  skilltest::World w("duel", d.c.dir);
+  ai::Context cx(w.b());
+  const ai::Order o = ai::bestOrder(cx, w.unit("weak"));
+  CHECK(o.kind == ActionType::Attack);
+}
