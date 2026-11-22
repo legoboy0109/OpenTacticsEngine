@@ -82,3 +82,18 @@ TEST(the_squares_offered_for_an_area_strike_include_the_reach_high_ground_adds) 
   w.b().abilityTargets(w.id("aldric"), flame, w.unit("aldric").cell, units, cells);
   CHECK(std::find(cells.begin(), cells.end(), w.unit("weak").cell) != cells.end());  // ... the player may pick too
 }
+
+TEST(an_area_strike_refuses_conditions_on_a_target_unit) {
+  const std::string err = teachtest::refusal("strikerev_areaif", [](teachtest::Copy& c) {
+    c.swap("data/abilities.json", R"({ "strike": "blaze" }, "cost": "action")",
+           R"({ "strike": "blaze" }, "cost": "action", "if": [ { "hp": { "op": "<", "percent": 50 }, "who": "foe" } ])");
+  });
+  CHECK(saysIn(err, "ability \"flame\""));
+  CHECK(saysIn(err, "\"who\": \"foe\" cannot be used in an ability that targets a square"));
+  // A single-target strike keeps them (they are checked against the unit struck).
+  CHECK_STR(teachtest::refusal("strikerev_oneif", [](teachtest::Copy& c) {
+              c.swap("data/abilities.json", R"("cost": "action", "spend": { "mp": 4 } },)",
+                     R"("cost": "action", "spend": { "mp": 4 }, "if": [ { "hp": { "op": "<", "percent": 50 }, "who": "foe" } ] },)");
+            }),
+            "");
+}

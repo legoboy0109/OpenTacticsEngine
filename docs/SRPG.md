@@ -4302,7 +4302,7 @@ unit in `c`.
   `"range"` must be `[min, max]` with whole numbers from 1 to 20 and min not above max, and is refused with `"self"`;
   push / pull / swap / moveBehind need `"target"` ally, enemy or unit; `"push"` is 1 to 5, `"heal"` 1 to 999, `"full"`,
   `{ "percent": 1..100 }` or a formula (a bare word such as `"most"` is refused as a slip); `"strike"` names a weapon (checked last), refuses
-  `"target"` / `"range"` and a `"cost"` other than `"action"`, and the weapon may not have `chargeSpeed`; `"spend"` names resources and unit resources,
+  `"target"` / `"range"` and a `"cost"` other than `"action"`, the weapon may not have `chargeSpeed`, and an area weapon refuses `"who": "foe"` conditions; `"spend"` names resources and unit resources,
   1 to 999 each;
   `"pull"`, `"swap"`, `"moveBehind"` must be `true`; unknown keys in the ability, its effect and its summon. A
   condition's `"who": "foe"` is refused in an ability that targets a square; `initiating` and `distance` are refused (no

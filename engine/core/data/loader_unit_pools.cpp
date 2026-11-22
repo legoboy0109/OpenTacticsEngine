@@ -102,6 +102,10 @@ bool resolveAbilityStrike(const LoadCtx& c, Database& db, const std::string& whe
   a.target = w.area.on() ? AbilityTarget::Cell : AbilityTarget::Enemy;
   a.minRange = w.minRange;
   a.maxRange = w.maxRange;
+  // A square has no target unit: the conditions about one ("who": "foe") were accepted while the target was unknown (the weapon is found last).
+  if (a.target == AbilityTarget::Cell)
+    for (const SkillCond& cond : a.conds)
+      if (cond.foe) return c.fail(where, "\"who\": \"foe\" cannot be used in an ability that targets a square (there is no target unit; \"" + a.strikeId + "\" hits an area)");
   return true;
 }
 
