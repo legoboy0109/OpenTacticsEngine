@@ -116,6 +116,30 @@ describe('the keys of a behaviour block', () => {
     expect(one({ heals: true })).toContain('“heals” must be')
   })
 
+  it('"loot" and "escape" are bare names, "attacks" is written only as false, and their checks say what the loader says', () => {
+    expect(tidyBehaviour({ mode: 'loot' })).toBe('loot')
+    expect(tidyBehaviour({ mode: 'escape' })).toBe('escape')
+    expect(tidyBehaviour({ mode: 'escape', order: 2 })).toEqual({ mode: 'escape', order: 2 })
+    expect(tidyBehaviour({ attacks: true })).toBeUndefined()
+    expect(tidyBehaviour({ attacks: false })).toEqual({ attacks: false })
+    expect(tidyBehaviour({ mode: 'hold', attacks: false })).toEqual({ mode: 'hold', attacks: false })
+    const d = fixture()
+    expect(withMode({ mode: 'hold', attacks: false }, 'escape', contextOf(d, map(d))).attacks).toBe(false)
+    expect(behaviourMark('loot')).toBe('L')
+    expect(behaviourMark('escape')).toBe('E')
+    expect(behaviourPhrase({ mode: 'escape', attacks: false })).toContain('never starting a fight')
+    const one = (b: unknown, extra: Partial<MapUnit> = {}, exits?: Array<{ x: number; y: number }>): string => {
+      const dd = withUnits(d, (u) => u.map((x) => (x.id === 'r5' ? { ...x, ...extra, behaviour: b as MapUnit['behaviour'] } : x)))
+      return texts(exits ? { ...dd, maps: { ...dd.maps, field: { ...dd.maps.field!, exits } } } : dd).join('\n')
+    }
+    expect(one('escape')).toContain('needs squares to leave by')
+    expect(one('escape', {}, [{ x: 0, y: 0 }])).toBe('')
+    expect(one('loot')).toContain('needs “goes for”')
+    expect(one('loot', { goesFor: ['walls', 'weapons'] })).toContain('needs “goes for”')
+    expect(one('loot', { goesFor: ['doors'] })).toBe('')
+    expect(one({ attacks: 'no' })).toContain('“never attacks” must be on or off')
+  })
+
   it('checks every key the way the loader does', () => {
     const d = fixture()
     const one = (b: unknown): string[] => texts(withUnits(d, (u) => u.map((x) => (x.id === 'r5' ? { ...x, behaviour: b as MapUnit['behaviour'] } : x))))

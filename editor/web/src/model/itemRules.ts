@@ -9,6 +9,8 @@ export const INVENTORY_MAX = 20
 
 export const carriedWeapons = (doc: ProjectDoc): boolean => doc.game?.rules?.items?.weapons === 'carried'
 export const inventorySize = (doc: ProjectDoc): number => doc.game?.rules?.items?.inventorySize ?? INVENTORY_DEFAULT
+export type ItemDrops = 'marked' | 'last'
+export const itemDrops = (doc: ProjectDoc): ItemDrops => (doc.game?.rules?.items?.drops === 'last' ? 'last' : 'marked')
 export const storageMode = (doc: ProjectDoc): StorageMode => doc.game?.rules?.items?.storage ?? 'off'
 
 /** Writes the block with defaults left out; an all-default block removes `rules.items` altogether. */
@@ -18,6 +20,7 @@ function withItemRules(doc: ProjectDoc, fn: (r: ItemRules) => ItemRules): Projec
     if (next.weapons === 'fixed') delete next.weapons
     if (next.inventorySize === INVENTORY_DEFAULT) delete next.inventorySize
     if (next.storage === 'off') delete next.storage
+    if (next.drops === 'marked') delete next.drops
     const rules = { ...(g.rules ?? {}) }
     if (Object.keys(next).length) rules.items = next
     else delete rules.items
@@ -36,3 +39,7 @@ export const setStorageMode = (doc: ProjectDoc, mode: StorageMode): ProjectDoc =
 
 /** Weapon items that stop working when weapons go back to "fixed". */
 export const weaponItemCount = (doc: ProjectDoc): number => (doc.items ?? []).filter((i) => i.kind === 'weapon').length
+
+/** "marked" (every item marked to drop) is the default and is not written. */
+export const setItemDrops = (doc: ProjectDoc, mode: ItemDrops): ProjectDoc =>
+  withItemRules(doc, (r) => ({ ...r, drops: mode }))

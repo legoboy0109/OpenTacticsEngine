@@ -59,6 +59,11 @@ export function resizeMap(map: MapFile, terrain: Terrain[], structureTypes: Stru
     map.prep.slots.map((s, i) => (inside(s.x, s.y) ? -1 : i)).filter((i) => i >= 0).reverse().forEach((i) => { p = removeSlot(p, i) })
     next.prep = { ...p.prep!, slots: p.prep!.slots.map((s) => ({ x: s.x + dx, y: s.y + dy })) }
   }
+  if (map.exits) {  // the exits that fall outside go, the rest move with the map (an empty list is not allowed, so the key goes with the last one)
+    const kept = map.exits.filter((e) => inside(e.x, e.y)).map((e) => ({ x: e.x + dx, y: e.y + dy }))
+    if (kept.length) next.exits = kept
+    else delete next.exits
+  }
   if (tileLayerOf(map)) next.tileLayer = resizeTileLayer(map, newW, newH, dx, dy)  // the tile layer keeps in step (new squares: no tile)
   if (map.heights) {
     next.heights = Array.from({ length: newH }, (_, y) => Array.from({ length: newW }, (_, x) => map.heights![y - dy]?.[x - dx] ?? 0))

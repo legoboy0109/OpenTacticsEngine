@@ -10,6 +10,7 @@ import { T } from '../text'
 import type { MapViewState } from '../viewState'
 import { MapMusic } from '../../../sound/MapMusic'
 import { BattleSceneSettings } from './BattleSceneSettings'
+import { ExitsSettings } from './ExitsSettings'
 import { FogSettings } from './FogSettings'
 import { MapDifficulty } from './MapDifficulty'
 import { ResizeDialog } from './ResizeDialog'
@@ -30,6 +31,7 @@ export function SettingsPanel({ doc, map, mapId, vs }: { doc: ProjectDoc; map: M
         <div><div className="label-sm">{T.sizeLabel}</div><strong data-testid="map-size">{words(T.sizeValue(width, height))}</strong></div>
         <button type="button" className="btn" onClick={() => setResizing(true)}>{T.resizeButton}</button>
       </div>
+      <ExitsSettings doc={doc} map={map} mapId={mapId} />
       <FogSettings doc={doc} map={map} mapId={mapId} vs={vs} />
       <BattleSceneSettings doc={doc} map={map} mapId={mapId} />
       <MapMusic doc={doc} map={map} mapId={mapId} />
