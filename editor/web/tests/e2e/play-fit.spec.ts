@@ -49,12 +49,19 @@ async function openPlay(page: Page, id: string): Promise<void> {
   await expect(page.getByTestId('play-loading')).toBeHidden({ timeout: 30_000 })
 }
 
-/** Waits until the layout has caught up with a resize: the frame is whole, centred and its canvas matches (the panel measures on the next frame). */
-async function settles(page: Page, view: { width: number; height: number }): Promise<void> {
-  let why = 'never measured'
+/** Waits until the layout has caught up with a resize: the frame is whole, centred and its canvas matches (the panel measures on the next frame),
+ *  and the same on two readings in a row. (One good reading is not enough: just after a resize the OLD layout can still pass, measured with the
+ *  old header height, and the next reading then catches the canvas following the new frame.) */
+async function settles(page: Page, view: { width: number; height: number }): Promise<Measure> {
+  let why = 'never measured', last = ''
   for (let i = 0; i < 60; i++) {
     const m = await measure(page)
-    try { expectWhole(m, view); return } catch (e) { why = `${String((e as Error).message).split('\n').slice(0, 3).join(' | ')} ${JSON.stringify(m)}` }
+    try {
+      expectWhole(m, view)
+      const now = JSON.stringify(m)
+      if (now === last) return m
+      last = now
+    } catch (e) { last = ''; why = `${String((e as Error).message).split('\n').slice(0, 3).join(' | ')} ${JSON.stringify(m)}` }
     await page.waitForTimeout(150)
   }
   throw new Error(`the frame never settled: ${why}`)
@@ -95,7 +102,7 @@ function expectWhole(m: Measure, view: { width: number; height: number }): numbe
 }
 
 // [window w, h, devicePixelRatio, the multiple the whole-number fit must give (0 = not asserted)]
-for (const [w, h, dpr, expected] of [[1280, 900, 1, 2], [2560, 1401, 1, 4], [1920, 1080, 1, 3], [1500, 800, 1.25, 0], [1700, 900, 1.1, 0], [1300, 800, 1.75, 0]] as Array<[number, number, number, number]>) {
+for (const [w, h, dpr, expected] of [[1280, 900, 1, 2], [2560, 1401, 1, 4], [1920, 1080, 1, 3], [1920, 900, 1, 3], [1500, 800, 1.25, 0], [1700, 900, 1.1, 0], [1300, 800, 1.75, 0]] as Array<[number, number, number, number]>) {
   test(`Play: the frame is a whole multiple of the view in device pixels, at ${w}x${h} @${dpr} and after a resize`, async ({ browser, request }) => {
     test.setTimeout(120_000)
     const context = await browser.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: dpr })
@@ -105,7 +112,7 @@ for (const [w, h, dpr, expected] of [[1280, 900, 1, 2], [2560, 1401, 1, 4], [192
       const doc = await (await request.get(`/api/projects/${id}`)).json()
       const view = { width: doc.game.view?.width ?? 480, height: doc.game.view?.height ?? 270 }
       await openPlay(page, id)
-      const m0 = await measure(page)
+      const m0 = await settles(page, view)
       if (expected === 4 || expected === 3) expect([Math.round(m0.frame.w), Math.round(m0.frame.h)], 'frame size').toEqual([expected * 480, expected * 270])
       const k0 = expectWhole(m0, view)
       if (expected) expect(k0, `${w}x${h} @${dpr}: ${expected}x`).toBe(expected)

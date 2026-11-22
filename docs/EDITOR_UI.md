@@ -148,7 +148,9 @@ address and the remembered choices in `src/play/playOptions.ts`; each change sta
   `{type:"ote-player-testlevel", level}`), e.g. "Automatic (7)", once the game has started.
 - **Panel and frame size** (no choice, nothing to switch): the Play DIALOG is sized from the browser window. The player's frame is exactly the
   largest whole multiple k (1x, 2x, 3x...) of the game's view (`view.width` x `view.height` of game.json, default 480x270) that fits the window minus the
-  dialog's own chrome (border, header rows, controls line; measured, since the header wraps at narrow widths) and a 4 px margin each side, in device
+  dialog's own chrome (border, header rows, controls line; measured, since the header wraps at narrow widths) and a 4 px margin each side. The chrome is kept
+  slim on purpose: the header's selects are capped at 13rem so it stays one row at a 3x frame (1440 px), and the controls line is one line (full text on
+  hover); with a 480x270 view a 1920x900 browser window gives 3x, in device
   pixels (CSS size = k x view / `devicePixelRatio`, so the canvas backing store is k x view and one canvas pixel is one device pixel). The dialog is
   as wide as the frame (never narrower than 600 px, which the header needs; a narrower frame is centred on the dialog's own background) and as tall as
   header + frame + footer, so there is no black area around the picture (2560x1401 at ratio 1 gives 4x = 1920x1080; 1920x1080 gives 3x; 1280x900 gives 2x). It is
