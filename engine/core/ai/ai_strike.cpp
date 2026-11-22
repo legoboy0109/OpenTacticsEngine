@@ -1,6 +1,8 @@
 // The AI and abilities that strike (docs/AI.md "Abilities that strike"): a strike ability is weighed exactly as an attack with its weapon would be
 // (ai_score.cpp, inside a Battle::StrikeScope so the forecasts are the ability's: no counter-attack), and wins over the unit's own attacks only by
 // a better score. A priced one ("spend") is worth a little less, so a free attack that does as well is kept and the pool lasts.
+#include <algorithm>
+
 #include "core/ai/ai_internal.h"
 
 namespace ote {
@@ -23,6 +25,19 @@ void strikeAbilitiesAt(const Battle& b, const Unit& u, Cell s, bool charged, std
     if (o.ok && b.abilityStrikeWeapon(o.ability) >= 0 && b.abilityCharges(o.ability) == charged) out.push_back(o.ability);
 }
 
+void strikeOptionsFor(const Battle& b, const Unit& u, int ability, Cell s, std::vector<AttackOption>& out) {
+  b.abilityStrikeOptions(u.id, ability, s, out);
+  std::vector<int> units;
+  std::vector<Cell> cells;
+  b.abilityTargets(u.id, ability, s, units, cells);
+  out.erase(std::remove_if(out.begin(), out.end(),
+                           [&](const AttackOption& o) {
+                             return o.area ? std::find(cells.begin(), cells.end(), o.cell) == cells.end()
+                                           : std::find(units.begin(), units.end(), o.target) == units.end();
+                           }),
+            out.end());
+}
+
 double scoreStrike(const Battle& b, const Unit& u, int ability, const AttackOption& o, Cell s) {
   Battle::StrikeScope scope(b, b.abilityStrikeWeapon(ability));
   double sc = o.area ? scoreAreaAttack(b, u, o.weapon, o.cell, s) : scoreAttack(b, u, b.units[(size_t)o.target], o.weapon, s);
@@ -35,7 +50,7 @@ void considerStrikes(const Battle& b, const Unit& u, Cell s, int travel, const S
   strikeAbilitiesAt(b, u, s, false, strikes);
   std::vector<AttackOption> options;
   for (int a : strikes) {
-    b.abilityStrikeOptions(u.id, a, s, options);
+    strikeOptionsFor(b, u, a, s, options);
     for (const AttackOption& o : options) {
       double sc = scoreStrike(b, u, a, o, s);
       if (sc <= 0) continue;

@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "core/ai/ai.h"
+#include "core/ai/ai_internal.h"
 #include "core/jobs/mastery.h"
 #include "teaching_fixture.h"
 
@@ -42,4 +43,22 @@ TEST(entries_of_a_job_unlocked_by_a_mastered_item_entry_can_be_bought) {
   CHECK(jobLearnReason(g.db, r->jobs, g.entry("mend"), why, &r->mastery));
   CHECK(jobsLearn(g.db, g.pt, "aldric", g.entry("mend"), why));
   if (!why.empty()) std::printf("  %s\n", why.c_str());
+}
+
+TEST(the_ai_only_strikes_targets_the_abilitys_conditions_allow) {
+  Duel d("strikerev_aiif", false);
+  // The red grunt's "fire" works only on a foe below half health; a target it refuses must never be planned.
+  d.c.swap("data/abilities.json", R"("cost": "action", "spend": { "mp": 4 } },)",
+           R"("cost": "action", "if": [ { "hp": { "op": "<", "percent": 50 }, "who": "foe" } ] },)");
+  d.c.swap("data/units.json", R"("stats": { "hp": 12, "str": 3, "def": 0, "mov": 3 }, "weapons": ["sword"] })",
+           R"("stats": { "hp": 12, "str": 3, "def": 0, "mov": 3 }, "weapons": ["sword"], "abilities": ["fire"] })");
+  skilltest::World w("duel", d.c.dir);
+  // From 3,3 it reaches Aldric (healthy: refused) and the plain squire (wounded: allowed), who score alike; Aldric comes first in unit order.
+  w.unit("plain").hp = 14;
+  const Unit& weak = w.unit("weak");
+  ai::Stance st;
+  ai::Order best;
+  ai::considerStrikes(w.b(), weak, w.at(3, 3), 0, st, best);
+  CHECK(best.kind == ActionType::Ability);
+  CHECK_EQ(best.target, w.id("plain"));  // (Aldric would be refused: the grunt's turn wasted)
 }

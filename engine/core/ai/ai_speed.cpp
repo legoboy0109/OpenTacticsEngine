@@ -56,7 +56,7 @@ bool chargedOrder(ai::Context& cx, const Unit& u, double beat, ai::Order& out) {
     ai::strikeAbilitiesAt(b, u, s, true, strikes);
     for (int a : strikes) {
       std::vector<AttackOption> more;
-      b.abilityStrikeOptions(u.id, a, s, more);
+      ai::strikeOptionsFor(b, u, a, s, more);
       options.insert(options.end(), more.begin(), more.end());
       owner.resize(options.size(), a);
     }
