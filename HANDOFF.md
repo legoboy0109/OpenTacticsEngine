@@ -19,6 +19,12 @@ back to 1/4 tile (1/8 unusable in a browser; owner said scrolling stopped workin
 `edgescroll` suite. Owner confirmed the Play window now fills the screen. Vision Quest step 44 (private): spells at range, a caster
 lead-in stays on the caster and screen-fixed pictures are screen parts (`tools/efx_follow.py`); installed, check_game 0 problems.
 
+Owner (2026-11-21, late): item icons and the Play window size look good; the B-button fix is confirmed on the real Series X.
+**Thief decision:** enemy thieves open doors and chests (the original's do), their AI puts looting ahead of fighting and avoids
+combat. Measured today (ote-sim): a `goesFor: chests` thief with a lockpick attacks an adjacent unit for 5 rounds and loots only
+after, then stands still; the original flees after looting (port docs AI2 5 = loot, then AI 6,12 escape). Planned (not started; the
+owner chose the port rebuilds first): engine `goesFor` priority + "escape after loot", port marks lockpick-only thieves.
+
 **Next:** ask the owner how the Play panel size and the scrolling feel now, and how the item icons look; rebuild Windows / UWP /
 Android / OG Xbox with today's changes (none rebuilt yet).
 
