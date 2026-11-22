@@ -189,6 +189,17 @@ inline void dropCharged(const Battle& b, std::vector<AttackOption>& options) {
 // The score a square costs a unit that does something there while enemies could gang up on it (an attack's own terms).
 double exposureCost(const Battle& b, const Unit& u, Cell c);
 
+// ---- ai_strike.cpp (docs/AI.md "Abilities that strike") ----
+// The strike abilities the unit could use from `s` now (usable, a target in reach); `charged` picks those that charge (speed games) or the others.
+void strikeAbilitiesAt(const Battle& b, const Unit& u, Cell s, bool charged, std::vector<int>& out);
+// The options of strike ability `ability` from `s` that using it would accept: abilityStrikeOptions kept to the targets abilityTargets gives (its "if"
+// conditions on the target included), so a chosen order is never refused.
+void strikeOptionsFor(const Battle& b, const Unit& u, int ability, Cell s, std::vector<AttackOption>& out);
+// A strike ability's option scored as the attack it is (no counter-attack, so none is feared), a little less when it has a price ("spend").
+double scoreStrike(const Battle& b, const Unit& u, int ability, const AttackOption& o, Cell s);
+// Every instant strike ability from `s` (its travel cost `travel`): replaces `best` with an Ability order when one beats it.
+void considerStrikes(const Battle& b, const Unit& u, Cell s, int travel, const Stance& st, Order& best);
+
 // ---- ai_staves.cpp (docs/SRPG.md section 8 "AI") ----
 // Considers every usable staff of the unit from the square `s` (its travel cost `travel`) and replaces `best` when a use
 // beats it. `healKey`: kHealAnyone (the default AI), or for a unit with "heals": "retreating" what lastRetreatingHeal returned: its staves

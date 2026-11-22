@@ -28,6 +28,10 @@
       "weapon": { "type": "ref", "ref": "data/weapons.json", "required": true, "when": { "kind": ["weapon"] }, "help": "The weapon this item is (needs rules.items.weapons carried)." },
       "bonus": { "type": "map", "ref": "game.json#stats", "of": { "type": "int", "min": -99999, "max": 99999, "sample": 1 }, "when": { "kind": ["accessory", "staff"] }, "help": "Stat bonus while carried (at least one non-zero)." },
       "skills": { "type": "list", "of": { "type": "ref", "ref": "data/skills.json" }, "when": { "kind": ["accessory"] }, "help": "Skills it gives while carried." },
+      "teaches": { "type": "list", "when": { "kind": ["weapon", "accessory"] }, "help": "Skills and abilities a unit may use while it has this equipped and masters with ability points (1 to 8 entries).", "of": { "type": "object", "fields": {
+        "skill": { "type": "ref", "ref": "data/skills.json", "help": "A skill (give skill or ability, not both)." },
+        "ability": { "type": "ref", "ref": "data/abilities.json", "help": "A menu ability." },
+        "points": { "type": "int", "required": true, "min": 1, "max": 9999, "help": "Ability points to master it (the same on every item that teaches it)." } } } },
       "group": { "type": "string", "required": true, "when": { "kind": ["staff"] }, "help": "Staff group (what a unit type lists in wields)." },
       "rank": { "type": "ref", "ref": "data/ranks.json#ranks", "when": { "kind": ["staff"] }, "help": "Weapon rank needed to use it." },
       "rankXp": { "type": "int", "min": 0, "max": 99, "when": { "kind": ["staff"] }, "help": "Weapon experience a use earns." },

@@ -33,6 +33,14 @@ void Battle::abilitiesOf(const Unit& u, std::vector<int>& out) const {
     for (int flat : entries)
       if (db->jobEntries[(size_t)flat].ability) addOnce(out, db->jobEntries[(size_t)flat].ref);
   }
+  if (db->teachingOn()) {  // what equipped items teach, and what it mastered from them (docs/JOBS.md "Learning from equipment")
+    std::vector<int> taught, kept;
+    teachFromItems(u, taught);
+    teachMasteredOf(u, kept);
+    taught.insert(taught.end(), kept.begin(), kept.end());
+    for (int t : taught)
+      if (db->teachEntries[(size_t)t].ability) addOnce(out, db->teachEntries[(size_t)t].ref);
+  }
   if (db->skills.empty()) return;
   std::vector<int> skills;
   skillsOf(u, -1, skills);
@@ -68,7 +76,9 @@ void Battle::abilityTargets(int unit, int ability, Cell from, std::vector<int>& 
     if (abilityTargetOk(u, ability, from, unit, kNoCell, nullptr)) units_.push_back(unit);
   } else if (d.target == AbilityTarget::Cell) {
     std::vector<Cell> near;
-    grid.within(from, d.maxRange, near);  // ascending cell index
+    // A strike: the squares its weapon can be aimed at (the height rules may add reach), as abilityStrikeOptions offers them; else the range.
+    if (d.effect == AbilityEffect::Strike) aimCells(d.strike, from, unit, near);
+    else grid.within(from, d.maxRange, near);  // ascending cell index
     for (Cell c : near)
       if (abilityTargetOk(u, ability, from, -1, c, nullptr)) cells_.push_back(c);
   } else {

@@ -3,6 +3,7 @@
 
 #include <algorithm>
 
+#include "core/data/loader_teaching.h"
 #include "core/jobs/job_rules.h"
 
 namespace ote {
@@ -61,7 +62,10 @@ bool readLearn(const LoadCtx& c, const Database& db, const Json& list, const std
     d.ref = d.ability ? db.findAbility(d.refId) : db.findSkill(d.refId);
     if (d.ref < 0)
       return c.fail(at, std::string("\"") + key + "\" names unknown " + key + " " + q(d.refId) + (d.ability ? " (data/abilities.json)" : " (data/skills.json)"));
-    if (!c.integerIn(e, "cost", at, 0, kMaxJobJp, d.cost, true) || !readSlot(c, e, at, d.slot)) return false;
+    // "spendJp": false = entries are learned only from equipment, so a price would do nothing (docs/JOBS.md "Learning from equipment").
+    if (!db.rules.jobs.spendJp && e.has("cost"))
+      return c.fail(at, "\"cost\" is not used: rules.jobs \"spendJp\" is false (entries are learned from equipment)");
+    if (!c.integerIn(e, "cost", at, 0, kMaxJobJp, d.cost, db.rules.jobs.spendJp) || !readSlot(c, e, at, d.slot)) return false;
     job.learn.push_back(d);
   }
   return true;
@@ -96,9 +100,31 @@ bool readJob(const LoadCtx& c, const Database& db, const Json& e, size_t index, 
       const Json& r = (*list)[i];
       const std::string at = where + ", \"requires\" entry " + std::to_string(i + 1);
       if (!r.isObject()) return c.fail(at, "must be an object: { \"job\": \"squire\", \"level\": 2 }");
-      if (!onlyThese(c, r, at, {"job", "level"})) return false;
+      if (!onlyThese(c, r, at, {"job", "level", "mastered", "slot"})) return false;
       JobRequire req;
-      if (!c.str(r, "job", at, req.jobId, true) || !c.integerIn(r, "level", at, 1, kMaxJobLevel, req.level, true)) return false;
+      // Three forms (docs/JOBS.md "Unlocking by mastered entries"): a job level, a number of a job's entries mastered, or one entry mastered.
+      if (!r.has("job")) {
+        if (!r.has("mastered") || !r["mastered"].isString() || r.has("level") || r.has("slot"))
+          return c.fail(at, "give \"job\" with \"level\" or a number of \"mastered\" entries, or \"mastered\" alone with the id of an entry");
+        req.kind = JobRequire::Kind::Entry;
+        if (!c.str(r, "mastered", at, req.entryId, true)) return false;
+      } else {
+        if (!c.str(r, "job", at, req.jobId, true)) return false;
+        if (r.has("level") == r.has("mastered")) return c.fail(at, "give \"level\" or \"mastered\" with \"job\"");
+        if (r.has("level")) {
+          if (r.has("slot")) return c.fail(at, "\"slot\" goes with \"job\" and a number of \"mastered\" entries");
+          if (!c.integerIn(r, "level", at, 1, kMaxJobLevel, req.level, true)) return false;
+        } else {
+          req.kind = JobRequire::Kind::Count;
+          if (!LoadCtx::isWhole(r["mastered"]) || r["mastered"].asInt() < 1) return c.fail(at, "\"mastered\" with \"job\" must be a whole number of entries (1 or more)");
+          req.count = r["mastered"].asInt();
+          if (r.has("slot")) {
+            JobSlot s;
+            if (!readSlot(c, r, at, s)) return false;
+            req.slot = (int)s;
+          }
+        }
+      }
       job.needs.push_back(req);
     }
   }
@@ -121,6 +147,7 @@ bool checkCycles(const LoadCtx& c, const Database& db) {
       state[(size_t)j] = 1;
       path.push_back(j);
       for (const JobRequire& r : db.jobs[(size_t)j].needs) {
+        if (r.job < 0) continue;  // an entry an item teaches: no job behind it
         if (state[(size_t)r.job] == 1) {
           std::string loop;
           auto from = std::find(path.begin(), path.end(), r.job);
@@ -150,13 +177,16 @@ bool loadJobRules(const LoadCtx& c, const Json& rules, Database& db) {
   JobRules& r = db.rules.jobs;
   r.declared = true;
   const std::string at = "rules.jobs";
-  if (!onlyThese(c, *blk, at, {"jp", "slots", "jpLevels", "changeIn"})) return false;
+  if (!onlyThese(c, *blk, at, {"jp", "slots", "jpLevels", "changeIn", "spendJp"})) return false;
   if (blk->has("jp")) {
     const Json* jp;
     if (!c.object(*blk, "jp", at, jp)) return false;
-    if (!onlyThese(c, *jp, at + ", \"jp\"", {"perAction", "perDefeat"})) return false;
-    if (!c.integerIn(*jp, "perAction", at + ", \"jp\"", 0, kMaxJobJp, r.jpPerAction) || !c.integerIn(*jp, "perDefeat", at + ", \"jp\"", 0, kMaxJobJp, r.jpPerDefeat)) return false;
+    if (!onlyThese(c, *jp, at + ", \"jp\"", {"perAction", "perDefeat", "share"})) return false;
+    if (!c.integerIn(*jp, "perAction", at + ", \"jp\"", 0, kMaxJobJp, r.jpPerAction) || !c.integerIn(*jp, "perDefeat", at + ", \"jp\"", 0, kMaxJobJp, r.jpPerDefeat) ||
+        !c.integerIn(*jp, "share", at + ", \"jp\"", 0, 100, r.jpShare))  // docs/JOBS.md "Sharing JP with allies"
+      return false;
   }
+  if (!c.boolean(*blk, "spendJp", at, r.spendJp)) return false;  // docs/JOBS.md "Learning from equipment"
   if (blk->has("slots")) {
     const Json* slots;
     if (!c.object(*blk, "slots", at, slots)) return false;
@@ -200,11 +230,47 @@ bool loadJobs(const std::string& path, Database& db, std::string& err) {
   }
   // Requirements name jobs, so they are resolved once every job is known.
   for (JobDef& job : db.jobs)
-    for (JobRequire& r : job.needs) {
+    for (size_t ri = 0; ri < job.needs.size(); ++ri) {
+      JobRequire& r = job.needs[ri];
       const std::string at = "job " + q(job.id) + ", \"requires\"";
+      if (r.kind == JobRequire::Kind::Entry) {  // one mastered entry: a job's learn entry or one an item teaches
+        const std::string ea = at + " entry " + std::to_string(ri + 1);
+        r.entry = -1;
+        for (const JobDef& o : db.jobs)
+          for (const JobLearnDef& d : o.learn)
+            if (d.refId == r.entryId) {
+              r.entry = (int)(&o - &db.jobs[0]);  // (the flat index is known once every job is listed; the job is kept here, see below)
+              r.teach = false;
+            }
+        if (r.entry < 0) {
+          for (size_t k = 0; k < db.teachEntries.size(); ++k)
+            if (db.teachEntries[k].refId == r.entryId) {
+              r.entry = (int)k;
+              r.teach = true;
+            }
+        }
+        if (r.entry < 0) return c.fail(ea, "\"mastered\" names " + q(r.entryId) + ", which no job or item teaches");
+        if (!r.teach) {
+          r.job = r.entry;  // the job that teaches it: a requirement on that job (cycles below)
+          if (r.job == (int)(&job - &db.jobs[0])) return c.fail(ea, "a job cannot require what it teaches itself");
+        }
+        continue;
+      }
       r.job = db.findJob(r.jobId);
       if (r.job < 0) return c.fail(at, "names unknown job " + q(r.jobId));
       if (r.jobId == job.id) return c.fail(at, "a job cannot require itself");
+      if (r.kind == JobRequire::Kind::Count) {  // so many of that job's entries mastered (of one slot kind, when given)
+        const JobDef& o = db.jobs[(size_t)r.job];
+        int have = 0;
+        for (const JobLearnDef& d : o.learn) have += r.slot < 0 || (int)d.slot == r.slot;
+        if (r.count > have) {
+          const std::string what = r.slot < 0 ? std::to_string(have) + (have == 1 ? " entry" : " entries")
+                                              : std::to_string(have) + " " + jobSlotName((JobSlot)r.slot) + (have == 1 ? " entry" : " entries");
+          return c.fail(at + " entry " + std::to_string(ri + 1),
+                        "\"mastered\" must be a whole number from 1 to " + std::to_string(std::max(1, have)) + " (job " + q(r.jobId) + " teaches " + what + ")");
+        }
+        continue;
+      }
       const int top = jobMaxLevel(db, r.job);
       if (r.level > top)
         return c.fail(at, q(r.jobId) + " only has " + std::to_string(top) + " job level" + (top == 1 ? "" : "s") + " (\"jpLevels\"), so level " + std::to_string(r.level) + " can never be reached");
@@ -228,6 +294,12 @@ bool loadJobs(const std::string& path, Database& db, std::string& err) {
       db.jobEntries.push_back(d);
     }
   }
+  // A requirement on one job entry: its flat index, now that the flat list exists (`job` stays the job that teaches it, for the cycle check above).
+  for (JobDef& job : db.jobs)
+    for (JobRequire& r : job.needs)
+      if (r.kind == JobRequire::Kind::Entry && !r.teach)
+        for (const JobLearnDef& d : db.jobEntries)
+          if (d.refId == r.entryId) r.entry = d.flat;
   return true;
 }
 

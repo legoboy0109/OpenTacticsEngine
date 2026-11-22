@@ -1568,3 +1568,26 @@ rectangles, resizing), `model/tilesets.ts` (tileset edits, animations, removal),
   recognised by `isJingleSlot` instead of being appended to `JINGLE_SLOTS`.
 - **Leftovers.** Deleting a weapon takes its name out of a staged `fight` (`weapon`) command instead of leaving it; the battle effect's "hit time" goes up to 15000 ms.
 - **Tests.** `tests/unit/fidelity3.test.ts`, `tests/editor_api_fidelity3_checks.py`, `tests/e2e/fidelity3.spec.ts` (desktop and 360 px).
+
+## Abilities that strike, unit resources, learning from equipment (docs/SRPG.md, docs/JOBS.md)
+
+- **Abilities screen** (`model/abilities.ts`, `model/abilityStrikeChecks.ts`, `screens/abilities/AbilityEffectFields.tsx`, `AbilitySpend.tsx`). "What it does" has **Strike with a weapon**
+  (`effect.strike`, a picker over the Weapons screen): "Who or what it is used on" and the range are hidden and not written, and the cost is always "Uses the unit's action". **Heal** has "Heal by":
+  a number of hit points, everything, a share of the maximum (`{ "percent" }`, 1 to 100) or a formula (a = the user, b = the unit healed). A **Costs** card (shown when the game has unit resources or
+  resources) lists what the ability spends (`spend`): a resource picker over the unit resources and the side resources, and an amount 1 to 999. The checks say, in plain words, what the loader refuses:
+  an unknown or missing weapon, a target or range left on a strike, a free strike, a weapon that charges itself, a bad heal, an unknown resource or a bad amount in `spend`. A formula that does not
+  compile is not checked here (the loader's Lua message reaches the Problems list). The summary says "Attacks with ...", the heal share or formula, and "costs 6 MP".
+- **Weapons screen**: Advanced has "Hit chance formula for this weapon only" (`hit`, empty = the game's; `model/weapons.ts` `setWeaponHit`).
+- **Items screen**: a weapon or an accessory has a **Teaches** card (`screens/items/srpg/ItemTeachesCard.tsx`, `model/teaches.ts`): rows of kind (Ability / Skill), which one and the points that master
+  it, up to 8; a new row takes the points other items already give that entry. Checks (`teachChecks`, with the item checks): 1 to 8 entries, exactly one of ability / skill, points 1 to 9999, unknown
+  entry, one entry twice on an item, the same entry with different points on two items, one id taught as a skill and an ability, a kind that cannot teach. Changing the item's kind to one that cannot teach
+  drops the entries.
+- **Rules screen**: a **Unit resources** card after Resources (`UnitResourcesCard.tsx`, `model/unitResources.ts`): at most 4 pools, each with name (1 to 8), the stat that is its size, the share it starts
+  at (100 is not written), and the refill per turn / share of its size (0 is not written); the checks show below. An **Ability points** card after Items (`AbilityPointsCard.tsx`,
+  `model/abilityPoints.ts`): offered once an item teaches (an existing block always shows), name (1 to 8, "AP" not written), for winning a battle, each time experience is awarded, for a defeat; it warns
+  when no item teaches.
+- **Deletes follow**: deleting a weapon deletes the abilities that strike with it (listed in the question); deleting a skill or an ability takes its entry off the items that teach it; deleting a resource, or a
+  unit resource, takes it out of every ability's `spend`; deleting a stat deletes the unit resources sized by it. Ids are fixed once made, so there is no rename to follow.
+- **Not in the editor**: jobs (`data/jobs.json` `requires` kinds, `learn` without `cost`) and `rules.jobs.jp.share` / `spendJp` have no screen (schema only); the checks tied to jobs ("learned only from
+  equipment but no item teaches it") and a skill that is a condition's hidden skill cannot be named by `teaches` are left to the loader.
+- **Tests**: `tests/unit/abilityKeys.test.ts`.

@@ -28,10 +28,19 @@ struct JobLearnDef {
   int flat = -1;
 };
 
+// One "requires" entry (docs/JOBS.md "Unlocking by mastered entries"): a job level, a number of mastered entries of a job (optionally of one slot
+// kind), or one mastered entry.
 struct JobRequire {
+  enum class Kind { Level, Count, Entry };
+  Kind kind = Kind::Level;
   std::string jobId;
-  int job = -1;
-  int level = 1;  // the job level needed in that job
+  int job = -1;     // Level, Count: the job (index into Database::jobs)
+  int level = 1;    // Level: the job level needed in that job
+  int count = 0;    // Count: learned entries of that job needed
+  int slot = -1;    // Count: only entries of this slot kind (JobSlot), -1 = any
+  std::string entryId;  // Entry: the skill / ability id as written
+  int entry = -1;       // Entry: a job learn entry (flat index) when `teach` is false, else an index into Database::teachEntries
+  bool teach = false;
 };
 
 struct JobDef {
@@ -53,6 +62,8 @@ struct JobRules {
   int slots[kJobSlotKinds] = {1, 1, 1, 1};
   std::vector<int> jpLevels;  // the game-wide table of total JP for job level 2, 3, ... (a job's own table replaces it)
   bool changeInPrep = false;  // "changeIn": "camp+prep": the preparation screen changes jobs too
+  int jpShare = 0;            // "jp": { "share": n }: percent of each JP gain that the earner's allies get in the same job (docs/JOBS.md "Sharing JP with allies")
+  bool spendJp = true;        // "spendJp": false = entries are learned only from equipment (docs/JOBS.md "Learning from equipment")
 };
 
 // What a unit knows of the jobs. job < 0: it does not use the system (monsters, generic units).

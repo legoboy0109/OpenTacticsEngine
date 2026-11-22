@@ -9,6 +9,7 @@
 #include "core/data/loader_speed.h"
 #include "core/data/loader_srpg.h"
 #include "core/data/loader_util.h"
+#include "core/data/loader_unit_pools.h"
 
 namespace ote {
 
@@ -97,15 +98,15 @@ bool readSummon(const LoadCtx& c, const Database& db, const Json& v, const std::
 // The one effect of an ability: exactly one of push, pull, swap, moveBehind, heal, summon.
 bool readEffect(const LoadCtx& c, Database& db, const Json& e, const std::string& where, AbilityDef& a) {
   if (!e.isObject()) return c.fail(where, "\"effect\" must be an object such as { \"push\": 1 }");
-  static const char* const keys[] = {"push", "pull", "swap", "moveBehind", "heal", "summon", "unlock", "steal", "refresh", "movePast", "cure"};
+  static const char* const keys[] = {"push", "pull", "swap", "moveBehind", "heal", "summon", "unlock", "steal", "refresh", "movePast", "cure", "strike"};
   int count = 0;
   for (const Json::Member& m : e.members()) {
     bool known = false;
     for (const char* k : keys) known = known || m.first == k;
-    if (!known) return c.fail(where, "\"effect\": unknown key " + q(m.first) + " (expected push, pull, swap, moveBehind, heal, summon, unlock, steal, refresh, movePast, cure)");
+    if (!known) return c.fail(where, "\"effect\": unknown key " + q(m.first) + " (expected push, pull, swap, moveBehind, heal, summon, unlock, steal, refresh, movePast, cure, strike)");
     ++count;
   }
-  if (count != 1) return c.fail(where, "\"effect\" needs exactly one of push, pull, swap, moveBehind, heal, summon, unlock, steal, refresh, movePast, cure");
+  if (count != 1) return c.fail(where, "\"effect\" needs exactly one of push, pull, swap, moveBehind, heal, summon, unlock, steal, refresh, movePast, cure, strike");
   if (e.has("push")) {
     a.effect = AbilityEffect::Push;
     if (!LoadCtx::isWhole(e["push"]) || e["push"].asInt() < 1 || e["push"].asInt() > 5)
@@ -117,11 +118,12 @@ bool readEffect(const LoadCtx& c, Database& db, const Json& e, const std::string
                : e.has("movePast") ? AbilityEffect::MovePast : AbilityEffect::MoveBehind;
     if (!e[key].isBool() || !e[key].asBool()) return c.fail(where, q(key) + " must be true");
   } else if (e.has("heal")) {
-    a.effect = AbilityEffect::Heal;
-    const Json& h = e["heal"];
-    if (h.isString() && h.asString() == "full") a.amount = kHealFull;
-    else if (LoadCtx::isWhole(h) && h.asInt() >= 1 && h.asInt() <= 999) a.amount = h.asInt();
-    else return c.fail(where, "\"heal\" must be a whole number from 1 to 999 or \"full\"");
+    if (!readAbilityHeal(c, db, e["heal"], where, a)) return false;  // a number, "full", { "percent" } or a formula (docs/SRPG.md "Healing by formula")
+  } else if (e.has("strike")) {
+    // Attacks with a weapon of data/weapons.json (docs/SRPG.md "Abilities that strike"); the weapon is resolved once weapons are loaded.
+    a.effect = AbilityEffect::Strike;
+    if (!e["strike"].isString() || e["strike"].asString().empty()) return c.fail(where, "\"strike\" must be the id of a weapon (data/weapons.json)");
+    a.strikeId = e["strike"].asString();
   } else if (e.has("steal")) {
     // { "steal": true } or { "steal": { "if": "a.spd > b.spd", "weapons": false, "equipped": false } }
     a.effect = AbilityEffect::Steal;
@@ -174,13 +176,17 @@ bool readEffect(const LoadCtx& c, Database& db, const Json& e, const std::string
 }
 
 bool readAbility(const LoadCtx& c, Database& db, const Json& e, const std::string& where, AbilityDef& a) {
-  if (!onlyKeys(c, e, {"id", "name", "description", "target", "range", "effect", "cost", "uses", "cooldown", "afterMove", "if", "xp", "inflict", "spendsItem", "chargeSpeed", "chargeTargets", "interruptedBy"}, where))
+  if (!onlyKeys(c, e, {"id", "name", "description", "target", "range", "effect", "cost", "uses", "cooldown", "afterMove", "if", "xp", "inflict", "spendsItem", "chargeSpeed", "chargeTargets", "interruptedBy", "spend"}, where))
     return false;
   a.name = a.id;
   if (!c.str(e, "name", where, a.name) || !c.str(e, "description", where, a.description)) return false;
 
-  std::string target;
-  if (!c.str(e, "target", where, target, true)) return false;
+  // A strike takes its targets and reach from its weapon (docs/SRPG.md "Abilities that strike").
+  const bool strike = e.has("effect") && e["effect"].isObject() && e["effect"].has("strike");
+  if (strike && (e.has("target") || e.has("range")))
+    return c.fail(where, "\"strike\" takes its targets and reach from the weapon: leave out \"target\" and \"range\"");
+  std::string target = strike ? "enemy" : "";
+  if (!c.str(e, "target", where, target, !strike)) return false;
   if (target == "self") a.target = AbilityTarget::Self;
   else if (target == "ally") a.target = AbilityTarget::Ally;
   else if (target == "enemy") a.target = AbilityTarget::Enemy;
@@ -243,13 +249,16 @@ bool readAbility(const LoadCtx& c, Database& db, const Json& e, const std::strin
     case AbilityEffect::Unlock:
       if (a.target != AbilityTarget::Cell) return c.fail(where, "\"unlock\" needs \"target\": \"cell\" (a square of the door or chest)");
       break;
+    case AbilityEffect::Strike: break;  // the target kind follows the weapon (resolveAbilityStrike)
   }
 
   if (e.has("cost")) {
     if (!e["cost"].isString() || (e["cost"].asString() != "action" && e["cost"].asString() != "free"))
       return c.fail(where, "\"cost\" must be \"action\" or \"free\"");
     a.free = e["cost"].asString() == "free";
+    if (a.free && a.effect == AbilityEffect::Strike) return c.fail(where, "\"strike\" ends the unit's turn: \"cost\" must be \"action\"");
   }
+  if (!readAbilitySpend(c, db, e, where, a)) return false;  // docs/SRPG.md "Unit resources"
   if (e.has("uses") && (!LoadCtx::isWhole(e["uses"]) || e["uses"].asInt() < 1 || e["uses"].asInt() > 99))
     return c.fail(where, "\"uses\" must be from 1 to 99");
   if (e.has("cooldown") && (!LoadCtx::isWhole(e["cooldown"]) || e["cooldown"].asInt() < 1 || e["cooldown"].asInt() > 99))
@@ -367,6 +376,7 @@ bool resolveAbilityRefs(const std::string& root, Database& db, std::string& err)
         a.cures.push_back(k);
       }
     }
+    if (!resolveAbilityStrike(c, db, where, a)) return false;  // "strike": the weapon (docs/SRPG.md "Abilities that strike")
     if (!resolveSkillConds(c, db, where, a.conds)) return false;
     if (a.spendsItem && !checkSpendsItem(c, db, (int)(&a - &db.abilities[0]), where)) return false;
   }

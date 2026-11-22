@@ -482,6 +482,17 @@ In a game with jobs (docs/JOBS.md) the computer needs no new logic: the skills a
 Mend exactly as it would with an ability of its unit type (`considerAbilities`). The computer never changes a job, learns, equips or spends JP, and earns none (`JpGained` is for units of human
 sides). **Tests.** `tests/test_jobs_battle.cpp` (`an_enemy_with_a_job_uses_the_ability_it_learned`, a whole computer-against-computer game is the same every time).
 
+### Abilities that strike
+
+An ability with `"effect": { "strike": "<weapon>" }` (docs/SRPG.md "Abilities that strike") is weighed exactly as an attack with its weapon would be: for every square the unit can reach, every
+target the ability could strike from there is scored with the attack scoring (`scoreAttack`, `scoreAreaAttack`) while the forecasts are the ability's (no counter-attack, so none is feared). The best
+strike replaces the unit's planned order only when it scores higher than the best attack, staff use or capture found so far; on an equal score its own attack is kept. A strike with a price
+(`"spend"`) is worth 10 % less, so a free attack that does as well wins and MP lasts. An ability it cannot pay for, that is waiting, used up or (`"afterMove": false`) not usable after moving is never
+considered. In a speed game a strike ability with `chargeSpeed` is judged with the charged weapons (ai_speed.cpp: it must land before the target can walk out of reach). **Tests.**
+`tests/test_strike_abilities.cpp` (`the_ai_uses_a_strike_ability_when_it_beats_its_own_attack`). Code: `ai/ai_strike.cpp`, `ai/ai_speed.cpp`.
+
+The computer earns no ability points (docs/JOBS.md "Learning from equipment") and never chooses equipment for what it teaches.
+
 ### Tests
 
 `tests/test_ai_behaviour.cpp` (rules, square and hex), `tests/test_ai_behaviour_data.cpp` (loader, commands, saves; fixture `tests/ai_behaviour_fixture.h`),

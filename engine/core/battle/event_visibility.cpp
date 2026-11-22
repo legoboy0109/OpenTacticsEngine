@@ -109,6 +109,7 @@ uint32_t Battle::eventSeenBy(const Event& e) const {
     case EventType::UnitFaced:
     case EventType::UnitRankUp:
     case EventType::JpGained:
+    case EventType::PoolChanged:  // a unit's MP is seen like its hit points
     case EventType::UnitHealed:
     case EventType::CaptureProgress:
       return unitSeenBy(e.a);
@@ -121,6 +122,7 @@ uint32_t Battle::eventSeenBy(const Event& e) const {
     case EventType::StructureUpgraded:
       return (e.a >= 0 && e.a < (int)structures.size() ? sideTeam(structures[(size_t)e.a].owner) : 0u) | footprintSeenBy(e.a);
     case EventType::XpGained:
+    case EventType::PointsGained:
     case EventType::LevelUp:
     case EventType::StatsRaised:
     case EventType::ItemBroke:

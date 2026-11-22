@@ -209,6 +209,8 @@ Order bestOrder(Context& cx, const Unit& u) {
         best.cell = o.area ? o.cell : kNoCell;  // an area weapon says which square it aims at
       }
     }
+    // Abilities that attack with a weapon of their own (ai_strike.cpp), after its own attacks from this square: on an equal score the attack stays.
+    considerStrikes(b, u, s, travel, st, best);
   }
 
   if (weights && !noAttack) {

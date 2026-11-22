@@ -153,7 +153,7 @@ bool Battle::strikeForecast(const CombatSetup& setup, bool counter, const Combat
   int damage = wholeNumber(formulas->evalDamage(weapon, ctx)) + own.damage + foe.damageTaken;
   damage = applyPercents(clampInt(damage, 0, kMaxStrikeDamage), own.damagePercent);
   out.damage = applyPercents(damage, foe.damageTakenPercent);
-  int hit = formulas->has(Formulas::Hit) ? wholeNumber(formulas->eval(Formulas::Hit, ctx, 100)) : 100;
+  int hit = formulas->hasHit(weapon) ? wholeNumber(formulas->evalHit(weapon, ctx, 100)) : 100;  // the weapon's own "hit", else the game's
   out.hit = clampInt(hit + own.hit - foe.avoid, 0, 100);
   noDodge(setup, counter, out);
   int crit = formulas->has(Formulas::Crit) ? wholeNumber(formulas->eval(Formulas::Crit, ctx, 0)) : 0;

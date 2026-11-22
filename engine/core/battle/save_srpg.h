@@ -71,6 +71,12 @@ bool readUnitJobs(Reader& rd, const Battle& b, const Json& j, const std::string&
 void writeRosterJobs(const Database& db, const RosterUnit& r, Json& j);
 bool readRosterJobs(Reader& rd, const Database& db, const Json& j, const std::string& where, RosterUnit& r);
 
+// ---- learning from equipment and unit resources (save_mastery.cpp): units[i] "mastery" / "pools", a roster entry's "mastery" ----
+void writeUnitMastery(const Battle& b, const Unit& u, Json& j);
+bool readUnitMastery(Reader& rd, const Battle& b, const Json& j, const std::string& where, Unit& u);
+void writeRosterMastery(const Database& db, const RosterUnit& r, Json& j);
+bool readRosterMastery(Reader& rd, const Database& db, const Json& j, const std::string& where, RosterUnit& r);
+
 // ---- conditions (save_conditions.cpp, docs/SRPG.md section 9): units[i] "conditions" ----
 void writeUnitConditions(const Battle& b, const Unit& u, Json& j);
 bool readUnitConditions(Reader& rd, const Battle& b, const Json& j, const std::string& where, Unit& u);

@@ -1,4 +1,5 @@
 // data/items.json and the item lists other files carry (docs/ITEMS.md).
+#include "core/data/loader_teaching.h"
 #include "core/data/loader_content.h"
 #include "core/data/loader_conditions.h"
 #include "core/data/loader_places.h"
@@ -53,6 +54,7 @@ bool readItemGrants(const LoadCtx& c, const Database& db, const Json& o, const c
 bool loadItems(const std::string& path, Database& db, std::string& err) {
   db.items.clear();
   db.staves.clear();
+  db.teachEntries.clear();
   if (!fileExists(path)) return true;
   Json root;
   if (!loadObjectFile(path, root, err)) return false;
@@ -107,7 +109,7 @@ bool loadItems(const std::string& path, Database& db, std::string& err) {
     // A staff checks its own keys (readStaffItem, which has a longer list). "sounds": read by the player's audio loader (docs/SOUND.md).
     if (it.kind != ItemKind::Staff &&
         !c.onlyKeys(e, {"id", "name", "description", "kind", "uses", "repairable", "stealable", "sellable", "price", "props", "target", "heal", "raise",
-                        "weapon", "bonus", "promotes", "skills", "cure", "inflict", "opens", "light", "sounds"},
+                        "weapon", "bonus", "promotes", "skills", "cure", "inflict", "opens", "light", "sounds", "teaches"},
                     where))
       return false;
     // Each kind has its own fields; one of another kind is a mistake worth pointing out.
@@ -126,6 +128,7 @@ bool loadItems(const std::string& path, Database& db, std::string& err) {
     if (!readItemLight(c, e, where, it) || !readItemPromotes(c, e, where, it) || !readItemSkills(c, db, e, where, it) || !readItemConditions(c, db, e, where, it) ||
         !readItemOpens(c, e, where, it))  // a key (docs/SRPG.md section 10) is valid without heal / raise
       return false;
+    if (!readItemTeaches(c, db, e, where, it)) return false;  // docs/JOBS.md "Learning from equipment"
 
     if (it.kind == ItemKind::Usable) {
       std::string target = "self";
@@ -169,7 +172,8 @@ bool loadItems(const std::string& path, Database& db, std::string& err) {
       if (!c.statMap(db, e, "bonus", where, it.bonus)) return false;
       bool any = false;
       for (int v : it.bonus) any = any || v != 0;
-      if (!any && it.skills.empty()) return c.fail(where, "an accessory needs a \"bonus\" that changes at least one stat, or \"skills\"");
+      if (!any && it.skills.empty() && it.teaches.empty())  // (one that only teaches is fine: docs/JOBS.md "Learning from equipment")
+        return c.fail(where, "an accessory needs a \"bonus\" that changes at least one stat, or \"skills\"");
     }
     db.items.push_back(it);
   }

@@ -21,8 +21,11 @@ int jobNextLevelAt(const Database& db, int job, int earned);
 int jobUnspent(const JobState& s, int job);
 
 // ---- who may use what ----
-// May a unit in state `s` take `job` now (its requirements are met)? `why` = "needs Squire level 2" when not (the first unmet one).
-bool jobUnlocked(const Database& db, const JobState& s, int job, std::string* why = nullptr);
+// May a unit in state `s` take `job` now (its requirements are met)? `why` = "needs Squire level 2" when not (the first unmet one). `mastery` = the unit's
+// points in what items teach (docs/JOBS.md "Learning from equipment"), for a requirement on such an entry; null = it has none.
+bool jobUnlocked(const Database& db, const JobState& s, int job, std::string* why = nullptr, const std::vector<MasteryPoints>* mastery = nullptr);
+// How many of `job`'s learn entries are learned in state `s` (only those of slot kind `slot` when it is >= 0).
+int jobMasteredCount(const Database& db, const JobState& s, int job, int slot = -1);
 // Index of `s`'s equipped entries judged by slot: how many entries of slot kind `slot` are equipped.
 int jobSlotUsed(const Database& db, const JobState& s, JobSlot slot);
 // The entries (flat indices) active for a unit in state `s`: the current job's learned ones, then the equipped ones. Empty without a job.
@@ -32,16 +35,16 @@ bool jobHasLearned(const JobState& s, int flat);
 // ---- changing the state ----
 // Takes the job: only an unlocked one. Equipped entries the new job teaches itself are dropped from the equipped list (they are active anyway).
 // This changes the state only; the unit type and stats of whoever it belongs to are changed by the caller (job_camp.h).
-bool jobSwitch(const Database& db, JobState& s, int job, std::string& why);
+bool jobSwitch(const Database& db, JobState& s, int job, std::string& why, const std::vector<MasteryPoints>* mastery = nullptr);
 // Spends the JP of the entry's job to learn it (the job must be unlocked and the entry not yet learned).
-bool jobLearn(const Database& db, JobState& s, int flat, std::string& why);
-bool jobLearnReason(const Database& db, const JobState& s, int flat, std::string& why);  // the same test without changing anything
+// `mastery`: the unit's points in what items teach, for a job unlocked by one of those entries ("requires" { "mastered": id }); null = none.
+bool jobLearn(const Database& db, JobState& s, int flat, std::string& why, const std::vector<MasteryPoints>* mastery = nullptr);
+bool jobLearnReason(const Database& db, const JobState& s, int flat, std::string& why,
+                    const std::vector<MasteryPoints>* mastery = nullptr);  // the same test without changing anything
 // Equip a learned entry of another job / take one off.
 bool jobEquip(const Database& db, JobState& s, int flat, std::string& why);
 bool jobEquipReason(const Database& db, const JobState& s, int flat, std::string& why);
 bool jobUnequip(const Database& db, JobState& s, int flat, std::string& why);
-// Adds earned JP to the current job (the total stops at kMaxJobTotal). Returns the job level before and after.
-void jobAddJp(const Database& db, JobState& s, int amount, int& levelBefore, int& levelAfter);
 
 // ---- checking ----
 // "" when the state is consistent with the game (ids in range, learned entries belong to their job, spent within earned, equipped entries learned and

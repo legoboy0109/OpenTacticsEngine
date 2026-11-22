@@ -1,7 +1,7 @@
 // The plain one-line summary of an ability ("Pushes a unit next to it 1 square away. Uses the unit’s action."), shown under
 // its form and as the list's second line. Wording is a placeholder for the owner to review (docs/SRPG.md "E3 as built").
 import { conditionsText } from './abilityConditions'
-import { effectKind, refreshPerTurn, rangeOf, stealOf, summonOf, targetOf, unlockOf } from './abilities'
+import { effectKind, healKind, refreshPerTurn, rangeOf, stealOf, summonOf, targetOf, unlockOf } from './abilities'
 import type { Ability } from './srpgTypes'
 import type { ProjectDoc } from './types'
 
@@ -47,7 +47,15 @@ function whatText(doc: ProjectDoc, a: Ability): string {
       const name = doc.conditions?.find((x) => x.id === c.condition)?.name ?? c.condition ?? 'a condition'
       return `gives ${name}${c.turns ? ` for ${c.turns} ${c.turns === 1 ? 'turn' : 'turns'}` : ''} to ${whom(a)}, and nothing else`
     }
-    case 'heal': return `heals ${whom(a)} ${e.heal === 'full' ? 'fully' : `by ${e.heal ?? 0}`}`
+    case 'heal': {
+      const h = e.heal
+      const how = healKind(a) === 'full' ? 'fully' : healKind(a) === 'percent' ? `by ${(h as { percent: number }).percent}% of its maximum` : healKind(a) === 'formula' ? `by a formula (${String(h)})` : `by ${h ?? 0}`
+      return `heals ${whom(a)} ${how}`
+    }
+    case 'strike': {
+      const w = typeof e.strike === 'string' ? (doc.weapons?.find((x) => x.id === e.strike)?.name ?? e.strike) : ''
+      return `attacks with ${w || 'a weapon'}, aiming and reaching as the weapon does`
+    }
     case 'summon': {
       const s = summonOf(a)
       const type = doc.units?.find((u) => u.id === s.type)?.name ?? (s.type || 'a unit')
@@ -63,6 +71,8 @@ export function abilitySummary(doc: ProjectDoc, a: Ability): string {
   if (a.uses !== undefined) parts.push(`${times(a.uses)} per battle`)
   if (a.cooldown !== undefined) parts.push(`then waits ${a.cooldown} ${a.cooldown === 1 ? 'turn' : 'turns'}`)
   if (a.afterMove === false) parts.push('only before moving')
+  const cost = Object.entries(a.spend ?? {}).map(([id, n]) => `${n} ${doc.game?.unitResources?.find((r) => r.id === id)?.name ?? doc.game?.resources?.find((r) => r.id === id)?.name ?? id}`)
+  if (cost.length) parts.push(`costs ${cost.join(' and ')}`)
   const text = parts.join('; ')
   const cond = conditionsText(a.if)
   return `${text[0].toUpperCase()}${text.slice(1)}.${cond ? ` Only if ${cond}.` : ''}`

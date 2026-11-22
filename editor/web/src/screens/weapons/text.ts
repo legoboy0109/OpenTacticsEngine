@@ -54,6 +54,8 @@ export const T = {
   advanced: 'Advanced',
   id: 'Internal name',
   idHelp: 'Made when the weapon was created and never changed by renaming.',
+  hit: 'Hit chance formula for this weapon only',
+  hitHelp: 'Leave empty to use the game’s hit rule from the Rules screen. a is the one attacking, b the one hit. Example: a.mag + 70 - b.res.',
   override: 'Damage formula for this weapon only',
   overrideHelp: 'Leave empty to use the game’s damage rule from the Rules screen. Anything typed here replaces that rule for this weapon.',
   deleteWhat: (n: string) => `the weapon “${n}”`,

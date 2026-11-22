@@ -1,4 +1,5 @@
 // The rows of the Unit details pages (step U1): built from the Battle (no renderer needed) and drawn.
+#include "core/jobs/mastery.h"
 #include "battle/unit_info_rows.h"
 
 #include <algorithm>
@@ -52,6 +53,12 @@ static bool sideGives(const Battle& b, const Unit& u, int skill) {
   return false;
 }
 
+std::string teachProgressText(const Battle& b, const Unit& u, bool ability, int ref) {
+  const int t = b.teachEntryFromItem(u, ability, ref);
+  if (t < 0) return "";
+  return " (" + b.db->rules.abilityPoints.name + " " + intStr(teachPoints(u.mastery, t)) + "/" + intStr(b.db->teachEntries[(size_t)t].points) + ")";
+}
+
 std::vector<SkillRow> skillRows(const Battle& b, const Unit& u) {
   std::vector<int> list;
   b.skillsOf(u, -1, list);
@@ -80,6 +87,7 @@ std::vector<SkillRow> skillRows(const Battle& b, const Unit& u) {
       }
       row.source = item ? SkillSource::Item : SkillSource::Weapon;
     }
+    row.name += teachProgressText(b, u, false, s);  // " (AP 40/100)" while an item teaches it (docs/JOBS.md "Learning from equipment")
     out.push_back(row);
   }
   return out;
@@ -120,6 +128,9 @@ std::vector<InfoRow> statRows(const Battle& b, const Unit& u) {
     }
     rows.push_back(row);
   }
+  // Unit resources (docs/SRPG.md "Unit resources"): "MP  12/20" under the stats.
+  for (size_t p = 0; p < db.unitResources.size(); ++p)
+    rows.push_back({db.unitResources[p].name, intStr(b.poolOf(u, (int)p)) + "/" + intStr(b.poolMax(u, (int)p)), "", kText, kLabel});
   for (const InfoRow& r : rankRows(b, u)) rows.push_back(r);  // weapon ranks: under the stats
   // Damage types (docs/SRPG.md "Damage types"): the non-zero resistances, signed; a game without types has none of these rows.
   for (size_t t = 0; t < db.damageTypes.list.size(); ++t) {

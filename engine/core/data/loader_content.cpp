@@ -47,7 +47,7 @@ bool loadWeapons(const std::string& path, Database& db, std::string& err) {
     // "sounds": read by the player's audio loader (docs/SOUND.md); every other key is read below or by the readers it calls.
     if (!c.onlyKeys(e, {"id", "name", "range", "counter", "afterMove", "props", "versus", "versusDefault", "damage", "group", "damageKind",
                         "damageType", "ammo", "fire", "area", "apCost", "chargeSpeed", "chargeTargets", "interruptedBy", "heightRange",
-                        "skills", "inflict", "rank", "rankXp", "wieldedBy", "wieldedByTypes", "sounds"},
+                        "skills", "inflict", "rank", "rankXp", "wieldedBy", "wieldedByTypes", "sounds", "hit"},
                     where))
       return false;
 
@@ -69,6 +69,8 @@ bool loadWeapons(const std::string& path, Database& db, std::string& err) {
       w.hasVersusDefault = true;
     }
     if (!c.str(e, "damage", where, w.damageFormula)) return false;
+    if (!c.str(e, "hit", where, w.hitFormula)) return false;  // this weapon's own hit chance (docs/SRPG.md "Abilities that strike")
+    if (e.has("hit") && w.hitFormula.empty()) return c.fail(where, "\"hit\" must be the text of a formula (the hit chance in percent)");
     if (!c.str(e, "group", where, w.group)) return false;
     if (!c.str(e, "damageKind", where, w.damageKind)) return false;  // docs/SRPG.md "Damage kind": a free word, tested by skills
     if (!readWeaponDamageType(c, db, e, where, w)) return false;  // docs/SRPG.md "Damage types"

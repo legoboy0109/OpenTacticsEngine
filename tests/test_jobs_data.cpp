@@ -215,7 +215,7 @@ TEST(the_loader_names_file_entry_and_key_for_every_job_refusal) {
   CHECK(saysIn(refusal("jr12", "data/jobs.json", "{ \"skill\": \"guard\", \"cost\": 30, \"slot\": \"support\" }", "{ \"skill\": \"guard\", \"ability\": \"shove\", \"cost\": 30, \"slot\": \"support\" }"), "give \"skill\""));
   CHECK(saysIn(refusal("jr13", "game.json", "\"action\": 1", "\"action\": -1"), "rules.jobs, \"slots\": \"action\" must be a whole number from 0 to 8"));
   CHECK(saysIn(refusal("jr14", "game.json", "\"changeIn\": \"camp+prep\"", "\"changeIn\": \"anywhere\""), "\"changeIn\" must be \"camp\""));
-  CHECK(saysIn(refusal("jr15", "game.json", "\"perAction\": 10", "\"perAction\": 10, \"share\": 5"), "unknown key \"share\""));
+  CHECK(saysIn(refusal("jr15", "game.json", "\"perAction\": 10", "\"perAction\": 10, \"split\": 5"), "unknown key \"split\""));
   CHECK(saysIn(refusal("jr16", "game.json", "\"jpLevels\": [20, 60, 120]", "\"jpLevels\": [20, 20]"), "rules.jobs: \"jpLevels\" entry 2 must be higher"));
   // The id of a skill that is also the id of a taught ability could not be told apart in a "learned" list.
   jobtest::Copy both("jr17");

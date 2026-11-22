@@ -40,6 +40,7 @@ void Battle::endOrder(int unit, bool afterAttack) {
 
 void Battle::srpgTurnStart(std::vector<Event>& events) {
   abilitiesTurnStart(events);  // waits and lifetimes first: a summon whose time is up leaves before anything heals it
+  poolsTurnStart(events);      // unit resources regenerate (docs/SRPG.md "Unit resources"; nothing without them)
   promotionTurnStart(events);  // then promotions, so a promoted unit's new skills count below
   conditionsTurnStart(events);  // wear-off rolls and the count-down, before the blocks of the conditions that stay run (docs/SRPG.md section 9)
   skillsTurnStart(events);

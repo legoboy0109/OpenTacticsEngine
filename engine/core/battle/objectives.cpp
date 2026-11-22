@@ -21,6 +21,7 @@ void Battle::endBattle(int winner, std::vector<Event>& events) {
   if (over) return;
   over = true;
   winnerTeam = winner;
+  awardBattlePoints(winner, events);  // docs/JOBS.md "Learning from equipment": points for the win, before the battle's last event
   Event e;
   e.type = EventType::BattleEnded;
   e.a = winnerTeam;

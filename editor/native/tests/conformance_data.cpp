@@ -167,6 +167,24 @@ const Op probeUsable = {"data/items.json", "items[+]", R"({"id":"probe","name":"
   c.push_back({"ability-unlock", "srpg-doors", {ability("cell", "[1,2]", R"({"unlock":true})")}, {"abilities:effect{unlock}"}, {}});
   c.push_back({"ability-charge", "speed-order", {{"data/abilities.json", "abilities[+]", R"({"id":"probe","name":"Probe","target":"unit","range":[1,2],"effect":{"heal":5},"cost":"action","chargeSpeed":20})"}},
                {"abilities:chargeSpeed", "abilities:chargeTargets", "abilities:interruptedBy"}, {}});
+  // A strike takes its targets and reach from the weapon, so the probe has no "target" / "range".
+  c.push_back({"ability-strike", "srpg-abilities", {{"data/abilities.json", "abilities[+]", R"({"id":"probe","name":"Probe","effect":{"strike":"bow"},"cost":"action"})"}},
+               {"abilities:effect{strike}"}, {{"abilities:effect{strike}", R"({"strike":"bow"})"}, {"abilities:effect{strike}.strike", "\"bow\""}}});
+  // Unit resources (MP and the like) and what an ability spends of them.
+  const char* kPools = R"([{"id":"mp","name":"MP","max":"atk"}])";
+  c.push_back({"unit-resources", "srpg-abilities", {{"game.json", "unitResources", kPools}, ability("unit", "[1,2]", R"({"heal":5})")},
+               {"game:unitResources", "abilities:spend"}, {{"game:unitResources", kPools}, {"abilities:spend", R"({"mp":2})"}}});
+  // Learning from equipment: ability points are refused unless an item teaches, so an accessory teaching a skill is added (the last row, where the
+  // keys are placed). An entry teaches a skill or an ability, never both, so the ability is tried on its own in a game with menu abilities.
+  const char* kTeachSkill = R"([{"skill":"iron_will","points":20}])";
+  c.push_back({"item-teaches", "srpg-conditions",
+               {{"data/items.json", "items[+]", QString(R"({"id":"charm","name":"Charm","kind":"accessory","teaches":%1})").arg(kTeachSkill)},
+                {"game.json", "rules.abilityPoints", R"({"perBattle":10})"}},
+               {"items:teaches", "game:rules.abilityPoints"},
+               {{"items:teaches", kTeachSkill}, {"items:teaches[].skill", "\"iron_will\""}, {"game:rules.abilityPoints", R"({"perBattle":10})"}}});
+  c.push_back({"item-teaches-ability", "srpg-doors",
+               {{"data/items.json", "items[+]", R"({"id":"charm","name":"Charm","kind":"accessory","teaches":[{"ability":"pick","points":15}]})"}},
+               {"items:teaches[].ability"}, {{"items:teaches[].ability", "\"pick\""}}});
 
   // --- structures ---
   c.push_back({"structure-rows", "plain-economy", {},

@@ -5,6 +5,7 @@
 import { dropBattleOf } from './battleArt'
 import { ids } from './doc'
 import { makeId } from './ids'
+import { dropTeach, teachUsers } from './teaches'
 import { dropCharacterLocks, lockUsageLines } from './locks'
 import { cleanQuotes, quoteUsageLines } from './quotes'
 import type { Usage } from './references'
@@ -57,6 +58,7 @@ export function skillUsageLines(doc: ProjectDoc, id: string): Usage[] {
   for (const c of doc.characters ?? []) if (isIn(c.skills, id) || learnsIn(c.learns, id)) out.push({ section: 'characters', text: `Character “${c.name}” has it` })
   for (const w of doc.weapons ?? []) if (isIn(w.skills, id)) out.push({ section: 'weapons', text: `Weapon “${w.name}” gives it` })
   for (const i of doc.items ?? []) if (isIn(i.skills, id)) out.push({ section: 'items', text: `Item “${i.name}” gives it` })
+  for (const n of teachUsers(doc, 'skill', id)) out.push({ section: 'items', text: `Item “${n}” teaches it (the entry is taken off the item)` })
   out.push(...storyUsages(doc, [{ kind: 'skill', id }]))
   return out
 }
@@ -68,6 +70,7 @@ export function abilityUsageLines(doc: ProjectDoc, id: string): Usage[] {
   for (const c of doc.characters ?? []) if (isIn(c.abilities, id)) out.push({ section: 'characters', text: `Character “${c.name}” has it` })
   const granting = (doc.skills ?? []).filter((s) => grantsAbility(s.blocks, id))
   for (const s of granting) out.push({ section: 'skills', text: `Skill “${s.name}” grants it` })
+  for (const n of teachUsers(doc, 'ability', id)) out.push({ section: 'items', text: `Item “${n}” teaches it (the entry is taken off the item)` })
   return out
 }
 
@@ -111,6 +114,7 @@ function stripUnitSkills(value: unknown, id: string): unknown {
 }
 
 export function cleanSkill(doc: ProjectDoc, id: string): ProjectDoc {
+  doc = dropTeach(doc, 'skill', id)
   const scrubbed = scrubMaps(doc, [{ kind: 'skill', id }])
   const maps = Object.fromEntries(Object.entries(scrubbed).map(([k, m]) => [k, m && (JSON.stringify(m).includes(`"${id}"`) ? (stripUnitSkills(m, id) as typeof m) : m)])) as typeof doc.maps
   return {
@@ -126,6 +130,7 @@ export function cleanSkill(doc: ProjectDoc, id: string): ProjectDoc {
 /** Takes the ability out of every unit type and character, and the "grants it" effect out of skills (a rule left
  *  with nothing to do goes too). */
 export function cleanAbility(doc: ProjectDoc, id: string): ProjectDoc {
+  doc = dropTeach(doc, 'ability', id)
   const strip = (blocks: Extra[]): Extra[] => blocks.flatMap((b) => {
     if (!Array.isArray(b.do) || !(b.do as Extra[]).some((e) => e?.ability === id)) return [b]
     const rest = (b.do as Extra[]).filter((e) => e?.ability !== id)

@@ -45,7 +45,8 @@ describe('abilities: target and effect stay a pair the loader accepts', () => {
       const a = setEffectKind(d, first(d), k)
       d = { ...d, abilities: [a] }
       expect(effectKind(a)).toBe(k)
-      expect(TARGETS_FOR[k]).toContain(a.target)
+      if (k === 'strike') expect(a.target).toBeUndefined()  // the weapon gives a strike its target
+      else expect(TARGETS_FOR[k]).toContain(a.target)
     }
   })
   it('changing the effect keeps the target when it still fits and repairs it when not', () => {

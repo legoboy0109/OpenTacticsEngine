@@ -35,9 +35,9 @@ Code: `core/jobs/` (`job_rules.*` the rules over a job state, `job_camp.*` the r
 | `name` | 1 to 24 characters; default the id. `description` is optional text. |
 | `unitType` | optional. The unit type (`data/units.json`) a unit plays as while it has this job: its stats, movement type, weapons, growths (a **class job**). Several jobs may share one. **Without it the job is an overlay** (below). |
 | `bonus` | optional `{ "str": 1, "mov": 1 }`: added to the unit's stats (in `unitStat`, next to rank and accessory bonuses, so formulas, forecasts, the AI and the unit details see it) while this is its current job. Allowed on class jobs too. |
-| `requires` | optional list of `{ "job": id, "level": n }`: the job levels needed in other jobs before this one may be taken. A job that names itself, a cycle, an unknown job or a level the job cannot reach is refused. |
+| `requires` | optional list of `{ "job": id, "level": n }`: the job levels needed in other jobs before this one may be taken. A job that names itself, a cycle, an unknown job or a level the job cannot reach is refused. Entries may also ask for mastered entries ("Unlocking by mastered entries"). |
 | `jpLevels` | optional list of total JP for job level 2, 3, ...; rising, at most 19 steps. Replaces the game-wide table for this job. |
-| `learn` | what the job teaches (at most 40 entries): `{ "skill": id }` or `{ "ability": id }` (exactly one), `cost` in JP (0 to 99999) and `slot`: `"action"`, `"reaction"`, `"support"` or `"movement"`. |
+| `learn` | what the job teaches (at most 40 entries): `{ "skill": id }` or `{ "ability": id }` (exactly one), `cost` in JP (0 to 99999; required, and refused when `rules.jobs.spendJp` is false: `"cost" is not used: rules.jobs "spendJp" is false (entries are learned from equipment)`) and `slot`: `"action"`, `"reaction"`, `"support"` or `"movement"`. |
 
 A **skill** is a skill of `data/skills.json` (hidden condition skills cannot be named); an **ability** is a menu ability of `data/abilities.json`. A skill or ability is taught by **one job
 only** (the same id twice anywhere in the file is refused), and a skill and an ability that are both taught may not share an id, so a plain id in a character's `learned` / `equipped` list
@@ -56,6 +56,8 @@ always means one entry. The slot is only the kind of place the entry takes when 
 |---|---|---|
 | `jp.perAction` | 10 | JP a unit earns **wherever experience is awarded** (see "Earning JP"). |
 | `jp.perDefeat` | 0 | extra JP for defeating a unit of another side. |
+| `jp.share` | 0 | percent of every JP gain the unit's allies get in the same job ("Sharing JP with allies"). |
+| `spendJp` | true | false = learn entries are learned only from equipment, never with JP ("Learning from equipment"). |
 | `slots.<kind>` | 1 each | how many entries of that kind learned in **other** jobs a unit may have equipped at once (0 to 8). |
 | `jpLevels` | none | the game-wide table of total JP for job level 2, 3, ...; a job's own `jpLevels` replaces it. With no table anywhere a job has the one level. |
 | `changeIn` | `"camp"` | `"camp"`: jobs are changed between chapters only; `"camp+prep"`: also on the preparation screen. |
@@ -215,12 +217,93 @@ when the game has jobs and the unit uses them; no other save changes. The data h
 Nothing new to decide: its units use what they have (skills in the forecast, menu abilities in `considerAbilities`), and learned or equipped entries of an enemy's job state are part of that.
 The computer never changes a job and never spends JP.
 
+## Sharing JP with allies
+
+`"rules": { "jobs": { "jp": { "share": 25 } } }` (a whole number 0 to 100, default 0 = off): whenever a unit earns JP (`perAction` or `perDefeat`), every
+**other** unit of the **same side** that uses jobs and is on the board gets that percent of it (rounded down; nothing when it comes to 0), **in the job the
+earner used**, not its own. So a unit can collect JP in a job it does not have, or has not even unlocked (it can spend them once it may take that job).
+Shared JP is not shared again. Each share is a `JpGained` event with the flag `kJobShared` (and `kJobLevelUp` when that job's level rose); the player
+floats it like any JP gain. Only human sides earn JP, so only they share. Code: `Battle::awardJp` (`core/jobs/job_battle.cpp`).
+
+## Unlocking by mastered entries
+
+A `requires` entry may ask for **mastered** (learned) entries instead of a job level; all kinds may be mixed in one list (every entry must be met):
+
+```json
+"requires": [ { "job": "squire", "level": 2 },
+              { "job": "soldier", "mastered": 2 },
+              { "job": "soldier", "mastered": 1, "slot": "action" },
+              { "mastered": "first_aid" } ]
+```
+
+| entry | met when |
+|---|---|
+| `{ "job": id, "level": n }` | (as before) the job level in that job is at least n. |
+| `{ "job": id, "mastered": n }` | at least n of that job's learn entries are learned (bought with JP or mastered from equipment, below). Optional `"slot"` counts only entries of that slot kind. |
+| `{ "mastered": id }` | that one entry is mastered: a job's learn entry that is learned, or an entry an item teaches (below) whose points are full. |
+
+Refusals (each names the job and the entry): `"requires" entry 2: give "level" or "mastered" with "job"` (both or neither), `"mastered" must be a whole number
+from 1 to 3 (job "soldier" teaches 3 entries)` (with `slot`: `teaches 1 action entry`), `"slot" goes with "job" and a number of "mastered" entries`,
+`"mastered" names "x", which no job or item teaches`, `a job cannot require what it teaches itself`, unknown keys. A circle of requirements through mastered
+entries is refused like one through levels (a specific entry counts as a requirement on the job that teaches it). A locked job says why:
+`needs 2 Soldier entries mastered`, `needs First Aid mastered`.
+
+## Learning from equipment (ability points)
+
+An item can **teach** skills and abilities: while the unit has it equipped it may use them, and the **ability points** it earns fill each one until it is
+**mastered** (from then on the unit keeps it for good, item or not). Each entry has its own points; a unit can fill several at once. This works with or
+without jobs.
+
+```jsonc
+// data/items.json (a weapon or an accessory)
+{ "id": "shortsword", "kind": "weapon", "weapon": "sword", "teaches": [ { "ability": "first_aid", "points": 100 }, { "skill": "counter", "points": 200 } ] }
+// game.json "rules"
+"abilityPoints": { "name": "AP", "perBattle": 10, "perAction": 0, "perDefeat": 0 }
+```
+
+| key | meaning |
+|---|---|
+| item `"teaches"` | 1 to 8 entries `{ "ability": id }` or `{ "skill": id }` (exactly one) with `"points"` (1 to 9999): what it costs to master. Only on items of kind `weapon` and `accessory`. A skill that is a condition's hidden skill cannot be named. |
+| `rules.abilityPoints.name` | the short word the player shows (1 to 8 characters, default `"AP"`). |
+| `perBattle` | points every unit of a human side gets when its side **wins** the battle (default 10). Only units alive and on the board. |
+| `perAction` | points at every moment experience is awarded (as JP: a fight it took part in, a staff it used; default 0). |
+| `perDefeat` | extra points for defeating a unit of another side (default 0). |
+
+**Equipped** means: the weapon in hand (a weapon item in its inventory's equipped slot) and every accessory it carries (accessories work while carried,
+docs/ITEMS.md). A weapon that is not an item (a unit type's own weapon) teaches nothing.
+
+**Points.** At each of the three moments the unit's equipped items' entries that are not mastered yet get the points (an entry taught by two equipped items
+gets them once). When the points reach the cost the entry is **mastered**. Only units of human sides earn points (as JP). Each gain is a `PointsGained` event
+(`a` unit, `b` points, `c` the entry, `d` its points now; flag `kMastered` when it became mastered). The player floats `+10 AP` and `Mastered: First Aid`.
+
+**With jobs.** An entry an item teaches may also be a job's learn entry (the same skill or ability id). Then it belongs to that job:
+- it is usable from the item, and fills, **only while the unit's current job is that job** (the job's own entries are what a job can use);
+- mastering it **learns it in that job** (as if bought, no JP spent): from then on it follows the job rules (active in that job, equippable from other jobs);
+- `"rules": { "jobs": { "spendJp": false } }` makes equipment the **only** way to learn: JP are never spent (they still make job levels), the learn entries
+  then take no `"cost"`, and every learn entry must be taught by some item (`job "soldier", "learn" entry 2: "first_aid" is learned only from equipment
+  ("spendJp": false), but no item teaches it`). The Learn tab shows the points instead of a price.
+
+An entry no job teaches (or any entry in a game without jobs) is usable from the item by any unit and fills in any job.
+
+**Refusals** (the item, the entry): `"teaches" lists 1 to 8 entries such as { "ability": "first_aid", "points": 100 }`, `give "skill" or "ability", one of
+them`, `"points" must be a whole number from 1 to 9999`, `"teaches" belongs to a weapon or an accessory`, unknown skill / ability, `"first_aid" costs 100
+points here but 80 on item "dagger": an entry has one cost`, `"first_aid" is taught as a skill and as an ability (...)`, the same entry twice on one item;
+`rules.abilityPoints: no item "teaches" anything (data/items.json); the block does nothing without it`.
+
+**Saves.** A unit and a roster entry carry `"mastery": [ { "entry": n, "points": n } ]` (entry = index into the game's list of taught entries, items in file
+order, entries in order, each once): only entries with points that are not yet learned in a job. Old saves have none. Campaign: carried with the roster.
+
+**Player.** Unit details, Abilities and Skills pages: an entry usable from an item shows `(AP 40/100)`; a mastered one is listed like a learned one. Jobs
+screen, Learn tab: an entry an item teaches shows its points `AP 40/100` (with `spendJp: false` instead of a price). The computer opponent uses what its units
+have (equipped items' entries included) and never thinks about points.
+
 ## Left out (v1)
 
 - Changing a job during a battle; an action that does it.
 - The computer opponent choosing jobs, learning or equipping (a designed enemy has them from its map entry).
 - Dual-wield / equipment-slot changes with jobs; per-job stat growth tables beyond what the job's unit type gives; per-job stat caps.
-- Sharing JP with allies (`shareWithAllies`), JP for abilities, JP for units of the computer's sides.
+- JP for menu abilities that do not fight (an ability that strikes pays as a fight does), JP and points for units of the computer's sides.
+- Starting points for characters and map units (`mastery` keys in data); items that teach for every job at once while restricting to some.
 - Editor forms (the editor server only carries `data/jobs.json` as the `jobs` list, `rules.jobs` in the game and the job keys of characters and map units; docs/EDITOR_API.md).
 - A job requirement on the entries themselves (a learn entry that needs a job level). (Promotion mixed with jobs is built: overlay jobs promote, class jobs do not.)
 - The camp's Jobs row before chapter 1.

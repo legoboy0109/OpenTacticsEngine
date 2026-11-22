@@ -8,6 +8,8 @@ import { mapWeaponUnitUsageLines } from './mapWeaponRefs'
 import { cleanStatConditions, cleanStatSkills, conditionsUseStat, skillsUseStat } from './skillStatRefs'
 import { cleanStatPromotions, cleanUnitPromotions, unitPromotionUsageLines } from './promotionRefs'
 import { deleteItem } from './items'
+import { deleteAbility } from './srpgRefs'
+import { dropPoolsOfStat, dropSpend, poolUsers } from './unitResources'
 import { cleanResourceInItems, cleanStatInItems } from './itemRefs'
 import { allGear } from './gear'
 import { dropUnitTypeLocks, typeLockUsageLines } from './locks'
@@ -46,6 +48,7 @@ export function findUsages(doc: ProjectDoc, kind: RefKind, id: string): Usage[] 
       for (const [mid, m] of mapEntries(doc))
         for (const mu of m.units ?? []) if (mu.stats && id in mu.stats) out.push({ section: 'maps', text: `Map "${mapName(doc, mid)}": a ${nameOfUnit(units, typeIdOf(doc.characters, mu))} has its own value` })
       for (const i of doc.items ?? []) if ((i.raise && id in i.raise) || (i.bonus && id in i.bonus)) out.push({ section: 'items', text: `Item "${i.name}" changes it` })
+      for (const r of doc.game?.unitResources ?? []) if (r.max === id) out.push({ section: 'game', text: `Unit resource "${r.name ?? r.id}" has it as its maximum (the unit resource is deleted too, and what abilities pay in it)` })
       { const sk = skillsUseStat(doc, id); if (sk.length) out.push({ section: 'skills', text: `${sk.length} skill${sk.length === 1 ? '' : 's'} use${sk.length === 1 ? 's' : ''} it: ${sk.slice(0, 5).join(', ')}${sk.length > 5 ? ` and ${sk.length - 5} more` : ''} (it is taken out of them; a rule or skill left empty goes)` }) }
       { const cn = conditionsUseStat(doc, id); if (cn.length) out.push({ section: 'conditions', text: `${cn.length} condition${cn.length === 1 ? '' : 's'} use${cn.length === 1 ? 's' : ''} it: ${cn.slice(0, 5).join(', ')}${cn.length > 5 ? ` and ${cn.length - 5} more` : ''} (it is taken out of them; a rule or condition left empty goes)` }) }
       out.push(...statCapUsageLines(doc, id))
@@ -56,6 +59,7 @@ export function findUsages(doc: ProjectDoc, kind: RefKind, id: string): Usage[] 
       for (const u of units) if (u.cost && id in u.cost) out.push({ section: 'units', text: `Unit "${u.name}" has a cost in it` })
       for (const t of doc.structures ?? []) if (t.income && id in t.income) out.push({ section: 'structures', text: `Structure "${t.name}" gives it as income` })
       for (const i of doc.items ?? []) if (i.price && id in i.price) out.push({ section: 'items', text: `Item "${i.name}" has a price in it` })
+      for (const n of poolUsers(doc, id)) out.push({ section: 'abilities', text: `Ability "${n}" costs some (the cost is taken off)` })
       for (const [mid, m] of mapEntries(doc))
         for (const s of m.sides ?? []) if (s.resources && id in s.resources) out.push({ section: 'maps', text: `Map "${mapName(doc, mid)}": side "${s.name}" starts with some` })
       out.push(...economyUsageLines(doc, 'resource', id))
@@ -85,6 +89,7 @@ export function findUsages(doc: ProjectDoc, kind: RefKind, id: string): Usage[] 
     case 'weapon':
       for (const u of units) if (u.weapons?.includes(id)) out.push({ section: 'units', text: `Unit "${u.name}" carries it` })
       for (const i of doc.items ?? []) if (i.kind === 'weapon' && i.weapon === id) out.push({ section: 'items', text: `Item "${i.name}" is this weapon (the item is deleted too)` })
+      for (const a of doc.abilities ?? []) if (a.effect?.strike === id) out.push({ section: 'abilities', text: `Ability "${a.name}" strikes with it (the ability is deleted too)` })
       {
         // The last weapon of a group takes the starting ranks in that group with it (docs/SRPG.md section 7).
         const group = (doc.weapons ?? []).find((w) => w.id === id)?.group
@@ -113,6 +118,7 @@ const firstOther = (doc: ProjectDoc, id: string) => doc.terrain?.find((t) => t.i
 const tagStillUsed = (units: Unit[], key: string, removedUnit: string) => units.some((u) => u.id !== removedUnit && u.tags?.includes(key))
 
 export function cleanStat(doc: ProjectDoc, id: string): ProjectDoc {
+  doc = dropPoolsOfStat(doc, id)  // a pool whose maximum it was goes, with what abilities paid in it
   const has = (m?: Record<string, number>) => !!m && id in m
   return cleanStatCaps(cleanStatConditions(cleanStatSkills(cleanStatPromotions({
     ...doc,
@@ -133,7 +139,7 @@ function stripKey<T extends object>(o: T, key: string, value: unknown): T {
 
 export function cleanResource(doc: ProjectDoc, id: string): ProjectDoc {
   return {
-    ...doc,
+    ...dropSpend(doc, id),
     units: doc.units && doc.units.map((u) => (u.cost && id in u.cost ? stripKey(u, 'cost', dropKey(u.cost, id)) : u)),
     // Old (unconverted) terrain may still list income; the structures' list is the live one.
     terrain: doc.terrain && doc.terrain.map((t) => (t.income && id in t.income ? stripKey(t, 'income', dropKey(t.income, id)) : t)),
@@ -178,7 +184,8 @@ export function cleanUnit(doc: ProjectDoc, id: string): ProjectDoc {
 /** A weapon item that names the weapon cannot stay, so it goes too (with its own references). */
 export function cleanWeapon(doc: ProjectDoc, id: string): ProjectDoc {
   const gone = (doc.items ?? []).filter((i) => i.kind === 'weapon' && i.weapon === id)
-  const base = scrubDoc(gone.reduce((d, i) => deleteItem(d, i.id), doc), [{ kind: 'weapon', id }])  // a staged fight that names the weapon uses its fighter's own
+  const striking = (doc.abilities ?? []).filter((a) => a.effect?.strike === id)  // an ability that strikes with it cannot stay
+  const base = scrubDoc(striking.reduce((d, a) => deleteAbility(d, a.id), gone.reduce((d, i) => deleteItem(d, i.id), doc)), [{ kind: 'weapon', id }])  // a staged fight that names the weapon uses its fighter's own
   return {
     ...base,
     units: base.units && base.units.map((u) => (u.weapons?.includes(id) ? { ...u, weapons: u.weapons.filter((w) => w !== id) } : u)),

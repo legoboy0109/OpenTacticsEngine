@@ -64,6 +64,17 @@
             "perTurn": { "type": "int", "required": true, "min": 0, "max": 100000, "help": "Amount added each turn." },
             "carryOver": { "type": "int", "min": 0, "max": 100000, "default": 0, "help": "Most of the old amount that survives into the next turn." } } } } }
       },
+      "unitResources": {
+        "type": "list", "help": "Pools each unit has for itself (MP and the like; at most 4) that abilities spend. Ids unique and not a resources id.",
+        "of": { "type": "object", "fields": {
+          "id": { "type": "string", "required": true, "help": "Unique id: letters, digits, _ and -." },
+          "name": { "type": "string", "help": "1 to 8 characters (defaults to the id)." },
+          "max": { "type": "ref", "ref": "game.json#stats", "required": true, "help": "The stat that is the pool's maximum." },
+          "start": { "type": "int", "min": 0, "max": 100, "default": 100, "help": "Percent of the maximum at the start of a battle." },
+          "regen": { "type": "object", "help": "Refilled at the start of each of the unit's turns.", "fields": {
+            "perTurn": { "type": "int", "min": 0, "max": 999, "default": 0, "help": "Points added." },
+            "percent": { "type": "int", "min": 0, "max": 100, "default": 0, "help": "Percent of the maximum added." } } } } }
+      },
       "moveTypes": {
         "type": "list", "required": true, "help": "How units move over terrain (at least one); terrain and structures price each.",
         "of": { "type": "object", "fields": {
@@ -247,12 +258,21 @@
               "perHit": { "type": "int", "min": 0, "max": 100000, "help": "Merit for a hit." },
               "perDefeat": { "type": "int", "min": 0, "max": 100000, "help": "Merit for a defeat." },
               "levels": { "use": "rankLevels" } } },
+          "abilityPoints": {
+            "type": "object", "block": true, "enable": { "perBattle": 10 }, "help": "Ability points earned by units whose equipment teaches (items' teaches); refused when no item teaches.",
+            "fields": {
+              "name": { "type": "string", "default": "AP", "help": "Short word shown to players, 1 to 8 characters." },
+              "perBattle": { "type": "int", "min": 0, "max": 9999, "default": 10, "help": "Points each unit gets when its side wins." },
+              "perAction": { "type": "int", "min": 0, "max": 9999, "default": 0, "help": "Points at every moment experience is awarded." },
+              "perDefeat": { "type": "int", "min": 0, "max": 9999, "default": 0, "help": "Extra points for defeating a unit of another side." } } },
           "jobs": {
             "type": "object", "block": true, "enable": { "jpLevels": [100, 300, 600] }, "help": "Job system rules; the jobs are in data/jobs.json (docs/JOBS.md).",
             "fields": {
               "jp": { "type": "object", "help": "Job points earned.", "fields": {
                 "perAction": { "type": "int", "min": 0, "max": 99999, "help": "JP for an action." },
-                "perDefeat": { "type": "int", "min": 0, "max": 99999, "help": "JP for a defeat." } } },
+                "perDefeat": { "type": "int", "min": 0, "max": 99999, "help": "JP for a defeat." },
+                "share": { "type": "int", "min": 0, "max": 100, "default": 0, "help": "Percent of every JP gain that allies in the same job also get." } } },
+              "spendJp": { "type": "bool", "default": true, "help": "false: learn entries are learned only from equipment (no cost on them; each must be taught by some item)." },
               "slots": { "type": "object", "help": "Learned abilities a unit may carry, per slot.", "fields": {
                 "action": { "type": "int", "min": 0, "max": 8, "help": "Action slots." },
                 "reaction": { "type": "int", "min": 0, "max": 8, "help": "Reaction slots." },

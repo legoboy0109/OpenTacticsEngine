@@ -23,6 +23,7 @@ struct RosterUnit {
   std::vector<int> skills;       // skills learned for good (Unit::learned; docs/SRPG.md), empty in a game without skills
   JobState jobs;                 // the job it uses and its progress (docs/JOBS.md); `jobs.job` < 0 = none, always so in a game without jobs
   std::vector<int> weaponXp;     // weapon experience per RankRules::groups index (Unit::weaponXp); empty in a game without ranks
+  std::vector<MasteryPoints> mastery;  // points in entries items teach (Unit::mastery; docs/JOBS.md "Learning from equipment")
 };
 
 using Roster = std::vector<RosterUnit>;

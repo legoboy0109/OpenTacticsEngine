@@ -11,6 +11,7 @@
 #pragma once
 #include "core/data/speed_rules.h"
 #include "core/data/jobs.h"
+#include "core/data/unit_pools.h"
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -244,7 +245,8 @@ struct SkillDef {
 
 enum class AbilityTarget { Self, Ally, Enemy, Unit, Cell };
 // Steal, Refresh, MovePast, Cure: docs/SRPG.md "Skill and ability blocks, second set".
-enum class AbilityEffect { Push, Pull, Swap, MoveBehind, Heal, Summon, Unlock /* docs/SRPG.md section 10 */, Steal, Refresh, MovePast, Cure, None /* only "inflict" */ };
+enum class AbilityEffect { Push, Pull, Swap, MoveBehind, Heal, Summon, Unlock /* docs/SRPG.md section 10 */, Steal, Refresh, MovePast, Cure, None /* only "inflict" */,
+                           Strike /* attacks with a weapon (docs/SRPG.md "Abilities that strike") */ };
 
 // One candidate of a summon's "items" (docs/SRPG.md "Summoning"): the item is carried when the summoner's level is at least `minLevel`.
 struct SummonItem {
@@ -304,6 +306,14 @@ struct AbilityDef {
   int inflictCond = -1, inflictTurns = 0;  // index into Database::conditions (conditions load first); turns 0 = the condition's own
   ChargeDef charge;         // "chargeSpeed" etc. (speed turn order only; docs/TURN_ORDER.md "Charged actions")
   bool spendsItem = false;  // "spendsItem": each use takes one use of the item that gives the ability (docs/SRPG.md "An ability that spends its item")
+  // Strike (docs/SRPG.md "Abilities that strike"): the ability attacks with this weapon (index into Database::weapons, resolved last; -1 = not a strike).
+  std::string strikeId;
+  int strike = -1;
+  // Heal by a share of the target's maximum (1..100) or by a formula (index into Database::exprs); both 0 / -1 = `amount` (docs/SRPG.md "Healing by formula").
+  int healPercent = 0;
+  int healExpr = -1;
+  // "spend": what one use costs, unit resources and side resources (docs/SRPG.md "Unit resources").
+  std::vector<AbilitySpend> spend;
 };
 
 // ---- 2. promotion (game.json rules.promotion, units.json "promotions") ----

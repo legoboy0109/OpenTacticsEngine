@@ -39,6 +39,7 @@ bool Battle::abilityStateOk(const Unit& u, int ability, Cell from, std::string* 
     if (d.free && use->turn) return refuse(why, "already used this turn");
   }
   if (d.effect == AbilityEffect::Steal && !stealRoomOk(u, why)) return false;
+  if (!abilityPriceOk(u, ability, why)) return false;  // "spend": "needs 6 MP" (docs/SRPG.md "Unit resources")
   if (d.effect == AbilityEffect::Summon) {
     const int have = summonCount(u.id, ability);
     if (have >= d.summon.limit && !d.summon.replace) {  // with "replace" the oldest one makes room (summons.cpp)
@@ -61,6 +62,18 @@ bool Battle::abilityTargetOk(const Unit& u, int ability, Cell from, int target, 
   const int team = teamOf(u);
 
   if (d.effect == AbilityEffect::Unlock) return unlockTargetOk(u, ability, from, cell, why);  // doors and chests (docs/SRPG.md section 10)
+  if (d.effect == AbilityEffect::Strike) {  // reach and targets of its weapon (ability_strike.cpp)
+    if (!strikeTargetOk(u, ability, from, target, cell, why)) return false;
+    if (d.target != AbilityTarget::Enemy) return true;  // an area: "who": "foe" conditions are judged for single targets only
+    SkillCtx sc;
+    sc.unit = u.id;
+    sc.cell = from;
+    sc.weapon = restingWeapon(u);
+    sc.foe = target;
+    for (const SkillCond& cond : d.conds)
+      if (cond.foe && !skillCondHolds(cond, sc)) return refuse(why, "cannot be used now");
+    return true;
+  }
 
   if (d.target == AbilityTarget::Cell) {
     if (!grid.valid(cell)) return refuse(why, "that square is not on the map");
@@ -123,6 +136,7 @@ bool Battle::abilityTargetOk(const Unit& u, int ability, Cell from, int target, 
       break;
     case AbilityEffect::Summon: break;
     case AbilityEffect::Unlock: break;  // handled above (a square, not a unit)
+    case AbilityEffect::Strike: break;  // handled above
   }
 
   // Conditions about the target unit ("who": "foe").

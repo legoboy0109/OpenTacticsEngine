@@ -13,6 +13,14 @@ const std::vector<Op> kJobsMods = {
     {"data/abilities.json", "abilities[+]",
      R"({"id":"extra_ability","name":"Extra","target":"ally","range":[1,2],"effect":{"heal":10},"cost":"action"})"},
     {"data/jobs.json", "jobs[+]", R"({"id":"tester","name":"Tester","unitType":"squire"})"}};
+
+// The same with the tester locked by `requires` (a JSON list), so each key of a requirement is placed in an entry that is
+// already whole: a requirement is one of three shapes (job + level, job + a number of mastered entries, mastered + an id).
+std::vector<Op> jobsRequiring(const char* requires) {
+  std::vector<Op> m = kJobsMods;
+  m.back().json = QString(R"({"id":"tester","name":"Tester","unitType":"squire","requires":%1})").arg(requires);
+  return m;
+}
 }  // namespace
 
 void addCoreContexts(std::vector<Context>& c) {
@@ -62,7 +70,14 @@ void addCoreContexts(std::vector<Context>& c) {
                {{"jobs:learn", R"([{"ability":"extra_ability","cost":1,"slot":"action"}])"}, {"jobs:learn[].ability", "\"extra_ability\""}}});
   c.push_back({"jobs", "jobs", kJobsMods, {"jobs:", "game:rules.jobs"},
                {{"jobs:learn", R"([{"skill":"extra_skill","cost":1,"slot":"support"}])"},
-                {"game:rules.jobs", R"({"jp":{"perAction":1},"jpLevels":[20,60,120]})"}}});
+                {"game:rules.jobs", R"({"jp":{"perAction":1},"jpLevels":[20,60,120]})"},
+                {"game:rules.jobs.spendJp", "true"}}});  // false: the fixture's entries have a JP cost, refused when nothing spends JP
+  c.push_back({"jobs-requires-level", "jobs", jobsRequiring(R"([{"job":"squire","level":2}])"), {"jobs:requires"},
+               {{"jobs:requires", R"([{"job":"squire","level":2}])"}, {"jobs:requires[].job", "\"squire\""}}});
+  c.push_back({"jobs-requires-count", "jobs", jobsRequiring(R"([{"job":"squire","mastered":1}])"),
+               {"jobs:requires[].mastered{count}", "jobs:requires[].slot"}, {}});
+  c.push_back({"jobs-requires-entry", "jobs", jobsRequiring(R"([{"mastered":"guard"}])"), {"jobs:requires[].mastered{entry}"},
+               {{"jobs:requires[].mastered{entry}", "\"guard\""}}});
   c.push_back({"characters", "damage-types", {}, {"weapons:wieldedBy"}, {}});
   c.push_back({"area-line", "ai-scripted", {}, {"weapons:area.length"}, {{"weapons:area", R"({"shape":"line","length":2})"}}});
   c.push_back({"core", "ai-scripted", {},
@@ -83,7 +98,9 @@ void addCoreExtraSkips(std::map<QString, QString>& s) {
       {"commanders:powers[].cost = 100000", "a power costs at most the meter's own max (cross-key rule)"},
       {"game:rules.progression.levels[].at = 1000000", "ranks must rise; the second rank cannot start at the same value (cross-key rule)"},
       {"game:rules.ranks.levels[].at = 1000000", "ranks must rise; the second rank cannot start at the same value (cross-key rule)"},
-      {"game:rules.jobs.slots.support = 0", "the fixture's characters equip support abilities, so zero slots is refused (cross-file rule)"},
+      {"jobs:requires[].mastered{count} = 40", "the count is at most the number of entries the named job teaches: 3 for the fixture's Squire (cross-file rule)"},
+      {"jobs:requires[].slot = \"reaction\"", "the fixture's Squire teaches no reaction entry, so no count of them can be asked for (cross-file rule)"},
+      {"game:rules.jobs.slots.support = 0","the fixture's characters equip support abilities, so zero slots is refused (cross-file rule)"},
       {"items:kind = \"weapon\"", "heal / raise / bonus belong to one kind (cross-key rule)"},
       {"items:kind = \"accessory\"", "heal / raise / bonus belong to one kind (cross-key rule)"},
       {"items:kind = \"staff\"", "heal / raise / bonus belong to one kind (cross-key rule)"},

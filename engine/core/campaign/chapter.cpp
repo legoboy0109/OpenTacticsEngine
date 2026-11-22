@@ -57,6 +57,7 @@ RosterUnit rosterEntry(const Battle& b, const Unit& u) {
   r.items = grants(u.items);
   r.weaponXp = u.weaponXp;  // weapon ranks travel with the unit (docs/SRPG.md section 7)
   r.jobs = u.jobs;  // the job it uses, its JP, what it learned and equipped (docs/JOBS.md)
+  r.mastery = u.mastery;  // points in what items teach (docs/JOBS.md "Learning from equipment")
   r.skills = u.learned;  // skills learned for good travel with the unit (docs/SRPG.md)
   r.side = b.sides[(size_t)u.side].id;
   return r;

@@ -90,12 +90,14 @@ int raiseRoster(const Database& db, Battle& calc, Roster& roster, int level) {
     u.weaponXp = r.weaponXp;
     u.character = db.findCharacter(r.id);
     u.jobs = r.jobs;
+    u.mastery = r.mastery;  // points in what items teach (docs/JOBS.md "Learning from equipment")
     const int before = r.level;
     const Battle::TestRaise t = calc.raiseUnitForTest(u, level, false);  // a roster unit has no square: a promotion is never refused for it
     if (!t.changed) continue;  // already there (a later chapter again): no levels, no promotion, no rank experience either
     r.weaponXp = u.weaponXp;
     r.type = u.type;
     r.jobs = u.jobs;
+    r.mastery = u.mastery;  // points in what items teach (docs/JOBS.md "Learning from equipment")
     r.level = u.level;
     r.xp = u.xp;
     r.merit = u.merit;

@@ -10,6 +10,7 @@
       "afterMove": { "type": "bool", "default": true, "help": "Can be used after moving." },
       "props": { "type": "map", "free": true, "of": { "type": "number" }, "help": "Numbers the formulas read as w.<name> (might, hit, weight ...)." },
       "damage": { "type": "string", "sample": "1", "help": "Formula that replaces the game's damage formula for this weapon." },
+      "hit": { "type": "string", "sample": "70", "help": "Formula for this weapon's hit chance, in place of the game's hit formula." },
       "group": { "type": "string", "help": "Weapon group (triangle / locks / ranks); what a unit lists in wields." },
       "damageKind": { "type": "string", "help": "Free word that skills can test." },
       "damageType": { "type": "ref", "ref": "game.json#damageTypes", "help": "One of the game's damageTypes (first listed if absent)." },
