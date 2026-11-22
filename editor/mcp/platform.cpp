@@ -5,8 +5,12 @@
 #include <cstdlib>
 
 #if defined(_WIN32)
+#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX  // the build may already define it for every file
 #define NOMINMAX
+#endif
 #include <fcntl.h>
 #include <io.h>
 #include <windows.h>
@@ -94,6 +98,14 @@ ProcessResult runProcess(const std::vector<std::string>& argv, const std::vector
       WaitForSingleObject(pi.hProcess, 2000);
       break;
     }
+  }
+  // Whatever the child wrote just before it exited is still in the pipe: a fast program (ote-sim) can write everything and exit
+  // within one 20 ms wait, so without this the whole output was lost. Its end of the pipe is closed now, so ReadFile ends.
+  if (!r.timedOut) {
+    char buf[4096];
+    DWORD got = 0;
+    while (ReadFile(rd, buf, sizeof buf, &got, nullptr) && got > 0)
+      if (r.output.size() < maxOutput) r.output.append(buf, got);
   }
   DWORD code = 0;
   GetExitCodeProcess(pi.hProcess, &code);
