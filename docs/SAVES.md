@@ -631,6 +631,25 @@ there and refused in any other game; the unit's `type` must then be the class jo
 "knight"`). The roster entry's unit `type` and `stats` are saved as always (a job change moves them). `data/jobs.json` is part of the data hash like the other strategy-RPG files (an empty list counts as no file; names
 and descriptions are cosmetic), and `rules.jobs` is part of the hashed `game.json` rules. Code: `core/battle/save_jobs.cpp`. Tests: `tests/test_jobs_battle.cpp`, `tests/test_jobs_camp.cpp`.
 
+## Learning from equipment and unit resources (docs/JOBS.md "Learning from equipment", docs/SRPG.md "Unit resources")
+
+In a game where items `"teaches"` something, a unit with points in a taught entry carries `"mastery"` in a battle save's `units[i]` and in a campaign save's `playthrough.roster[i]`; in a game with
+`"unitResources"` a battle save's `units[i]` carries `"pools"`:
+
+```json
+"mastery": [ { "entry": 0, "points": 40 } ],
+"pools": [ 12 ]
+```
+
+`entry` is an index into the list of everything items teach (each skill or ability once, in the order items first name them); `points` is from 1 to that entry's cost. The list is ascending, each
+entry once. An entry that a job teaches too keeps no record once it is mastered (it is then a learned entry of that job, under `"jobs"`); a mastered entry no job teaches keeps `points` equal to its
+cost. `pools` has one number per `"unitResources"` entry, in file order: what the unit has now. Both keys are written only when not empty, after every other key of the unit, so a game without the
+features and every older save are byte for byte as before; a save without them reads as "no points yet" and "the start share of the maximum". When a save is read every number is range-checked and
+must fit the game: an entry that does not exist, points above the cost (`units[0].mastery: "brave": points must be from 1 to 20`), an entry listed twice or out of order, points kept for a job entry
+already learned, a `pools` list of the wrong length (`units[0].pools: has 2 entries, expected 1`), and either key in a game without the feature are refused. Pools are not carried between chapters
+(each battle starts at the start share). `"teaches"`, `rules.abilityPoints` and `"unitResources"` are part of the hashed data. Code: `core/battle/save_mastery.cpp`. Tests:
+`tests/test_ability_points.cpp` (`points_and_pools_are_saved_...`, `the_roster_keeps_points_between_chapters`).
+
 ## Dialogue choices (docs/EVENTS.md "Dialogue choices")
 
 Nothing is added to any save: the picked answer's number is the `choice` command's `store` variable, which lives in `story.variables` of a

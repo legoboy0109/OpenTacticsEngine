@@ -190,8 +190,14 @@ unit may say `"merit"`. It is refused together with `progression.levels`. docs/S
 
 `"rules": { "jobs": { "jp": { "perAction": 10, "perDefeat": 20 }, "slots": { "action": 1, "reaction": 1, "support": 1, "movement": 1 }, "jpLevels": [100, 300, 600], "changeIn": "camp+prep" } }`
 (optional; needs `data/jobs.json`) sets the job system's numbers: the JP a unit earns for taking part in a fight and for a defeat, how many entries learned in other jobs may be equipped per slot
-kind, the game-wide table of total JP for job levels 2, 3, ... and whether jobs are changed in the camp only (`"camp"`, the default) or on the preparation screen too (`"camp+prep"`). Everything
-is in docs/JOBS.md.
+kind, the game-wide table of total JP for job levels 2, 3, ... and whether jobs are changed in the camp only (`"camp"`, the default) or on the preparation screen too (`"camp+prep"`). `"jp": { "share": 25 }`
+gives the rest of the side that share of every JP gain, and `"spendJp": false` makes equipment the only way to learn. Everything is in docs/JOBS.md.
+
+`"rules": { "abilityPoints": { "name": "AP", "perBattle": 10, "perAction": 0, "perDefeat": 0 } }` (optional; needs an item with `"teaches"`) sets how many points a unit earns in what its equipped
+items teach: docs/JOBS.md "Learning from equipment (ability points)".
+
+`"unitResources": [ { "id": "mp", "name": "MP", "max": "mag", "start": 100, "regen": { "perTurn": 0, "percent": 10 } } ]` (top level, optional, at most 4) gives every unit a pool of its own, sized
+by a stat, that abilities pay with `"spend"`: docs/SRPG.md "Unit resources (MP and the like)".
 
 Every `rules` block and key is optional; defaults are shown above
 (`defeat` defaults to `["noUnits"]`).
@@ -282,6 +288,7 @@ specified in docs/SRPG.md section 10; the editor has forms for them (docs/EDITOR
     "wieldedByTypes": ["knight"], // optional: or units of these types (units.json ids); a unit on either list may
     "ammo": 6,                    // optional, 1..99: attacks per supply (fixed weapons only; docs/ECONOMY.md)
     "damage": "a.str + w.might",  // optional override of formulas.damage
+    "hit": "a.skl * 2 - b.spd",   // optional override of the hit chance (a formula, percent; same a / b / w as "damage"); docs/SRPG.md "Abilities that strike"
     "sounds": { "hit": "sword_hit", "miss": "whiff", "critical": "crit" }   // optional (docs/SOUND.md): sound ids of data/audio.json
   }
 ] }
@@ -545,6 +552,8 @@ staff, and the skill effect `immune`. Map events can give and take conditions (`
 abilities the job teaches for JP, each with a `cost` and a `slot` kind). A character (`"job"`, `"jobs"`, `"equipped"`, `"learned"`) or a map unit with a `job` uses the system: it earns JP in its
 current job where it earns experience, learns entries, equips a few of them from other jobs and changes job between chapters (and on the preparation screen with `rules.jobs.changeIn`). A
 character or unit without `job` is untouched. The roster carries the state from chapter to chapter and saves hold it. A game without `data/jobs.json` loads, plays, saves and hashes exactly as before.
+A weapon or accessory may list `"teaches": [ { "skill": "guard", "points": 100 } ]`: the unit can use the entry while equipped and masters it by earning points (docs/JOBS.md "Learning from
+equipment"). `requires` may also ask for mastered entries (docs/JOBS.md "Unlocking by mastered entries").
 
 **Weapon ranks and stat caps** (docs/SRPG.md section 7, both optional): `data/ranks.json` (the maker's rank ladder, e.g. E to S, and
 whether ranks are fixed or grow by use; needs carried weapons), `data/caps.json` (game-wide stat caps), `"rank"` / `"rankXp"` on a

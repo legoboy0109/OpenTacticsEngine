@@ -1481,6 +1481,8 @@ once.
 | `{ "moveBehind": true }` | same | the target is put on the square on the user's opposite side |
 | `{ "movePast": true }` | same | the USER moves to the square on the far side of the target (same line), if it can stand there |
 | `{ "heal": 10 }` / `{ "heal": "full" }` | `self`, `ally`, `unit` | the target regains HP (refused at full HP) |
+| `{ "heal": { "percent": 30 } }` / `{ "heal": "a.mag * 3" }` | same | the same, by a share of the maximum or a formula ("Healing by formula") |
+| `{ "strike": "fire_spell" }` | from the weapon | attacks with that weapon: formula damage, area, damage type ("Abilities that strike") |
 | `{ "steal": ... }` | `enemy`, range [1, 1] | takes one item of the target into the user's inventory ("Steal", below) |
 | `{ "refresh": true }` / `{ "refresh": { "perTurn": 2 } }` | `ally` | a unit of the user's side that has acted may act again this turn ("Refresh an ally", below) |
 | `{ "cure": ["poison"] }` / `{ "cure": "all" }` | `self`, `ally` | cures the target; valid targets are units that have something it cures |
@@ -3235,6 +3237,76 @@ opponent:** it never uses these (it does not use push, pull or swap either; its 
 the ability's line reads `Inflicts Boost for 4 turns`. Editor: Abilities, "What it does" > "No other effect" (offered when the game has conditions).
 Saves: nothing new. Tests: `tests/test_fidelity2_rules.cpp`.
 
+### Abilities that strike (formula damage, areas, damage types)
+
+`"effect": { "strike": "fire_spell" }`: the ability **attacks with a weapon of `data/weapons.json`** that nobody needs to carry (a spell, a breath, a
+technique). Everything that weapon says is used exactly as for an attack: its damage formula (`"damage"`, else the game's), its **hit formula**
+(weapons.json `"hit"`, below, else the game's), critical hits, `range`, `fire` and `area` (burst, radius, cross, line; friendly fire), `damageType`,
+`versus`, `heightRange`, its `skills` (a `drain` strike block heals the user: damage and healing in one) and its `inflict`. So the forecast box, the area
+squares, the battle scene, the computer's scoring and the formulas' `w` all see it as the weapon it is.
+
+```json
+{ "id": "fire", "name": "Fire", "effect": { "strike": "fire_spell" }, "spend": { "mp": 6 }, "chargeSpeed": 25, "inflict": { "condition": "burn", "turns": 2 } }
+// data/weapons.json
+{ "id": "fire_spell", "name": "Fire", "range": [1, 4], "damage": "a.mag * 2 + w.power - b.res", "hit": "a.mag + 70 - b.res", "damageType": "fire",
+  "area": { "shape": "radius", "radius": 1 }, "props": { "power": 6 } }
+```
+
+- **Targets and reach come from the weapon**: a single-target weapon picks an enemy unit (as Attack), an area weapon a square. `"target"` and `"range"` are
+  refused (`"strike" takes its targets and reach from the weapon: leave out "target" and "range"`).
+- **Differences from an attack**: the target **never strikes back**; nothing is worn or spent from an inventory (no uses, no ammunition), no weapon rank
+  or weapon experience, no "pick a weapon" list. Experience (and JP) are paid as for a fight. The weapon's `afterMove` is not asked: the ability's own is.
+- `"inflict"` (the ability's): after the strike, every unit it **hit** that is still standing gets the condition (immunity and the usual rules apply).
+- `"cost"` must be `"action"` (`"strike" ends the unit's turn: "cost" must be "action"`). `uses`, `cooldown`, `if`, `xp` and `spend` work as on any ability.
+- **Charged** (`"chargeSpeed"` on the ability, speed turn order): declared at once, struck when it goes off; a single target is followed, an area keeps
+  its square (`"chargeTargets"` as for any ability). The weapon itself may not charge (`the weapon "x" has "chargeSpeed": a strike charges through the
+  ability`).
+- Loader: `"strike" names unknown weapon "x" (data/weapons.json)`.
+- Events: `AbilityUsed` (c = the target unit or -1, d = the square), the payment, then the usual `Attack` events (flag `kArea` for an area) and what
+  follows them (defeats, experience).
+
+**weapons.json `"hit"`** (any weapon): a formula for this weapon's hit chance, in place of the game's `rules.formulas.hit` (the same variables).
+`"hit"` that does not compile is refused with the Lua message.
+
+### Healing by formula
+
+An ability's `"heal"` also takes `{ "percent": 30 }` (1 to 100 of the target's maximum HP, at least 1) and a **formula** (text): `"heal": "a.mag * 3"` (`a`
+= the user, `b` = the unit healed; rounded down, below 0 counts as 0). `"full"` and whole numbers stay. Refused: `"heal" must be a whole number from 1 to
+999, "full", { "percent": 1 to 100 } or a formula`; a formula that does not compile, with the Lua message.
+
+### Unit resources (MP and the like)
+
+A pool each unit has for itself (unlike `resources`, which belong to a side): what abilities spend.
+
+```json
+// game.json (top level, next to "resources")
+"unitResources": [ { "id": "mp", "name": "MP", "max": "mp", "start": 100, "regen": { "perTurn": 0, "percent": 10 } } ]
+// data/abilities.json
+{ "id": "cure", "effect": { "heal": "a.mag * 3" }, "target": "unit", "range": [1, 4], "spend": { "mp": 6 } }
+```
+
+| key | meaning |
+|---|---|
+| `id` | letters, digits, `_`, `-`; unique, and not the id of a side resource. At most 4 unit resources. |
+| `name` | 1 to 8 characters (default the id): what the player shows (`MP 12/20`). |
+| `max` | **required**: the id of a stat (`stats`); the pool's maximum is the unit's stat as the rules see it (bonuses included). |
+| `start` | 0 to 100: percent of the maximum a unit has when a battle starts or it joins (default 100). |
+| `regen` | optional `{ "perTurn": n, "percent": n }` (0 to 999, 0 to 100 of the maximum; default 0 = none): added at the start of each of the unit's own turns (its side's turn; its own turn in the speed turn order), never above the maximum. |
+
+**An ability's price**: `"spend": { "mp": 6 }` names unit resources and/or side resources (ids of `resources`), amounts 1 to 999. The ability is offered greyed
+`needs 6 MP` (`not enough Gold` for a side resource) when the unit (or its side) has too little. It is paid when the ability is used or, charged, when it is
+declared (as its use and cooldown). Unknown ids are refused (`"spend" names unknown resource "x" (game.json "resources" or "unitResources")`), and so is an
+amount out of range.
+
+**Rules.** A unit's pools are filled to `start` percent when the battle starts and when a unit joins (a summon, `addUnit`); a chapter always begins afresh
+(the roster carries none). A pool never goes above the maximum: when the maximum drops (a lost bonus), the pool is cut down to it when it is next looked at
+(paying or regenerating). Events: `PoolChanged` (a = unit, b = the pool, index into `unitResources`, c = the change, d = what it has now) for a payment and
+for regeneration. Side resources are paid with `ResourceChanged` as always.
+
+**Saves**: a unit has `"pools": [12, 0]` (one number per unit resource) in a game that has them; missing = the start value. **Player**: the unit details'
+Stats page and the unit panel show `MP 12/20`; the action menu shows the price next to a usable ability (`6 MP`). **Computer opponent**: docs/AI.md
+"Abilities that strike". **Not built**: items or skills that restore a pool, formulas that read the pool, pools carried between chapters.
+
 ### Damage that varies: a range for `hurt`
 
 `{ "hurt": [1, 3], "to": "self" }`, or `{ "hurt": { "amount": [1, 3], "canKill": true }, "to": "self" }` (also written `"lethal": true`: the same key
@@ -4228,7 +4300,10 @@ unit in `c`.
 **Interpretations where the contract was silent.**
 - Extra loader refusals (all start `data/abilities.json: ability "x": `): `"target"` and `"effect"` are required;
   `"range"` must be `[min, max]` with whole numbers from 1 to 20 and min not above max, and is refused with `"self"`;
-  push / pull / swap / moveBehind need `"target"` ally, enemy or unit; `"push"` is 1 to 5, `"heal"` 1 to 999 or `"full"`,
+  push / pull / swap / moveBehind need `"target"` ally, enemy or unit; `"push"` is 1 to 5, `"heal"` 1 to 999, `"full"`,
+  `{ "percent": 1..100 }` or a formula (a bare word such as `"most"` is refused as a slip); `"strike"` names a weapon (checked last), refuses
+  `"target"` / `"range"` and a `"cost"` other than `"action"`, and the weapon may not have `chargeSpeed`; `"spend"` names resources and unit resources,
+  1 to 999 each;
   `"pull"`, `"swap"`, `"moveBehind"` must be `true`; unknown keys in the ability, its effect and its summon. A
   condition's `"who": "foe"` is refused in an ability that targets a square; `initiating` and `distance` are refused (no
   combat); `formula` is allowed. A summon's unit type and the unit / terrain keys of an `if` are checked last (the
