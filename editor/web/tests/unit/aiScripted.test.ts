@@ -116,6 +116,24 @@ describe('the keys of a behaviour block', () => {
     expect(one({ heals: true })).toContain('“heals” must be')
   })
 
+  it('"staffFirst", "staffPick" and "inflictOnlyOn": written only off their defaults (staffFirst 0 is a real value) and checked like the loader', () => {
+    expect(tidyBehaviour({ staffFirst: 0 })).toEqual({ staffFirst: 0 })
+    expect(tidyBehaviour({ staffFirst: 100, mode: 'hold' })).toEqual({ mode: 'hold', staffFirst: 100 })
+    expect(tidyBehaviour({ staffPick: 'best' })).toBeUndefined()
+    expect(tidyBehaviour({ staffPick: 'lastPlaced' })).toEqual({ staffPick: 'lastPlaced' })
+    expect(tidyBehaviour({ inflictOnlyOn: 'anyone' })).toBeUndefined()
+    expect(tidyBehaviour({ inflictOnlyOn: 'casters' })).toEqual({ inflictOnlyOn: 'casters' })
+    const d = fixture()
+    expect(withMode({ mode: 'guard', staffFirst: 40 }, 'seek', contextOf(d, map(d))).staffFirst).toBe(40)
+    const one = (b: unknown): string => texts(withUnits(d, (u) => u.map((x) => (x.id === 'r5' ? { ...x, behaviour: b as MapUnit['behaviour'] } : x)))).join('\n')
+    expect(one({ staffFirst: 50, staffPick: 'lastPlaced', inflictOnlyOn: 'casters' })).toBe('')
+    expect(one({ staffFirst: 101 })).toContain('“uses a staff first” must be a whole number from 0 to 100')
+    expect(one({ staffFirst: 2.5 })).toContain('“uses a staff first”')
+    expect(one({ staffFirst: -1 })).toContain('“uses a staff first”')
+    expect(one({ staffPick: 'first' })).toContain('“picks the target of a staff”')
+    expect(one({ inflictOnlyOn: 'mages' })).toContain('“afflicts only”')
+  })
+
   it('"loot" and "escape" are bare names, "attacks" is written only as false, and their checks say what the loader says', () => {
     expect(tidyBehaviour({ mode: 'loot' })).toBe('loot')
     expect(tidyBehaviour({ mode: 'escape' })).toBe('escape')
