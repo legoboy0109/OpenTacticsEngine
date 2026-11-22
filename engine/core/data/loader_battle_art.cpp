@@ -762,8 +762,34 @@ bool readSceneTiming(const LoadCtx& c, const Json& b, BattleSceneTiming& out) {
   const Json& sc = b["scene"];
   if (!sc.isObject()) return c.fail("battle scene", "must be an object such as { \"resultHoldMs\": 533, \"resultHoldAgainMs\": 0 }");
   for (const Json::Member& m : sc.members())
-    if (m.first != "resultHoldMs" && m.first != "resultHoldAgainMs") return c.fail("battle scene", unknownKeyText(m.first, {"resultHoldMs", "resultHoldAgainMs"}));
-  return c.integerIn(sc, "resultHoldMs", "battle scene", 0, 5000, out.resultHoldMs) && c.integerIn(sc, "resultHoldAgainMs", "battle scene", 0, 5000, out.resultHoldAgainMs);
+    if (m.first != "resultHoldMs" && m.first != "resultHoldAgainMs" && m.first != "hitHold")
+      return c.fail("battle scene", unknownKeyText(m.first, {"resultHoldMs", "resultHoldAgainMs", "hitHold"}));
+  if (!c.integerIn(sc, "resultHoldMs", "battle scene", 0, 5000, out.resultHoldMs) || !c.integerIn(sc, "resultHoldAgainMs", "battle scene", 0, 5000, out.resultHoldAgainMs))
+    return false;
+  if (!sc.has("hitHold")) return true;
+  // "hitHold": { "minMs", "baseMs", "perHpMs", "killMs", "noChangeMs" } (all optional; decimals allowed).
+  const Json& h = sc["hitHold"];
+  const std::string where = "battle scene hitHold";
+  if (!h.isObject()) return c.fail(where, "must be an object such as { \"minMs\": 567, \"perHpMs\": 33.333, \"killMs\": 817 }");
+  static const char* const kKeys[] = {"minMs", "baseMs", "perHpMs", "killMs", "noChangeMs"};
+  for (const Json::Member& m : h.members()) {
+    bool known = false;
+    for (const char* k : kKeys) known = known || m.first == k;
+    if (!known) return c.fail(where, unknownKeyText(m.first, {"minMs", "baseMs", "perHpMs", "killMs", "noChangeMs"}));
+  }
+  HitHold& hh = out.hitHold;
+  hh.on = true;
+  hh.minMs = out.resultHoldMs;
+  double* slots[] = {&hh.minMs, &hh.baseMs, &hh.perHpMs, &hh.killMs, &hh.noChangeMs};
+  const double hi[] = {5000, 5000, 1000, 10000, 5000};
+  bool noChangeGiven = h.has("noChangeMs");
+  for (int i = 0; i < 5; ++i) {
+    if (!c.num(h, kKeys[i], where, *slots[i])) return false;
+    if (*slots[i] < 0 || *slots[i] > hi[i])
+      return c.fail(where, std::string("\"") + kKeys[i] + "\" must be from 0 to " + std::to_string((int)hi[i]) + " (milliseconds; decimals allowed)");
+  }
+  if (!noChangeGiven) hh.noChangeMs = hh.minMs;  // no point changed: the plain minimum
+  return true;
 }
 
 bool readBattleArt(const LoadCtx& c, Database& db, const Json& root) {

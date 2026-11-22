@@ -3,7 +3,7 @@
 // (checkHolds, readSceneTiming) in plain words. Defaults are never written.
 import { DODGE_ANIMS, HIT_ANIMS, HOLD_ANIMS, HOLD_DELAY_MAX, battleOf, type AnimKey } from './battleArt'
 import { withBattle } from './battleTables'
-import type { BattleAnimDef, BattleSceneTimingDef, ProjectDoc } from './types'
+import type { BattleAnimDef, BattleSceneTimingDef, HitHoldDef, ProjectDoc } from './types'
 
 /** What the scene waits after the blow when the game does not say (milliseconds), and the extra wait before the same fighter strikes again. */
 export const RESULT_HOLD_DEFAULT = 533
@@ -31,6 +31,33 @@ export function setSceneTiming(doc: ProjectDoc, patch: Partial<SceneTiming>): Pr
     }
     const { scene: _old, ...rest } = b
     return Object.keys(next).length ? { ...rest, scene: next } : rest
+  })
+}
+
+/** "hitHold" (docs/BATTLE_SCENE.md "Holding a pose"): a hit waits by the hit points it changed. Keys, their upper limits (ms), as the loader. */
+export const HIT_HOLD_KEYS = ['minMs', 'baseMs', 'perHpMs', 'killMs', 'noChangeMs'] as const
+export type HitHoldKey = typeof HIT_HOLD_KEYS[number]
+export const HIT_HOLD_MAX: Record<HitHoldKey, number> = { minMs: 5000, baseMs: 5000, perHpMs: 1000, killMs: 10000, noChangeMs: 5000 }
+export const hitHoldOf = (doc: ProjectDoc): HitHoldDef | undefined => battleOf(doc).scene?.hitHold
+
+/** Turns "hitHold" on (an empty object: every key at its default) or off (the key goes; an emptied "scene" section goes). */
+export function setHitHoldOn(doc: ProjectDoc, on: boolean): ProjectDoc {
+  return withBattle(doc, (b) => {
+    const next: BattleSceneTimingDef = { ...(b.scene ?? {}) }
+    if (on) next.hitHold = next.hitHold ?? {}
+    else delete next.hitHold
+    const { scene: _old, ...rest } = b
+    return Object.keys(next).length ? { ...rest, scene: next } : rest
+  })
+}
+
+/** Sets one key of "hitHold" (undefined = left out: its default). */
+export function setHitHold(doc: ProjectDoc, key: HitHoldKey, v: number | undefined): ProjectDoc {
+  return withBattle(doc, (b) => {
+    const hh: HitHoldDef = { ...(b.scene?.hitHold ?? {}) }
+    if (v === undefined) delete hh[key]
+    else hh[key] = v
+    return { ...b, scene: { ...(b.scene ?? {}), hitHold: hh } }
   })
 }
 
@@ -77,5 +104,14 @@ export function sceneTimingProblems(doc: ProjectDoc): string[] {
   }
   check('How long a held pose waits after the result', s.resultHoldMs)
   check('The extra wait before the same fighter strikes again', s.resultHoldAgainMs)
+  const hh = s.hitHold
+  if (hh !== undefined) {
+    if (typeof hh !== 'object' || hh === null || Array.isArray(hh)) out.push('The wait by the damage must be a group of settings.')
+    else for (const [k, v] of Object.entries(hh)) {
+      if (!(HIT_HOLD_KEYS as readonly string[]).includes(k)) { out.push(`The wait by the damage has a setting “${k}” the game does not know.`); continue }
+      const max = HIT_HOLD_MAX[k as HitHoldKey]
+      if (typeof v !== 'number' || !Number.isFinite(v) || v < 0 || v > max) out.push(`The wait by the damage: “${k}” must be a number from 0 to ${max} milliseconds.`)
+    }
+  }
   return out
 }

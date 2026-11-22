@@ -380,6 +380,11 @@ miss and waits again until the "MISS" has gone. Presentation only: no save, hash
   if that is later, **plus `resultHoldAgainMs`** (0 to 5000, default 0) when **the same fighter strikes again next** (a follow-up). An effect is "busy" until its last picture, sound, flash, shake, hide or fade has
   ended (a `fade` counts its fade in, hold and fade out), a travelling shot until it is home (`lingerMs` and `returns` included), measured from where each part really starts, so an `atRange`
   delay counts. A held `hurt` waits the same way from the hit.
+- **A hit that waits by the damage: `battle.scene.hitHold`** (optional): `{ "minMs": 567, "baseMs": 50, "perHpMs": 33.333, "killMs": 817, "noChangeMs": 183 }`. With it a **hit**
+  (and a staff that lands) waits `max(minMs, baseMs + perHpMs x P) + killMs` (the `killMs` only when the hit defeats the unit) instead of `resultHoldMs`, where `P` is the number of hit points that
+  changed (lost, or healed for a staff); a hit that changed none waits `noChangeMs`. A **miss keeps `resultHoldMs`**. It is a hit-point bar that drains (or fills) at a fixed pace with a shortest
+  time, as many console games show it. All five are milliseconds from 0 (to 5000; `perHpMs` to 1000, `killMs` to 10000) and **may have decimals** (a 60 Hz tick is 16.667 ms); each is
+  optional: `minMs` defaults to `resultHoldMs`, `noChangeMs` to `minMs`, the others to 0. The effects-over rule and `resultHoldAgainMs` apply as before.
 - **Order of the timeline** (`buildTimelineList`): the strike starts at `t0` (after the scene's 0.4 s intro, or the previous strike's end plus the 0.3 s gap, plus 0.6 s per skill tag). The blow lands at `M`
   (the striker's hit frame, later if an effect or a flight needs it). Both held poses are laid out from that, in animation order, each frame as soon as it is allowed: the striker's pose starts at `t0` and
   its frame `K` waits until the result is over; the dodger's brace starts at `t0` and waits on its last frame until `M + startDelayMs`, the dodge proper plays from there and waits on `holdFrame` until the
@@ -392,7 +397,7 @@ miss and waits again until the "MISS" has gone. Presentation only: no save, hash
   animations give: dodge from 0.680 (120 ms before the miss) to 1.280, striker to 1.100, next strike at 1.580.
 - Refusals (in `data/graphics.json`, naming the set and the animation): a key in a slot that cannot take it, `holdFrame` / `startFrame` outside the frames, `startDelayMs` outside 0 to 5000 or without
   `startFrame` / `holdFrame`, `holdFrame` before `startFrame` or before a strike's hit frame, any of the three keys in an **effect** (an effect has no pose), `scene` that is not an object or has an unknown
-  key, `resultHoldMs` / `resultHoldAgainMs` outside 0 to 5000.
+  key, `resultHoldMs` / `resultHoldAgainMs` outside 0 to 5000, a `hitHold` that is not an object, has an unknown key, a value that is not a number or one outside its range.
 - Code: `BattleAnim::holdFrame` / `startFrame` / `startDelayMs`, `BattleSceneTiming` (`battle_art.h`), `checkHolds` and `readSceneTiming` (`loader_battle_art.cpp`), `FightPose::stalls` and `StallMaker` in
   `buildTimelineList` (`fight_timeline.*`; the pose says which animation time it shows at each moment, `animMsAt`, and `FightScene::drawFighter` draws that frame). Tests: `tests/test_scene5_keys.cpp`,
   `tests/battle_scene5_player_test.py` (the colour of each fighter's body is the frame it shows: a screenshot at a time after the miss tells which frame is up).

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <utility>
 
 namespace ote {
@@ -138,9 +139,9 @@ namespace {
 class TimelineBuilder {
  public:
   TimelineBuilder(const FightScript& s, const FighterTimes times[2], const std::vector<std::vector<EffectTimes>>& effectsByStrike, int panMs, int panStartMs,
-                  int resultHoldMs, int resultHoldAgainMs)
+                  int resultHoldMs, int resultHoldAgainMs, const HitHold& hitHold)
       : s_(s), times_(times), effectsByStrike_(effectsByStrike), useCam_(panMs >= 0), pan_(panMs >= 0 ? sec(panMs) : 0), panStartMs_(panStartMs),
-        resultHoldMs_(resultHoldMs), resultHoldAgainMs_(resultHoldAgainMs) {}
+        resultHoldMs_(resultHoldMs), resultHoldAgainMs_(resultHoldAgainMs), hitHold_(hitHold) {}
 
   FightTimeline build() {
     if (!s_.valid) return tl_;
@@ -358,11 +359,18 @@ class TimelineBuilder {
     k.camDone = leave + pan_;
   }
 
-  // Holding a pose (docs/BATTLE_SCENE.md "Holding a pose"): the result is over `resultHoldMs` after the blow / miss moment, or when the effects
-  // are all over if later, and `resultHoldAgainMs` more when the same fighter strikes again next.
+  // Holding a pose (docs/BATTLE_SCENE.md "Holding a pose"): the result is over `resultHoldMs` after the blow / miss moment (with "hitHold", a hit
+  // waits by the hit points it changed instead), or when the effects are all over if later, and `resultHoldAgainMs` more when the same fighter strikes
+  // again next.
+  double resultHold(const Strike& k) const {
+    const FightStrike& st = k.st;
+    if (!hitHold_.on || !st.hit || (st.staff && st.missed)) return sec(resultHoldMs_);
+    const int points = st.staff ? st.healed : std::abs(st.hpBefore[k.d] - st.hpAfterHit[k.d]);
+    return hitHold_.ms(points, !st.staff && st.kill) / 1000.0;
+  }
   void holdStrikerPose(Strike& k) {
     const bool again = k.i + 1 < s_.strikes.size() && s_.strikes[k.i + 1].actor == k.a;
-    k.resultOver = std::max(k.hitT + sec(resultHoldMs_), k.fxBusy) + (again ? sec(resultHoldAgainMs_) : 0.0);
+    k.resultOver = std::max(k.hitT + resultHold(k), k.fxBusy) + (again ? sec(resultHoldAgainMs_) : 0.0);
     if (!k.holdA) return;
     StallMaker m{k.ap.start, &k.ap};
     m.holdUntil(k.ft.holdAt[k.kind], k.ft.holdLen[k.kind], k.resultOver);
@@ -475,6 +483,7 @@ class TimelineBuilder {
   const bool useCam_;
   const double pan_;
   const int panStartMs_, resultHoldMs_, resultHoldAgainMs_;
+  const HitHold hitHold_;
   FightTimeline tl_;
   int camSide_ = 0;
   double t_ = 0;
@@ -482,8 +491,9 @@ class TimelineBuilder {
 
 }  // namespace
 
-FightTimeline buildTimelineList(const FightScript& s, const FighterTimes times[2], const std::vector<std::vector<EffectTimes>>& effectsByStrike, int panMs, int panStartMs, int resultHoldMs, int resultHoldAgainMs) {
-  return TimelineBuilder(s, times, effectsByStrike, panMs, panStartMs, resultHoldMs, resultHoldAgainMs).build();
+FightTimeline buildTimelineList(const FightScript& s, const FighterTimes times[2], const std::vector<std::vector<EffectTimes>>& effectsByStrike, int panMs, int panStartMs, int resultHoldMs, int resultHoldAgainMs,
+                                const HitHold& hitHold) {
+  return TimelineBuilder(s, times, effectsByStrike, panMs, panStartMs, resultHoldMs, resultHoldAgainMs, hitHold).build();
 }
 
 }  // namespace ote

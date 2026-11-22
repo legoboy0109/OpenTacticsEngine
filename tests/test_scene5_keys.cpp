@@ -572,3 +572,62 @@ TEST(scene5_timeline_pan_at_ms) {
   const FightTimeline nocam = buildTimelineList(s, times, {{own}}, -1, -1);
   CHECK(nocam.cam.empty());
 }
+
+// "hitHold" (docs/BATTLE_SCENE.md "Holding a pose"): a hit waits by the hit points it changed; a miss keeps resultHoldMs.
+TEST(scene5_hit_hold_load_and_refusals) {
+  Database db;
+  if (!load("hithold", knight(""), "[]", db,
+            "\"scene\": { \"resultHoldMs\": 550, \"hitHold\": { \"minMs\": 566.667, \"baseMs\": 50, \"perHpMs\": 33.333, \"killMs\": 816.667, \"noChangeMs\": 183.333 } }"))
+    return;
+  const HitHold& h = db.graphics.battle.timing.hitHold;
+  CHECK(h.on && std::fabs(h.minMs - 566.667) < 1e-9 && h.baseMs == 50 && std::fabs(h.perHpMs - 33.333) < 1e-9 && std::fabs(h.killMs - 816.667) < 1e-9 &&
+        std::fabs(h.noChangeMs - 183.333) < 1e-9);
+  CHECK(std::fabs(h.ms(1, false) - 566.667) < 1e-9);            // the minimum
+  CHECK(std::fabs(h.ms(20, false) - (50 + 20 * 33.333)) < 1e-9);  // grows with the points
+  CHECK(std::fabs(h.ms(3, true) - (566.667 + 816.667)) < 1e-9);   // a defeat adds killMs
+  CHECK(std::fabs(h.ms(0, false) - 183.333) < 1e-9);             // nothing changed
+  // Left-out keys: the minimum is resultHoldMs, nothing grows, no change waits the minimum.
+  Database d2;
+  if (!load("hithold2", knight(""), "[]", d2, "\"scene\": { \"resultHoldMs\": 600, \"hitHold\": { \"perHpMs\": 10 } }")) return;
+  const HitHold& h2 = d2.graphics.battle.timing.hitHold;
+  CHECK(h2.on && h2.minMs == 600 && h2.baseMs == 0 && h2.killMs == 0 && h2.noChangeMs == 600 && h2.ms(80, false) == 800);
+  Database d3;
+  if (!load("hithold3", knight(""), "[]", d3, "\"scene\": { \"resultHoldMs\": 600 }")) return;
+  CHECK(!d3.graphics.battle.timing.hitHold.on);
+  expectError("hh1", knight(""), "[]", "battle scene hitHold", "must be an object", "\"scene\": { \"hitHold\": 5 }");
+  expectError("hh2", knight(""), "[]", "unknown key \"perHp\"", "\"perHpMs\"", "\"scene\": { \"hitHold\": { \"perHp\": 5 } }");
+  expectError("hh3", knight(""), "[]", "\"perHpMs\" must be from 0 to 1000", "", "\"scene\": { \"hitHold\": { \"perHpMs\": 1001 } }");
+  expectError("hh4", knight(""), "[]", "\"killMs\" must be from 0 to 10000", "", "\"scene\": { \"hitHold\": { \"killMs\": -1 } }");
+  expectError("hh5", knight(""), "[]", "minMs", "number", "\"scene\": { \"hitHold\": { \"minMs\": \"long\" } }");
+}
+
+TEST(scene5_hit_hold_timeline) {
+  HitHold hh;
+  hh.on = true;
+  hh.minMs = 566.667;
+  hh.baseMs = 50;
+  hh.perHpMs = 33.333;
+  hh.killMs = 816.667;
+  hh.noChangeMs = 183.333;
+  auto endOfStrike = [&](int flags, int damage) {
+    FightScript s = buildFightScript({attack(1, 2, flags, damage)}, info(1));
+    const int a = s.strikes[0].actor;
+    FighterTimes times[2] = {plain(), plain()};
+    times[a] = holdingStriker();
+    const FightTimeline tl = buildTimelineList(s, times, {}, -1, -1, 550, 0, hh);
+    const FightPose& sp = tl.poses[a][0];
+    return sp.start + sp.dur;  // the held frame is the last: the pose ends when the result is over
+  };
+  // The blow is at 0.800 (0.4 intro + the hit frame at 400 ms). Gorm has 10 hit points.
+  CHECK(near(endOfStrike(kHit, 3), 0.8 + 0.566667));                 // 3 points: the minimum
+  CHECK(near(endOfStrike(kHit, 9), 0.8 + 0.566667));                 // 9 points: 50 + 300 is still under it
+  CHECK(near(endOfStrike(kHit | kKill, 10), 0.8 + 0.566667 + 0.816667));  // a defeat
+  CHECK(near(endOfStrike(0, 0), 0.8 + 0.55));                        // a miss keeps resultHoldMs
+  // Without hitHold a hit waits resultHoldMs as before.
+  FightScript s = buildFightScript({attack(1, 2, kHit, 3)}, info(1));
+  const int a = s.strikes[0].actor;
+  FighterTimes times[2] = {plain(), plain()};
+  times[a] = holdingStriker();
+  const FightTimeline tl = buildTimelineList(s, times, {}, -1, -1, 550, 0);
+  CHECK(near(tl.poses[a][0].start + tl.poses[a][0].dur, 0.8 + 0.55));
+}
