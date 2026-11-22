@@ -7,6 +7,10 @@
 
 #include "platform/platform.h"
 
+#if defined(OTE_XBOX360)
+#include "platform/common/launch_args.h"
+#endif
+
 #if defined(OTE_NXDK)
 #include "core/base/fatx_names.h"
 #include "platform/nxdk/nxdk.h"
@@ -36,6 +40,8 @@ unsigned artBudgetMB() {
 #elif defined(OTE_NXDK)
   return 20;  // original Xbox: 64 MB for everything and the video; the program, Lua, game data and the screen take about
               // 10 to 15 MB (measured in xemu), so 20 MB of art leaves about 25 MB spare. docs/XBOX_OG.md "Memory"
+#elif defined(OTE_XBOX360)
+  return 128;  // 512 MB shared by the program, the video buffers and the system; kept modest until measured on a console
 #elif defined(OTE_UWP)
   return 256;  // an app has about 1 GB on Xbox
 #elif defined(__ANDROID__)
@@ -66,8 +72,32 @@ std::string memoryStatus() {
 #endif
 }
 
+#if defined(OTE_XBOX360)
+namespace {
+// args.txt beside the .xex (game:\), the way the original Xbox and UWP ports take a command line: the dashboard starts a
+// .xex with none. NAME=value words go into the environment (OTE_LOG_LEVEL ...).
+std::vector<std::string> xbox360LaunchArgs() {
+  std::vector<std::string> out;
+  const std::string dir = executableDir();
+  FILE* f = std::fopen((dir + "/args.txt").c_str(), "rb");
+  if (!f) return out;
+  std::string text;
+  char buf[512];
+  size_t n;
+  while ((n = std::fread(buf, 1, sizeof buf, f)) > 0) text.append(buf, n);
+  std::fclose(f);
+  std::vector<std::pair<std::string, std::string>> env;
+  out = parseLaunchArgs(text, env);
+  for (const auto& e : env) setenv(e.first.c_str(), e.second.c_str(), 1);
+  return out;
+}
+}  // namespace
+#endif
+
 std::vector<std::string> platformLaunchArgs() {
-#if defined(OTE_NXDK)
+#if defined(OTE_XBOX360)
+  return xbox360LaunchArgs();
+#elif defined(OTE_NXDK)
   return nxdkLaunchArgs();
 #elif defined(OTE_UWP)
   return uwpLaunchArgs();
@@ -84,8 +114,8 @@ LauncherBack launcherBack() {
   }
 #if defined(__ANDROID__)
   return LauncherBack::Exit;  // owner's decision: back leaves the app, as users expect on Android
-#elif defined(OTE_UWP) || defined(OTE_NXDK)
-  // owner's decision: B on the Xbox launcher exits after a Yes / No question (UWP: ends the app; original Xbox: back to the dashboard)
+#elif defined(OTE_UWP) || defined(OTE_NXDK) || defined(OTE_XBOX360)
+  // owner's decision: B on the Xbox launcher exits after a Yes / No question (UWP: ends the app; original Xbox and 360: back to the dashboard)
   return LauncherBack::ConfirmExit;
 #else
   return LauncherBack::Nothing;

@@ -14,6 +14,9 @@
 #ifdef __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
 #endif
+#ifdef OTE_XBOX360
+#include "platform/xbox360/xbox360_present.h"
+#endif
 
 namespace ote {
 namespace {
@@ -38,6 +41,7 @@ struct Loop {
   // arrives on another thread (Android's UI thread) never runs while a frame is half done. SDL mutexes are recursive:
   // on platforms that deliver the notice from inside SDL_PollEvent on this thread it simply re-enters. Null on the web.
   SDL_Mutex* lock = nullptr;
+  SDL_Window* window = nullptr;  // the console's present path reads its surface
 };
 
 // The OS may freeze the process right after WILL_ENTER_BACKGROUND / TERMINATING returns, so these are handled here, at
@@ -95,6 +99,13 @@ void frame(Loop& L) {
   }
   if (L.lock) SDL_UnlockMutex(L.lock);  // present / vsync wait / delay below are the window in which a suspend notice gets in
   SDL_RenderPresent(L.gfx->handle());
+#ifdef OTE_XBOX360
+  // SDL has no video driver for the console: the software renderer drew into the dummy window's surface, which goes to the
+  // screen as one texture (platform/xbox360/xbox360_present.h). It waits for a front buffer, so it paces the loop too.
+  if (SDL_Surface* surf = SDL_GetWindowSurface(L.window)) {
+    if (!xbox360PresentFrame(surf->pixels, surf->pitch)) L.done = true;
+  }
+#endif
   // Without working vsync a plain loop would spin a core at 100%.
   // (The browser paces the web loop itself.)
 #ifndef __EMSCRIPTEN__
@@ -123,6 +134,16 @@ bool initVideo(bool headless) {
   SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight");
   SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "1");
 #endif
+#ifdef OTE_XBOX360
+  // SDL-xenon offers only the dummy and offscreen drivers; the dummy one keeps a window surface to read the frame from.
+  SDL_SetHint(SDL_HINT_VIDEO_DRIVER, "dummy");
+  (void)headless;
+  if (!SDL_Init(SDL_INIT_VIDEO)) {
+    OTE_ERROR("SDL_Init(video) failed: %s", SDL_GetError());
+    return false;
+  }
+  return true;
+#endif
   if (headless) {
     // "offscreen" renders without any display server; "dummy" is the fallback.
     SDL_SetHint(SDL_HINT_VIDEO_DRIVER, "offscreen");
@@ -145,6 +166,15 @@ int runApp(App& app, const PlatformConfig& config) {
   if (!SDL_InitSubSystem(SDL_INIT_GAMEPAD)) OTE_WARN("gamepad support unavailable: %s", SDL_GetError());
 
   int scale = config.windowScale;
+#ifdef OTE_XBOX360
+  // The window is the display's whole picture (720p). Opening it takes the GPU and the display.
+  int panelW = 0, panelH = 0;
+  if (!xbox360PresentOpen(panelW, panelH)) {
+    SDL_Quit();
+    return 2;
+  }
+  scale = 1;
+#endif
   if (scale < 1 && !config.headless) {
 #if defined(__ANDROID__) || defined(__EMSCRIPTEN__)
     scale = 1;  // full screen / the page sizes the canvas: the starting size does not matter
@@ -164,6 +194,10 @@ int runApp(App& app, const PlatformConfig& config) {
   int hs = config.headlessScale < 1 ? 1 : config.headlessScale;
   int winW = config.logicalWidth * (config.headless ? hs : scale);
   int winH = config.logicalHeight * (config.headless ? hs : scale);
+#ifdef OTE_XBOX360
+  winW = panelW;
+  winH = panelH;
+#endif
   SDL_WindowFlags flags = config.headless ? SDL_WINDOW_HIDDEN : SDL_WINDOW_RESIZABLE;
   // Tests of the real window path (its own 2D renderer, the hardware 3D backend drawing into it) without showing
   // anything: OTE_WINDOW_HIDDEN=1 makes the window but never shows it (tests/render3d_window_test.py).
@@ -202,6 +236,9 @@ int runApp(App& app, const PlatformConfig& config) {
     if (!ren) OTE_WARN("this browser gave no WebGL (%s); drawing in software, which is slower", SDL_GetError());
   }
 #endif
+#ifdef OTE_XBOX360
+  ren = SDL_CreateRenderer(window, SDL_SOFTWARE_RENDERER);  // the only one there is
+#endif
   if (!ren) ren = SDL_CreateRenderer(window, config.headless ? SDL_SOFTWARE_RENDERER : nullptr);
   if (!ren && !config.headless) {
     OTE_WARN("default renderer failed (%s); falling back to software", SDL_GetError());
@@ -226,9 +263,13 @@ int runApp(App& app, const PlatformConfig& config) {
     Loop loop;
     loop.app = &app;
     loop.cfg = &config;
+    loop.window = window;
     SdlRenderer gfx(window, ren, config.logicalWidth, config.logicalHeight, config.headless, hs);
     loop.gfx = &gfx;
     loop.vsync = !config.headless && !hiddenWindow && SDL_SetRenderVSync(ren, 1);
+#ifdef OTE_XBOX360
+    loop.vsync = true;  // the present call waits for the display: no SDL_Delay needed
+#endif
     app.onStart(gfx);  // may load content (slow): take the first time stamp afterwards
     loop.lastNs = SDL_GetTicksNS();
 #ifndef __EMSCRIPTEN__
@@ -249,6 +290,9 @@ int runApp(App& app, const PlatformConfig& config) {
   shutdownHardware3D();  // its GL context must go before SDL does
   SDL_DestroyRenderer(ren);
   SDL_DestroyWindow(window);
+#ifdef OTE_XBOX360
+  xbox360PresentClose();
+#endif
   SDL_Quit();
   return 0;
 }
