@@ -14,6 +14,11 @@ e2e 628 after the last changes). Pushed this session:
 - Vision Quest (private repo): step 43 item icons from the ROM (`tools/conv_icons.py`, 203 of 205 items, Dance/Play none); installed in
   `games/vision-quest`, check_game clean after fixing check_places' chest demo (thief stands on the chest since step 40).
 
+Later the same evening (pushed, full check 70 clean but for `srpg_player_prep`, flaky under load, passes alone): edge-scroll band
+back to 1/4 tile (1/8 unusable in a browser; owner said scrolling stopped working), dwell 0.5 s and 5 tiles/s kept; webtest
+`edgescroll` suite. Owner confirmed the Play window now fills the screen. Vision Quest step 44 (private): spells at range, a caster
+lead-in stays on the caster and screen-fixed pictures are screen parts (`tools/efx_follow.py`); installed, check_game 0 problems.
+
 **Next:** ask the owner how the Play panel size and the scrolling feel now, and how the item icons look; rebuild Windows / UWP /
 Android / OG Xbox with today's changes (none rebuilt yet).
 
