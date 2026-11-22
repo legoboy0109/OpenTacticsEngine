@@ -306,9 +306,9 @@ ToolResult get(Context& ctx, const Json& args) {
             if (item["name"].isString() && item["name"].asString() != text) text += (text.empty() ? "" : " - ") + item["name"].asString();
             for (const auto& m : item.members()) {
               if (m.first == "id" || m.first == "name" || text.size() > 120) continue;
-              std::string v = m.second.isArray() ? "[" + std::to_string(m.second.size()) + "]" : m.second.isObject() ? m.second.dump(0) : previewOf(m.second, 30);
-              if (v.size() > 40) v = v.substr(0, 37) + "...";
-              text += (text.empty() ? "" : " ") + m.first + "=" + v;
+              std::string shown = m.second.isArray() ? "[" + std::to_string(m.second.size()) + "]" : m.second.isObject() ? m.second.dump(0) : previewOf(m.second, 30);
+              if (shown.size() > 40) shown = shown.substr(0, 37) + "...";
+              text += (text.empty() ? "" : " ") + m.first + "=" + shown;
             }
           }
           if (text.empty()) text = previewOf(item);

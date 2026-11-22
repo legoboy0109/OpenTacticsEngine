@@ -10,9 +10,9 @@ bool loadFreeBattleStock(const std::string& gameFile, Database& db, std::string&
   Json root;
   if (!loadObjectFile(gameFile, root, err)) return false;
   LoadCtx c(err, gameFile);
-  const Json* rules;
-  const Json* items;
-  const Json* blk;
+  const Json* rules = nullptr;
+  const Json* items = nullptr;
+  const Json* blk = nullptr;
   if (!c.object(root, "rules", "", rules) || !c.object(*rules, "items", "rules", items)) return false;
   if (!items->has("freeBattleStorage")) return true;
   const std::string where = "rules.items.freeBattleStorage";
