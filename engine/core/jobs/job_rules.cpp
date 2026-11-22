@@ -192,15 +192,6 @@ bool jobUnequip(const Database& db, JobState& s, int flat, std::string& why) {
   return true;
 }
 
-void jobAddJp(const Database& db, JobState& s, int amount, int& levelBefore, int& levelAfter) {
-  levelBefore = levelAfter = 1;
-  if (!s.on() || !validJob(db, s.job)) return;
-  JobProgress& p = s.at(s.job);
-  levelBefore = jobLevelAt(db, s.job, p.earned);
-  if (amount > 0) p.earned = std::min(kMaxJobTotal, p.earned + amount);
-  levelAfter = jobLevelAt(db, s.job, p.earned);
-}
-
 int jobPlayType(const Database& db, const JobState& s, int job, int fallback) {
   if (!validJob(db, job)) return fallback;
   const JobDef& d = db.jobs[(size_t)job];

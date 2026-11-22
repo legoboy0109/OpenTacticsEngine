@@ -75,22 +75,6 @@ bool loadAbilityPointRules(const LoadCtx& c, const Json& rules, Database& db) {
          c.integerIn(*blk, "perDefeat", at, 0, kMaxTeachPoints, r.perDefeat);
 }
 
-bool findMasteredEntry(const Database& db, const std::string& id, int& entry, bool& teach) {
-  for (const JobLearnDef& d : db.jobEntries)
-    if (d.refId == id) {
-      entry = d.flat;
-      teach = false;
-      return true;
-    }
-  for (size_t k = 0; k < db.teachEntries.size(); ++k)
-    if (db.teachEntries[k].refId == id) {
-      entry = (int)k;
-      teach = true;
-      return true;
-    }
-  return false;
-}
-
 bool resolveTeaching(const std::string& root, Database& db, std::string& err) {
   const LoadCtx game(err, root + "/game.json");
   const LoadCtx items(err, root + "/data/items.json");

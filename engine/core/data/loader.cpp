@@ -137,8 +137,8 @@ static bool loadRules(const LoadCtx& c, const Json& root, Database& db) {
   if (!loadActionPointRules(c, *rules, db)) return false;  // "rules.actionPoints" (docs/SRPG.md "Action points")
   if (!loadSpeedRules(c, *rules, db)) return false;  // "rules.turnOrder" (docs/TURN_ORDER.md); after actionPoints and production, which it cannot be combined with
   if (!loadFacingRules(c, *rules, db)) return false;  // "rules.facing" (docs/SRPG.md "Facing"); before the maps whose units may say a "facing"
-  if (!loadJobRules(c, *rules, db)) return false;
-  if (!loadAbilityPointRules(c, *rules, db)) return false;  // "rules.abilityPoints" (docs/JOBS.md "Learning from equipment")  // "rules.jobs" (docs/JOBS.md); data/jobs.json is read after the unit types
+  if (!loadJobRules(c, *rules, db)) return false;  // "rules.jobs" (docs/JOBS.md); data/jobs.json is read after the unit types
+  if (!loadAbilityPointRules(c, *rules, db)) return false;  // "rules.abilityPoints" (docs/JOBS.md "Learning from equipment")
   if (!loadHeightRules(c, *rules, db)) return false;  // "rules.height" (docs/SRPG.md "Height rules"); before the weapons and unit types that use its keys
 
   // ("levels" is the rank table, read by loadUnitRankRules; "computerGains" and "xpNoDamage" by loadProgressionExtras.)

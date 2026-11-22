@@ -45,8 +45,6 @@ bool jobLearnReason(const Database& db, const JobState& s, int flat, std::string
 bool jobEquip(const Database& db, JobState& s, int flat, std::string& why);
 bool jobEquipReason(const Database& db, const JobState& s, int flat, std::string& why);
 bool jobUnequip(const Database& db, JobState& s, int flat, std::string& why);
-// Adds earned JP to the current job (the total stops at kMaxJobTotal). Returns the job level before and after.
-void jobAddJp(const Database& db, JobState& s, int amount, int& levelBefore, int& levelAfter);
 
 // ---- checking ----
 // "" when the state is consistent with the game (ids in range, learned entries belong to their job, spent within earned, equipped entries learned and
