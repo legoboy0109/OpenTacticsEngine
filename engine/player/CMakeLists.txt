@@ -82,7 +82,19 @@ elseif(OTE_UWP)
   # explicitly; runtimeobject is what SDL_winrt_main_NonXAML.cpp asks for with a #pragma.
   target_link_libraries(ote-player PRIVATE vccorlib msvcrt runtimeobject)
 else()
+  if(XSDK)
+    # Xbox 360 (docs/XBOX360.md): the SDL3 backend on SDL-xenon (-DSDL3_DIR=<its build>), plus the picture output SDL has no
+    # driver for. tools/xbox360/build.sh configures this with xsdk's toolchain file.
+    file(GLOB XBOX360_SRC CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/engine/platform/xbox360/*.cpp)
+    list(APPEND BACKEND_SRC ${XBOX360_SRC})
+  endif()
   add_executable(ote-player ${PLAYER_SRC} ${COMMON_SRC} ${BACKEND_SRC})
+  if(XSDK)
+    target_compile_definitions(ote-player PRIVATE OTE_XBOX360=1)
+    xsdk_add_shaders(ote-player ${CMAKE_SOURCE_DIR}/engine/platform/xbox360/present.vert
+                     ${CMAKE_SOURCE_DIR}/engine/platform/xbox360/present.frag)
+    xsdk_add_xex(ote-player NAME "OpenTacticsEngine")
+  endif()
   if(WIN32)
     # GUI subsystem: a double-click opens no console window. SDL's main header supplies WinMain; attachParentConsole()
     # (platform/common/console.cpp) gives the program its terminal back when it was started from one (docs/WINDOWS.md).

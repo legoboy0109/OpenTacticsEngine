@@ -155,6 +155,11 @@ with a key name (`tests/test_input_hints.cpp`, `tests/input_hints_player_test.py
   `D:\args.txt` (test scripts in the emulator), a flushed log file, `platformFileName()` (FATX-safe folder names), the dashboard
   exit, hardware 3D on the NV2A (`platform/nxdk/hw3d_*`, `nxdk_present.*`: the 2D layer is a surface of ours that the chip composes over the 3D picture), and libc replacements for what nxdk's C library lacks (`%f` in printf among them).
   Everything is in docs/XBOX_OG.md.
+- **Xbox 360 (xsdk + SDL-xenon).** `tools/xbox360/build.sh` builds the player with xsdk's GCC 15 toolchain on SDL-xenon (SDL 3.4 for the console, which
+  has no video driver): the SDL3 backend unchanged, `OTE_XBOX360` for the few `#ifdef`s (`sdl_app.cpp`, `process_info.cpp`), SDL's dummy video
+  driver with the software renderer, and `platform/xbox360/` uploading each frame as one texture drawn as a quad through xsdk's GPU layer.
+  The console is big-endian: `tools/xbox360/bigendian_check.sh` runs the whole test suite as 64-bit big-endian PowerPC under qemu-user.
+  Everything is in docs/XBOX360.md.
 
 ## Still missing
 
@@ -175,6 +180,10 @@ on B on the launcher, final names and logos.
 Original Xbox (nxdk, SDL2 2.0.9): built and run in xemu only, see docs/XBOX_OG.md: launcher, the three demos, saves, Continue,
 exit to the dashboard, 4:3 / 16:9, 480 / 720p, and the 3D styles on a native NV2A backend (docs/RENDER3D.md). Never run on a real
 console; sound, a real controller, a real TV and the real chip (xemu's NV2A is an emulation) unverified.
+
+Xbox 360 (xsdk, SDL-xenon 3.4): built and booted in the Xenia Canary emulator only, see docs/XBOX360.md: the engine runs a battle there and
+the whole test suite passes as big-endian PowerPC under qemu. Never run on a console; the flip to the screen (Xenia has no display),
+sound, controllers and speed unverified.
 
 Non-portable code noticed: the tests are desktop-only and reach `mkdir`/`rmdir`/`chmod` through `tests/posix_compat.h`
 (MSVC shims). `saves.cpp` / `progress.cpp` use `localtime_r` / `gmtime_r` behind `_WIN32` (fine). No `<filesystem>`, `dirent`

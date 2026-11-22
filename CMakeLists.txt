@@ -36,6 +36,11 @@ if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
   add_compile_definitions(OTE_UWP=1 WINAPI_FAMILY=WINAPI_FAMILY_APP __WRL_NO_DEFAULT_LIB__)
 endif()
 
+# Xbox 360 (tools/xbox360/build.sh, docs/XBOX360.md): xsdk's newlib lacks a few C++ limits; one force-included header fills them.
+if(XSDK)
+  add_compile_options(-include ${CMAKE_SOURCE_DIR}/tools/xbox360/xsdk_compat.h)
+endif()
+
 # --- Lua 5.4 (vendored, plain C) ---
 file(GLOB LUA_SRC third_party/lua/src/*.c)
 list(FILTER LUA_SRC EXCLUDE REGEX "/(lua|luac)\\.c$")
