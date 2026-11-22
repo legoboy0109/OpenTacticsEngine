@@ -77,6 +77,9 @@ def run_scripted_checks(api, tmp, games, templates, check, get_project, put_proj
         ("an escape on a map without exits", beh(0, "escape"), "needs squares to leave by"),
         ("a loot without goesFor", beh(0, "loot"), "needs \"goesFor\""),
         ("attacks that is not true or false", beh(0, {"attacks": "no"}), "\"attacks\" must be true or false"),
+        ("a staffFirst past 100", beh(0, {"staffFirst": 101}), "\"staffFirst\" must be a whole number from 0 to 100"),
+        ("a staffPick that is neither best nor lastPlaced", beh(0, {"staffPick": "first"}), "\"staffPick\" must be \"best\""),
+        ("an inflictOnlyOn that is neither anyone nor casters", beh(0, {"inflictOnlyOn": "mages"}), "\"inflictOnlyOn\" must be \"anyone\""),
         ("an exit outside the map", lambda m: m.update(exits=[{"x": 40, "y": 1}]), "outside the map"),
         ("the same exit twice", lambda m: m.update(exits=[{"x": 1, "y": 1}, {"x": 1, "y": 1}]), "listed twice"),
         ("measure without a guardArea", beh(0, {"measure": "moveCost"}), "\"measure\" goes with mode \"guardArea\""),
@@ -94,12 +97,14 @@ def run_scripted_checks(api, tmp, games, templates, check, get_project, put_proj
         m["units"][2]["goesFor"] = ["chests"]
         m["units"][3]["behaviour"] = "loot"
         m["units"][3]["goesFor"] = ["doors"]
+        m["units"][4]["behaviour"] = {"staffFirst": 0, "staffPick": "lastPlaced", "inflictOnlyOn": "casters"}
     save(mutate_map=escapes)
     check("scripted: exits, escape, loot and attacks: false load and the loader accepts them", problems() == [], problems())
     st, d = get_project(api, pid)
     field = d["maps"]["field"]
     check("scripted: and they come back from a save untouched",
           field["exits"] == [{"x": 0, "y": 0}, {"x": 5, "y": 5}] and field["units"][0]["behaviour"] == "escape" and
-          field["units"][1]["behaviour"] == {"mode": "escape", "attacks": False}, field["units"][0])
+          field["units"][1]["behaviour"] == {"mode": "escape", "attacks": False} and
+          field["units"][4]["behaviour"] == {"staffFirst": 0, "staffPick": "lastPlaced", "inflictOnlyOn": "casters"}, field["units"][0])
     restore()
     check("scripted: and the good game is accepted again", problems() == [], problems())

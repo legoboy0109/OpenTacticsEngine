@@ -93,6 +93,19 @@ test('@smoke the Computer player card and the behaviour fields write what docs/A
   await saved(page)
   expect('heals' in unit(id, 'Gorm').behaviour).toBe(false)
 
+  // Staves first / the last placed / casters: written only off their defaults (a chance of 0 is written), and the loader accepts them.
+  await box(page).getByLabel('Chance to use a staff first (%)').fill('0')
+  await box(page).getByRole('combobox', { name: 'Picks who gets a staff' }).selectOption({ label: 'The one placed last' })
+  await box(page).getByRole('combobox', { name: 'Staves that afflict (silence and the like)' }).selectOption({ label: 'Only foes that use staves or magic' })
+  await saved(page)
+  expect(unit(id, 'Gorm').behaviour).toMatchObject({ staffFirst: 0, staffPick: 'lastPlaced', inflictOnlyOn: 'casters' })
+  expect(await game.problems(id)).toEqual([])
+  await box(page).getByLabel('Chance to use a staff first (%)').fill('')
+  await box(page).getByRole('combobox', { name: 'Picks who gets a staff' }).selectOption({ label: 'The best use' })
+  await box(page).getByRole('combobox', { name: 'Staves that afflict (silence and the like)' }).selectOption({ label: 'Any foe' })
+  await saved(page)
+  for (const k of ['staffFirst', 'staffPick', 'inflictOnlyOn']) expect(k in unit(id, 'Gorm').behaviour).toBe(false)
+
   // A bad value is said in plain words; the weight set it uses cannot be removed without a warning.
   await box(page).getByLabel('Acts in this order').fill('')
   await box(page).getByRole('combobox', { name: 'Chooses its attacks by' }).selectOption({ label: 'The usual scoring' })

@@ -1,5 +1,5 @@
 // The keys of a behaviour block that make a computer player act like a scripted one (docs/AI.md "Scripted-style computer players"): order, weights, caution,
-// retreat, idleTurns, route (mode patrol), ignores, measure (mode guardArea), heals and attacks. behaviour.ts keeps the block together; this file knows these keys: which
+// retreat, idleTurns, route (mode patrol), ignores, measure (mode guardArea), heals, attacks, staffFirst, staffPick and inflictOnlyOn. behaviour.ts keeps the block together; this file knows these keys: which
 // ones are written, what the loader would refuse (the checks mirror engine/core/data/behaviour_scripted.cpp and loader_behaviour.cpp), and the starting values.
 import { aiRules } from './aiRules'
 import { namedUnits } from './storyIds'
@@ -10,13 +10,14 @@ export const MAX_IDLE_TURNS = 99
 export const MAX_ROUTE = 32
 export const MIN_ROUTE = 2
 export const MAX_IGNORES = 32
+export const MAX_STAFF_FIRST = 100
 
 export interface Retreat { below?: number; until?: number; to?: { terrain?: string[] }; useItems?: boolean; [k: string]: unknown }
 export interface RouteSquare { x: number; y: number }
 export type ScriptedObj = Record<string, unknown>
 
 /** The keys, in the order they are written. */
-export const SCRIPTED_KEYS = ['order', 'weights', 'caution', 'retreat', 'idleTurns', 'route', 'ignores', 'measure', 'heals', 'attacks'] as const
+export const SCRIPTED_KEYS = ['order', 'weights', 'caution', 'retreat', 'idleTurns', 'route', 'ignores', 'measure', 'heals', 'attacks', 'staffFirst', 'staffPick', 'inflictOnlyOn'] as const
 export const isScriptedKey = (k: string): boolean => (SCRIPTED_KEYS as readonly string[]).includes(k)
 
 const isInt = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v)
@@ -34,6 +35,9 @@ export function keepScripted(k: string, v: unknown, mode: string): boolean {
     case 'measure': return mode === 'guardArea' && v === 'moveCost'
     case 'heals': return v === 'retreating'
     case 'attacks': return v === false  // true is the default
+    case 'staffFirst': return typeof v === 'number'  // 0 is a real value (it acts on one roll in a hundred), so only a missing number is left out
+    case 'staffPick': return v === 'lastPlaced'
+    case 'inflictOnlyOn': return v === 'casters'
     default: return false
   }
 }
@@ -81,6 +85,9 @@ export function scriptedProblems(o: ScriptedObj, mode: string, doc: ProjectDoc, 
   }
   if (o.heals !== undefined && o.heals !== 'anyone' && o.heals !== 'retreating') say('“heals” must be anyone or only allies that are falling back.')
   if (o.attacks !== undefined && typeof o.attacks !== 'boolean') say('“never attacks” must be on or off.')
+  if (o.staffFirst !== undefined && (!isInt(o.staffFirst) || o.staffFirst < 0 || o.staffFirst > MAX_STAFF_FIRST)) say(`“uses a staff first” must be a whole number from 0 to ${MAX_STAFF_FIRST}.`)
+  if (o.staffPick !== undefined && o.staffPick !== 'best' && o.staffPick !== 'lastPlaced') say('“picks the target of a staff” must be the best one or the one placed last.')
+  if (o.inflictOnlyOn !== undefined && o.inflictOnlyOn !== 'anyone' && o.inflictOnlyOn !== 'casters') say('“afflicts only” must be any foe or foes that use staves or magic.')
   if (o.measure !== undefined) {
     if (mode !== 'guardArea' || o.within === undefined) say('“measured by” goes with “waits until someone comes near” and a distance.')
     else if (o.measure !== 'steps' && o.measure !== 'moveCost') say('“measured by” must be squares or walking cost.')

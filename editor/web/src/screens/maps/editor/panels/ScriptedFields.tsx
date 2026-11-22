@@ -1,7 +1,7 @@
 // The scripted-style fields of the behaviour control (docs/AI.md "Scripted-style computer players", docs/EDITOR_UI.md "Behaviour"): the route of a patrol, the
 // measure of a guardArea distance, and the group of options every mode has (acting order, attack weights, caution, idle turns, never chases, retreat).
 // Written through BehaviourEditor's `patch`, so a placed unit, an addUnit and a setBehaviour command all write the same JSON.
-import { defaultRetreat, defaultRoute, MAX_IDLE_TURNS, MAX_ORDER, MAX_ROUTE, MIN_ROUTE, weightNames, type Retreat, type RouteSquare } from '../../../../model/behaviourScripted'
+import { defaultRetreat, defaultRoute, MAX_IDLE_TURNS, MAX_ORDER, MAX_ROUTE, MAX_STAFF_FIRST, MIN_ROUTE, weightNames, type Retreat, type RouteSquare } from '../../../../model/behaviourScripted'
 import type { BehaviourObj } from '../../../../model/behaviour'
 import { namedUnits } from '../../../../model/storyIds'
 import type { MapFile, ProjectDoc } from '../../../../model/types'
@@ -90,6 +90,17 @@ export function ScriptedFields({ o, patch, doc, map, id }: Props) {
         <Field label={S.heals} help={S.healsHelp}>
           <Select aria-label={S.heals} value={o.heals === 'retreating' ? 'retreating' : 'anyone'} options={(['anyone', 'retreating'] as const).map((h) => ({ value: h, label: S.healsChoices[h] }))}
             onChange={(v) => patch({ heals: v === 'retreating' ? 'retreating' : undefined })} />
+        </Field>
+        <Field label={S.staffFirst} help={S.staffFirstHelp}>
+          <NumberInput value={o.staffFirst} min={0} max={MAX_STAFF_FIRST} allowEmpty placeholder={S.staffFirstPlaceholder} onChange={(v) => patch({ staffFirst: v }, 'staffFirst')} />
+        </Field>
+        <Field label={S.staffPick} help={S.staffPickHelp}>
+          <Select aria-label={S.staffPick} value={o.staffPick === 'lastPlaced' ? 'lastPlaced' : 'best'} options={(['best', 'lastPlaced'] as const).map((h) => ({ value: h, label: S.staffPickChoices[h] }))}
+            onChange={(v) => patch({ staffPick: v === 'lastPlaced' ? 'lastPlaced' : undefined })} />
+        </Field>
+        <Field label={S.inflictOnlyOn} help={S.inflictOnlyOnHelp}>
+          <Select aria-label={S.inflictOnlyOn} value={o.inflictOnlyOn === 'casters' ? 'casters' : 'anyone'} options={(['anyone', 'casters'] as const).map((h) => ({ value: h, label: S.inflictOnlyOnChoices[h] }))}
+            onChange={(v) => patch({ inflictOnlyOn: v === 'casters' ? 'casters' : undefined })} />
         </Field>
         <Check label={S.retreat} help={S.retreatHelp} checked={retreat !== undefined} onChange={(v) => patch({ retreat: v ? defaultRetreat() : undefined })} />
         {retreat !== undefined && (

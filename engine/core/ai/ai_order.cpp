@@ -150,7 +150,8 @@ Order bestOrder(Context& cx, const Unit& u) {
   // docs/AI.md "Attack weights": the unit's own set, else the one its side's faction brings (docs/AI.md "Factions"), else the default scoring.
   const AiWeightSet* weights = st.beh && st.beh->weightSet >= 0 ? &b.db->rules.ai.weights[(size_t)st.beh->weightSet] : b.factionWeights(u.side);
 
-  const int healKey = st.beh && st.beh->healsRetreating ? lastRetreatingHeal(b, u, stops) : kHealAnyone;  // docs/AI.md "heals"
+  StaffPolicy staffPolicy = staffPolicyOf(st.beh);  // docs/AI.md "heals", section 10
+  lastPlacedKeys(b, u, stops, staffPolicy);
   const double fade = fadeFactor(b);
   Order best;  // default: Wait in place, score 0
   Order viaMapWeapon;  // the best attack from a free map weapon it would walk to (only a unit marked "goesFor": ["weapons"]); a fallback
@@ -168,7 +169,7 @@ Order bestOrder(Context& cx, const Unit& u) {
       }
     }
 
-    considerStaves(b, u, s, travel, best, healKey);  // a staff beats an attack only by its own worth (ai_staves.cpp)
+    considerStaves(b, u, s, travel, best, staffPolicy);  // a staff beats an attack only by its own worth (ai_staves.cpp)
 
     if (weights || noAttack) options.clear();  // it chooses its attack by its weights, below (or never attacks)
     else {
@@ -231,6 +232,12 @@ Order bestOrder(Context& cx, const Unit& u) {
   considerCuring(b, u, best);
   considerSrpg(b, u, best);
   considerSupply(b, u, reach, stops, best);
+  // "staffFirst": a staff use that playOrder takes instead of all of this when its roll passes (ai_staff_first.cpp).
+  Order first;
+  if (st.beh && st.beh->staffFirst >= 0 && staffFirstOrder(b, u, reach, stops, staffPolicy, first)) {
+    best.first = std::make_shared<Order>(first);
+    best.firstChance = st.beh->staffFirst;
+  }
   return best;
 }
 

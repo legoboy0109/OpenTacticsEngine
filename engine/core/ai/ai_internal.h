@@ -31,6 +31,9 @@ struct Order {
   int slot = -1;                       // UseItem / UseStaff: the inventory slot (UseItem: target = the unit itself)
   int ability = -1;                    // Ability only: index into db->abilities (target = unit or -1, cell = square or kNoCell)
   Cell cell = kNoCell;                 // Ability only: the target square of a "cell" ability
+  // "staffFirst" (ai_staff_first.cpp): the staff use the unit makes instead of this order when playOrder's roll (0..99) is at most `firstChance`.
+  std::shared_ptr<Order> first;
+  int firstChance = 0;
   int structure = -1;                  // OpenPlace / VisitPlace: the structure (OpenPlace: slot = the key's inventory slot or -1)
   // Kinds added by AI1 besides the ones above: Promote (takes the first offered promotion, in place) and Ability.
 };
@@ -200,15 +203,24 @@ double scoreStrike(const Battle& b, const Unit& u, int ability, const AttackOpti
 // Every instant strike ability from `s` (its travel cost `travel`): replaces `best` with an Ability order when one beats it.
 void considerStrikes(const Battle& b, const Unit& u, Cell s, int travel, const Stance& st, Order& best);
 
-// ---- ai_staves.cpp (docs/SRPG.md section 8 "AI") ----
-// Considers every usable staff of the unit from the square `s` (its travel cost `travel`) and replaces `best` when a use
-// beats it. `healKey`: kHealAnyone (the default AI), or for a unit with "heals": "retreating" what lastRetreatingHeal returned: its staves
-// with a heal effect then serve only a use whose last-placed healed unit is that id (kNoHealKey: none of them is used).
-constexpr int kHealAnyone = -2, kNoHealKey = -1;
-void considerStaves(const Battle& b, const Unit& u, Cell s, int travel, Order& best, int healKey = kHealAnyone);
-// "heals": "retreating": the highest unit id among the retreating, hurt allies (never the user) a healing staff of the unit could reach from any of
-// `stops`, or kNoHealKey.
-int lastRetreatingHeal(const Battle& b, const Unit& u, const std::vector<Cell>& stops);
+// ---- ai_staves.cpp (docs/SRPG.md section 8 "AI"; docs/AI.md sections 9 and 10) ----
+// What a unit's behaviour asks of its staves ("heals", "staffPick", "inflictOnlyOn"). A default policy changes nothing. `keys` (per kind of staff: heal, afflict, cure)
+// = the unit placed last that a staff of the kind could serve this turn (-1 = none: such a staff is then not used), filled by lastPlacedKeys when a rule picks it.
+struct StaffPolicy {
+  bool healsRetreating = false, lastPlaced = false, castersOnly = false;
+  int keys[3] = {-1, -1, -1};
+};
+StaffPolicy staffPolicyOf(const AiBehaviour* beh);
+void lastPlacedKeys(const Battle& b, const Unit& u, const std::vector<Cell>& stops, StaffPolicy& pol);
+// Does the policy allow this forecast use of the staff item (the staff must be one the computer uses at all)?
+bool staffUseAllowed(const Battle& b, const Unit& u, int item, const StaffForecast& f, const StaffPolicy& pol);
+// What the usual scoring says a use is worth (heals, cures, afflictions, pulls of allies), before the exposure and travel terms.
+double staffUseValue(const Battle& b, const Unit& user, const StaffForecast& f);
+// Considers every usable staff of the unit from the square `s` (its travel cost `travel`) and replaces `best` when a use beats it.
+void considerStaves(const Battle& b, const Unit& u, Cell s, int travel, Order& best, const StaffPolicy& pol);
+// ---- ai_staff_first.cpp (docs/AI.md section 10) ----
+// The use "staffFirst" would make: the first staff carried with a legal use from a square in `stops`, on its pick of target. No randomness here: playOrder rolls.
+bool staffFirstOrder(const Battle& b, const Unit& u, const Reach& reach, const std::vector<Cell>& stops, const StaffPolicy& pol, Order& out);
 
 // ---- ai_places.cpp (docs/SRPG.md section 10 "Computer opponent") ----
 // A unit the map marked ("goesFor") may replace `order` by opening a chest / door or visiting / destroying a place, or by walking toward the

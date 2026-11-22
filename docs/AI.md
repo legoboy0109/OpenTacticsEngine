@@ -50,7 +50,7 @@ default above. Unknown keys, bad values and keys that do not belong to the mode 
 | `fromTurn` | any mode: whole number 1 to 99; the unit does nothing before that round (1 = from the start, the same as leaving it out) |
 | `prefer` | any mode: `"weakest"`, `"nearest"`, `{ "unit": id }`, `{ "type": id }`, `{ "tag": text }` |
 | `attacks` | any mode: `false` = the unit never starts a fight (section "Never attacking"); `true` (default) |
-| `order`, `weights`, `caution`, `retreat`, `idleTurns`, `ignores`, `heals` | any mode: the scripted-style options (section "Scripted-style computer players" below); all opt-in |
+| `order`, `weights`, `caution`, `retreat`, `idleTurns`, `ignores`, `heals`, `staffFirst`, `staffPick`, `inflictOnlyOn` | any mode: the scripted-style options (section "Scripted-style computer players" below); all opt-in |
 
 ### The modes
 
@@ -207,6 +207,9 @@ Game-wide settings are `rules.ai` in `game.json`; the per-unit keys are in the u
 | `mode: "patrol"`, `route` | behaviour | 2 to 32 squares |
 | `measure` | behaviour, `guardArea` | `"steps"` (default) or `"moveCost"` |
 | `heals` | behaviour | `"anyone"` (default) or `"retreating"` |
+| `staffFirst` | behaviour | whole number 0 to 100: the chance, before its usual choice, of using a staff (section 10) |
+| `staffPick` | behaviour | `"best"` (default) or `"lastPlaced"` (section 10) |
+| `inflictOnlyOn` | behaviour | `"anyone"` (default) or `"casters"` (section 10) |
 
 #### 1. Acting order (`turnOrder` and `order`)
 
@@ -304,14 +307,46 @@ terrain costs of every square entered including the foe's own square, units in t
 
 #### 9. Healers that serve retreating allies (`heals`)
 
-`"heals": "retreating"` (the other value, `"anyone"`, is the default and means today's healer; a block that says it stores nothing). Only the unit's **staves with a heal effect** are
-affected (a staff that only cures or inflicts a condition, and every other staff kind the computer uses, work as before). With `"retreating"` such a staff is used only when **every unit it
+`"heals": "retreating"` (the other value, `"anyone"`, is the default and means today's healer; a block that says it stores nothing). Only the unit's **staves with a heal effect**, and **a staff that pulls an ally to the user (a rescue staff)**, are
+affected (a staff that only cures or inflicts a condition, and every other staff kind the computer uses, work as before). A pull staff is otherwise ignored by the computer; with `"retreating"` it is used
+under the very same rules as a heal (a retreating, hurt ally that is not the user; the one placed last; any other target kind, or an area that reaches anyone else, never), and is worth a share of the
+ally's value as a cure is. With `"retreating"` such a staff is used only when **every unit it
 would heal** is an **ally in the retreat state** (the saved `retreating` flag, see section 4), **below full hit points**, and **not the user**. A staff that heals the user (`"target": "self"`) or an
 area that also reaches a non-retreating ally is therefore never used. Among the uses it could make from the squares it can stop on, the one that heals the **unit placed last** wins: the highest unit
 id, that is the latest in the map's unit list (a reinforcement is later still), **not** the most wounded one; it then uses the staff the way the default AI does (the same squares, the staff and
 the exposure rule), and when no use qualifies the unit does what it would do without the staff (attack, advance, wait). The key is read each step from the block, so `setBehaviour` changes it.
 It needs no state of its own: nothing is saved but the key in the block (written only when `"retreating"`). The retreat state itself still comes from the allies' `retreat` blocks; an ally with
 none is never in it, so such a healer then never heals. Refusal: `"heals" must be "anyone" (the default) or "retreating" (...)`.
+
+#### 10. Staves first, the last placed first, silence only on casters (`staffFirst`, `staffPick`, `inflictOnlyOn`)
+
+Three opt-in keys for a unit that carries staves. A block without them plays move for move as before.
+
+**`staffFirst`: n (0 to 100).** Before the unit's usual choice, if it carries a staff it can use now (rank, class, no condition that stops it: a silenced unit cannot) on a legal target
+(the legal targets of the staff, as the rules and `heals` / `staffPick` below leave them) **from a square it can reach this turn**, the battle rolls its own random number generator once,
+`rng.range(100)` (0 to 99, the same generator as every hit roll, so a seed replays the same and a save carries the state), and **the unit uses the staff and is done when `roll <= n`**.
+That is the rule of the original it is for: `n` = 100 always, and `n` = 0 still acts on a roll of 0, one time in a hundred (leave the key out to never do it). When the roll fails, or when it
+has no such staff or target, the unit chooses as usual, and that may still use a staff by score. Exactly one roll is taken per turn of a unit that has such a use, when the unit is about to act
+(before it walks), and none otherwise; units whose block has no `staffFirst` take none, so the random sequence of a game without the key is unchanged. Staves are tried **in the order carried**;
+the first with a legal target is the one. It stands where it is when it can, else on the cheapest reachable square from where the target is in its range (ties: the move search's order).
+A unit that retreats, escapes, is idle or has already acted does not do it; nor does the action-point turn (docs/SRPG.md "Action points"), which has no per-unit choice to put it before. The speed turn
+order does. The target is the staff's pick: `staffPick` below, else the use the usual scoring rates highest.
+
+**`staffPick`: `"best"` (default) or `"lastPlaced"`.** `"lastPlaced"`: of everyone a heal, cure or afflicting staff of the unit could legally be used on (from any square it can reach, any of its staves of
+that kind), the unit **placed last** wins (the highest unit id: the map's `units` order, a reinforcement later still; as `heals`), not the best by worth. It applies to heal staves (also under `heals`,
+whose retreating rule then comes first), cure staves and afflicting staves, each kind choosing its own unit. Whether the staff is used at all is still the usual score against the unit's other options
+(with `staffFirst`, it is used when the roll passes). The legal targets under `"lastPlaced"` are:
+- **a heal staff**: a hurt ally in reach, as ever (with `heals: "retreating"` only the retreating ones);
+- **a staff that afflicts a condition**: a **hostile** unit that has **no condition at all** (any condition counts, not just the one the staff gives) and that the staff **can hit (a hit chance above 0** by the staff's
+  own `hit` formula; a staff that never misses has 100), and which is not immune either (as ever). An area staff is used only when every unit it would reach passes;
+- **a staff that cures**: any **ally other than the user** that has something the staff cures; no hit point and no retreat rule.
+
+**`inflictOnlyOn`: `"anyone"` (default) or `"casters"`.** `"casters"`: a staff of the unit whose condition **stops staves** (a condition whose `forbid` names the item kind `staff` or the group of a staff; a silence)
+is used only on a unit that is a **caster**: it carries something that same condition would stop it using, that is a staff it can use now, or a weapon it can use now of a group (or item kind) the condition forbids (the tomes of a silence that forbids `"groups": ["tome"]`). The data says what a caster is: no word such as "magic" is built in. Other afflicting staves (sleep, a poison) are not affected.
+It narrows the legal targets for every pick, with or without `staffPick`.
+
+Saves: nothing new beyond the three keys in the block (each written only when set: `staffFirst` also when 0, `staffPick` only as `"lastPlaced"`, `inflictOnlyOn` only as `"casters"`). The roll needs no state of its own. Refusals:
+`"staffFirst" must be a whole number from 0 to 100 (...)`, `"staffPick" must be "best" ... or "lastPlaced" (...)`, `"inflictOnlyOn" must be "anyone" ... or "casters" (...)`. Tests: `tests/test_ai_staff_first.cpp`.
 
 #### Worked example
 
@@ -497,7 +532,7 @@ The computer earns no ability points (docs/JOBS.md "Learning from equipment") an
 
 `tests/test_ai_behaviour.cpp` (rules, square and hex), `tests/test_ai_behaviour_data.cpp` (loader, commands, saves; fixture `tests/ai_behaviour_fixture.h`),
 `tests/ai_behaviour_player_test.py` (the headless player over a few turns); the scripted-style options: `tests/test_ai_scripted.cpp` (rules: a hand-computed score table, order, caution, retreat, idle,
-patrol, ignores, measure), `tests/test_ai_scripted_data.cpp` (loader, refusals, reinforcements, saves; fixture `tests/ai_scripted_fixture.h`), `tests/test_ai_heals.cpp` (`heals`: default, retreating only, never the user, last placed wins, out of reach, no target, loader and saves), `tests/ai_scripted_sim_test.py` (ote-sim on the game
+patrol, ignores, measure), `tests/test_ai_scripted_data.cpp` (loader, refusals, reinforcements, saves; fixture `tests/ai_scripted_fixture.h`), `tests/test_ai_staff_first.cpp` (`staffFirst`, `staffPick`, `inflictOnlyOn`, pull staves under `heals`), `tests/test_ai_heals.cpp` (`heals`: default, retreating only, never the user, last placed wins, out of reach, no target, loader and saves), `tests/ai_scripted_sim_test.py` (ote-sim on the game
 `tests/fixtures/ai-scripted`: deterministic), `tests/ai_scripted_player_test.py` (the headless player), editor: `tests/unit/aiScripted.test.ts`, `tests/e2e/ai-scripted.spec.ts`, `tests/editor_api_scripted_checks.py`; editor: `tests/unit/behaviour.test.ts`, `tests/e2e/ai-behaviour.spec.ts`,
 `tests/editor_api_behaviour_checks.py`. Code: `ai/ai_behaviour.cpp` (stance, waking, seek, favourites), `battle/ai_wake.cpp`, `battle/save_behaviour.cpp`,
 `data/behaviour.cpp` and `data/loader_behaviour.cpp`. Scripted-style options: `ai/ai_scripted.cpp` (order, ignores, patrol, measure), `ai/ai_weights.cpp`, `ai/ai_retreat.cpp`, `battle/ai_state.cpp`

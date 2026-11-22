@@ -42,6 +42,16 @@ export const S = {
   healsHelp: 'Anyone: any hurt ally in reach, as usual. Only allies that are falling back: just an ally that is retreating to heal (see below) and is hurt, never the healer itself; the one placed last on the map is chosen, not the most wounded. Without such an ally it does whatever it would otherwise do.',
   healsChoices: { anyone: 'Any hurt ally', retreating: 'Only allies that are falling back' },
 
+  staffFirst: 'Chance to use a staff first (%)',
+  staffFirstHelp: 'Each turn, when it carries a staff it could use right now on someone it may target, the game rolls 0 to 99; if the roll is at most this number it uses the staff and is done. Otherwise it chooses as usual. 100 = always, 0 = one time in a hundred. Empty = it never does this.',
+  staffFirstPlaceholder: 'Off',
+  staffPick: 'Picks who gets a staff',
+  staffPickHelp: 'The best one: the use the computer scores highest, as usual. The one placed last: among everyone the staff may be used on, the unit placed last on the map. It also leaves out, for a staff that afflicts, foes that already have any condition or that the staff cannot hit (0% chance).',
+  staffPickChoices: { best: 'The best use', lastPlaced: 'The one placed last' },
+  inflictOnlyOn: 'Staves that afflict (silence and the like)',
+  inflictOnlyOnHelp: 'Any foe: as usual. Only foes that use staves or magic: for a staff that stops staves (a silence), a foe counts only when it carries something that condition would stop, a staff it can use now or a weapon of a kind the condition forbids (a tome). Other afflicting staves (sleep and the like) are not narrowed.',
+  inflictOnlyOnChoices: { anyone: 'Any foe', casters: 'Only foes that use staves or magic' },
+
   retreat: 'Falls back to heal when hurt',
   retreatHelp: 'When its hit points fall under a limit it stops attacking, uses a healing item or walks to safety, and comes back when it has healed.',
   retreatBelow: 'Falls back below (% of its hit points)',
