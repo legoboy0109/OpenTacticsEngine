@@ -2281,6 +2281,9 @@ it never spends a use on an unhurt unit. The exposure of the square it would sta
 uses a staff it cannot wield or that reaches nobody, and (stage 1) never one on foes. The unit order is the existing one (best
 score first), so a healer that must walk to the wounded goes by its score like any other unit.
 
+Opt-in per-unit options change this (docs/AI.md section 10, and `heals` in section 9): `staffFirst` (a chance to use a usable staff before the usual choice), `staffPick: "lastPlaced"`
+(the unit placed last among the legal targets, with the legal-target rules for afflicting and curing staves written there), `inflictOnlyOn: "casters"`, and a pull staff under `heals: "retreating"`. Without them nothing here changes.
+
 ### Events
 
 Appended to `EventType` (existing numbers keep their values):

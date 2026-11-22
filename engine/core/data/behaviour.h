@@ -65,6 +65,9 @@ struct AiBehaviour {
   std::vector<std::string> ignores;        // "ignores": unit / character ids it never chases or attacks (unless nothing else is left)
   bool areaMoveCost = false;     // GuardArea "measure": "moveCost": `within` is a movement cost, not a distance
   bool healsRetreating = false;  // "heals": "retreating": its healing staves are used only on retreating allies (docs/AI.md "Healers that serve retreating allies")
+  int staffFirst = -1;           // "staffFirst": 0..100, the chance (roll 0..99 <= n) that it uses a staff before its usual choice; -1 = never (docs/AI.md section 10)
+  bool staffLastPlaced = false;  // "staffPick": "lastPlaced": its staves go to the unit placed last among their legal targets
+  bool inflictCasters = false;   // "inflictOnlyOn": "casters": a staff whose condition stops staves goes only to a unit that carries something it would stop
   bool noAttack = false;         // "attacks": false: it never starts a fight (counterattacks are rules and still happen); any mode
 
   bool isDefault() const;

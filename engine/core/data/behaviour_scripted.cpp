@@ -76,14 +76,15 @@ bool readRoute(const Json& v, AiBehaviour& b, std::string& err) {
 }  // namespace
 
 bool scriptedKey(const std::string& key) {
-  static const char* const kKeys[] = {"order", "weights", "caution", "retreat", "idleTurns", "route", "ignores", "measure", "heals"};
+  static const char* const kKeys[] = {"order", "weights", "caution", "retreat", "idleTurns", "route", "ignores", "measure", "heals", "staffFirst", "staffPick", "inflictOnlyOn"};
   for (const char* k : kKeys)
     if (key == k) return true;
   return false;
 }
 
 bool scriptedIsDefault(const AiBehaviour& b) {
-  return b.order == 0 && b.weightSet < 0 && !b.cautionNone && !b.retreat.on && b.idleTurns == 0 && b.route.empty() && b.ignores.empty() && !b.areaMoveCost && !b.healsRetreating;
+  return b.order == 0 && b.weightSet < 0 && !b.cautionNone && !b.retreat.on && b.idleTurns == 0 && b.route.empty() && b.ignores.empty() && !b.areaMoveCost && !b.healsRetreating &&
+         b.staffFirst < 0 && !b.staffLastPlaced && !b.inflictCasters;
 }
 
 bool readScripted(const Json& v, const Database& db, AiBehaviour& b, std::string& err) {
@@ -137,6 +138,23 @@ bool readScripted(const Json& v, const Database& db, AiBehaviour& b, std::string
       return no(err, "\"heals\" must be \"anyone\" (the default) or \"retreating\" (its healing staves are used only on allies that are retreating to heal)");
     b.healsRetreating = h == "retreating";
   }
+  if (v.has("staffFirst")) {
+    if (!whole(v["staffFirst"]) || v["staffFirst"].asInt() < 0 || v["staffFirst"].asInt() > 100)
+      return no(err, "\"staffFirst\" must be a whole number from 0 to 100 (the chance in percent that the unit uses a staff it could use now before its usual choice; the game rolls 0 to 99 and it acts when the roll is at most this)");
+    b.staffFirst = v["staffFirst"].asInt();
+  }
+  if (v.has("staffPick")) {
+    const std::string h = v["staffPick"].asString();
+    if (!v["staffPick"].isString() || (h != "best" && h != "lastPlaced"))
+      return no(err, "\"staffPick\" must be \"best\" (the default: the use the computer scores highest) or \"lastPlaced\" (its staves go to the unit placed last among the legal targets)");
+    b.staffLastPlaced = h == "lastPlaced";
+  }
+  if (v.has("inflictOnlyOn")) {
+    const std::string h = v["inflictOnlyOn"].asString();
+    if (!v["inflictOnlyOn"].isString() || (h != "anyone" && h != "casters"))
+      return no(err, "\"inflictOnlyOn\" must be \"anyone\" (the default) or \"casters\" (a staff whose condition stops staves is used only on a unit that carries a staff or a weapon that condition would stop)");
+    b.inflictCasters = h == "casters";
+  }
   return true;
 }
 
@@ -176,6 +194,9 @@ void writeScripted(const AiBehaviour& b, Json& o) {
   }
   if (b.areaMoveCost) o.set("measure", Json::makeString("moveCost"));
   if (b.healsRetreating) o.set("heals", Json::makeString("retreating"));
+  if (b.staffFirst >= 0) o.set("staffFirst", Json::makeNumber(b.staffFirst));
+  if (b.staffLastPlaced) o.set("staffPick", Json::makeString("lastPlaced"));
+  if (b.inflictCasters) o.set("inflictOnlyOn", Json::makeString("casters"));
 }
 
 }  // namespace ote

@@ -20,6 +20,12 @@ namespace ai {
 // Carries out one unit's chosen order: the walk, then the action, then (whatever happened) never leaving the unit ready, which is what
 // guarantees that every turn terminates. Shared by the usual turn and the speed turn order (ai_speed.cpp).
 void playOrder(Battle& battle, int bestUnit, Order best, std::vector<Event>& events) {
+  if (best.first) {  // "staffFirst" (docs/AI.md section 10): one roll, 0..99, taken now that the unit really acts; it acts at once when the roll is at most the chance
+    const int roll = battle.rng.range(100);
+    const Order staff = *best.first;
+    best.first.reset();
+    if (roll <= best.firstChance) best = staff;
+  }
   if (best.moveTo != kNoCell) {
     battle.apply(Action::move(bestUnit, best.moveTo), events);
     // Ambushed ("rules.fog.ambush": "canAct"): the unit stopped short and may still act. What it planned for the
