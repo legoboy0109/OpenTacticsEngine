@@ -6,6 +6,7 @@ import { carriedWeapons, inventorySize, storageMode } from './itemRules'
 import { siteChecks } from './conditionChecks'
 import { staffChecks } from './staffChecks'
 import { sellChecks } from './sell'
+import { teachChecks } from './teaches'
 import type { Item, ItemEntry, ProjectDoc, Section } from './types'
 
 export interface ItemCheck { section: Section; text: string; mapId?: string }
@@ -55,7 +56,7 @@ function grantChecks(doc: ProjectDoc, list: ItemEntry[] | undefined, opts: { sec
 }
 
 export function itemChecks(doc: ProjectDoc): ItemCheck[] {
-  const out = [...itemListChecks(doc), ...sellChecks(doc)]
+  const out = [...itemListChecks(doc), ...sellChecks(doc), ...teachChecks(doc).map((text): ItemCheck => ({ section: 'items', text }))]
   // A staff the loader would refuse (the "nobody can use it yet" note is not one: it shows on the staff's own form).
   for (const c of staffChecks(doc)) if (c.blocks) out.push({ section: c.section, text: c.text })
   for (const c of siteChecks(doc)) if (c.section === 'items') out.push({ section: c.section, text: c.text })

@@ -1,5 +1,5 @@
 // The number an effect needs: how far a push goes, how much a heal gives.
-import { HEAL_MAX, PUSH_MAX, REFRESH_MAX, effectKind, refreshPerTurn, setCure, setEffectAmount, setRefreshPerTurn, setSteal, setUnlock, stealOf, unlockOf, type UnlockKinds } from '../../model/abilities'
+import { HEAL_MAX, PERCENT_MAX, PUSH_MAX, REFRESH_MAX, effectKind, healKind, refreshPerTurn, setCure, setEffectAmount, setHealKind, setHealValue, setRefreshPerTurn, setSteal, setStrikeWeapon, setUnlock, stealOf, strikeWeapon, unlockOf, type HealKind, type UnlockKinds } from '../../model/abilities'
 import { useDoc } from '../../store/context'
 import { MultiSelect } from '../../ui/MultiSelect'
 import { Select } from '../../ui/Select'
@@ -79,15 +79,43 @@ export function AbilityEffectFields({ ability, change }: FormProps) {
       </Field>
     )
   }
-  if (kind === 'heal') {
-    const full = ability.effect?.heal === 'full'
+  if (kind === 'strike') {
+    const weapons = doc.weapons ?? []
+    const cur = strikeWeapon(ability)
+    const options = weapons.map((w) => ({ value: w.id, label: w.name }))
+    if (cur && !weapons.some((w) => w.id === cur)) options.push({ value: cur, label: `${cur} (not a weapon of this game)` })
     return (
-      <div className="stack tight">
-        <Field label={T.healBy}>
-          <NumberInput value={typeof ability.effect?.heal === 'number' ? ability.effect.heal : undefined} min={1} max={HEAL_MAX} disabled={full}
-            onChange={(v) => { if (v !== undefined) change((a) => setEffectAmount(a, v), 'amount') }} />
+      <div className="stack tight" data-testid="ability-strike">
+        <Field label={T.strikeWeapon} help={weapons.length === 0 ? T.strikeNoWeapons : T.strikeWeaponHelp}>
+          <Select value={cur} placeholder="—" options={options} onChange={(v) => change((a) => setStrikeWeapon(a, v))} />
         </Field>
-        <Check label={T.healFull} checked={full} onChange={(v) => change((a) => setEffectAmount(a, v ? 'full' : 10))} />
+        <p className="help">{T.strikeCost}</p>
+      </div>
+    )
+  }
+  if (kind === 'heal') {
+    const hk = healKind(ability)
+    const h = ability.effect?.heal
+    return (
+      <div className="stack tight" data-testid="ability-heal">
+        <Field label={T.healHow}>
+          <Select value={hk} options={(Object.keys(T.healKinds) as HealKind[]).map((k) => ({ value: k, label: T.healKinds[k] }))} onChange={(v) => change((a) => setHealKind(a, v as HealKind))} />
+        </Field>
+        {hk === 'amount' && (
+          <Field label={T.healBy}>
+            <NumberInput value={typeof h === 'number' ? h : undefined} min={1} max={HEAL_MAX} onChange={(v) => { if (v !== undefined) change((a) => setEffectAmount(a, v), 'amount') }} />
+          </Field>
+        )}
+        {hk === 'percent' && (
+          <Field label={T.healPercent} help={T.healPercentHelp}>
+            <NumberInput value={(h as { percent: number }).percent} min={1} max={PERCENT_MAX} suffix="%" onChange={(v) => { if (v !== undefined) change((a) => setHealValue(a, v), 'percent') }} />
+          </Field>
+        )}
+        {hk === 'formula' && (
+          <Field label={T.healFormula} help={T.healFormulaHelp}>
+            <TextInput mono value={String(h)} onChange={(v) => change((a) => setHealValue(a, v), 'formula')} />
+          </Field>
+        )}
       </div>
     )
   }

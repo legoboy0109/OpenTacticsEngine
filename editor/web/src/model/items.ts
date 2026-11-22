@@ -59,6 +59,7 @@ export function setItemKind(doc: ProjectDoc, id: string, kind: ItemKind): Projec
     const patch: Record<string, unknown> = { kind }
     if (x.kind === 'staff') patch.target = undefined
     for (const [k, fields] of Object.entries(KIND_FIELDS)) if (k !== kind) for (const f of fields) patch[f] = undefined
+    if (kind !== 'weapon' && kind !== 'accessory') patch.teaches = undefined  // only weapons and accessories teach
     if (kind === 'usable') patch.heal = 10
     // A staff's target has more choices than a usable item's: whatever was there does not carry over either way.
     if (kind === 'staff') Object.assign(patch, newStaffDefaults(doc), { target: undefined })

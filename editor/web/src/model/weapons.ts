@@ -50,6 +50,13 @@ export function setWeaponGroup(doc: ProjectDoc, id: string, text: string): Proje
   return old && group && !groupsLeft(out).has(old) && !groupsLeft(doc).has(group) ? renameGroupRefs(out, old, group) : out
 }
 
+/** The weapon's own hit formula (blank = the game's); the key is removed when empty. */
+export const setWeaponHit = (doc: ProjectDoc, id: string, text: string): ProjectDoc => updateWeapon(doc, id, { hit: text.trim() === '' ? undefined : text })
+
+/** The loader refuses a "hit" that is not formula text. */
+export const weaponHitChecks = (doc: ProjectDoc): string[] =>
+  (doc.weapons ?? []).filter((w) => w.hit !== undefined && (typeof w.hit !== 'string' || w.hit.trim() === '')).map((w) => `${w.name}: the hit formula must be text, or left out.`)
+
 export function updateWeapon(doc: ProjectDoc, id: string, patch: Partial<Omit<Weapon, 'id'>>): ProjectDoc {
   return withWeapons(doc, (list) => updateById(list, id, (w) => patchObj(w, patch)))
 }

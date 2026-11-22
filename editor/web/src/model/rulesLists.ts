@@ -6,7 +6,7 @@ import { moveItem, updateById } from './util'
 import type { ProjectDoc } from './types'
 
 export const newResourceId = (doc: ProjectDoc, name: string): string =>
-  makeId(name, (doc.game?.resources ?? []).map((r) => r.id), { fallback: 'resource' })
+  makeId(name, (doc.game?.resources ?? []).map((r) => r.id), { fallback: 'resource', reserved: (doc.game?.unitResources ?? []).map((r) => r.id) })
 
 export function addResource(doc: ProjectDoc, name: string, id: string = newResourceId(doc, name)): ProjectDoc {
   return withGame(doc, (g) => ({ ...g, resources: [...(g.resources ?? []), { id, name }] }))

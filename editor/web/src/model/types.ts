@@ -39,7 +39,15 @@ export interface FogRules extends Extra { ambush?: AmbushRule }
 /** docs/SRPG.md section 10 `rules.places`: "menu" (default) = explicit Open / Visit entries in the unit's menu, "auto" = it happens when a unit ends a move there. */
 export type PlaceActions = 'menu' | 'auto'
 export interface PlaceRules extends Extra { actions?: PlaceActions }
+/** game.json `unitResources` entry: a pool whose maximum is a stat. */
+export interface UnitResource extends Extra { id: string; name?: string; max: string; start?: number; regen?: { perTurn?: number; percent?: number } }
+/** rules.abilityPoints (docs/JOBS.md "Learning from equipment"): every key optional, defaults never written. */
+export interface AbilityPointRules extends Extra { name?: string; perBattle?: number; perAction?: number; perDefeat?: number }
+/** An item's `teaches` entry: exactly one of `ability` and `skill`, and the points that master it. */
+export interface Teach extends Extra { ability?: string; skill?: string; points: number }
+
 export interface Rules extends Extra {
+  abilityPoints?: AbilityPointRules
   ai?: AiRulesBlock  // docs/AI.md "Scripted-style computer players" (model/aiRules.ts)
   places?: PlaceRules
   items?: ItemRules
@@ -89,6 +97,8 @@ export interface Game extends Extra {
   stats: Named[]
   roles: Roles
   resources?: Named[]
+  /** Pools each unit has for itself, spent by abilities (docs/SRPG.md "Unit resources"; model/unitResources.ts). */
+  unitResources?: UnitResource[]
   moveTypes: Named[]
   rules?: Rules
   formulas?: Formulas
@@ -193,6 +203,8 @@ export interface Weapon extends Named {
   damageKind?: string
   range?: [number, number]; counter?: boolean; afterMove?: boolean
   props?: NumMap; versus?: NumMap; versusDefault?: number; damage?: string
+  /** A formula for this weapon's hit chance, in place of the game's (docs/SRPG.md "Abilities that strike"). */
+  hit?: string
   /** Attacks per supply (fixed weapons only); missing = unlimited. */
   ammo?: number
   /** Sound overrides (event -> sound id, "" = silence): hit, miss, critical (docs/SOUND.md). */
@@ -251,6 +263,8 @@ export interface Item extends Named {
   uses?: number
   /** Any item with `uses`: false = a staff's repair never offers it (missing = repairable; docs/SRPG.md "Staves: stage two"). */
   repairable?: boolean
+  /** Weapons and accessories only: entries a unit may use while it has the item, mastered with ability points (docs/JOBS.md). */
+  teaches?: Teach[]
   /** false = a steal ability never takes this item (missing = it can be stolen; docs/SRPG.md "Steal"). */
   stealable?: boolean
   /** false = a shop that buys items back never takes this item (missing = it can be sold). */

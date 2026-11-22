@@ -8,14 +8,14 @@ import { moveItem, patchObj, updateById } from './util'
 import type { Ability, AbilityEffect, AbilityTarget, StealOptions, Summon } from './srpgTypes'
 import type { Extra, ProjectDoc } from './types'
 
-export type EffectKind = 'push' | 'pull' | 'swap' | 'moveBehind' | 'movePast' | 'heal' | 'summon' | 'steal' | 'refresh' | 'cure' | 'unlock' | 'none'
-export const EFFECT_KINDS: EffectKind[] = ['push', 'pull', 'swap', 'moveBehind', 'movePast', 'heal', 'summon', 'steal', 'refresh', 'cure', 'unlock']
+export type EffectKind = 'push' | 'pull' | 'swap' | 'moveBehind' | 'movePast' | 'heal' | 'summon' | 'steal' | 'refresh' | 'cure' | 'unlock' | 'strike' | 'none'
+export const EFFECT_KINDS: EffectKind[] = ['push', 'pull', 'swap', 'moveBehind', 'movePast', 'heal', 'summon', 'steal', 'refresh', 'cure', 'unlock', 'strike']
 /** 'none' = no "effect" key at all: the ability only gives a condition ("inflict"). Not in EFFECT_KINDS (those are the kinds with a key of their own). */
 export const NO_EFFECT: EffectKind = 'none'
 /** The five that move units next to the user: the loader needs a unit target and the range [1, 1]. */
 export const isMove = (k: EffectKind | null): boolean => k === 'push' || k === 'pull' || k === 'swap' || k === 'moveBehind' || k === 'movePast'
 /** Effects with no range of their own to write: the moving ones and steal (a neighbour, range [1, 1]). */
-export const hasFixedRange = (k: EffectKind | null): boolean => isMove(k) || k === 'steal'
+export const hasFixedRange = (k: EffectKind | null): boolean => isMove(k) || k === 'steal' || k === 'strike'
 
 export const PUSH_MAX = 5
 export const HEAL_MAX = 999
@@ -28,6 +28,8 @@ export const LIFETIME_MAX = 99
 export const TARGETS_FOR: Record<Exclude<EffectKind, 'none'>, AbilityTarget[]> = {
   push: ['ally', 'enemy', 'unit'], pull: ['ally', 'enemy', 'unit'], swap: ['ally', 'enemy', 'unit'], moveBehind: ['ally', 'enemy', 'unit'], movePast: ['ally', 'enemy', 'unit'],
   heal: ['self', 'ally', 'unit'], summon: ['cell'], steal: ['enemy'], refresh: ['ally'], cure: ['self', 'ally'], unlock: ['cell'],
+  /** A strike has no target of its own: the weapon decides whom it hits and how far (the loader refuses "target" and "range"). */
+  strike: [],
 }
 
 /** What an ability with only an inflict may be aimed at: any unit (not a square). */
@@ -72,7 +74,7 @@ const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, M
 /** The range is written only when it is not the default [1, 1]; "itself" and the moving effects have none to write. */
 function withRange(a: Ability, range: [number, number]): Ability {
   const kind = effectKind(a)
-  const keep = targetOf(a) !== 'self' && !hasFixedRange(kind) && !(range[0] === 1 && range[1] === 1)
+  const keep = targetOf(a) !== 'self' && effectKind(a) !== 'strike' && !hasFixedRange(kind) && !(range[0] === 1 && range[1] === 1)
   return patchObj(a, { range: keep ? range : undefined })
 }
 
@@ -100,6 +102,7 @@ const defaultEffect = (k: EffectKind): AbilityEffect => {
     case 'refresh': return { refresh: true }
     case 'cure': return { cure: 'all' }
     case 'unlock': return { unlock: true }
+    case 'strike': return { strike: '' }
     case 'none': return {}
   }
 }
@@ -108,6 +111,7 @@ const defaultEffect = (k: EffectKind): AbilityEffect => {
  *  needs a square within reach, so it starts with range 1..2 (the summon's own default is the maker's to change). */
 export function setEffectKind(doc: ProjectDoc, a: Ability, k: EffectKind): Ability {
   if (effectKind(a) === k) return a
+  if (k === 'strike') return patchObj(a, { effect: { strike: doc.weapons?.[0]?.id ?? '' }, target: undefined, range: undefined, cost: undefined })  // the weapon gives the target and reach; a strike always uses the action
   const target = targetsFor(k).includes(targetOf(a)) ? targetOf(a) : targetsFor(k)[0]
   if (k === 'none') {  // no "effect" key; "inflict" is then required, so one is started
     const next = patchObj(a, { effect: undefined, target, inflict: a.inflict ?? (doc.conditions?.[0] ? { condition: doc.conditions[0].id } : undefined) })
@@ -118,6 +122,35 @@ export function setEffectKind(doc: ProjectDoc, a: Ability, k: EffectKind): Abili
   if (k === 'cure' && doc.conditions?.[0]) effect.cure = [doc.conditions[0].id]
   const next = patchObj(a, { effect, target })
   return withRange(next, k === 'summon' && a.range === undefined ? [1, 2] : rangeOf(a))
+}
+
+/** The weapon a strike attacks with ('' = none picked yet). */
+export const strikeWeapon = (a: Ability): string => (typeof a.effect?.strike === 'string' ? a.effect.strike : '')
+export const setStrikeWeapon = (a: Ability, weapon: string): Ability => (effectKind(a) === 'strike' ? patchObj(a, { effect: { strike: weapon } }) : a)
+
+/** How a heal is given: a number of hit points, everything, a share of the maximum, or a formula (docs/SRPG.md "Healing by formula"). */
+export type HealKind = 'amount' | 'full' | 'percent' | 'formula'
+export function healKind(a: Ability): HealKind {
+  const h = a.effect?.heal
+  if (h === 'full') return 'full'
+  if (typeof h === 'string') return 'formula'
+  if (h && typeof h === 'object') return 'percent'
+  return 'amount'
+}
+export const PERCENT_MAX = 100
+/** Changing how it heals starts from a value that is valid for the new kind. */
+export function setHealKind(a: Ability, kind: HealKind): Ability {
+  if (effectKind(a) !== 'heal' || healKind(a) === kind) return a
+  const heal: AbilityEffect['heal'] = kind === 'full' ? 'full' : kind === 'percent' ? { percent: 25 } : kind === 'formula' ? 'a.mag' : 10
+  return patchObj(a, { effect: { ...a.effect, heal } })
+}
+/** The percent or the formula text, for the kinds that have them. */
+export function setHealValue(a: Ability, value: number | string): Ability {
+  if (effectKind(a) !== 'heal') return a
+  const k = healKind(a)
+  if (k === 'percent' && typeof value === 'number') return patchObj(a, { effect: { ...a.effect, heal: { percent: clamp(value, 1, PERCENT_MAX) } } })
+  if (k === 'formula' && typeof value === 'string') return patchObj(a, { effect: { ...a.effect, heal: value } })
+  return a
 }
 
 /** push 1..5; heal 1..999 or "full". */
@@ -191,4 +224,18 @@ export function setUnlock(a: Ability, patch: Partial<UnlockSetting>): Ability {
     ? { ...(list ? { kinds: list } : {}), needs: cur.needs }
     : list ?? true
   return patchObj(a, { effect: { unlock: value as AbilityEffect['unlock'] } })
+}
+
+// --- spend: what using the ability costs (docs/SRPG.md "Unit resources") --------------------------------------------------
+
+export const SPEND_MAX = 999
+/** An amount is whole and 1 to 999; a resource that was listed is kept even when it no longer exists, so a check can name it. */
+export const spendOf = (a: Ability): Record<string, number> => (a.spend && typeof a.spend === 'object' && !Array.isArray(a.spend) ? a.spend : {})
+
+/** Sets (or, with undefined, removes) the price in one resource; an empty price removes the key. */
+export function setSpend(a: Ability, resource: string, amount: number | undefined): Ability {
+  const next = { ...spendOf(a) }
+  if (amount === undefined) delete next[resource]
+  else next[resource] = clamp(amount, 1, SPEND_MAX)
+  return patchObj(a, { spend: Object.keys(next).length ? next : undefined })
 }

@@ -16,6 +16,7 @@ import { Check } from '../../ui/Toggle'
 import { AbilityConditions } from './AbilityConditions'
 import { AbilityEffectFields } from './AbilityEffectFields'
 import { AbilityExtras } from './AbilityExtras'
+import { AbilitySpend } from './AbilitySpend'
 import { SummonFields } from './SummonFields'
 import { T } from './text'
 
@@ -36,6 +37,7 @@ export function AbilityForm({ id }: { id: string }) {
   const allowed = kind ? targetsFor(kind) : (Object.keys(T.targets) as AbilityTarget[])
   const targetOptions = [...new Set([...allowed, target])].map((t) => ({ value: t, label: kind === 'unlock' && t === 'cell' ? (far ? T.unlockTarget : T.unlockTargetNext) : far && T.targetsFar[t] ? T.targetsFar[t] : T.targets[t] }))
   const showRange = kind !== null && !hasFixedRange(kind) && target !== 'self'
+  const strike = kind === 'strike'  // the weapon gives a strike its targets and reach, and it always uses the action
 
   return (
     <div className="stack" data-testid="ability-form">
@@ -59,9 +61,11 @@ export function AbilityForm({ id }: { id: string }) {
               <Select value={kind ?? ''} placeholder={kind ? undefined : '—'} options={[...EFFECT_KINDS, ...(kind === NO_EFFECT || (doc.conditions?.length ?? 0) > 0 ? [NO_EFFECT] : [])].map((k) => ({ value: k, label: T.effects[k] }))}
                 onChange={(v) => change((a) => setEffectKind(doc, a, v as (typeof EFFECT_KINDS)[number]))} />
             </Field>
-            <Field label={T.target} help={T.targetHelp}>
-              <Select value={target} options={targetOptions} onChange={(v) => change((a) => setTarget(a, v as AbilityTarget))} />
-            </Field>
+            {!strike && (
+              <Field label={T.target} help={T.targetHelp}>
+                <Select value={target} options={targetOptions} onChange={(v) => change((a) => setTarget(a, v as AbilityTarget))} />
+              </Field>
+            )}
           </FormGrid>
           <AbilityEffectFields ability={ability} change={change} />
           {showRange && (
@@ -79,7 +83,7 @@ export function AbilityForm({ id }: { id: string }) {
         <div className="stack">
           <FormGrid>
             <Field label={T.cost} help={T.costHelp}>
-              <Select value={ability.cost === 'free' ? 'free' : 'action'} options={[{ value: 'action', label: T.costAction }, { value: 'free', label: T.costFree }]}
+              <Select value={ability.cost === 'free' && !strike ? 'free' : 'action'} options={strike ? [{ value: 'action', label: T.costAction }] : [{ value: 'action', label: T.costAction }, { value: 'free', label: T.costFree }]}
                 onChange={(v) => change((a) => setCost(a, v === 'free'))} />
             </Field>
             <Field label={T.uses} help={T.usesHelp}>
@@ -102,6 +106,8 @@ export function AbilityForm({ id }: { id: string }) {
           <Check label={T.beforeMoving} help={T.beforeMovingHelp} checked={ability.afterMove === false} onChange={(v) => change((a) => setAfterMove(a, !v))} />
         </div>
       </Card>
+
+      <AbilitySpend ability={ability} change={change} />
 
       <AbilityExtras ability={ability} change={change} />
 

@@ -1,5 +1,5 @@
 import { suggestedWeaponProps } from '../../model/formulas'
-import { setWeaponGroup, setWeaponProp, setWeaponRange, updateWeapon } from '../../model/weapons'
+import { setWeaponGroup, setWeaponHit, setWeaponProp, setWeaponRange, updateWeapon, weaponHitChecks } from '../../model/weapons'
 import { useDoc, useEdit } from '../../store/context'
 import { Advanced, Card, FormGrid } from '../../ui/Card'
 import { Field, FieldGroup } from '../../ui/Field'
@@ -102,6 +102,10 @@ export function WeaponForm({ id }: { id: string }) {
             <TextInput multiline mono rows={2} value={weapon.damage ?? ''}
               onChange={(v) => edit((d) => updateWeapon(d, id, { damage: v.trim() === '' ? undefined : v }), `${key}:damage`)} />
           </Field>
+          <Field label={T.hit} help={T.hitHelp}>
+            <TextInput multiline mono rows={2} value={weapon.hit ?? ''} onChange={(v) => edit((d) => setWeaponHit(d, id, v), `${key}:hit`)} />
+          </Field>
+          {weaponHitChecks(doc).filter((p) => p.startsWith(`${weapon.name}:`)).map((p) => <p key={p} className="attention" role="alert">{p}</p>)}
           <Field label={T.id} help={T.idHelp}><TextInput value={weapon.id} readOnly mono /></Field>
         </div>
       </Advanced>

@@ -7,6 +7,8 @@ import { CampaignChecks } from '../campaign/CampaignChecks'
 import { BattleCard } from './BattleCard'
 import { FeaturesCard } from './FeaturesCard'
 import { ItemsCard } from './ItemsCard'
+import { AbilityPointsCard } from './AbilityPointsCard'
+import { UnitResourcesCard } from './UnitResourcesCard'
 import { FormulaEditor } from './FormulaEditor'
 import { MoveTypesCard, ResourcesCard } from './ListsCards'
 import { BattleViewCard } from './BattleViewCard'
@@ -45,6 +47,7 @@ function RulesForm() {
       <CampaignChecks topics={['switch', 'variable', 'resource']} />
       <StatsCard />
       <ResourcesCard />
+      <UnitResourcesCard />
       <MoveTypesCard />
       <BattleCard />
       <BattleViewCard />
@@ -57,6 +60,7 @@ function RulesForm() {
       <AiRuleCard />
       <FidelityCard />
       <ItemsCard />
+      <AbilityPointsCard />
       <PlacesRuleCard />
       <SavingCard />
       <DifficultyCard />

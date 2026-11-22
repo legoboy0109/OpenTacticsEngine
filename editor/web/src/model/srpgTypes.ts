@@ -73,7 +73,9 @@ export interface Summon extends Extra {
 /** `steal` (docs/SRPG.md "Steal"): true, or the options; `refresh`: true or `{ perTurn }`; `movePast`; `cure`: condition ids or "all". */
 export interface StealOptions extends Extra { if?: string; reason?: string; weapons?: boolean; equipped?: boolean }
 export interface AbilityEffect extends Extra {
-  push?: number; pull?: boolean; swap?: boolean; moveBehind?: boolean; heal?: number | 'full'; summon?: Summon
+  push?: number; pull?: boolean; swap?: boolean; moveBehind?: boolean; heal?: number | 'full' | { percent: number } | string; summon?: Summon
+  /** The id of a weapon of weapons.json: the ability attacks with it (docs/SRPG.md "Abilities that strike"). */
+  strike?: string
   steal?: true | StealOptions; refresh?: true | { perTurn: number }; movePast?: boolean; cure?: string[] | 'all'
   /** Doors and chests (docs/SRPG.md section 10): true, ["door"], ["chest"] or { kinds, needs }. */
   unlock?: true | Array<'door' | 'chest'> | { kinds?: Array<'door' | 'chest'>; needs?: string }
@@ -95,6 +97,8 @@ export interface Ability extends Named {
   inflict?: Extra
   /** Each use takes one use of the item that gives the ability (docs/SRPG.md "An ability that spends its item"). */
   spendsItem?: boolean
+  /** What using it costs: resource id (unit resource or side resource) -> amount 1 to 999 (docs/SRPG.md "Unit resources"). */
+  spend?: Record<string, number>
 }
 
 /** The combat numbers of a support level (section 6): a level states its whole bonus; `stats` never holds HP or move. */
