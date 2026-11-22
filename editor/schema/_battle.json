@@ -154,6 +154,8 @@
         "sounds": { "type": "map", "free": true, "sample": { "0": "cursor" }, "of": { "type": "ref", "ref": "keys:data/audio.json#sounds" },
                     "help": "Sounds by the milliseconds after the effect starts (0 to 60000), then a sound id of data/audio.json." },
         "hitAtMs": { "type": "int", "min": 0, "max": 15000, "help": "The effect starts this long before the hit lands (not for travel)." },
+        "fromHitFrame": { "type": "bool", "help": "Not for travel: the effect starts at the striker's hit frame and the hit lands hitAtMs after it." },
+        "hitAfterMs": { "type": "int", "min": 0, "max": 15000, "help": "Travel only: the hit lands this long after the shot leaves, even before it arrives." },
         "layer": { "type": "enum", "values": ["front", "behind", "screen"], "default": "front", "help": "In front of the fighters, behind them, or over the whole stage (screen)." },
         "order": { "type": "enum", "values": ["backdrop", "behind", "front"], "default": "backdrop", "help": "Screen layers only: where it sits in the drawing order." },
         "mirror": { "type": "bool", "help": "Screen layers only: turned round with the striker." },
