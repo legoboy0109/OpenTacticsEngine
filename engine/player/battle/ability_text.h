@@ -39,9 +39,11 @@ std::string abilityLimitText(const AbilityDef& def);
 // is limited or used up).
 std::string abilityStatusText(const Battle& b, const Unit& u, int ability);
 
-// The menu's right-hand text of one entry: the plain reason when it cannot be used, else the uses left ("2 left")
+// The menu's right-hand text of one entry: the plain reason when it cannot be used, else its price ("6 MP") and the uses left ("2 left")
 // for an ability with a limit, else empty.
 std::string abilityMenuExtra(const Battle& b, const Unit& u, const AbilityOption& o);
+// What one use costs from "spend": "6 MP", "6 MP 10 Gold"; empty for an ability without a price (docs/SRPG.md "Unit resources").
+std::string abilityPriceText(const Database& db, const AbilityDef& def);
 // A shorter form of one of the core's reasons, for a menu with no room for the full one ("before moving" for "can only
 // be used before moving"); a text that is not one of them comes back as it was.
 std::string abilityShortReason(const std::string& reason);

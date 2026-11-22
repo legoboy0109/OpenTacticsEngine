@@ -327,6 +327,8 @@ void BattleView::begin(const Battle& b) {
     // Strategy-RPG entries: beginSrpg (battle_view_srpg.cpp) took them above.
     case EventType::SkillLearned:
     case EventType::SkillActivated:
+    case EventType::PointsGained:
+    case EventType::PoolChanged:
     case EventType::UnitHurt:
     case EventType::UnitPromoted:
     case EventType::AbilityUsed:

@@ -19,7 +19,16 @@ std::string abilityEffectText(const Database& db, const AbilityDef& def) {
     case AbilityEffect::Swap: return "Swaps places with it";
     case AbilityEffect::MoveBehind: return "Moves it behind you";
     case AbilityEffect::Heal:
+      if (def.healPercent > 0) return "Heals " + num(def.healPercent) + "% of its HP";
+      if (def.healExpr >= 0) return "Heals HP";  // (by a formula: the amount depends on both units)
       return def.amount >= kHealFull ? "Heals all HP" : "Heals " + num(def.amount) + " HP";
+    case AbilityEffect::Strike: {  // docs/SRPG.md "Abilities that strike"
+      const WeaponDef* w = def.strike >= 0 && (size_t)def.strike < db.weapons.size() ? &db.weapons[(size_t)def.strike] : nullptr;
+      if (!w) return "Strikes";
+      std::string t = "Strikes with " + w->name;
+      if (w->damageType >= 0 && (size_t)w->damageType < db.damageTypes.list.size()) t += " (" + db.damageTypes.list[(size_t)w->damageType].name + ")";
+      return w->area.on() ? t + ", hits an area" : t;
+    }
     case AbilityEffect::Unlock: {
       std::string t = def.unlockDoors && def.unlockChests ? "Opens a door or chest" : def.unlockDoors ? "Opens a door" : "Opens a chest";
       if (def.unlockNeeds >= 0 && (size_t)def.unlockNeeds < db.items.size()) t += ", wears a " + db.items[(size_t)def.unlockNeeds].name;
@@ -121,7 +130,16 @@ std::string abilityMenuExtra(const Battle& b, const Unit& u, const AbilityOption
     left = std::max(0, def.uses - (use ? use->used : 0));
   }
   if (o.itemUses >= 0) left = left < 0 ? o.itemUses : std::min(left, o.itemUses);
-  return left < 0 ? "" : num(left) + AbilityWords::kLeft;
+  std::string out = abilityPriceText(*b.db, def);  // "6 MP" (docs/SRPG.md "Unit resources")
+  if (left >= 0) out += (out.empty() ? "" : "  ") + num(left) + AbilityWords::kLeft;
+  return out;
+}
+
+std::string abilityPriceText(const Database& db, const AbilityDef& def) {
+  std::string out;
+  for (const AbilitySpend& s : def.spend)
+    out += (out.empty() ? "" : " ") + num(s.amount) + " " + (s.unit ? db.unitResources[(size_t)s.index].name : db.resources[(size_t)s.index].name);
+  return out;
 }
 
 }  // namespace ote

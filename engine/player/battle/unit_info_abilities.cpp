@@ -7,6 +7,7 @@
 
 #include "battle/ability_text.h"
 #include "battle/unit_info.h"
+#include "battle/unit_info_rows.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -41,10 +42,12 @@ void addAbilitiesPage(UnitInfoPages& pages, const Battle& b, int unit) {
     k.name = d.name;
     if (b.jobGivesAbility(u, id) && std::find(b.typeOf(u).abilities.begin(), b.typeOf(u).abilities.end(), id) == b.typeOf(u).abilities.end())
       k.name += " (Job)";  // learned in its job or equipped from another (docs/JOBS.md); the place abilitiesOf puts a job's abilities
+    k.name += teachProgressText(b, u, true, id);  // " (AP 40/100)" while an item teaches it
     k.effect = abilityEffectText(*b.db, d);
     k.target = "Use on " + abilityTargetText(d);
     if (!abilityRangeText(d).empty()) k.target += ", " + abilityRangeText(d);
     k.target += "; " + abilityCostText(d);
+    if (!abilityPriceText(*b.db, d).empty()) k.target += ", " + abilityPriceText(*b.db, d);  // "6 MP"
     k.limits = abilityLimitText(d);
     k.status = abilityStatusText(b, u, id);
     k.description = d.description;

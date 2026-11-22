@@ -1,3 +1,4 @@
+#include "core/jobs/mastery.h"
 #include "jobs/jobs_text.h"
 
 #include <algorithm>
@@ -62,7 +63,7 @@ JobRows jobsTabRows(const Database& db, const RosterUnit& r) {
     PanelRow row;
     row.label = d.name;
     std::string lock;
-    const bool unlocked = jobUnlocked(db, r.jobs, (int)j, &lock);
+    const bool unlocked = jobUnlocked(db, r.jobs, (int)j, &lock, &r.mastery);
     row.mark = r.jobs.job == (int)j;
     const int level = jobLevelOf(db, r.jobs, (int)j);
     if (row.mark) row.extra = "Current Lv " + intStr(level);
@@ -85,7 +86,7 @@ JobRows learnTabRows(const Database& db, const RosterUnit& r) {
     const JobDef& d = db.jobs[j];
     if (d.learn.empty()) continue;
     std::string lock;
-    const bool unlocked = jobUnlocked(db, r.jobs, (int)j, &lock);
+    const bool unlocked = jobUnlocked(db, r.jobs, (int)j, &lock, &r.mastery);
     PanelRow head;
     head.header = true;
     head.label = d.name + (unlocked ? "  Lv " + intStr(jobLevelOf(db, r.jobs, (int)j)) + "  JP " + intStr(jobUnspent(r.jobs, (int)j)) : std::string("  (locked)"));
@@ -97,7 +98,13 @@ JobRows learnTabRows(const Database& db, const RosterUnit& r) {
       const bool learned = jobHasLearned(r.jobs, e.flat);
       std::string why;
       const bool can = !learned && jobLearnReason(db, r.jobs, e.flat, why);
-      row.extra = learned ? "Learned" : intStr(e.cost) + " JP";
+      row.extra = learned ? "Learned" : db.rules.jobs.spendJp ? intStr(e.cost) + " JP" : std::string();
+      // Points an item has put into it (docs/JOBS.md "Learning from equipment"): "AP 40/100" (beside the price when JP can buy it too).
+      for (size_t t = 0; t < db.teachEntries.size() && !learned; ++t) {
+        if (db.teachEntries[t].jobEntry != e.flat) continue;
+        const std::string pts = db.rules.abilityPoints.name + " " + intStr(teachPoints(r.mastery, (int)t)) + "/" + intStr(db.teachEntries[t].points);
+        row.extra = row.extra.empty() ? pts : row.extra + "  " + pts;
+      }
       row.mark = learned;
       row.dim = !can;
       row.detail = entryDetail(db, e);

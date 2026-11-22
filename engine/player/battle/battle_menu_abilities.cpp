@@ -11,6 +11,7 @@
 #include "battle/ability_text.h"
 #include "battle/item_text.h"
 #include "battle/srpg_menu_ids.h"
+#include "battle/strike_preview.h"
 #include "battle/battle_scene.h"
 #include "battle/menu_hide.h"
 #include "core/base/log.h"
@@ -144,7 +145,35 @@ bool BattleScene::abilityChosen(int id) {
   std::vector<int> units;
   std::vector<Cell> cells;
   battle_.abilityTargets(user, ability, u.cell, units, cells);
-  if (def.target == AbilityTarget::Self) {
+  if (def.effect == AbilityEffect::Strike) {
+    // A strike (docs/SRPG.md "Abilities that strike"): the hint line is the forecast of the highlighted target; an area weapon marks every square
+    // it would cover. The fight itself plays like an attack (Attack events).
+    auto sayLine = [this](const std::string& line) {
+      gPickHint = (line.empty() ? std::string("?") : line) + "  {ok}:use  {cancel}:back";
+      say(gPickHint);
+    };
+    if (def.target == AbilityTarget::Cell) {
+      if (cells.empty()) { say(AbilityWords::kNothingToTarget); return true; }
+      beginPickCell(cells, [use](Cell c) { use(-1, c); }, [this, user, ability, sayLine](int cand, Overlay& ov) {
+        std::vector<Cell> covered;
+        const std::string line = strikeAreaLine(battle_, user, ability, cand, covered);
+        for (Cell c : covered) { ov.reach[(size_t)c] = 0; ov.attack[(size_t)c] = 1; }
+        sayLine(line);
+      });
+    } else {
+      if (units.empty()) { say(AbilityWords::kNothingToTarget); return true; }
+      std::vector<Cell> candidateCells;
+      for (int t : units) candidateCells.push_back(battle_.units[(size_t)t].cell);
+      beginPickUnit(units, [use](int t) { use(t, kNoCell); }, [this, user, ability, candidateCells, sayLine](int target, Overlay& ov) {
+        for (Cell c : candidateCells) ov.reach[(size_t)c] = 1;
+        ov.reach[(size_t)battle_.units[(size_t)target].cell] = 0;
+        ov.attack[(size_t)battle_.units[(size_t)target].cell] = 1;
+        const std::string line = strikeUnitLine(battle_, user, ability, target);
+        OTE_INFO("strike forecast: %s", line.c_str());  // (the player tests read it)
+        sayLine(line);
+      });
+    }
+  } else if (def.target == AbilityTarget::Self) {
     menu_.close();
     use(-1, kNoCell);
   } else if (def.target == AbilityTarget::Cell) {

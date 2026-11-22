@@ -22,6 +22,8 @@ struct InfoRow {
 std::vector<InfoRow> statRows(const Battle& b, const Unit& u);
 
 // Where a skill on the unit comes from (the first place in the order of Battle::skillsOf).
+// " (AP 40/100)": the unit's points in a skill / ability an equipped item teaches it now (docs/JOBS.md "Learning from equipment"); "" otherwise.
+std::string teachProgressText(const Battle& b, const Unit& u, bool ability, int ref);
 enum class SkillSource { Class, Learned, Personal, Item, Weapon, Side, Rank, Job };
 const char* skillSourceName(SkillSource s);  // "Class", "Learned", "Personal", "Item", "Weapon", "Side" (a side-wide modifier, e.g. research), "Rank" (the unit's rank table entry), "Job" (learned in its job or equipped from another: docs/JOBS.md)
 struct SkillRow {
