@@ -239,9 +239,24 @@ struct BattleStage {
 };
 
 // Scene-wide timing (data/graphics.json "battle" > "scene"; docs/BATTLE_SCENE.md "Holding a pose"): how long after the blow (or the miss) a held pose waits.
+// "hitHold" (docs/BATTLE_SCENE.md "Holding a pose"): after a hit or a staff that lands, the wait grows with the hit points that changed, as a
+// hit-point bar that drains (or fills) at a fixed pace: max(minMs, baseMs + perHpMs x points) + killMs on a defeat, or noChangeMs when no point
+// changed. Milliseconds; decimals allowed (a console tick is 16.667 ms).
+struct HitHold {
+  bool on = false;
+  double minMs = 533, baseMs = 0, perHpMs = 0, killMs = 0, noChangeMs = 533;
+  // The wait after a hit that changed `points` hit points (either way), ending in a defeat or not.
+  double ms(int points, bool defeated) const {
+    if (points <= 0) return noChangeMs;
+    const double grow = baseMs + perHpMs * points;
+    return (grow > minMs ? grow : minMs) + (defeated ? killMs : 0);
+  }
+};
+
 struct BattleSceneTiming {
   int resultHoldMs = 533;      // "resultHoldMs" 0..5000: the result is "over" this long after the hit / miss moment (or when the striker's effect ends, if later)
   int resultHoldAgainMs = 0;   // "resultHoldAgainMs" 0..5000: added when the same fighter strikes again next
+  HitHold hitHold;             // "hitHold": a hit's (and a landing staff's) wait instead of resultHoldMs; a miss keeps resultHoldMs
 };
 
 struct BattleArt {

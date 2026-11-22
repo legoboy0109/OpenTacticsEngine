@@ -168,7 +168,8 @@ bool FightScene::start(const Env& env, const std::vector<Event>& run) {
   const std::vector<std::vector<EffectTimes>> fx = collectEffects(stageOn, lay);
   FighterTimes times[2] = {fighter_[0].times, fighter_[1].times};
   tl_ = buildTimelineList(script_, times, fx, stageOn && lay.each ? lay.panMs : -1,
-                         stageOn && lay.each ? lay.panStartMs : -1, art.timing.resultHoldMs, art.timing.resultHoldAgainMs);
+                         stageOn && lay.each ? lay.panStartMs : -1, art.timing.resultHoldMs, art.timing.resultHoldAgainMs,
+                         art.timing.hitHold);
   pickBackdrop(cells, pair);
   preloadArt();
 

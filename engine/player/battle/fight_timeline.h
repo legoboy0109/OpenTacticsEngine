@@ -179,8 +179,9 @@ struct FightTimeline {
 // `panStartMs` >= 0 (with a camera): the move to the struck fighter starts that long after the strike starts, whatever the hit time (the hit does not wait for it).
 // `resultHoldMs` / `resultHoldAgainMs` (docs/BATTLE_SCENE.md "Holding a pose"): a held pose waits until the hit (or miss) moment plus `resultHoldMs`, or until the strike's
 // effects are all over if later, plus `resultHoldAgainMs` when the same fighter strikes again next. Only used by animations that hold.
+// `hitHold` (when on): a hit's wait grows with the hit points it changed instead of `resultHoldMs`.
 FightTimeline buildTimelineList(const FightScript& s, const FighterTimes times[2], const std::vector<std::vector<EffectTimes>>& effectsByStrike, int panMs = -1,
-                                int panStartMs = -1, int resultHoldMs = 533, int resultHoldAgainMs = 0);
+                                int panStartMs = -1, int resultHoldMs = 533, int resultHoldAgainMs = 0, const HitHold& hitHold = HitHold());
 // At most one effect per strike (EffectTimes::has false = none): the form the first scene used.
 FightTimeline buildTimeline(const FightScript& s, const FighterTimes times[2], const std::vector<EffectTimes>& effectByStrike);
 
