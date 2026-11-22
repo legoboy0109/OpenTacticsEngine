@@ -36,6 +36,8 @@ class AppSettings {
   void setMapZoom(double z) { s_->setValue("map/zoom", z); }
   QString mapTool() const { return s_->value("map/tool", "paint").toString(); }
   void setMapTool(const QString& key) { s_->setValue("map/tool", key); }
+  int mapBrush() const { return s_->value("map/brush", 1).toInt(); }
+  void setMapBrush(int size) { s_->setValue("map/brush", size); }
   bool mapOverlay(const QString& name, bool def = true) const { return s_->value("map/overlay/" + name, def).toBool(); }
   void setMapOverlay(const QString& name, bool on) { s_->setValue("map/overlay/" + name, on); }
 

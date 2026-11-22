@@ -2,6 +2,7 @@
 // window (one drag = one undo step, exact cells), zoom and pan, the remembered zoom / tool, Inspect, resize with its question,
 // and speed on a 100 x 100 map. No dialog is shown: the resize questions go through hooks.
 #include <QCheckBox>
+#include <QComboBox>
 #include <QElapsedTimer>
 #include <QLabel>
 #include <QListWidget>
@@ -87,6 +88,7 @@ class MapViewTest : public QObject {
   void dragPaintIsOneUndoStepAndFastDragsLeaveNoGaps();
   void rectangleFillPickAndInspect();
   void heightToolsWork();
+  void brushSizeFromTheToolbarPaintsAPatchAndIsRemembered();
   void hexagonClicksPaintTheCellUnderThePointer();
   void zoomKeepsThePointInPlaceAndPanScrolls();
   void zoomAndToolSurviveARestart();
@@ -242,6 +244,44 @@ void MapViewTest::heightToolsWork() {
   const Json now = parse(win.file("maps/bridge.json"));
   QCOMPARE(QString::fromStdString(now["heights"][0].dump(0)), QStringLiteral("[2,2,2,1,1,1,0,1,1,3,3,2,1]"));
   QCOMPARE(QString::fromStdString(now["heights"][8].dump(0)), QStringLiteral("[2,3,2,1,1,1,0,1,1,1,1,9,9]"));
+}
+
+void MapViewTest::brushSizeFromTheToolbarPaintsAPatchAndIsRemembered() {
+  ote_test::Scratch keep;
+  const QString ini = keep.file("brush.ini");
+  {
+    Win win("demo-srpg", ini);
+    MapPage* page = win.openMap("bridge");
+    auto* box = page->findChild<QComboBox*>("brushSize");
+    QVERIFY(box);
+    QCOMPARE(box->count(), 5);  // 1 3 5 7 9
+    box->setCurrentIndex(box->findData(3));
+    QCOMPARE(page->painter()->brushSize(), 3);
+    page->selectTerrain("mountain");
+    page->setTool(MapTool::Paint);
+    const int before = win.stack()->count();
+    QTest::mouseClick(page->view()->viewport(), Qt::LeftButton, Qt::NoModifier, at(page->view(), 6, 1));
+    QCOMPARE(win.stack()->count(), before + 1);  // a click with a brush is still one undo step
+    QVERIFY(win.save("maps/bridge.json"));
+    const Json now = parse(win.file("maps/bridge.json"));
+    for (int y = 0; y < 3; ++y) QCOMPARE(QString::fromStdString(now["tiles"][(size_t)y].asString().substr(5, 3)), QStringLiteral("mmm"));
+    QCOMPARE(QString::fromStdString(now["tiles"][3].asString().substr(5, 3)), QStringLiteral(".~."));  // row 3 is outside the patch
+    // Fill and Rectangle ignore the brush.
+    page->setTool(MapTool::Rectangle);
+    QTest::mouseClick(page->view()->viewport(), Qt::LeftButton, Qt::NoModifier, at(page->view(), 3, 8));
+    QVERIFY(win.save("maps/bridge.json"));
+    const Json rect = parse(win.file("maps/bridge.json"));
+    QCOMPARE(QString::fromStdString(rect["tiles"][8].asString().substr(0, 6)), QStringLiteral(".m.m.."));  // one square only
+    QCOMPARE(QString::fromStdString(rect["tiles"][7].asString().substr(0, 6)), QStringLiteral(".mm..."));
+    win.w->close();
+    win.settings->sync();
+  }
+  {
+    Win win("demo-srpg", ini);  // restart: the brush comes back
+    MapPage* page = win.openMap("bridge");
+    QCOMPARE(page->painter()->brushSize(), 3);
+    QCOMPARE(page->findChild<QComboBox*>("brushSize")->currentData().toInt(), 3);
+  }
 }
 
 void MapViewTest::hexagonClicksPaintTheCellUnderThePointer() {

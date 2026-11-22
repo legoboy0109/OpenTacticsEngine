@@ -297,7 +297,12 @@ grid and edits `tiles`, `legend`, `heights` and, on resize, `tileLayer`; everyth
   `-` / `+` / `100%` / `Fit` buttons.
 - **Tools.** Paint (click and drag), Rectangle, Fill (flood fill over connected squares of the same terrain, hexagon-aware), Pick
   (eyedropper: also copies the square's height into the Height box), Raise / Lower (height +1 / -1 once per square per stroke),
-  Set height (the number in the Height box, 0-99) and Inspect. A fast drag leaves no gaps (the segment between two mouse events is
+  Set height (the number in the Height box, 0-99), Inspect, Slots and Move unit (see "Placing").
+  **Brush** (toolbar, 1 x 1 to 9 x 9, remembered): Paint, Raise / Lower and Set height cover a patch around the clicked square: a block
+  on square maps, a hexagon-shaped patch (every hexagon within (size - 1) / 2 steps: 1, 7, 19 ...) on hexagon maps, clipped at the map's
+  edge (`ote_editor::brushCells`, built on the engine grid's neighbour rule). The squares a click would change are outlined under the
+  pointer. One stroke is still one undo step and a height changes once per stroke however often the pointer crosses it. Fill, Rectangle
+  and Pick ignore the brush. A fast drag leaves no gaps (the segment between two mouse events is
   walked). The palette lists `data/terrain.json` (then legend terrains it does not list) with the legend symbol beside each name.
 - **Heights.** Shown as lighter shading and a small number. A map without `heights` gets the list (all 0, written right after
   `tiles`) with its first height edit; "set 0" on such a map changes nothing.
@@ -368,6 +373,8 @@ QT_QPA_PLATFORM=offscreen OTE_SHOT_DIR=/some/folder ./editor/native/native_test_
 - `native_test_map_placement`: deployment slots added / moved / removed (byte-exact undo, `required` numbers and `limit` kept valid, a
   map without `prep`), units moved, and the same through real mouse events with the Slots and Move unit tools; the saved map passes the
   project check.
+- Brushes: `ote_editor_core_tests` (cell counts for squares, pointy and flat hexagons, clipping), `native_test_map_model` (byte-exact
+  patches against the neighbour table of docs/HEX.md) and `native_test_map_view` (toolbar, one undo step, remembered across a restart).
 - `native_test_map_screenshots`: square map, hexagon map (and a rectangle preview), heights at 100% / 250% / 40%, a tile layer, the
   resize dialog (`OTE_SHOT_DIR=... ./editor/native/native_test_map_screenshots`).
 - `native_test_conformance`: see above.
@@ -404,7 +411,7 @@ QT_QPA_PLATFORM=offscreen OTE_SHOT_DIR=/some/folder ./editor/native/native_test_
 
 ## Not there yet
 - Map painter leftovers: no tool paints the `tileLayer` tiles (it is shown and kept on resize), structures cannot be moved on the
-  canvas and units / structures cannot be added there (slots and units can be placed / moved, see "The map painter"), no brush sizes, no 3D / isometric
+  canvas and units / structures cannot be added there (slots and units can be placed / moved, see "The map painter"), no 3D / isometric
   preview, resize does not adjust coordinates inside story events, and `ote-mcp`'s `set_tiles` has its own copy of the legend
   logic instead of `editor/core/map_grid`.
 - Pickers that show the sound or the picture (the battle scene's frames are cell numbers, not a preview), and the table-level

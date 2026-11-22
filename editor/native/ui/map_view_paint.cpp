@@ -177,12 +177,17 @@ void MapView::paintEvent(QPaintEvent* ev) {
   for (const MapMarker& m : shown)
     if (showUnits_) draw(m, MapMarker::Kind::Unit);
 
-  if (g.inside(hoverX_, hoverY_)) {  // the cell under the pointer
-    QPolygonF poly;
-    for (const QPointF& pt : geom_.outline(hoverX_, hoverY_)) poly << toViewport(pt);
+  if (g.inside(hoverX_, hoverY_)) {  // the cell under the pointer; with a brush tool, every cell the click would change
+    const bool brushTool = tool_ == MapTool::Paint || tool_ == MapTool::Raise || tool_ == MapTool::Lower || tool_ == MapTool::SetHeight;
+    std::vector<int> cells = brushTool ? ote_editor::brushCells(g, hoverX_, hoverY_, painter_->brushSize()) : std::vector<int>();
+    if (cells.size() <= 1) cells = {hoverY_ * g.width + hoverX_};
     p.setBrush(Qt::NoBrush);
-    p.setPen(QPen(QColor(255, 230, 0), 2));
-    p.drawPolygon(poly);
+    p.setPen(QPen(QColor(255, 230, 0), cells.size() > 1 ? 1.5 : 2));
+    for (int c : cells) {
+      QPolygonF poly;
+      for (const QPointF& pt : geom_.outline(c % g.width, c / g.width)) poly << toViewport(pt);
+      p.drawPolygon(poly);
+    }
   }
 }
 

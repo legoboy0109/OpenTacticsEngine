@@ -269,4 +269,34 @@ std::vector<int> floodRegion(const MapGrid& g, int x, int y) {
   return out;
 }
 
+std::vector<int> brushCells(const MapGrid& g, int x, int y, int size) {
+  std::vector<int> out;
+  if (!g.inside(x, y)) return out;
+  const int r = std::max(0, (size - 1) / 2);
+  if (!g.hex) {
+    for (int yy = std::max(0, y - r); yy <= std::min(g.height - 1, y + r); ++yy)
+      for (int xx = std::max(0, x - r); xx <= std::min(g.width - 1, x + r); ++xx) out.push_back(yy * g.width + xx);
+    return out;
+  }
+  // Hexagons: breadth-first over the engine's own neighbour rule, so odd rows / columns need no special case here.
+  const ote::Grid grid(ote::GridType::Hex, g.width, g.height, g.flatTop ? ote::HexLayout::Flat : ote::HexLayout::Pointy);
+  std::vector<int> dist((size_t)g.width * (size_t)g.height, -1);
+  const int start = grid.at(x, y);
+  dist[(size_t)start] = 0;
+  std::vector<int> queue{start};
+  for (size_t i = 0; i < queue.size(); ++i) {
+    const int c = queue[i];
+    out.push_back(c);
+    if (dist[(size_t)c] >= r) continue;
+    ote::Cell next[ote::Grid::kMaxNeighbors];
+    const int n = grid.neighbors(c, next);
+    for (int k = 0; k < n; ++k)
+      if (dist[(size_t)next[k]] < 0) {
+        dist[(size_t)next[k]] = dist[(size_t)c] + 1;
+        queue.push_back(next[k]);
+      }
+  }
+  return out;
+}
+
 }  // namespace ote_editor

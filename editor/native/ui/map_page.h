@@ -13,6 +13,7 @@
 class QAbstractButton;
 class QButtonGroup;
 class QCheckBox;
+class QComboBox;
 class QLabel;
 class QListWidget;
 class QSpinBox;
@@ -35,6 +36,7 @@ class MapPage : public QWidget {
   void selectTerrain(const QString& id);
   QString selectedTerrain() const;
   void setTool(MapTool tool);
+  void setBrushSize(int size);  // 1, 3, 5, 7 or 9; remembered
 
   // Resize: the dialog and the "units would be cut off" question are hooks so tests never open a window.
   using ResizeChooser = std::function<bool(ote_editor::ResizeSpec* spec)>;
@@ -61,6 +63,7 @@ class MapPage : public QWidget {
   QListWidget* palette_;
   QButtonGroup* tools_;
   QSpinBox* heightSpin_;
+  QComboBox* brushBox_;
   QLabel *status_, *zoomLabel_, *note_, *message_;
   QCheckBox *units_, *structures_, *heights_, *layer_;
   AppSettings* settings_ = nullptr;

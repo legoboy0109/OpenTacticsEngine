@@ -3,6 +3,7 @@
 #include <QAbstractButton>
 #include <QButtonGroup>
 #include <QCheckBox>
+#include <QComboBox>
 #include <QIcon>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -73,6 +74,14 @@ MapPage::MapPage(Project* project, JsonDocument* doc, QWidget* parent) : QWidget
   bar->addSpacing(8);
   bar->addWidget(new QLabel(tr("Height:"), this));
   bar->addWidget(heightSpin_);
+  bar->addSpacing(8);
+  brushBox_ = new QComboBox(this);
+  brushBox_->setObjectName("brushSize");
+  for (int n = 1; n <= MapPainter::kMaxBrush; n += 2) brushBox_->addItem(tr("%1 x %1").arg(n), n);
+  brushBox_->setToolTip(tr("How wide Paint, Raise, Lower and Set height work around the square you click: a block of squares, or a hexagon-shaped patch on a hexagon map"));
+  connect(brushBox_, qOverload<int>(&QComboBox::currentIndexChanged), this, [this] { setBrushSize(brushBox_->currentData().toInt()); });
+  bar->addWidget(new QLabel(tr("Brush:"), this));
+  bar->addWidget(brushBox_);
   bar->addSpacing(12);
 
   auto* out = new QToolButton(this);
@@ -191,6 +200,7 @@ void MapPage::setAppSettings(AppSettings* settings) {
   settings_ = settings;
   if (!settings) return;
   setTool(mapToolFromKey(settings->mapTool()));
+  setBrushSize(settings->mapBrush());
   view_->setZoom(settings->mapZoom());
   units_->setChecked(settings->mapOverlay("units"));
   structures_->setChecked(settings->mapOverlay("structures"));
@@ -203,6 +213,14 @@ void MapPage::saveOverlay(const QString& name, bool on) {
   if (!settings_) return;
   settings_->setMapOverlay(name, on);
   if (name == "heights") settings_->setMapOverlay("heightsSet", true);
+}
+
+void MapPage::setBrushSize(int size) {
+  painter_->setBrushSize(size);
+  const int i = brushBox_->findData(painter_->brushSize());
+  if (i >= 0 && i != brushBox_->currentIndex()) brushBox_->setCurrentIndex(i);
+  view_->viewport()->update();
+  if (settings_) settings_->setMapBrush(painter_->brushSize());
 }
 
 void MapPage::setTool(MapTool tool) {
