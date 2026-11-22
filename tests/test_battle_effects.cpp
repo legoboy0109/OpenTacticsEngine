@@ -414,3 +414,78 @@ TEST(effect_timeline_sounds_of_an_effect_come_at_their_own_times) {
   CHECK(near(beat(tl, BeatKind::FxSound, 1)->t, beat(tl, BeatKind::Hit)->t));  // the arrival is the hit
   for (size_t i = 1; i < tl.beats.size(); ++i) CHECK(tl.beats[i - 1].t <= tl.beats[i].t);  // the beats stay in time order
 }
+
+// "fromHitFrame" and "hitAfterMs" (docs/BATTLE_SCENE.md "Timing of effects"): a lead-in counted from the striker's hit frame, and a shot
+// whose hit lands before it arrives.
+TEST(battle_effects_hit_timing_keys_load_and_refuse) {
+  Database db;
+  std::string err;
+  const std::string fx = "[ {\"weapon\":\"longbow\",\"sheet\":\"fx\",\"frames\":[[0,0]],\"hitAtMs\":350,\"fromHitFrame\":true},"
+                         " {\"group\":\"blade\",\"sheet\":\"fx\",\"frames\":[[0,0]],\"mode\":\"travel\",\"travelMs\":300,\"hitAfterMs\":17} ]";
+  const bool ok = loadGame(makeGame("hittime", fx), db, err);
+  if (!ok) std::printf("  %s\n", err.c_str());
+  CHECK(ok);
+  if (!ok) return;
+  const BattleEffect& a = db.graphics.battle.effects[0];
+  const BattleEffect& b = db.graphics.battle.effects[1];
+  CHECK(a.fromHitFrame && a.hitAtMs == 350 && a.hitAfterMs == -1 && a.extended);
+  CHECK(!b.fromHitFrame && b.hitAfterMs == 17 && b.extended);
+  Database db2;
+  CHECK(loadGame(makeGame("hittime0", one("\"mode\":\"travel\"")), db2, err));
+  CHECK(!db2.graphics.battle.effects[0].fromHitFrame && db2.graphics.battle.effects[0].hitAfterMs == -1);
+  expectError("fhf1", one("\"mode\":\"travel\",\"fromHitFrame\":true"), "\"fromHitFrame\" is for an effect that appears");
+  expectError("fhf2", one("\"fromHitFrame\":1"), "fromHitFrame");
+  expectError("haf1", one("\"hitAfterMs\":20"), "\"hitAfterMs\" is only for a \"travel\" effect");
+  expectError("haf2", one("\"mode\":\"travel\",\"hitAfterMs\":-1"), "\"hitAfterMs\" must be between 0 and 15000");
+  expectError("haf3", one("\"mode\":\"travel\",\"hitAfterMs\":15001"), "\"hitAfterMs\" must be between 0 and 15000");
+}
+
+TEST(effect_timeline_from_hit_frame_counts_the_lead_in_from_the_hit_frame) {
+  EffectTimes e = target(150);
+  e.fromHitFrame = true;
+  const FightTimeline tl = build({{e}});
+  const double start = beat(tl, BeatKind::StrikeStart)->t, hit = beat(tl, BeatKind::Hit)->t;
+  CHECK(near(tl.fx[0].t0, start + 0.2));  // the effect starts at the striker's hit frame (200 ms)
+  CHECK(near(hit, start + 0.35));         // and the hit lands 150 ms after it (without the key: at 200 ms, the effect at 50 ms)
+  // A miss is timed the same way.
+  const FightTimeline m = build({{e}}, 0);
+  CHECK(near(beat(m, BeatKind::Miss)->t, beat(m, BeatKind::StrikeStart)->t + 0.35));
+  // With no lead-in it is the plain timing: the effect starts at the hit frame, which is the hit.
+  EffectTimes z = target(0);
+  z.fromHitFrame = true;
+  const FightTimeline t0 = build({{z}});
+  CHECK(near(beat(t0, BeatKind::Hit)->t, beat(t0, BeatKind::StrikeStart)->t + 0.2) && near(t0.fx[0].t0, beat(t0, BeatKind::Hit)->t));
+  // An "atRange" delay moves the effect and its hit together.
+  EffectTimes d = e;
+  d.delayMs = 100;
+  const FightTimeline td = build({{d}});
+  const double sd = beat(td, BeatKind::StrikeStart)->t;
+  CHECK(near(beat(td, BeatKind::Hit)->t, sd + 0.45) && near(td.fx[0].t0, sd + 0.3));
+  // Beside an effect counted from the strike's start, the later of the two hits decides; both lead in to it.
+  const FightTimeline tb = build({{e, target(300)}});
+  const double sb = beat(tb, BeatKind::StrikeStart)->t, hb = beat(tb, BeatKind::Hit)->t;
+  CHECK(near(hb, sb + 0.35) && near(tb.fx[0].t0, hb - 0.15) && near(tb.fx[1].t0, hb - 0.3));
+}
+
+TEST(effect_timeline_hit_after_ms_lands_before_the_shot_arrives) {
+  EffectTimes e = travelFx(250);
+  e.hitAfterMs = 150;
+  const FightTimeline tl = build({{e}}, kHit, 2);
+  const double start = beat(tl, BeatKind::StrikeStart, 0)->t, hit = beat(tl, BeatKind::Hit, 0)->t;
+  CHECK(near(tl.fx[0].t0, start + 0.1));  // leaves at the spawn frame
+  CHECK(near(hit, start + 0.25));         // the hit 150 ms later, while the shot is still in the air
+  CHECK(near(tl.fx[0].dur, 0.25));        // the flight itself is unchanged
+  const FightBeat* next = beat(tl, BeatKind::StrikeStart, 1);
+  CHECK(next && next->t >= tl.fx[0].t0 + tl.fx[0].dur);  // the next strike waits for it to arrive
+  // Never before the striker's own hit frame.
+  EffectTimes early = travelFx(250);
+  early.hitAfterMs = 17;
+  const FightTimeline t2 = build({{early}});
+  CHECK(near(beat(t2, BeatKind::Hit)->t, beat(t2, BeatKind::StrikeStart)->t + 0.2));
+  // With an "atRange" delay the shot and its hit move together.
+  EffectTimes d = travelFx(250);
+  d.hitAfterMs = 150;
+  d.delayMs = 100;
+  const FightTimeline td = build({{d}});
+  CHECK(near(beat(td, BeatKind::Hit)->t, beat(td, BeatKind::StrikeStart)->t + 0.35));
+}
