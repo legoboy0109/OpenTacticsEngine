@@ -4,7 +4,33 @@ Current state of the build, for whoever (or whichever model) continues.
 Read docs/PLAN.md (roadmap + owner decisions), docs/ARCHITECTURE.md
 (structure + binding portability rules) and docs/GAME_FORMAT.md first.
 
-## Latest (2026-11-21, evening) — START HERE
+## Latest (2026-11-22) — START HERE
+
+**Correction:** the 2026-11-21 "next" items are already built (hexagons in all four views: docs/HEX.md "Status"; standing terrain in 3D:
+docs/VIEWS.md "Standing terrain"). The thief work (165c877) is pushed.
+
+**Local main (not pushed yet):** merges `scene-hit-timing` (effect keys `fromHitFrame`, `hitAfterMs`; docs/BATTLE_SCENE.md) and `native-map-painter`
+(slots / units on the canvas, brush sizes, isometric preview, ote-mcp legend cleanup). Full check 71: sdl3/sdl2 2706, editor API 1587, ctest 84,
+sims identical, vitest 1639, e2e 632, webtest chromium 280; webtest firefox needs `DISPLAY=:0` in an agent shell (notes). Push after it passes (owner OK).
+
+**Branches waiting (worktrees under .claude/worktrees/):**
+- `hit-hold` (mine): `battle.scene.hitHold` (a hit waits by the HP changed; docs/BATTLE_SCENE.md). Engine 2708, vitest pass; merge, then native tests.
+- `fft-abilities`: ability points / mastery / equipment teaching / JP sharing / jobs unlocked by mastery; strike abilities, heal formulas, MP
+  (`unitResources`). A code review found 6 bugs; the agent is fixing them and merging main in. Many owner decisions listed in its report (key
+  names, "AP"/"MP" labels, defaults): ask the owner before or after merging.
+- `ai-staff-first`: AI options `staffFirst` (roll before attacking), `staffPick: "lastPlaced"`, a silence-like target filter (in progress).
+
+**Vision Quest (private):** step 46 A/B committed (spells from the hit frame, shots hit in flight; installed, check_game clean). Step 46 C
+(`hitHold` in `conv_battle.SCENE` + `check_holds` rule check) is UNCOMMITTED in tools/conv_battle.py and tools/check_holds.py: commit and
+reconvert after `hit-hold` merges. Findings 16 (hit gauge rule) and 17 (every staff row of the computer; staff-first roll) committed. Next: emit the
+staff AI keys from findings 17 once `ai-staff-first` merges; remaining scene gaps: an area staff scene (no enemy uses fortify), per-set blow offset
+(0..13 ticks), class-2 follow-up hold, atRange starting inside an effect.
+
+**FFTA port (private, new):** `/home/kadenm/Projects/FFTAPort` (local git only; ROM on the 2 TB drive's ROMS folder). Steps 1-4: tables decoded
+and checked, level-up and plain damage read from the ROM's code, headless mGBA emulator (`tools/emu.py`, silent), four battles installed in
+`games/ffta-port`. Step 5 running (hit roll, mission -> formation, level shift, more missions). The PS1 FFT comes later (owner dumping a disc).
+
+## Latest (2026-11-21, evening) (previous)
 
 **origin/main = local main** (full check 69 clean: ote_tests 2694 both builds, editor API 1579, ctest 84, webtest 272+59, vitest 1629,
 e2e 628 after the last changes). Pushed this session:
