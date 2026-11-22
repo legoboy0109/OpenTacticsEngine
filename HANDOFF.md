@@ -24,6 +24,15 @@ Owner (2026-11-21, late): item icons and the Play window size look good; the B-b
 combat. Measured today (ote-sim): a `goesFor: chests` thief with a lockpick attacks an adjacent unit for 5 rounds and loots only
 after, then stands still; the original flees after looting (port docs AI2 5 = loot, then AI 6,12 escape). Planned (not started; the
 owner chose the port rebuilds first): engine `goesFor` priority + "escape after loot", port marks lockpick-only thieves.
+Owner, same evening: a defeated enemy thief drops the LAST item in its inventory that is not equipped (check the engine's `drop`
+marking against that rule in the thief work). Order after that: hexagons in the other three views (plan item n), then standing
+terrain in 3D (item l).
+
+**Ports caught up (2026-11-21 night):** Windows (fresh build, ote_tests 2701/0, ctest 84/84 after the ote-mcp Windows fixes, zip
+smoke-tested from a non-ASCII folder), UWP appx 0.1.1122.426 (built clean, installed and played on the VM desktop, D3D11), Android APK
+(autoplay battle + hardware 3D 60 fps in the emulator), original Xbox (autoplay battle in xemu, 60 fps, 21 of 64 MB). Builds for the
+owner in the VM folder's `builds/`. Open: a half-bright line in Android-emulator 3D (notes); local commits not pushed (ask).
+**Then, in order:** thief AI (loot first, avoid fights, escape; drop rule), hexagons in the other three views, standing terrain in 3D.
 
 **Next:** ask the owner how the Play panel size and the scrolling feel now, and how the item icons look; rebuild Windows / UWP /
 Android / OG Xbox with today's changes (none rebuilt yet).
