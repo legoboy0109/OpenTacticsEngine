@@ -4,7 +4,20 @@ Current state of the build, for whoever (or whichever model) continues.
 Read docs/PLAN.md (roadmap + owner decisions), docs/ARCHITECTURE.md
 (structure + binding portability rules) and docs/GAME_FORMAT.md first.
 
-## Latest (2026-11-21, afternoon) — START HERE
+## Latest (2026-11-21, evening) — START HERE
+
+**origin/main = local main** (full check 69 clean: ote_tests 2694 both builds, editor API 1579, ctest 84, webtest 272+59, vitest 1629,
+e2e 628 after the last changes). Pushed this session:
+- Edge scrolling calmer (owner: started too easily, moved too fast): band 1/8 tile, dwell 0.5 s, 5 tiles/s (`battle/edge_scroll.h`).
+- Editor Play panel slimmer so 3x fits a 1080p browser window: 4 px margin, tighter header, header selects capped at 13rem (one row at
+  1440 px), one-line controls hint. 1920x900 now gives 3x (play-fit e2e case). Owner confirmed the black lines are gone.
+- Vision Quest (private repo): step 43 item icons from the ROM (`tools/conv_icons.py`, 203 of 205 items, Dance/Play none); installed in
+  `games/vision-quest`, check_game clean after fixing check_places' chest demo (thief stands on the chest since step 40).
+
+**Next:** ask the owner how the Play panel size and the scrolling feel now, and how the item icons look; rebuild Windows / UWP /
+Android / OG Xbox with today's changes (none rebuilt yet).
+
+## Earlier (2026-11-21, afternoon)
 
 The owner asked to stop here and continue in a fresh session. Everything below is merged into local `main`.
 
