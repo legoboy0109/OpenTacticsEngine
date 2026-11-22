@@ -9,8 +9,8 @@ import { forEachCommand } from './storyWalk'
 import type { Rect } from './storyTypes'
 import type { MapFile, MapUnit, ProjectDoc, Unit } from './types'
 
-export type BehaviourMode = 'advance' | 'hold' | 'guard' | 'guardArea' | 'seek' | 'patrol'
-export const BEHAVIOUR_MODES: BehaviourMode[] = ['advance', 'hold', 'guard', 'guardArea', 'seek', 'patrol']
+export type BehaviourMode = 'advance' | 'hold' | 'guard' | 'guardArea' | 'seek' | 'patrol' | 'loot' | 'escape'
+export const BEHAVIOUR_MODES: BehaviourMode[] = ['advance', 'hold', 'guard', 'guardArea', 'seek', 'patrol', 'loot', 'escape']
 export type SeekKind = 'unit' | 'place' | 'square'
 export type Prefer = 'weakest' | 'nearest' | { unit: string } | { type: string } | { tag: string }
 
@@ -18,10 +18,13 @@ export interface BehaviourObj {
   mode?: string; wake?: string; group?: string; fromTurn?: number; area?: Rect; within?: number
   unit?: string; place?: string; x?: number; y?: number; prefer?: Prefer
   /** The scripted-style keys (model/behaviourScripted.ts). */
-  order?: number; weights?: string; caution?: string; retreat?: unknown; idleTurns?: number; route?: unknown; ignores?: string[]; measure?: string; heals?: string
+  order?: number; weights?: string; caution?: string; retreat?: unknown; idleTurns?: number; route?: unknown; ignores?: string[]; measure?: string; heals?: string; attacks?: boolean
   [k: string]: unknown
 }
 export type Behaviour = string | BehaviourObj
+
+/** What a looter has to go for (engine/core/data/loader_behaviour.cpp): walls and weapons do not count. */
+export const LOOT_GOALS = ['chests', 'villages', 'doors', 'steal']
 
 /** The loader's bounds (engine/core/data/behaviour.h). */
 export const MAX_FROM_TURN = 99
@@ -44,7 +47,7 @@ export const seekKindOf = (o: BehaviourObj): SeekKind => (typeof o.unit === 'str
 
 /** The keys each mode keeps; everything else goes when the mode changes. `fromTurn` and `prefer` belong to every mode. */
 const KEEP: Record<BehaviourMode, string[]> = {
-  advance: [], hold: [], guard: ['wake', 'group'], guardArea: ['group', 'area', 'within'], seek: ['unit', 'place', 'x', 'y'], patrol: [],
+  advance: [], hold: [], guard: ['wake', 'group'], guardArea: ['group', 'area', 'within'], seek: ['unit', 'place', 'x', 'y'], patrol: [], loot: [], escape: [],
 }
 
 /** The block written the short way: undefined for the default, a bare mode name when nothing else is set, else an object. */
@@ -60,7 +63,7 @@ export function tidyBehaviour(o: BehaviourObj): Behaviour | undefined {
   for (const k of Object.keys(o)) if (!KNOWN.has(k)) out[k] = o[k]
   const keys = Object.keys(out)
   if (keys.length === 0) return undefined
-  if (keys.length === 1 && out.mode !== undefined && (mode === 'hold' || mode === 'guard')) return mode
+  if (keys.length === 1 && out.mode !== undefined && (mode === 'hold' || mode === 'guard' || mode === 'loot' || mode === 'escape')) return mode
   return out
 }
 const KNOWN = new Set(['mode', 'wake', 'group', 'fromTurn', 'area', 'within', 'unit', 'place', 'x', 'y', 'prefer', ...SCRIPTED_KEYS])
@@ -129,6 +132,8 @@ export function behaviourMark(b: unknown): string | null {
     case 'guard': case 'guardArea': return 'G'
     case 'seek': return 'S'
     case 'patrol': return 'P'
+    case 'loot': return 'L'
+    case 'escape': return 'E'
     default: return typeof o.fromTurn === 'number' && o.fromTurn > 1 ? 'T' : null
   }
 }
@@ -200,11 +205,11 @@ function canAct(doc: ProjectDoc, u: MapUnit): boolean {
 }
 
 /** Plain problems of one block. `refs` says what exists on the map; `where` starts every sentence. */
-export function blockProblems(b: unknown, doc: ProjectDoc, map: MapFile, say: (text: string, note?: boolean) => void, mine: { human?: boolean } = {}): void {
+export function blockProblems(b: unknown, doc: ProjectDoc, map: MapFile, say: (text: string, note?: boolean) => void, mine: { human?: boolean; goesFor?: unknown } = {}): void {
   const o = behaviourObj(b)
   const mode = modeOf(o)
   if (typeof b !== 'string' && (typeof b !== 'object' || b === null || Array.isArray(b))) { say('the behaviour is not a mode name or a block.'); return }
-  if (o.mode !== undefined && !BEHAVIOUR_MODES.includes(o.mode as BehaviourMode)) say(`“${String(o.mode)}” is not a behaviour (advance, hold, guard, guardArea, seek or patrol).`)
+  if (o.mode !== undefined && !BEHAVIOUR_MODES.includes(o.mode as BehaviourMode)) say(`“${String(o.mode)}” is not a behaviour (advance, hold, guard, guardArea, seek, patrol, loot or escape).`)
   if (mine.human) say('a behaviour tells the computer what to do, but this unit is on a side a person plays.')
   if (o.fromTurn !== undefined) {
     if (!Number.isInteger(o.fromTurn) || o.fromTurn < 1 || o.fromTurn > MAX_FROM_TURN) say(`“does nothing before turn” must be a whole number from 1 to ${MAX_FROM_TURN}.`)
@@ -230,6 +235,9 @@ export function blockProblems(b: unknown, doc: ProjectDoc, map: MapFile, say: (t
     if (o.within !== undefined && (!Number.isInteger(o.within) || o.within < 1 || o.within > MAX_WITHIN)) say(`the distance must be a whole number from 1 to ${MAX_WITHIN}.`)
   }
   scriptedProblems(o, mode, doc, map, say)
+  if (mode === 'escape' && !(Array.isArray(map.exits) && map.exits.length > 0)) say('mode “escape” needs squares to leave by: give the map exits (Map tab, “Exits”).')
+  if (mode === 'loot' && 'goesFor' in mine && !(Array.isArray(mine.goesFor) && mine.goesFor.some((g) => LOOT_GOALS.includes(g as string))))
+    say('mode “loot” needs “goes for” with what it takes: chests, villages, doors and / or steal.')
   const p = o.prefer
   if (typeof p === 'object' && p !== null && 'unit' in p && typeof p.unit === 'string' && p.unit !== '' && !namedUnits(doc, map).some((u) => u.id === p.unit) && !doc.characters?.some((c) => c.id === p.unit))
     say(`it prefers “${p.unit}”, which is not a named unit of this map.`)
@@ -246,12 +254,15 @@ export function behaviourPhrase(b: unknown): string {
     case 'guard': text = o.wake === 'react' ? 'only hit what comes within reach' : 'wait until someone comes into range'; break
     case 'guardArea': text = 'wait until someone comes near'; break
     case 'patrol': text = 'walk their route'; break
+    case 'loot': text = 'take what they go for, then leave'; break
+    case 'escape': text = 'run for the map’s exits and leave'; break
     case 'seek': text = typeof o.unit === 'string' ? `head for ${o.unit || 'a unit'}` : typeof o.place === 'string' ? `head for ${o.place || 'a place'}` : `head for the square ${(o.x ?? 0) + 1}, ${(o.y ?? 0) + 1}`; break
     default: text = 'advance and attack'
   }
   const g = typeof o.group === 'string' && o.group ? ` (group ${o.group})` : ''
   const t = typeof o.fromTurn === 'number' && o.fromTurn > 1 ? `, from turn ${o.fromTurn}` : ''
-  return `${text}${g}${t}`
+  const a = o.attacks === false ? ', never starting a fight' : ''
+  return `${text}${g}${t}${a}`
 }
 
 /** Every problem with the behaviours of the map's units, plus a group of one and a unit that holds with nothing to do. */
@@ -265,7 +276,7 @@ export function behaviourChecks(doc: ProjectDoc, mapId: string, map: MapFile): B
     const cell = { x: u.x, y: u.y }
     const say = (text: string, note?: boolean) => out.push({ mapId, cell, note, text: `${where}: ${text}` })
     const side = sides.get(u.side)
-    blockProblems(u.behaviour, doc, map, say, { human: side !== undefined && side.controller !== 'ai' })
+    blockProblems(u.behaviour, doc, map, say, { human: side !== undefined && side.controller !== 'ai', goesFor: u.goesFor })
     const o = behaviourObj(u.behaviour)
     if (typeof o.group === 'string' && o.group && counts.get(o.group) === 1) say(`it is the only unit in the group “${o.group}”, so waking it wakes nobody else.`, true)
     if (modeOf(o) === 'hold' && !canAct(doc, u)) say('it holds its square but has no weapon, staff or ability, so it can never do anything.', true)

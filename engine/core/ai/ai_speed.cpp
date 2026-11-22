@@ -137,6 +137,7 @@ bool aiTakeSpeedStep(Battle& battle, std::vector<Event>& events) {
     return mine();
   }
   ai::updateWakes(battle);  // docs/AI.md: guards that have a reason wake up before anyone chooses
+  ai::updateLooters(battle);  // docs/AI.md "Looting and escaping"
   ai::Context cx(battle);
   ai::assignCaptureGoals(cx);
   ai::Order best = ai::bestOrder(cx, u);

@@ -115,6 +115,11 @@ Stance stanceFor(Context& cx, const Unit& u, const std::vector<Cell>& stops) {
     case AiMode::GuardArea:
       if (!u.awake) st.idle = true;
       break;
+    case AiMode::Loot:
+      st.noAdvance = true;  // it goes for its loot (ai_places.cpp), never toward the enemy; when nothing is left it escapes (ai_loot.cpp)
+      break;
+    case AiMode::Escape:
+      break;  // bestOrder hands it to escapeOrder before any of this matters
     case AiMode::Patrol:
       // it attacks what it can reach like a reactive guard (nothing to wake); its own walk is considerPatrol's, not the advance
       fillPatrol(b, u, st);

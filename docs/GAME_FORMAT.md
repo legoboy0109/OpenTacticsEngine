@@ -403,6 +403,8 @@ pick). A map side names one with `"commander": "<id>"` or `"commander": "choose"
                  "cells": [ "000c000f001200150018",        // (docs/GRAPHICS.md "Tile layer"): a tileset of data/graphics.json "tilesets"; one string per row,
                             "....0003000400050006" ] },    // four hex digits per square, "...." = no tile; the terrain still decides the rules
   "weather": "rain",                                       // optional: "rain" | "snow" | "none": the weather the battle starts with (docs/ECONOMY.md "Weather and movement cost")
+  "exits": [ { "x": 0, "y": 4 } ],                         // optional, 1..64 squares: where a computer unit in mode "escape" (or a looter that is done)
+                                                           // leaves the map (docs/AI.md "Looting and escaping")
   "battleBackgrounds": { "swamp": "bog", "default": "meadow" },  // optional: the battle scene's background per terrain on this map ("default" = every other);
                                                            // wins over the game's table (docs/BATTLE_SCENE.md "Which background and platform")
   "battlePlatforms": { "swamp": "boards", "default": "grass" },  // optional: the same for the platform under each fighter

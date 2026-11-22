@@ -20,6 +20,8 @@ bool readMapTileLayer(const LoadCtx& c, const Database& db, const Json& root, Ma
 // A map file's "battleBackground".
 bool readMapBattleTables(const LoadCtx& c, const Database& db, const Json& root, MapDef& m);  // "battleBackgrounds" / "battlePlatforms"
 bool readMapWeather(const LoadCtx& c, const Json& root, MapDef& m);  // "weather" (loader_weather.cpp)
+constexpr int kMaxMapExits = 64;
+bool readMapExits(const LoadCtx& c, const Json& root, MapDef& m);    // "exits" (loader_exits.cpp)
 bool readMapBattleBackground(const LoadCtx& c, const Database& db, const Json& root, MapDef& m);
 
 }  // namespace ote

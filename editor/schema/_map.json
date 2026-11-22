@@ -23,9 +23,9 @@
     "behaviour": {
       "type": "variant", "help": "What a computer unit does until the story changes it (docs/AI.md).",
       "variants": [
-        { "name": "mode word", "kind": "string", "node": { "type": "enum", "values": ["advance", "hold", "guard"], "help": "advance: walk at the enemy; hold: stand still, hit what comes near; guard: sleep until an enemy is in reach." } },
+        { "name": "mode word", "kind": "string", "node": { "type": "enum", "values": ["advance", "hold", "guard", "loot", "escape"], "help": "advance: walk at the enemy; hold: stand still, hit what comes near; guard: sleep until an enemy is in reach; loot: take what it goes for, then leave; escape: walk to an exit of the map and leave." } },
         { "name": "behaviour block", "kind": "object", "sample": { "mode": "advance" }, "node": { "type": "object", "fields": {
-          "mode": { "type": "enum", "values": ["advance", "hold", "guard", "guardArea", "seek", "patrol"], "default": "advance", "help": "advance, hold, guard (sleeps until woken), guardArea (wakes by an area or distance), seek (heads for a target), patrol (walks a route)." },
+          "mode": { "type": "enum", "values": ["advance", "hold", "guard", "guardArea", "seek", "patrol", "loot", "escape"], "default": "advance", "help": "advance, hold, guard (sleeps until woken), guardArea (wakes by an area or distance), seek (heads for a target), patrol (walks a route), loot (plays its goesFor marks and never walks at the enemy; with nothing left to take it escapes; on a map unit or addUnit it needs goesFor with chests, villages, doors or steal), escape (walks to the nearest exit of the map and leaves it; the map needs exits)." },
           "wake": { "type": "enum", "values": ["once", "react"], "when": { "mode": ["guard"] }, "help": "once: wakes for good; react: only hits what it can reach this turn." },
           "group": { "type": "string", "when": { "mode": ["guard", "guardArea"] }, "help": "Group name (letters, digits, _ and -): a wakeGroup command or a woken member wakes the whole group." },
           "fromTurn": { "type": "int", "min": 1, "max": 99, "help": "The behaviour starts in this round; before it the unit holds." },
@@ -57,7 +57,8 @@
           "idleTurns": { "type": "int", "min": 1, "max": 99, "help": "Rounds of standing still before it moves." },
           "route": { "type": "list", "when": { "mode": ["patrol"] }, "of": { "use": "square" }, "help": "Patrol: the squares it walks, 2 to 32; the last leads back to the first." },
           "ignores": { "type": "list", "of": { "type": "ref", "ref": ["@storyUnits", "data/characters.json"] }, "help": "Units it never attacks (at most 32)." },
-          "heals": { "type": "enum", "values": ["anyone", "retreating"], "default": "anyone", "help": "retreating: its healing staves are used only on allies that are retreating." } } } } ]
+          "heals": { "type": "enum", "values": ["anyone", "retreating"], "default": "anyone", "help": "retreating: its healing staves are used only on allies that are retreating." },
+          "attacks": { "type": "bool", "default": true, "help": "false: it never starts a fight (it still counterattacks), in any mode." } } } } ]
     },
     "unit": {
       "type": "object", "summary": "{id|character|type} ({side}) at {x},{y}", "help": "A unit as an addUnit command adds it; a map's units list takes one more key (facing).",

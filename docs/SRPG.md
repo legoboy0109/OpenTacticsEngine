@@ -3069,7 +3069,8 @@ All wording is a placeholder, in one file (`engine/player/battle/place_text.h`; 
 - A door / chest is "locked" by default; "not locked" doors open for anyone adjacent (menu: Open, no key).
 - A neutral place cannot be destroyed; only the owner's enemies destroy a place that has a `ruin`.
 - Doors do not give experience and the attacker's skills are not part of the door's damage formula.
-- The AI opens doors only when a door is what keeps it from the enemy.
+- The AI opens doors only when a door is what keeps it from the enemy, except a looter (docs/AI.md "Looting and escaping"), for which the doors it goes
+  for are part of its loot.
 - Strings are placeholders (see the Player part).
 
 ### Not built
@@ -3077,7 +3078,8 @@ All wording is a placeholder, in one file (`engine/player/battle/place_text.h`; 
 - **Steal** is built (section 3 "Skill and ability blocks, second set", Steal): an ability that takes an item from an adjacent foe. A stolen item is no
   longer in the foe's inventory, so it cannot drop when the foe is defeated.
 - Editor forms are built (docs/EDITOR_UI.md "Doors, chests and places"), `goesFor` on an `addUnit` command included ("Editor gaps").
-- The AI does not use unlock abilities / staves. It breaks doors down only when its unit is marked `goesFor: ["walls"]` (below).
+- The AI uses an unlock ability (a thief's trait) on a chest or door it goes for, but not unlock staves. It breaks doors down only when its unit is
+  marked `goesFor: ["walls"]` (below).
 
 ### Walls that break (a breakable wall that turns into floor)
 

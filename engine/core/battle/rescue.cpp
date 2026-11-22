@@ -305,8 +305,7 @@ void Battle::rescueUnitGone(int unit, int by, std::vector<Event>& events) {
   c.alive = true;  // killUnit only acts on a unit on the board
   c.cell = grid.valid(where) ? where : kNoCell;
   std::vector<ItemStack> drops;
-  for (const ItemStack& s : c.items)
-    if (s.drop) drops.push_back(s);
+  dropsOf(c, drops);  // docs/ITEMS.md "Drops"
   killUnit(carried, events, by);
   if (by >= 0 && units[(size_t)by].alive)
     for (const ItemStack& s : drops) giveTo(by, s, kDropped, events);

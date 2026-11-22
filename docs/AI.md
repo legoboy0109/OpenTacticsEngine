@@ -39,7 +39,7 @@ default above. Unknown keys, bad values and keys that do not belong to the mode 
 
 | key | meaning |
 |---|---|
-| `mode` | `"advance"` (default), `"hold"`, `"guard"`, `"guardArea"`, `"seek"`, `"patrol"` |
+| `mode` | `"advance"` (default), `"hold"`, `"guard"`, `"guardArea"`, `"seek"`, `"patrol"`, `"loot"`, `"escape"` (section "Looting and escaping") |
 | `wake` | `guard` only: `"once"` (default) or `"react"` |
 | `group` | `guard` / `guardArea`: a name (letters, digits, `_`, `-`); the members of a group (same side, same name) wake together |
 | `area` | `guardArea`: a rectangle `{ "x", "y", "w", "h" }` (`w`, `h` default 1; squares of the map as the `reach` trigger counts them) |
@@ -49,6 +49,7 @@ default above. Unknown keys, bad values and keys that do not belong to the mode 
 | `unit` / `place` / `x` + `y` | `seek`: exactly one target: a unit's story id, a placed structure's `id`, or a square |
 | `fromTurn` | any mode: whole number 1 to 99; the unit does nothing before that round (1 = from the start, the same as leaving it out) |
 | `prefer` | any mode: `"weakest"`, `"nearest"`, `{ "unit": id }`, `{ "type": id }`, `{ "tag": text }` |
+| `attacks` | any mode: `false` = the unit never starts a fight (section "Never attacking"); `true` (default) |
 | `order`, `weights`, `caution`, `retreat`, `idleTurns`, `ignores`, `heals` | any mode: the scripted-style options (section "Scripted-style computer players" below); all opt-in |
 
 ### The modes
@@ -89,7 +90,40 @@ counting it if you like:
 { "id": "away", "when": { "reach": { "x": 13, "y": 4 }, "by": { "unit": "runner" } },
   "do": [ { "removeUnit": { "unit": "runner" } }, { "addVariable": "escaped", "by": 1 } ] }
 ```
-(`removeUnit` is not a defeat: no drops, no defeat events.) Tested in `tests/test_ai_behaviour_data.cpp`.
+(`removeUnit` is not a defeat: no drops, no defeat events.) Tested in `tests/test_ai_behaviour_data.cpp`. For a unit that should pick the
+nearest of several exits by itself, use the map's `"exits"` and mode `"escape"` (next section).
+
+### Looting and escaping
+
+Two modes for thieves and runners, and the map squares they leave by. Names are placeholders for the owner to rename.
+
+**The map's exits.** `maps/*.json` `"exits": [ { "x": 0, "y": 4 }, ... ]` (1 to 64 squares inside the map, none twice; absent = none) are the
+squares a computer unit can **leave the map** by. Leaving is its action (it ends its turn): the unit goes with everything it carries, like a
+story `removeUnit` (`UnitRemoved`: no defeat, no drops, no experience, no defeat events; its summons vanish, a unit it carries is put down). A
+side left with no units after that has lost by "noUnits" as usual. Only the computer leaves: the action (`LeaveMap`) refuses a person's units,
+and no menu offers it. A `reach` event on an exit square still runs when the unit steps on it.
+
+**`"escape"`** (`"behaviour": "escape"`). The unit never attacks (it still counterattacks). It leaves by the exit it stands on; else, if it can
+stop on an exit this turn, it walks there and leaves in the same turn; else it walks toward the nearest exit (by movement cost; ties: better
+terrain); with no exit it can ever get to, it goes where the fewest known enemies can hit it, as a retreating unit does. The map must have
+`"exits"` (the loader says so).
+
+**`"loot"`** (`"behaviour": "loot"`, with `"goesFor"` naming what it takes: chests, villages, doors and / or steal). The unit plays its
+`goesFor` marks as any marked unit does (opens, visits, steals; walks toward the nearest chest or village) but **never walks toward the
+enemy**, and it opens the doors it goes for whether or not an enemy can be reached (they are part of its loot). At the start of each of its
+side's turns the computer asks whether anything is left that it could still open or visit anywhere it can walk to (units in the way do not
+count, closed doors it cannot open do); once nothing is, the unit **escapes for good** (as `"escape"`; saved as `"escaping"`; a chest that
+appears later does not bring it back). Without `"exits"` it then keeps away from the enemy. Whether it attacks while it still loots is the
+`attacks` key: with `"attacks": false` it never fights; without it, an attack outscores opening (as for every marked unit), so it fights when
+it can and loots otherwise. Typical thief: `"goesFor": ["chests", "villages", "steal"], "behaviour": { "mode": "loot", "attacks": false }`.
+
+### Never attacking
+
+`"attacks": false` (any mode) takes every attack out of the unit's choices: weapons, weighted attacks, a map weapon. It still moves as its mode
+says, uses staves, items and abilities, opens and visits what it goes for, steals, and counterattacks (a counter is a rule, not a choice).
+
+Code: `ai/ai_loot.cpp` (looters and escape orders), `ai/ai_places.cpp` (`lootLeft`), `battle/exits.cpp` (`LeaveMap`), the `noAttack` test in
+`ai/ai_order.cpp`. Tests: `tests/test_ai_loot.cpp`. Not used by the action-point turn (docs/SRPG.md "Action points"): its units play as before.
 
 ### Start turn
 

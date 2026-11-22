@@ -100,7 +100,7 @@ function commandChecks(doc: ProjectDoc, map: MapFile, e: StoryEvent, c: Command,
       else if (u.id && (ids.get(u.id) ?? 0) > 1) say(where, `the story name “${u.id}” is used by more than one unit of the map.`)
       if (Array.isArray(u.items) && u.items.length > inventorySize(doc)) say(where, `${u.items.length} items, but a unit can carry only ${inventorySize(doc)}.`)
       if (typeof u.level === 'number' && u.level < 1) say(where, 'the level must be at least 1.')
-      if (u.behaviour !== undefined) blockProblems(u.behaviour, doc, map, (t) => say(where, t), { human: map.sides?.some((s) => s.id === u.side && s.controller !== 'ai') })
+      if (u.behaviour !== undefined) blockProblems(u.behaviour, doc, map, (t) => say(where, t), { human: map.sides?.some((s) => s.id === u.side && s.controller !== 'ai'), goesFor: u.goesFor })
       break
     }
     case 'fight':

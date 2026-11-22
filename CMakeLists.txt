@@ -572,6 +572,9 @@ if(OTE_BUILD_EDITOR AND NOT EMSCRIPTEN)
                      COMMENT "Embedding schemas and docs into ote-mcp")
   add_executable(ote-mcp ${MCP_SRC} ${MCP_EMBEDDED_CPP})
   target_include_directories(ote-mcp PRIVATE editor/mcp)
+  # Last place ote-mcp looks for the game templates: this checkout's own folder, so a build folder anywhere (C:\work\build beside
+  # C:\work\src on Windows) still finds them. A packaged ote-mcp finds the copy next to it first.
+  target_compile_definitions(ote-mcp PRIVATE OTE_MCP_DEFAULT_TEMPLATES="${CMAKE_SOURCE_DIR}/editor/templates")
   target_link_libraries(ote-mcp PRIVATE ote_editor_core ote_player_lib ote_core ote_audio)
   target_compile_options(ote-mcp PRIVATE ${OTE_WARN})
   if(NOT MSVC)

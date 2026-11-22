@@ -250,6 +250,9 @@ struct ItemRules {
   ItemStorage storage = ItemStorage::Off;
   FreeBattleStock freeStock;    // see above
   int sellPercent = 50;         // what a shop that buys items pays: this share of the price, scaled by the uses left (0..100)
+  // "drops": "marked" (default): a defeated unit gives every item marked `drop`; "last": one with any mark gives only its last item that is
+  // not the weapon in its hand (docs/ITEMS.md "Drops").
+  bool dropLast = false;
 };
 const int kMaxInventory = 20;
 
@@ -741,6 +744,7 @@ struct MapDef {
   // and its "default"; -1 = none. They win over the game-wide tables of data/graphics.json for this map.
   std::vector<int> bgByTerrain, platformByTerrain;
   std::string weather;  // "weather": "rain" | "snow": the weather the battle starts with ("" = clear); a story `weather` command changes it
+  std::vector<std::pair<int, int>> exits;  // "exits": squares (x, y) a computer unit can leave the map by (docs/AI.md "Looting and escaping"); empty = none
   int bgDefault = -1, platformDefault = -1;
   std::shared_ptr<const StoryData> story;  // null = no events and no objectives; shared by copies
   std::shared_ptr<const PrepDef> prep;     // null = the map starts as it is placed (no preparation screen)

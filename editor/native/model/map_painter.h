@@ -48,15 +48,22 @@ class MapPainter : public QObject {
   // Structure sizes of data/structures.json (for resizing).
   std::map<std::string, ote_editor::Footprint> footprints();
 
+  // ---- brush ----
+  // Paint, Raise / Lower and Set height cover a patch around the clicked square: 1, 3, 5, 7 or 9 across (squares: a block; hexagons:
+  // every cell within (size-1)/2 steps). Fill, Rectangle and the single-cell calls below are not affected.
+  static constexpr int kMaxBrush = 9;
+  int brushSize() const { return brush_; }
+  void setBrushSize(int size);
+
   // ---- strokes ----
   bool beginStroke(const QString& undoText);
   bool inStroke() const { return inStroke_; }
   // Terrain: a legend entry is added to the grid copy when the map has none for it (written by endStroke).
-  bool paintCell(int x, int y, const std::string& terrain);
+  bool paintCell(int x, int y, const std::string& terrain);  // the brush patch centred on (x, y)
   bool paintRect(int x0, int y0, int x1, int y1, const std::string& terrain);
   bool floodFill(int x, int y, const std::string& terrain);
   // Heights: the first height edit of a map without `heights` creates the list (all 0). bumpHeight changes a cell once per stroke.
-  bool setHeight(int x, int y, int value);
+  bool setHeight(int x, int y, int value);  // also the brush patch
   bool bumpHeight(int x, int y, int delta);
   // Writes the stroke (one undo step); false when nothing changed. cancelStroke() throws the copy away.
   bool endStroke();
@@ -76,6 +83,8 @@ class MapPainter : public QObject {
   void refresh();
   bool setSymbol(int x, int y, const std::string& terrain, char glyph);
   void ensureHeights();
+  bool setHeightCell(int x, int y, int value);
+  bool bumpHeightCell(int x, int y, int delta);
   const ote::Json* tableRows(const QString& rel, const char* key);
 
   Project* project_;
@@ -83,6 +92,7 @@ class MapPainter : public QObject {
   ote_editor::MapGrid base_, work_;
   bool stale_ = true, ok_ = false, flatTop_ = false, inStroke_ = false, pushing_ = false;
   QString error_, undoText_;
+  int brush_ = 1;
   std::set<int> bumped_;  // cells bumpHeight already changed in this stroke
 };
 

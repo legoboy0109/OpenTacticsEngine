@@ -110,14 +110,17 @@ static bool loadRules(const LoadCtx& c, const Json& root, Database& db) {
   // Items (docs/ITEMS.md): no "enabled" flag; a game has items when data/items.json lists some.
   if (!c.object(*rules, "items", "rules", blk)) return false;
   // ("freeBattleStorage" is read by loadFreeBattleStock, after the items exist.)
-  if (!c.onlyKeys(*blk, {"weapons", "storage", "inventorySize", "sellPercent", "freeBattleStorage"}, "rules.items")) return false;
-  std::string weapons = "fixed", storage = "off";
-  if (!c.str(*blk, "weapons", "rules.items", weapons) || !c.str(*blk, "storage", "rules.items", storage) ||
+  if (!c.onlyKeys(*blk, {"weapons", "storage", "inventorySize", "sellPercent", "freeBattleStorage", "drops"}, "rules.items")) return false;
+  std::string weapons = "fixed", storage = "off", drops = "marked";
+  if (!c.str(*blk, "weapons", "rules.items", weapons) || !c.str(*blk, "storage", "rules.items", storage) || !c.str(*blk, "drops", "rules.items", drops) ||
       !c.integer(*blk, "inventorySize", "rules.items", r.items.inventorySize))
     return false;
   if (weapons != "fixed" && weapons != "carried")
     return c.fail("rules.items", "\"weapons\" must be \"fixed\" or \"carried\", not \"" + weapons + "\"");
   r.items.carriedWeapons = weapons == "carried";
+  if (drops != "marked" && drops != "last")  // docs/ITEMS.md "Drops"
+    return c.fail("rules.items", "\"drops\" must be \"marked\" (every item marked to drop) or \"last\" (only the last item that is not the weapon in hand), not \"" + drops + "\"");
+  r.items.dropLast = drops == "last";
   if (storage == "off") r.items.storage = ItemStorage::Off;
   else if (storage == "anywhere") r.items.storage = ItemStorage::Anywhere;
   else if (storage == "structure") r.items.storage = ItemStorage::Structure;

@@ -15,7 +15,7 @@ constexpr double kMargin = 12;  // blank border around the map, in pixels
 constexpr double kMinZoom = 0.1, kMaxZoom = 8.0;
 }  // namespace
 
-MapView::MapView(MapPainter* painter, MapArt* art, QWidget* parent) : QAbstractScrollArea(parent), painter_(painter), art_(art) {
+MapView::MapView(MapPainter* painter, MapArt* art, QWidget* parent) : QAbstractScrollArea(parent), painter_(painter), art_(art), placement_(painter->project(), painter->doc()) {
   setObjectName("mapView");
   setFocusPolicy(Qt::StrongFocus);
   viewport()->setMouseTracking(true);
@@ -32,6 +32,7 @@ MapView::MapView(MapPainter* painter, MapArt* art, QWidget* parent) : QAbstractS
 
 void MapView::setTool(MapTool t) {
   tool_ = t;
+  dragging_ = false;
   viewport()->setCursor(t == MapTool::Inspect ? Qt::PointingHandCursor : Qt::CrossCursor);
 }
 
@@ -220,7 +221,57 @@ void MapView::mousePressEvent(QMouseEvent* ev) {
     viewport()->setCursor(Qt::ClosedHandCursor);
     return;
   }
+  if ((tool_ == MapTool::Slots || tool_ == MapTool::MoveUnit) && (ev->button() == Qt::LeftButton || ev->button() == Qt::RightButton)) {
+    pressPlacement(ev->pos(), ev->button());
+    return;
+  }
   if (ev->button() == Qt::LeftButton) beginPress(ev->pos());
+}
+
+// Slots tool: click an empty square = new slot, drag a slot = move it, right-click a slot = remove it. Move unit tool: drag a unit.
+// Nothing is written until the button comes up (a drag released outside the map or on the same square changes nothing).
+bool MapView::pressPlacement(const QPoint& pos, Qt::MouseButton button) {
+  emit placementMessage(QString());
+  int x, y;
+  if (!painter_->valid() || painter_->inStroke() || !cellAtViewport(pos, &x, &y)) return false;
+  const ote_editor::MapGrid& g = painter_->grid();
+  QString err;
+  if (tool_ == MapTool::MoveUnit) {
+    const int u = placement_.unitAt(x, y);
+    if (button == Qt::LeftButton && u >= 0) {
+      dragging_ = true;
+      dragKind_ = MapMarker::Kind::Unit;
+      dragIndex_ = (size_t)u;
+      viewport()->update();
+    }
+    return true;
+  }
+  const int s = placement_.slotAt(x, y);
+  if (button == Qt::RightButton) {
+    if (s >= 0 && !placement_.removeSlot((size_t)s, &err)) emit placementMessage(err);
+  } else if (s >= 0) {
+    dragging_ = true;
+    dragKind_ = MapMarker::Kind::PrepSlot;
+    dragIndex_ = (size_t)s;
+    viewport()->update();
+  } else if (!placement_.addSlot(x, y, g.width, g.height, &err)) {
+    emit placementMessage(err);
+  }
+  return true;
+}
+
+void MapView::releasePlacement(const QPoint& pos) {
+  dragging_ = false;
+  int x, y;
+  if (painter_->valid() && cellAtViewport(pos, &x, &y)) {
+    const ote_editor::MapGrid& g = painter_->grid();
+    QString err;
+    const bool ok = dragKind_ == MapMarker::Kind::Unit ? placement_.moveUnit(dragIndex_, x, y, g.width, g.height, &err)
+                                                      : placement_.moveSlot(dragIndex_, x, y, g.width, g.height, &err);
+    if (!ok && !err.isEmpty()) emit placementMessage(err);
+  }
+  viewport()->update();
+  emit strokeFinished();
 }
 
 void MapView::mouseMoveEvent(QMouseEvent* ev) {
@@ -246,6 +297,10 @@ void MapView::mouseReleaseEvent(QMouseEvent* ev) {
   if (panning_ && (ev->button() == Qt::MiddleButton || ev->button() == Qt::LeftButton)) {
     panning_ = false;
     viewport()->setCursor(spaceDown_ ? Qt::OpenHandCursor : (tool_ == MapTool::Inspect ? Qt::PointingHandCursor : Qt::CrossCursor));
+    return;
+  }
+  if (dragging_ && ev->button() == Qt::LeftButton) {
+    releasePlacement(ev->pos());
     return;
   }
   if (ev->button() != Qt::LeftButton || !stroking_) return;

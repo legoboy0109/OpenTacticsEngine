@@ -32,6 +32,7 @@ const std::map<QString, QString>& skipped() {
       {"conditions:blocks[].do[]{ability}*", "needs abilities.json; tried under skills:blocks[].do[]{ability}"},
       {"skills:blocks[].do[]{cancelEffective}.cancelEffective{these tags}", "the tags must be keys of some weapon's versus, and this fixture has none"},
       {"conditions:blocks[].do[]{cancelEffective}.cancelEffective{these tags}", "the tags must be keys of some weapon's versus, and this fixture has none"},
+      {"game:rules.promotion.testPromotedTag", "needs testAt beside it (cross-key rule); the test level is covered by the engine's promotion tests"},
       {"units:promotions[].items", "needs a promotion item (promotes: true), which these fixtures' items are not (cross-file rule)"},
       {"characters:job", "the equipped skills must belong to the job and be learned (cross-key rule on the rows around it)"},
       {"characters:jobs", "the equipped skills must have been learned in one of the jobs (cross-key rule on the rows around it)"},

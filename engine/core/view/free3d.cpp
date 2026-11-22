@@ -25,7 +25,7 @@ struct Walk {
   float t = 0, tExit = 0; // the line's parameter where it enters / leaves the square
   bool ok = false;
 
-  Walk(float ox, float oz, float dx, float dz, float tFrom, float tTo, int w, int h) : ox_(ox), oz_(oz), dx_(dx), dz_(dz), w_(w), h_(h) {
+  Walk(float ox, float oz, float dx, float dz, float tFrom, float tTo, int w, int h) : dx_(dx), dz_(dz), w_(w), h_(h) {
     // Cut the line to the map's outline.
     float t0 = tFrom, t1 = tTo;
     if (!cut(ox, dx, (float)w, t0, t1) || !cut(oz, dz, (float)h, t0, t1) || t0 > t1) return;
@@ -60,7 +60,7 @@ struct Walk {
     t1 = std::min(t1, b);
     return true;
   }
-  float ox_, oz_, dx_, dz_, end_ = 0, nextX_ = 0, nextZ_ = 0, stepX_ = 0, stepZ_ = 0;
+  float dx_, dz_, end_ = 0, nextX_ = 0, nextZ_ = 0, stepX_ = 0, stepZ_ = 0;
   int w_, h_;
 };
 

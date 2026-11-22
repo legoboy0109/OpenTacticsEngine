@@ -28,8 +28,9 @@ cmake --build build --target ote-mcp
 
 It is found at `build/ote-mcp`. For `render_map` and `simulate` it needs the player and the simulator; they are looked for next to
 `ote-mcp`, and in the build tree layout (`build/engine/player/ote-player`, `build/ote-sim`). `create_game` needs the game
-templates (`editor/templates`), found next to the program or one or two folders up (`build/ote-mcp` finds `../editor/templates`).
-Each can be given explicitly (below). The Windows branch of the process code is written but has never been compiled or run.
+templates (`editor/templates`), found next to the program, one or two folders up (`build/ote-mcp` finds `../editor/templates`), and
+last in the checkout it was built from (a build folder outside the source folder, as `C:\work\build` beside `C:\work\src`).
+Each can be given explicitly (below). On Windows (MSVC) it is built and passes `tests/mcp_test.py` in the build VM.
 
 ## Command line
 

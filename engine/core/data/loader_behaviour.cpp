@@ -29,6 +29,8 @@ bool checkBehaviourPlace(const LoadCtx& c, const MapDef& m, const std::string& w
     if (b.route[i].first >= m.width || b.route[i].second >= m.height)
       return c.fail(where, "\"route\" square " + std::to_string(i + 1) + " (" + std::to_string(b.route[i].first) + "," + std::to_string(b.route[i].second) +
                                ") is outside the map (" + std::to_string(m.width) + " x " + std::to_string(m.height) + ")");
+  if (b.mode == AiMode::Escape && m.exits.empty())
+    return c.fail(where, "mode \"escape\" needs squares to leave by: give the map \"exits\": [ { \"x\": 0, \"y\": 4 } ]");
   if (!b.seekPlace.empty()) {
     bool found = false;
     for (const MapStructureDef& s : m.structures) found = found || s.id == b.seekPlace;
@@ -54,6 +56,9 @@ bool readUnitBehaviour(const LoadCtx& c, const Database& db, const MapDef& m, co
     return c.fail(where, "\"behaviour\" tells the computer opponent what to do, but this unit is on a side a person plays (controller \"human\")");
   std::string err;
   if (!parseBehaviour(e["behaviour"], db, u.behaviour, err)) return c.fail(where, err);
+  // A looter with nothing to go for would only ever escape: say so instead (read after "goesFor", docs/AI.md "Looting and escaping").
+  if (u.behaviour.mode == AiMode::Loot && !(u.aiGoals & (kAiChests | kAiPlaces | kAiDoors | kAiSteal)))
+    return c.fail(where, "mode \"loot\" needs \"goesFor\" with what it takes: \"chests\", \"villages\", \"doors\" and / or \"steal\"");
   return checkBehaviourPlace(c, m, where, u.behaviour);
 }
 

@@ -268,6 +268,15 @@ bool readEffectExtras(const LoadCtx& c, const Json& j, const std::string& where,
     if (fx.hitAtMs < 0 || fx.hitAtMs > 15000) return c.fail(where, "\"hitAtMs\" must be between 0 and 15000 (milliseconds the effect starts before the hit)");
     if (fx.travel) return c.fail(where, "\"hitAtMs\" is for an effect that appears on the target or the striker; a \"travel\" effect hits when it arrives");
   }
+  if (given("fromHitFrame")) {  // docs/BATTLE_SCENE.md "Timing of effects"
+    if (!c.boolean(j, "fromHitFrame", where, fx.fromHitFrame)) return false;
+    if (fx.fromHitFrame && fx.travel) return c.fail(where, "\"fromHitFrame\" is for an effect that appears on the target or the striker; a \"travel\" effect leaves at the spawn frame (use \"hitAfterMs\")");
+  }
+  if (given("hitAfterMs")) {
+    if (!c.integer(j, "hitAfterMs", where, fx.hitAfterMs)) return false;
+    if (fx.hitAfterMs < 0 || fx.hitAfterMs > 15000) return c.fail(where, "\"hitAfterMs\" must be between 0 and 15000 (milliseconds from the shot leaving to the hit)");
+    if (!fx.travel) return c.fail(where, "\"hitAfterMs\" is only for a \"travel\" effect (an effect in place times its hit with \"hitAtMs\")");
+  }
   std::string layer = "front";
   if (given("layer")) {
     if (!c.str(j, "layer", where, layer)) return false;
@@ -460,7 +469,7 @@ bool readEffectExtras(const LoadCtx& c, const Json& j, const std::string& where,
       fx.shake.push_back(sh);
     }
   }
-  for (const char* k : {"sounds", "hitAtMs", "layer", "mirror", "flash", "shake", "at", "returns", "lingerMs", "blend", "hide", "fade", "order", "speed", "endOffset", "atRange", "atRangeFixed", "panAtMs"})
+  for (const char* k : {"sounds", "hitAtMs", "fromHitFrame", "hitAfterMs", "layer", "mirror", "flash", "shake", "at", "returns", "lingerMs", "blend", "hide", "fade", "order", "speed", "endOffset", "atRange", "atRangeFixed", "panAtMs"})
     if (given(k)) fx.extended = true;
   if (fx.anim.frameSheets.size() > 0) fx.extended = true;
   return true;
@@ -495,8 +504,8 @@ bool readEffects(const LoadCtx& c, Database& db, const Json& b, BattleArt& art) 
     if (!j.isObject()) return c.fail(where, "must be an object");
     // (holdFrame, startFrame and startDelayMs are accepted so that readAnim can say they are for the animations of a set only.)
     if (!c.onlyKeys(j, {"id", "weapon", "group", "effects", "byType", "mode", "travelMs", "anchor", "sheet", "frames", "ms", "loop", "hit", "spawn", "sounds",
-                        "hitAtMs", "layer", "mirror", "flash", "shake", "at", "returns", "lingerMs", "blend", "hide", "fade", "order", "speed",
-                        "endOffset", "atRange", "atRangeFixed", "panAtMs", "holdFrame", "startFrame", "startDelayMs"},
+                        "hitAtMs", "fromHitFrame", "hitAfterMs", "layer", "mirror", "flash", "shake", "at", "returns", "lingerMs", "blend", "hide",
+                        "fade", "order", "speed", "endOffset", "atRange", "atRangeFixed", "panAtMs", "holdFrame", "startFrame", "startDelayMs"},
                     where))
       return false;
     BattleEffect fx;

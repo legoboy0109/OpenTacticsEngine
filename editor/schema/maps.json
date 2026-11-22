@@ -46,6 +46,7 @@
         "facing": { "type": "string", "help": "Direction the unit looks (needs rules.facing); the names depend on the grid, e.g. north, east." } } } },
       "legend": { "type": "map", "free": true, "of": { "type": "ref", "ref": "data/terrain.json" }, "help": "One character per terrain; the tiles grid uses them (the grid itself stays raw JSON: a map painter comes later)." },
       "changes": { "use": "_map#changes" },
+      "exits": { "type": "list", "min": 1, "max": 64, "of": { "use": "_map#square" }, "help": "The squares a computer unit in mode escape (or a looter with nothing left to take) walks to and leaves the map by; 1 to 64, none twice, all inside the map." },
       "prep": { "use": "_map#prep" },
       "objectives": { "use": "_map#objectives" },
       "music": { "type": "ref", "ref": "keys:data/audio.json#music", "values": [""], "help": "The track of this battle (data/audio.json)." },

@@ -14,8 +14,28 @@ e2e 628 after the last changes). Pushed this session:
 - Vision Quest (private repo): step 43 item icons from the ROM (`tools/conv_icons.py`, 203 of 205 items, Dance/Play none); installed in
   `games/vision-quest`, check_game clean after fixing check_places' chest demo (thief stands on the chest since step 40).
 
-**Next:** ask the owner how the Play panel size and the scrolling feel now, and how the item icons look; rebuild Windows / UWP /
-Android / OG Xbox with today's changes (none rebuilt yet).
+Later the same evening (pushed, full check 70 clean but for `srpg_player_prep`, flaky under load, passes alone): edge-scroll band
+back to 1/4 tile (1/8 unusable in a browser; owner said scrolling stopped working), dwell 0.5 s and 5 tiles/s kept; webtest
+`edgescroll` suite. Owner confirmed the Play window now fills the screen. Vision Quest step 44 (private): spells at range, a caster
+lead-in stays on the caster and screen-fixed pictures are screen parts (`tools/efx_follow.py`); installed, check_game 0 problems.
+
+Owner (2026-11-21, late): item icons and the Play window size look good; the B-button fix is confirmed on the real Series X.
+**Thief work done (2026-11-21, merged to main 90f3f3f, not pushed):** engine behaviour modes `loot` (plays its goesFor, never walks
+toward the enemy, opens the doors it goes for; when nothing is left it escapes for good, saved as `escaping`) and `escape` (nearest of
+the map's new `exits`, then the new action LeaveMap = removed like removeUnit); key `"attacks": false` (never starts a fight, still
+counters); `rules.items.drops: "last"` (one dropsOf for all three defeat paths). Docs AI.md "Looting and escaping" / "Never attacking",
+ITEMS.md "Drops"; tests tests/test_ai_loot.cpp. Editors: web behaviour panel (Loots, then leaves / Escapes / Never attacks: placeholder
+wording), Map tab "Exits" list, Rules "When a unit is defeated"; schemas; native conformance. check_all fully green incl. web + e2e.
+Port step 45 (VisionQuestPort 0f08eff): AI2 5 -> loot (lockpick counts for units with the lockpick ability), AI2 12 -> escape + map
+exits from the ROM (16 maps), AI1 6 -> attacks false, thieves' last item drop + drops "last"; check_game 0 problems; installed.
+Seen in ch06: the thief opens the door, the chest, then leaves at 14,1. Owner to play-test a thief chapter (ch06 / ch08).
+**Next:** hexagons in the other three views (plan item n, docs/HEX.md "The other three views"), then standing terrain in 3D (item l).
+
+**Ports caught up (2026-11-21 night):** Windows (fresh build, ote_tests 2701/0, ctest 84/84 after the ote-mcp Windows fixes, zip
+smoke-tested from a non-ASCII folder), UWP appx 0.1.1122.426 (built clean, installed and played on the VM desktop, D3D11), Android APK
+(autoplay battle + hardware 3D 60 fps in the emulator), original Xbox (autoplay battle in xemu, 60 fps, 21 of 64 MB). Builds for the
+owner in the VM folder's `builds/`. Open: a half-bright line in Android-emulator 3D (notes); local commits not pushed (ask).
+Still waiting on the owner: mouse scrolling and the spell animations feedback.
 
 ## Earlier (2026-11-21, afternoon)
 

@@ -58,6 +58,8 @@ void playOrder(Battle& battle, int bestUnit, Order best, std::vector<Event>& eve
     ok = battle.apply(Action::openPlace(bestUnit, best.structure, best.slot), events);
   else if (best.kind == ActionType::VisitPlace)
     ok = battle.apply(Action::visitPlace(bestUnit, best.structure), events);
+  else if (best.kind == ActionType::LeaveMap)
+    ok = battle.apply(Action::leaveMap(bestUnit), events);  // docs/AI.md "Looting and escaping"
   // Whatever happened, never leave the unit ready: that is what
   // guarantees every turn terminates.
   if (!ok && battle.units[bestUnit].alive && !battle.units[bestUnit].done &&
@@ -78,6 +80,7 @@ bool aiTakeStep(Battle& battle, std::vector<Event>& events) {
   // 1. Best order over all ready units; the single best one goes first so
   //    strong attacks happen early and free up cells for the rest.
   ai::updateWakes(battle);  // docs/AI.md: guards that have a reason wake up before anyone chooses
+  ai::updateLooters(battle);  // docs/AI.md "Looting and escaping": a looter with nothing left starts escaping
   ai::Context cx(battle);
   ai::assignCaptureGoals(cx);
   int bestUnit = -1;
