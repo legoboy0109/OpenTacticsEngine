@@ -172,6 +172,7 @@
             "weapons": { "type": "enum", "values": ["fixed", "carried"], "default": "fixed", "help": "fixed: weapons come with the unit type; carried: weapons are items." },
             "storage": { "type": "enum", "values": ["off", "anywhere", "structure", "leader"], "default": "off", "help": "Where the shared item storage can be reached." },
             "inventorySize": { "type": "int", "min": 1, "max": 20, "help": "Items one unit carries." },
+            "drops": { "type": "enum", "values": ["marked", "last"], "default": "marked", "help": "marked: a defeated unit drops every item marked to drop; last: only its last item that is not the weapon in hand." },
             "sellPercent": { "type": "int", "min": 0, "max": 100, "help": "Share of an item's price a buying shop pays." },
             "freeBattleStorage": { "type": "object", "block": true, "help": "What the shared storage holds in a free battle (docs/ITEMS.md).", "fields": {
               "each": { "type": "int", "min": 0, "max": 99, "help": "Copies of every item." },
