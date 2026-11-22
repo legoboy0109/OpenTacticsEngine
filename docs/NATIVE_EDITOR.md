@@ -297,14 +297,34 @@ grid and edits `tiles`, `legend`, `heights` and, on resize, `tileLayer`; everyth
   `-` / `+` / `100%` / `Fit` buttons.
 - **Tools.** Paint (click and drag), Rectangle, Fill (flood fill over connected squares of the same terrain, hexagon-aware), Pick
   (eyedropper: also copies the square's height into the Height box), Raise / Lower (height +1 / -1 once per square per stroke),
-  Set height (the number in the Height box, 0-99) and Inspect. A fast drag leaves no gaps (the segment between two mouse events is
+  Set height (the number in the Height box, 0-99), Inspect, Slots and Move unit (see "Placing").
+  **Brush** (toolbar, 1 x 1 to 9 x 9, remembered): Paint, Raise / Lower and Set height cover a patch around the clicked square: a block
+  on square maps, a hexagon-shaped patch (every hexagon within (size - 1) / 2 steps: 1, 7, 19 ...) on hexagon maps, clipped at the map's
+  edge (`ote_editor::brushCells`, built on the engine grid's neighbour rule). The squares a click would change are outlined under the
+  pointer. One stroke is still one undo step and a height changes once per stroke however often the pointer crosses it. Fill, Rectangle
+  and Pick ignore the brush. A fast drag leaves no gaps (the segment between two mouse events is
   walked). The palette lists `data/terrain.json` (then legend terrains it does not list) with the legend symbol beside each name.
 - **Heights.** Shown as lighter shading and a small number. A map without `heights` gets the list (all 0, written right after
   `tiles`) with its first height edit; "set 0" on such a map changes nothing.
 - **Overlays** (read-only): units (circle, side colour, letter of the kind / character / job), structures (square; hexagon ring
   structures get a dashed ring; multi-square structures outline their footprint) and the preparation screen's deployment slots
-  (small diamonds, numbered; sides themselves have no start square). Tooltips name the thing, its side and its square. The
-  **Inspect** tool opens the clicked entry in the form page (the tree page for files without a schema).
+  (small diamonds, numbered once a square is 24 pixels or more; sides themselves have no start square). Tooltips name the thing,
+  its side and its square. The **Inspect** tool opens the clicked entry in the form page (the tree page for files without a schema).
+- **Placing** (`model/map_placement.*`, one undo step per action; a refusal shows in red under the canvas). **Slots** tool: click
+  an empty square = new deployment slot (a map without `prep` gets `"prep": { "slots": [...] }`, which switches its preparation
+  screen on), drag a slot to move it, right-click a slot to remove it. Removing slot n renumbers the later slots, so `required`
+  entries naming a slot number follow (the removed slot's own entry stays required but loses its `slot` key) and `limit` is lowered to
+  the slot count; the last slot cannot be removed (the loader wants one; delete `prep` in the Tree page to switch the screen off).
+  Two slots never share a square; at most 64. **Move unit** tool: drag a unit to another square (never onto another unit). Nothing is
+  written until the button is released; a drag released outside the map changes nothing. Structures cannot be moved on the canvas
+  (a multi-square or ring footprint must be checked to fit), and units / structures cannot be added there (they need a kind and a
+  side: use the form). The terrain a slot stands on is not checked here; the problems check reports a square nobody can stand on.
+- **Isometric preview** (check box "Isometric preview", beside the canvas, remembered; `ui/iso_preview.*`). A read-only picture of the
+  map in the 2D isometric look: squares or hexagons raised to their heights with side faces where the next one lies lower, the game's
+  terrain pictures on the top faces (colour where there is none) and markers for units, structures and deployment slots. It uses the
+  engine's own pure projection maths (`core/view/iso.h`, `core/view/hex_iso.h`; no SDL, no player drawing code), at the engine's default
+  look (48 x 24 diamond, 12 pixels per height level; a game's own `isometric` sizes are not read yet), fits the whole map into its pane
+  and redraws while a stroke is under way. No clicking, no scrolling or zoom; not the 3D views.
 - **Undo.** A stroke works on a copy of the grid (so the canvas can show it live) and is written when the button is released:
   the rows that changed, as `SetValue` commands inside one macro = one undo step ("Paint terrain", "Fill area", "Fill rectangle",
   "Raise height" ...). Nothing changed = no undo step. If the file changes under a half-made stroke (Ctrl+Z while dragging) the stroke
@@ -323,7 +343,7 @@ grid and edits `tiles`, `legend`, `heights` and, on resize, `tileLayer`; everyth
   of the layer yet.
 - **Remembered** (`ui/app_settings`): zoom, tool, and the overlay switches.
 - The Qt-free parts (read / write of the grid, legend choice, flood region, resize) are in `editor/core/map_grid.*` and
-  `map_resize.cpp`, tested by `ote_editor_core_tests`, so the MCP server can use the same code (its `set_tiles` still has its own).
+  `map_resize.cpp`, tested by `ote_editor_core_tests`, so the MCP server uses the same code (its `set_tiles` and `new_map` choose legend symbols through `legendSymbolFor`).
 
 ## Tests
 Registered in ctest as `native_test_*` only when the option is ON. They set `QT_QPA_PLATFORM=offscreen`, so no window ever
@@ -356,6 +376,14 @@ QT_QPA_PLATFORM=offscreen OTE_SHOT_DIR=/some/folder ./editor/native/native_test_
 - `native_test_map_view`: hit-testing on every cell of square / pointy / flat grids, real mouse strokes in the real window (fast
   drags, rectangle, fill, pick, inspect, heights, hexagon clicks), wheel zoom, pan, zoom / tool remembered across a restart, the
   resize questions, a 100 x 100 map (painting, a 300-event stroke and a fill take milliseconds).
+- `native_test_map_placement`: deployment slots added / moved / removed (byte-exact undo, `required` numbers and `limit` kept valid, a
+  map without `prep`), units moved, and the same through real mouse events with the Slots and Move unit tools; the saved map passes the
+  project check.
+- Brushes: `ote_editor_core_tests` (cell counts for squares, pointy and flat hexagons, clipping), `native_test_map_model` (byte-exact
+  patches against the neighbour table of docs/HEX.md) and `native_test_map_view` (toolbar, one undo step, remembered across a restart).
+- `native_test_iso_preview`: the preview's top faces sit where the engine's projection puts them (lowering a square moves it straight
+  down), it follows a stroke in progress, clicking it changes nothing, hexagon maps draw, the check box is remembered
+  (`OTE_SHOT_DIR` saves pictures).
 - `native_test_map_screenshots`: square map, hexagon map (and a rectangle preview), heights at 100% / 250% / 40%, a tile layer, the
   resize dialog (`OTE_SHOT_DIR=... ./editor/native/native_test_map_screenshots`).
 - `native_test_conformance`: see above.
@@ -391,10 +419,8 @@ QT_QPA_PLATFORM=offscreen OTE_SHOT_DIR=/some/folder ./editor/native/native_test_
   nested-JSON dialog, a refused edit, and a dark palette, at 1280x720 and 1920x1080 where it matters.
 
 ## Not there yet
-- Map painter leftovers: no tool paints the `tileLayer` tiles (it is shown and kept on resize), units / structures / deployment
-  slots cannot be moved or placed on the canvas yet (Inspect only opens them in the form), no brush sizes, no 3D / isometric
-  preview, resize does not adjust coordinates inside story events, and `ote-mcp`'s `set_tiles` has its own copy of the legend
-  logic instead of `editor/core/map_grid`.
+- Map painter leftovers: no tool paints the `tileLayer` tiles (it is shown and kept on resize), structures cannot be moved on the
+  canvas and units / structures cannot be added there (slots and units can be placed / moved, see "The map painter"), no 3D preview (the 2D isometric one is read-only, fixed look), and resize does not adjust coordinates inside story events.
 - Pickers that show the sound or the picture (the battle scene's frames are cell numbers, not a preview), and the table-level
   help of a column beyond its tooltip.
 - Drag and drop moves list items inside one file; it does not carry an item to another file, and it does not drag keys of a map (a

@@ -55,6 +55,10 @@ char legendSymbolFor(const MapGrid& g, const std::string& terrain, char glyphHin
 // The cells (row-major indexes) joined to (x, y) through neighbours that show the same symbol; hexagon-aware.
 std::vector<int> floodRegion(const MapGrid& g, int x, int y);
 
+// The cells a brush of `size` (1, 3, 5 ... = 2 * radius + 1) covers when centred on (x, y), clipped to the map. Squares: the
+// (2r+1) x (2r+1) block; hexagons: every cell at most r steps away (a hexagon-shaped patch of 1, 7, 19 ... cells). Row-major indexes.
+std::vector<int> brushCells(const MapGrid& g, int x, int y, int size);
+
 // ---- resizing ----
 struct ResizeSpec {
   int width = 1, height = 1;

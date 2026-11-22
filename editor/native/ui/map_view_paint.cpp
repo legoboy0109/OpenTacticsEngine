@@ -152,24 +152,42 @@ void MapView::paintEvent(QPaintEvent* ev) {
       p.setPen(QColor(255, 255, 255));
       p.drawText(r, Qt::AlignCenter, m.letter);
     } else {  // deployment slot: a small diamond
+      const double r = u >= 24 ? 0.3 : 0.22;
       QPolygonF d;
-      d << QPointF(c.x(), c.y() - u * 0.22) << QPointF(c.x() + u * 0.22, c.y()) << QPointF(c.x(), c.y() + u * 0.22) << QPointF(c.x() - u * 0.22, c.y());
+      d << QPointF(c.x(), c.y() - u * r) << QPointF(c.x() + u * r, c.y()) << QPointF(c.x(), c.y() + u * r) << QPointF(c.x() - u * r, c.y());
       p.drawPolygon(d);
+      if (u >= 24) {  // the slot's number (the order the preparation screen uses)
+        p.setPen(QColor(40, 30, 0));
+        p.drawText(QRectF(c.x() - u * 0.3, c.y() - u * 0.3, u * 0.6, u * 0.6), Qt::AlignCenter, m.letter);
+      }
     }
   };
-  for (const MapMarker& m : markers_)
+  // A marker being dragged is drawn on the square under the pointer (the one it would land on).
+  std::vector<MapMarker> shown = markers_;
+  if (dragging_ && g.inside(hoverX_, hoverY_))
+    for (MapMarker& m : shown)
+      if (m.kind == dragKind_ && m.index == dragIndex_) {
+        m.x = hoverX_;
+        m.y = hoverY_;
+      }
+  for (const MapMarker& m : shown)
     if (showStructures_) draw(m, MapMarker::Kind::PrepSlot);
-  for (const MapMarker& m : markers_)
+  for (const MapMarker& m : shown)
     if (showStructures_) draw(m, MapMarker::Kind::Structure);
-  for (const MapMarker& m : markers_)
+  for (const MapMarker& m : shown)
     if (showUnits_) draw(m, MapMarker::Kind::Unit);
 
-  if (g.inside(hoverX_, hoverY_)) {  // the cell under the pointer
-    QPolygonF poly;
-    for (const QPointF& pt : geom_.outline(hoverX_, hoverY_)) poly << toViewport(pt);
+  if (g.inside(hoverX_, hoverY_)) {  // the cell under the pointer; with a brush tool, every cell the click would change
+    const bool brushTool = tool_ == MapTool::Paint || tool_ == MapTool::Raise || tool_ == MapTool::Lower || tool_ == MapTool::SetHeight;
+    std::vector<int> cells = brushTool ? ote_editor::brushCells(g, hoverX_, hoverY_, painter_->brushSize()) : std::vector<int>();
+    if (cells.size() <= 1) cells = {hoverY_ * g.width + hoverX_};
     p.setBrush(Qt::NoBrush);
-    p.setPen(QPen(QColor(255, 230, 0), 2));
-    p.drawPolygon(poly);
+    p.setPen(QPen(QColor(255, 230, 0), cells.size() > 1 ? 1.5 : 2));
+    for (int c : cells) {
+      QPolygonF poly;
+      for (const QPointF& pt : geom_.outline(c % g.width, c / g.width)) poly << toViewport(pt);
+      p.drawPolygon(poly);
+    }
   }
 }
 

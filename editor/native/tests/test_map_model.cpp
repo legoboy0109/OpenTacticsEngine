@@ -110,6 +110,7 @@ class MapModelTest : public QObject {
   void floodFillSquare();
   void floodFillHexagonsFollowsTheNeighbourTable();
   void heightsRaiseLowerSetOncePerCell();
+  void brushesPaintBlocksOnSquaresAndHexagonPatchesOnHexagons();
   void firstHeightEditCreatesTheListAfterTiles();
   void resizeSquareGrowAndShrink();
   void resizeHexKeepsRowPairsAndTheMapLoads();
@@ -305,6 +306,83 @@ void MapModelTest::heightsRaiseLowerSetOncePerCell() {
   f.project->undoStack()->undo();
   f.project->undoStack()->undo();
   QCOMPARE(f.doc->serialize(), before);
+}
+
+void MapModelTest::brushesPaintBlocksOnSquaresAndHexagonPatchesOnHexagons() {
+  {
+    Fixture f("demo-srpg", "bridge");  // 13 x 9
+    const QByteArray before = f.canonical();
+    const Json map = parse(before);
+    f.painter->setBrushSize(3);
+    // One click in the corner covers 2 x 2 squares (clipped); one stroke = one undo step.
+    QVERIFY(f.stroke("Paint terrain", [](MapPainter& p) { p.paintCell(0, 0, "mountain"); }));
+    QCOMPARE(f.steps(), 1);
+    Json want = parse(before);
+    for (int y = 0; y < 2; ++y) {
+      std::string r = map["tiles"][(size_t)y].asString();
+      r[0] = r[1] = 'm';
+      setRow(want, "tiles", (size_t)y, r);
+    }
+    QCOMPARE(f.saved(), bytesOf(want));
+    // Brush 5 on heights: a 5 x 5 block around (6, 4), once per square however often the pointer crosses it.
+    f.painter->setBrushSize(5);
+    QVERIFY(f.stroke("Raise height", [](MapPainter& p) {
+      p.bumpHeight(6, 4, +1);
+      p.bumpHeight(7, 4, +1);
+    }));
+    const Json h = parse(f.saved())["heights"];
+    const Json h0 = map["heights"];
+    for (int y = 0; y < 9; ++y)
+      for (int x = 0; x < 13; ++x) {
+        const bool hit = x >= 4 && x <= 9 && y >= 2 && y <= 6;  // the union of the two 5 x 5 blocks (x 4..8 and 5..9)
+        QCOMPARE(h[(size_t)y][(size_t)x].asInt(), h0[(size_t)y][(size_t)x].asInt() + (hit ? 1 : 0));
+      }
+    f.project->undoStack()->undo();
+    f.project->undoStack()->undo();
+    QCOMPARE(f.doc->serialize(), before);
+  }
+  {
+    Fixture f("demo-hex", "foggy_hills");  // pointy hexagons, 13 x 9
+    const QByteArray before = f.canonical();
+    const Json map = parse(before);
+    f.painter->setBrushSize(3);
+    QVERIFY(f.stroke("Paint terrain", [](MapPainter& p) { p.paintCell(4, 4, "forest"); }));
+    // Oracle: the clicked hexagon and its six neighbours from the table of docs/HEX.md (even and odd rows).
+    Json want = parse(before);
+    std::vector<std::string> rows;
+    for (const Json& r : map["tiles"].items()) rows.push_back(r.asString());
+    std::vector<int> cells = pointyNeighbours(4, 4, 13, 9);
+    cells.push_back(4 * 13 + 4);
+    QCOMPARE(cells.size(), (size_t)7);
+    for (int c : cells) rows[(size_t)(c / 13)][(size_t)(c % 13)] = 'f';
+    for (int y = 0; y < 9; ++y) setRow(want, "tiles", (size_t)y, rows[(size_t)y]);
+    QCOMPARE(f.saved(), bytesOf(want));
+    // Brush 5 = every hexagon at most two steps away: 19 in the open (counted through the neighbour table).
+    f.painter->setBrushSize(5);
+    std::vector<int> ring{4 * 13 + 4}, seen(13 * 9, 0);
+    seen[(size_t)ring[0]] = 1;
+    for (int step = 0; step < 2; ++step) {
+      std::vector<int> next = ring;
+      for (int c : ring)
+        for (int n : pointyNeighbours(c % 13, c / 13, 13, 9))
+          if (!seen[(size_t)n]) {
+            seen[(size_t)n] = 1;
+            next.push_back(n);
+          }
+      ring = next;
+    }
+    QCOMPARE(ring.size(), (size_t)19);
+    QVERIFY(f.stroke("Set height", [](MapPainter& p) { p.setHeight(4, 4, 5); }));
+    const Json hh = parse(f.saved())["heights"];
+    int fives = 0;
+    for (int y = 0; y < 9; ++y)
+      for (int x = 0; x < 13; ++x)
+        if (hh[(size_t)y][(size_t)x].asInt() == 5) {
+          ++fives;
+          QVERIFY2(seen[(size_t)(y * 13 + x)], "a height was set outside the hexagon patch");
+        }
+    QCOMPARE(fives, 19);
+  }
 }
 
 void MapModelTest::firstHeightEditCreatesTheListAfterTiles() {

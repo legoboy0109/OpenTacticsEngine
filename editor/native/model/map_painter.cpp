@@ -144,9 +144,13 @@ bool MapPainter::setSymbol(int x, int y, const std::string& terrain, char glyph)
   return false;
 }
 
+void MapPainter::setBrushSize(int size) { brush_ = std::max(1, std::min(kMaxBrush, size)); }
+
 bool MapPainter::paintCell(int x, int y, const std::string& terrain) {
   if (!inStroke_ || !work_.inside(x, y)) return false;
-  const bool changed = setSymbol(x, y, terrain, terrainInfo(terrain).glyph);
+  const char glyph = terrainInfo(terrain).glyph;
+  bool changed = false;
+  for (int c : ote_editor::brushCells(work_, x, y, brush_)) changed |= setSymbol(c % work_.width, c / work_.width, terrain, glyph);
   if (changed) emit gridChanged();
   return changed;
 }
@@ -178,18 +182,33 @@ void MapPainter::ensureHeights() {
 
 bool MapPainter::setHeight(int x, int y, int value) {
   if (!inStroke_ || !work_.inside(x, y)) return false;
-  value = std::max(0, std::min(kMaxHeight, value));
-  if (work_.heightAt(x, y) == value && (work_.hasHeights || value == 0)) return false;
-  ensureHeights();
-  work_.heights[(size_t)y * (size_t)work_.width + (size_t)x] = value;
-  emit gridChanged();
-  return true;
+  bool changed = false;
+  for (int c : ote_editor::brushCells(work_, x, y, brush_)) changed |= setHeightCell(c % work_.width, c / work_.width, value);
+  if (changed) emit gridChanged();
+  return changed;
 }
 
 bool MapPainter::bumpHeight(int x, int y, int delta) {
   if (!inStroke_ || !work_.inside(x, y)) return false;
+  bool changed = false;
+  for (int c : ote_editor::brushCells(work_, x, y, brush_)) changed |= bumpHeightCell(c % work_.width, c / work_.width, delta);
+  if (changed) emit gridChanged();
+  return changed;
+}
+
+bool MapPainter::setHeightCell(int x, int y, int value) {
+  if (!inStroke_ || !work_.inside(x, y)) return false;
+  value = std::max(0, std::min(kMaxHeight, value));
+  if (work_.heightAt(x, y) == value && (work_.hasHeights || value == 0)) return false;
+  ensureHeights();
+  work_.heights[(size_t)y * (size_t)work_.width + (size_t)x] = value;
+  return true;
+}
+
+bool MapPainter::bumpHeightCell(int x, int y, int delta) {
+  if (!inStroke_ || !work_.inside(x, y)) return false;
   if (!bumped_.insert(y * work_.width + x).second) return false;
-  return setHeight(x, y, work_.heightAt(x, y) + delta);
+  return setHeightCell(x, y, work_.heightAt(x, y) + delta);
 }
 
 bool MapPainter::endStroke() {

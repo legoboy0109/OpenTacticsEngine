@@ -124,6 +124,28 @@ TEST(map_grid_flood_region_square_and_hex) {
   CHECK(std::find(mid.begin(), mid.end(), 2 * 3 + 2) != mid.end());
 }
 
+TEST(map_grid_brush_cells_are_blocks_on_squares_and_patches_on_hexagons) {
+  MapGrid g = read(J(kSquare));  // 4 x 3
+  CHECK_EQ(brushCells(g, 1, 1, 1).size(), (size_t)1);
+  CHECK_EQ(brushCells(g, 1, 1, 3).size(), (size_t)9);
+  CHECK_EQ(brushCells(g, 0, 0, 3).size(), (size_t)4);   // clipped at the corner
+  CHECK_EQ(brushCells(g, 1, 1, 5).size(), (size_t)12);  // the whole map
+  CHECK_EQ(brushCells(g, 9, 9, 3).size(), (size_t)0);
+  // Hexagons: 1, 7 and 19 cells in the open, for pointy and for flat maps.
+  for (bool flat : {false, true}) {
+    Json h = J(R"({"grid": {"type": "hex", "width": 9, "height": 9}, "legend": {".": "plain"},
+                   "tiles": [".........", ".........", ".........", ".........", ".........", ".........", ".........", ".........", "........."]})");
+    MapGrid hg;
+    std::string err;
+    CHECK(readMapGrid(h, flat, hg, err));
+    CHECK_EQ(brushCells(hg, 4, 4, 1).size(), (size_t)1);
+    CHECK_EQ(brushCells(hg, 4, 4, 3).size(), (size_t)7);
+    CHECK_EQ(brushCells(hg, 4, 4, 5).size(), (size_t)19);
+    CHECK_EQ(brushCells(hg, 3, 3, 5).size(), (size_t)19);  // odd row / column too
+    CHECK(brushCells(hg, 0, 0, 5).size() < 19);
+  }
+}
+
 TEST(map_grid_resize_offset_on_hexagons_keeps_row_parity) {
   MapGrid g = read(J(kSquare));
   ResizeSpec s;

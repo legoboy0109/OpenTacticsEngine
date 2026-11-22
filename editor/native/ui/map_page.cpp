@@ -3,6 +3,7 @@
 #include <QAbstractButton>
 #include <QButtonGroup>
 #include <QCheckBox>
+#include <QComboBox>
 #include <QIcon>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -37,6 +38,8 @@ const ToolDef kTools[] = {
     {MapTool::Lower, "Lower", "Click or drag to lower the height of squares by 1"},
     {MapTool::SetHeight, "Set height", "Click or drag to set squares to the number in the Height box"},
     {MapTool::Inspect, "Inspect", "Click a unit, structure or deployment slot to open its entry in the Form page"},
+    {MapTool::Slots, "Slots", "Deployment slots (preparation screen): click an empty square to add one, drag one to move it, right-click one to remove it"},
+    {MapTool::MoveUnit, "Move unit", "Drag a unit to another square"},
 };
 }  // namespace
 
@@ -71,6 +74,14 @@ MapPage::MapPage(Project* project, JsonDocument* doc, QWidget* parent) : QWidget
   bar->addSpacing(8);
   bar->addWidget(new QLabel(tr("Height:"), this));
   bar->addWidget(heightSpin_);
+  bar->addSpacing(8);
+  brushBox_ = new QComboBox(this);
+  brushBox_->setObjectName("brushSize");
+  for (int n = 1; n <= MapPainter::kMaxBrush; n += 2) brushBox_->addItem(tr("%1 x %1").arg(n), n);
+  brushBox_->setToolTip(tr("How wide Paint, Raise, Lower and Set height work around the square you click: a block of squares, or a hexagon-shaped patch on a hexagon map"));
+  connect(brushBox_, qOverload<int>(&QComboBox::currentIndexChanged), this, [this] { setBrushSize(brushBox_->currentData().toInt()); });
+  bar->addWidget(new QLabel(tr("Brush:"), this));
+  bar->addWidget(brushBox_);
   bar->addSpacing(12);
 
   auto* out = new QToolButton(this);
@@ -117,6 +128,7 @@ MapPage::MapPage(Project* project, JsonDocument* doc, QWidget* parent) : QWidget
   structures_ = makeCheck("structures", tr("Structures and deployment slots"), true, tr("Show structures and the preparation screen's deployment slots"));
   heights_ = makeCheck("heights", tr("Heights"), true, tr("Shade squares by height and show the number"));
   layer_ = makeCheck("layer", tr("Tile layer picture"), false, tr("Show the hand-painted tile layer instead of the terrain's own look"));
+  isoCheck_ = makeCheck("isoPreview", tr("Isometric preview"), false, tr("Show a read-only isometric picture of the map beside the canvas"));
   overlays->addStretch(1);
   connect(units_, &QCheckBox::toggled, this, [this](bool on) { view_->setShowUnits(on); saveOverlay("units", on); });
   connect(structures_, &QCheckBox::toggled, this, [this](bool on) { view_->setShowStructures(on); saveOverlay("structures", on); });
@@ -130,11 +142,16 @@ MapPage::MapPage(Project* project, JsonDocument* doc, QWidget* parent) : QWidget
   connect(palette_, &QListWidget::currentItemChanged, this, [this](QListWidgetItem* cur) {
     if (cur) view_->setTerrain(cur->data(Qt::UserRole).toString().toStdString());
   });
+  iso_ = new IsoPreview(painter_, art_, this);
+  iso_->hide();
+  connect(isoCheck_, &QCheckBox::toggled, this, [this](bool on) { iso_->setVisible(on); saveOverlay("isoPreview", on); });
   auto* split = new QSplitter(this);
   split->addWidget(palette_);
   split->addWidget(view_);
-  split->setStretchFactor(1, 1);
-  split->setSizes({190, 800});
+  split->addWidget(iso_);
+  split->setStretchFactor(1, 2);
+  split->setStretchFactor(2, 1);
+  split->setSizes({190, 600, 360});
   split->setChildrenCollapsible(false);
 
   status_ = new QLabel(this);
@@ -142,18 +159,25 @@ MapPage::MapPage(Project* project, JsonDocument* doc, QWidget* parent) : QWidget
   note_ = new QLabel(this);
   note_->setObjectName("mapNote");
   note_->setWordWrap(true);
+  message_ = new QLabel(this);  // why the last slot / unit edit was refused
+  message_->setObjectName("mapMessage");
+  message_->setWordWrap(true);
+  message_->setStyleSheet(QStringLiteral("color: #b00020;"));
+  message_->hide();
   auto* root = new QVBoxLayout(this);
   root->setContentsMargins(4, 4, 4, 4);
   root->addLayout(bar);
   root->addLayout(overlays);
   root->addWidget(split, 1);
   root->addWidget(note_);
+  root->addWidget(message_);
   root->addWidget(status_);
 
   connect(view_, &MapView::terrainPicked, this, [this](const QString& id, int h) {
     selectTerrain(id);
     heightSpin_->setValue(h);
   });
+  connect(view_, &MapView::placementMessage, this, [this](const QString& t) { message_->setText(t); message_->setVisible(!t.isEmpty()); });
   connect(view_, &MapView::cellHovered, this, [this](int x, int y) { updateStatus(x, y); });
   connect(view_, &MapView::zoomChanged, this, [this](double z) {
     updateZoomLabel();
@@ -182,10 +206,12 @@ void MapPage::setAppSettings(AppSettings* settings) {
   settings_ = settings;
   if (!settings) return;
   setTool(mapToolFromKey(settings->mapTool()));
+  setBrushSize(settings->mapBrush());
   view_->setZoom(settings->mapZoom());
   units_->setChecked(settings->mapOverlay("units"));
   structures_->setChecked(settings->mapOverlay("structures"));
   layer_->setChecked(settings->mapOverlay("layer", false));
+  isoCheck_->setChecked(settings->mapOverlay("isoPreview", false));
   // Heights default to "on when the map has any"; a stored choice wins.
   if (settings->mapOverlay("heightsSet", false)) heights_->setChecked(settings->mapOverlay("heights"));
 }
@@ -196,9 +222,19 @@ void MapPage::saveOverlay(const QString& name, bool on) {
   if (name == "heights") settings_->setMapOverlay("heightsSet", true);
 }
 
+void MapPage::setBrushSize(int size) {
+  painter_->setBrushSize(size);
+  const int i = brushBox_->findData(painter_->brushSize());
+  if (i >= 0 && i != brushBox_->currentIndex()) brushBox_->setCurrentIndex(i);
+  view_->viewport()->update();
+  if (settings_) settings_->setMapBrush(painter_->brushSize());
+}
+
 void MapPage::setTool(MapTool tool) {
   if (QAbstractButton* b = tools_->button((int)tool)) b->setChecked(true);
   view_->setTool(tool);
+  if (tool == MapTool::Slots && !structures_->isChecked()) structures_->setChecked(true);  // slots must be visible to be edited
+  if (tool == MapTool::MoveUnit && !units_->isChecked()) units_->setChecked(true);
   if (settings_) settings_->setMapTool(mapToolKey(tool));
 }
 

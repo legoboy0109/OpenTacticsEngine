@@ -5,7 +5,7 @@
 
 namespace ote_native {
 
-enum class MapTool { Paint, Rectangle, Fill, Pick, Raise, Lower, SetHeight, Inspect };
+enum class MapTool { Paint, Rectangle, Fill, Pick, Raise, Lower, SetHeight, Inspect, Slots, MoveUnit };
 
 inline const char* mapToolKey(MapTool t) {
   switch (t) {
@@ -17,12 +17,14 @@ inline const char* mapToolKey(MapTool t) {
     case MapTool::Lower: return "lower";
     case MapTool::SetHeight: return "setHeight";
     case MapTool::Inspect: return "inspect";
+    case MapTool::Slots: return "slots";
+    case MapTool::MoveUnit: return "moveUnit";
   }
   return "paint";
 }
 
 inline MapTool mapToolFromKey(const QString& key) {
-  for (MapTool t : {MapTool::Paint, MapTool::Rectangle, MapTool::Fill, MapTool::Pick, MapTool::Raise, MapTool::Lower, MapTool::SetHeight, MapTool::Inspect})
+  for (MapTool t : {MapTool::Paint, MapTool::Rectangle, MapTool::Fill, MapTool::Pick, MapTool::Raise, MapTool::Lower, MapTool::SetHeight, MapTool::Inspect, MapTool::Slots, MapTool::MoveUnit})
     if (key == QLatin1String(mapToolKey(t))) return t;
   return MapTool::Paint;
 }

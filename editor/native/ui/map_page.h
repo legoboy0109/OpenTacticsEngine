@@ -6,6 +6,7 @@
 
 #include "app_settings.h"
 #include "json_path.h"
+#include "iso_preview.h"
 #include "map_art.h"
 #include "map_painter.h"
 #include "map_view.h"
@@ -13,6 +14,7 @@
 class QAbstractButton;
 class QButtonGroup;
 class QCheckBox;
+class QComboBox;
 class QLabel;
 class QListWidget;
 class QSpinBox;
@@ -31,10 +33,12 @@ class MapPage : public QWidget {
 
   MapPainter* painter() const { return painter_; }
   MapView* view() const { return view_; }
+  IsoPreview* isoPreview() const { return iso_; }
   QListWidget* palette() const { return palette_; }
   void selectTerrain(const QString& id);
   QString selectedTerrain() const;
   void setTool(MapTool tool);
+  void setBrushSize(int size);  // 1, 3, 5, 7 or 9; remembered
 
   // Resize: the dialog and the "units would be cut off" question are hooks so tests never open a window.
   using ResizeChooser = std::function<bool(ote_editor::ResizeSpec* spec)>;
@@ -58,11 +62,13 @@ class MapPage : public QWidget {
   MapPainter* painter_;
   MapArt* art_;
   MapView* view_;
+  IsoPreview* iso_;
   QListWidget* palette_;
   QButtonGroup* tools_;
   QSpinBox* heightSpin_;
-  QLabel *status_, *zoomLabel_, *note_;
-  QCheckBox *units_, *structures_, *heights_, *layer_;
+  QComboBox* brushBox_;
+  QLabel *status_, *zoomLabel_, *note_, *message_;
+  QCheckBox *units_, *structures_, *heights_, *layer_, *isoCheck_;
   AppSettings* settings_ = nullptr;
   QString paletteSignature_;
   ResizeChooser resizeChooser_;
