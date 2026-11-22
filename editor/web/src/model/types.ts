@@ -471,7 +471,8 @@ export interface BattleEffectDef extends Extra {
   atRangeFixed?: boolean; panAtMs?: number
 }
 /** data/graphics.json "battle" > "scene": how long a held pose waits after the result (docs/BATTLE_SCENE.md "Holding a pose"). */
-export interface BattleSceneTimingDef extends Extra { resultHoldMs?: number; resultHoldAgainMs?: number }
+export interface HitHoldDef extends Extra { minMs?: number; baseMs?: number; perHpMs?: number; killMs?: number; noChangeMs?: number }
+export interface BattleSceneTimingDef extends Extra { resultHoldMs?: number; resultHoldAgainMs?: number; hitHold?: HitHoldDef }
 /** data/graphics.json "battle". */
 export interface BattleSection extends Extra {
   sets?: Record<string, BattleSetDef>
