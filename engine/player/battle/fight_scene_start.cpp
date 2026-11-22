@@ -123,6 +123,8 @@ EffectTimes effectTimes(const BattleEffect& be, const Database& db, const FightS
   t.travelMs = be.travelMs;
   t.total = be.anim.totalMs();
   t.hitAtMs = be.hitAtMs;
+  t.fromHitFrame = be.fromHitFrame;
+  t.hitAfterMs = be.hitAfterMs;
   t.striker = be.atStriker;
   t.returns = be.returns;
   t.lingerMs = be.lingerMs;

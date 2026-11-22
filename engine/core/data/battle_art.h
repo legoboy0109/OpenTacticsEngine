@@ -135,6 +135,8 @@ struct BattleEffect {
   // The newer keys (all optional; an entry that sets none of them plays exactly as before).
   std::vector<std::pair<int, std::string>> sounds;  // { ms after the effect starts, sound id }, in time order
   int hitAtMs = 0;                                  // the effect starts this long before the hit lands (a "target" or "striker" effect)
+  bool fromHitFrame = false;                        // "fromHitFrame": the effect starts at the striker's hit frame and the hit lands hitAtMs after it
+  int hitAfterMs = -1;                              // travel: "hitAfterMs": the hit lands this long after the shot leaves (-1 = when it arrives)
   FxLayer layer = FxLayer::Front;
   bool mirror = false;               // layer "screen": turned round when the striker stands on the right
   std::vector<FxFlash> flash;
