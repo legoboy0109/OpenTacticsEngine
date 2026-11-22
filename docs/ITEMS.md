@@ -30,6 +30,7 @@ Status: see "Build order" at the end.
   "sellPercent": 50,         // 0..100, default 50: what a shop that buys items back pays, as a share of the price
                              // (scaled by uses left: docs/EVENTS.md "Preparation", "Selling"). In-battle shops do not buy.
   "freeBattleStorage": { "each": 3 },  // optional: what the storage holds when a FREE battle starts (docs/GAME_FORMAT.md "Free battles")
+  "drops": "marked",         // "marked" (default): a defeated unit gives every item marked `drop`; "last": see "Drops" below
   "storage": "anywhere"      // the side's shared storage: "off" (default), "anywhere",
                              // "structure" (standing on a structure of its own side),
                              // "leader" (the unit is a leader or stands next to one of its side).
@@ -151,7 +152,13 @@ storage if the game has one (wherever the unit is); otherwise buying is
 refused and a drop is lost.
 
 **Drops.** When a unit is defeated by an enemy unit's strike, its items
-marked `drop` go to that unit, in order.
+marked `drop` go to that unit, in order. With `rules.items` `"drops": "last"`
+(the rule of the classic strategy RPGs) a defeated unit that has **any** item
+marked gives **one** item instead: its last item that is not the weapon in its
+hand (marked or not; when the last item is that weapon, the one before it).
+What a computer unit loots from a chest or steals is added at the end of its
+items and marked, so under "last" that is what it drops. Code:
+`Battle::dropsOf` (items.cpp); tests `tests/test_ai_loot.cpp`.
 
 **Events** (what the player animates): `ItemUsed` (unit, item, target),
 `UnitHealed` (unit, amount), `StatsRaised` (unit; data = gain per stat),

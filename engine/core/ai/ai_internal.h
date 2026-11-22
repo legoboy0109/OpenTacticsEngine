@@ -160,6 +160,21 @@ bool weightedAttack(const Battle& b, const Unit& u, const AiWeightSet& w, const 
 // ---- ai_retreat.cpp (docs/AI.md "Retreat to heal") ----
 // The order of a unit that is retreating: a healing item, a step toward the terrain it falls back to (or away from the enemy), else Wait.
 Order retreatOrder(Context& cx, const Unit& u, const std::vector<Cell>& stops);
+// The stop that gets the unit closest along `field` (a distanceField), strictly closer than where it stands; equal: better terrain. kNoCell =
+// nothing closer. `bestVal` = the field's value there (or where it stands). Shared by retreat, escape (ai_loot.cpp).
+Cell stepToward(const Battle& b, const Unit& u, const std::vector<int>& field, const std::vector<Cell>& stops, int& bestVal);
+// The stop where the fewest known enemies could hit it next turn (equal: farther from the nearest, then better terrain); kNoCell = where it stands.
+Cell safestStop(const Battle& b, const Unit& u, const std::vector<Cell>& stops);
+
+// ---- ai_loot.cpp (docs/AI.md "Looting and escaping") ----
+// At the start of every AI step: a looter of the side to act that has nothing left it could take starts escaping, for good.
+void updateLooters(Battle& b);
+// Does the unit escape now (mode "escape", or a looter that has nothing left)?
+bool escapesNow(const Unit& u);
+// The order of an escaping unit: leave by the exit it stands on, else walk (or step onto) the nearest exit, else keep away from the enemy.
+Order escapeOrder(Context& cx, const Unit& u, const std::vector<Cell>& stops);
+// ai_places.cpp: could the unit still open or visit something it goes for anywhere it can walk to (units in the way do not count)?
+bool lootLeft(const Battle& b, const Unit& u);
 
 // ---- ai_order.cpp ----
 Order bestOrder(Context& cx, const Unit& u);

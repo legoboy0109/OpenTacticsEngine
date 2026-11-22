@@ -10,12 +10,13 @@ void writeUnitBehaviour(const Unit& u, Json& out) {
   if (u.retreating) out.set("retreating", Json::makeBool(true));
   if (u.idleSeen > 0) out.set("idleSeen", Json::makeNumber(u.idleSeen));
   if (u.patrolAt > 0) out.set("patrolAt", Json::makeNumber(u.patrolAt));
+  if (u.escaping) out.set("escaping", Json::makeBool(true));  // docs/AI.md "Looting and escaping"
 }
 
 bool readUnitBehaviour(Reader& rd, const Database& db, const Json& j, const std::string& where, Unit& u) {
   u.behaviour = AiBehaviour();
   u.awake = false;
-  u.retreating = false, u.idleSeen = 0, u.patrolAt = 0;
+  u.retreating = false, u.idleSeen = 0, u.patrolAt = 0, u.escaping = false;
   if (j.has("behaviour")) {
     std::string err;
     if (!parseBehaviour(j["behaviour"], db, u.behaviour, err)) return rd.fail(where + ".behaviour", err);
@@ -27,6 +28,10 @@ bool readUnitBehaviour(Reader& rd, const Database& db, const Json& j, const std:
   if (j.has("retreating")) {
     if (!j["retreating"].isBool()) return rd.fail(where + ".retreating", "not true/false");
     u.retreating = j["retreating"].asBool();
+  }
+  if (j.has("escaping")) {
+    if (!j["escaping"].isBool()) return rd.fail(where + ".escaping", "not true/false");
+    u.escaping = j["escaping"].asBool();
   }
   if (j.has("idleSeen") && !rd.integer(j, "idleSeen", where, 0, 100000, u.idleSeen)) return false;
   if (j.has("patrolAt") && !rd.integer(j, "patrolAt", where, 0, 31, u.patrolAt)) return false;

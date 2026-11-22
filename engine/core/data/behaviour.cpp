@@ -10,7 +10,7 @@
 namespace ote {
 
 bool AiBehaviour::isDefault() const {
-  return mode == AiMode::Advance && fromTurn == 0 && group.empty() && prefer == AiPrefer::None && scriptedIsDefault(*this);
+  return mode == AiMode::Advance && fromTurn == 0 && group.empty() && prefer == AiPrefer::None && !noAttack && scriptedIsDefault(*this);
 }
 
 const char* behaviourModeName(AiMode m) {
@@ -20,6 +20,8 @@ const char* behaviourModeName(AiMode m) {
     case AiMode::GuardArea: return "guardArea";
     case AiMode::Seek: return "seek";
     case AiMode::Patrol: return "patrol";
+    case AiMode::Loot: return "loot";
+    case AiMode::Escape: return "escape";
     default: return "advance";
   }
 }
@@ -71,12 +73,14 @@ bool intKey(const Json& o, const char* key, int lo, int hi, int& out, std::strin
 bool parseBehaviour(const Json& v, const Database& db, AiBehaviour& out, std::string& err) {
   AiBehaviour b;
   const std::string modes = "\"advance\", \"hold\", \"guard\", \"guardArea\" or \"seek\"";
-  const std::string patrolNote = " (\"patrol\" too, with a \"route\")";  // after the old list, so the wording the tests know stays
+  const std::string patrolNote = " (\"patrol\" too, with a \"route\"; \"loot\" and \"escape\")";  // after the old list, so the wording the tests know stays
   if (v.isString()) {
     const std::string m = v.asString();
     if (m == "advance") b.mode = AiMode::Advance;
     else if (m == "hold") b.mode = AiMode::Hold;
     else if (m == "guard") b.mode = AiMode::Guard;
+    else if (m == "loot") b.mode = AiMode::Loot;
+    else if (m == "escape") b.mode = AiMode::Escape;
     else if (m == "guardArea" || m == "seek" || m == "patrol")
       return no(err, q(m) + " needs more than a name (" + (m == "seek" ? "what to head for" : m == "patrol" ? "a route" : "an area or a distance") +
                          "): write { \"mode\": " + q(m) + ", ... }");
@@ -85,14 +89,14 @@ bool parseBehaviour(const Json& v, const Database& db, AiBehaviour& out, std::st
     return true;
   }
   if (!v.isObject()) return no(err, "\"behaviour\" must be a mode name such as \"hold\" or an object such as { \"mode\": \"guard\" }");
-  static const char* const kKeys[] = {"mode", "wake", "group", "fromTurn", "area", "within", "unit", "place", "x", "y", "prefer"};
+  static const char* const kKeys[] = {"mode", "wake", "group", "fromTurn", "area", "within", "unit", "place", "x", "y", "prefer", "attacks"};
   for (const Json::Member& m : v.members()) {
     bool known = scriptedKey(m.first);
     for (const char* k : kKeys) known = known || m.first == k;
     if (!known)
       return no(err, "\"behaviour\" has an unknown key " + q(m.first) + " (it may have mode, wake, group, fromTurn, area, within, measure, unit, place, x, y, prefer, " +
-                         "order, weights, caution, retreat, idleTurns, route, ignores, heals)" +
-                         didYouMean(m.first, {"mode", "wake", "group", "fromTurn", "area", "within", "measure", "unit", "place", "x", "y", "prefer", "order", "weights", "caution", "retreat", "idleTurns", "route", "ignores", "heals"}));
+                         "order, weights, caution, retreat, idleTurns, route, ignores, heals, attacks)" +
+                         didYouMean(m.first, {"mode", "wake", "group", "fromTurn", "area", "within", "measure", "unit", "place", "x", "y", "prefer", "order", "weights", "caution", "retreat", "idleTurns", "route", "ignores", "heals", "attacks"}));
   }
   if (v.has("mode")) {
     if (!v["mode"].isString()) return no(err, "\"mode\" must be " + modes + patrolNote);
@@ -103,6 +107,8 @@ bool parseBehaviour(const Json& v, const Database& db, AiBehaviour& out, std::st
     else if (m == "guardArea") b.mode = AiMode::GuardArea;
     else if (m == "seek") b.mode = AiMode::Seek;
     else if (m == "patrol") b.mode = AiMode::Patrol;
+    else if (m == "loot") b.mode = AiMode::Loot;
+    else if (m == "escape") b.mode = AiMode::Escape;
     else return no(err, "\"mode\" must be " + modes + ", not " + q(m) + patrolNote);
   }
   const bool guards = b.mode == AiMode::Guard || b.mode == AiMode::GuardArea;
@@ -163,6 +169,10 @@ bool parseBehaviour(const Json& v, const Database& db, AiBehaviour& out, std::st
     }
   }
   if (v.has("prefer") && !readPrefer(v["prefer"], db, b, err)) return false;
+  if (v.has("attacks")) {  // docs/AI.md "Never attacking"
+    if (!v["attacks"].isBool()) return no(err, "\"attacks\" must be true or false (false: the unit never starts a fight; it still counterattacks)");
+    b.noAttack = !v["attacks"].asBool();
+  }
   if (!readScripted(v, db, b, err)) return false;
   out = b;
   return true;
@@ -190,6 +200,7 @@ Json behaviourToJson(const AiBehaviour& b) {
     o.set("y", Json::makeNumber(b.sy));
   }
   writeScripted(b, o);
+  if (b.noAttack) o.set("attacks", Json::makeBool(false));
   if (b.prefer == AiPrefer::Weakest) o.set("prefer", Json::makeString("weakest"));
   else if (b.prefer == AiPrefer::Nearest) o.set("prefer", Json::makeString("nearest"));
   else if (b.prefer != AiPrefer::None) {
