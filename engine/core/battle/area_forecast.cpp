@@ -17,7 +17,8 @@ bool Battle::areaForecast(int attacker, int weapon, Cell from, Cell target, Area
   std::vector<int> owned;
   attackWeaponsAt(a, from, owned);
   if (std::find(owned.begin(), owned.end(), weapon) == owned.end()) return false;
-  if ((a.moved || from != a.cell) && !db->weapons[(size_t)weapon].afterMove) return false;
+  // (a strike ability: the ability's own "afterMove" counts, checked with its state; ability_strike.cpp)
+  if (strikeWeapon_ < 0 && (a.moved || from != a.cell) && !db->weapons[(size_t)weapon].afterMove) return false;
   if (!weaponAims(weapon, from, target, attacker)) return false;
 
   out.cell = target;
