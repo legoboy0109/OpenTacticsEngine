@@ -112,7 +112,7 @@ bool jobSwitch(const Database& db, JobState& s, int job, std::string& why, const
   return true;
 }
 
-bool jobLearnReason(const Database& db, const JobState& s, int flat, std::string& why) {
+bool jobLearnReason(const Database& db, const JobState& s, int flat, std::string& why, const std::vector<MasteryPoints>* mastery) {
   if (!validEntry(db, flat)) {
     why = "there is nothing like that to learn";
     return false;
@@ -127,7 +127,7 @@ bool jobLearnReason(const Database& db, const JobState& s, int flat, std::string
     return false;
   }
   std::string lock;
-  if (!jobUnlocked(db, s, e.job, &lock)) {
+  if (!jobUnlocked(db, s, e.job, &lock, mastery)) {
     why = db.jobs[(size_t)e.job].name + " is locked: " + lock;
     return false;
   }
@@ -139,8 +139,8 @@ bool jobLearnReason(const Database& db, const JobState& s, int flat, std::string
   return true;
 }
 
-bool jobLearn(const Database& db, JobState& s, int flat, std::string& why) {
-  if (!jobLearnReason(db, s, flat, why)) return false;
+bool jobLearn(const Database& db, JobState& s, int flat, std::string& why, const std::vector<MasteryPoints>* mastery) {
+  if (!jobLearnReason(db, s, flat, why, mastery)) return false;
   const JobLearnDef& e = db.jobEntries[(size_t)flat];
   JobProgress& p = s.at(e.job);
   p.spent += e.cost;

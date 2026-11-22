@@ -22,3 +22,24 @@ TEST(an_area_strike_ability_follows_its_own_after_move_not_the_weapons) {
   CHECK(std::find(cells.begin(), cells.end(), w.unit("foe").cell) != cells.end());
   CHECK(w.apply(Action::useAbility(w.id("aldric"), flame, -1, w.unit("foe").cell)));
 }
+
+TEST(entries_of_a_job_unlocked_by_a_mastered_item_entry_can_be_bought) {
+  Duel d("strikerev_buy", false);
+  d.c.swap("data/jobs.json", R"("requires": [ { "job": "squire", "level": 2 } ],
+    "jpLevels")", R"("requires": [ { "mastered": "brave" } ],
+    "jpLevels")");
+  jobtest::Game g;
+  CHECK(g.load(d.c.dir));
+  CHECK(g.startChapter());
+  CHECK(g.winAndFinish());  // aldric is on the roster now, in the camp
+  RosterUnit* r = g.rosterUnit("aldric");
+  CHECK(r != nullptr);
+  if (!r) return;
+  const int mage = g.job("mage");
+  r->mastery = {{0, 20}};  // Brave mastered
+  r->jobs.at(mage).earned = 100;
+  std::string why;
+  CHECK(jobLearnReason(g.db, r->jobs, g.entry("mend"), why, &r->mastery));
+  CHECK(jobsLearn(g.db, g.pt, "aldric", g.entry("mend"), why));
+  if (!why.empty()) std::printf("  %s\n", why.c_str());
+}

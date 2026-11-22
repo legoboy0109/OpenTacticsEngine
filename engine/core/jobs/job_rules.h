@@ -37,8 +37,10 @@ bool jobHasLearned(const JobState& s, int flat);
 // This changes the state only; the unit type and stats of whoever it belongs to are changed by the caller (job_camp.h).
 bool jobSwitch(const Database& db, JobState& s, int job, std::string& why, const std::vector<MasteryPoints>* mastery = nullptr);
 // Spends the JP of the entry's job to learn it (the job must be unlocked and the entry not yet learned).
-bool jobLearn(const Database& db, JobState& s, int flat, std::string& why);
-bool jobLearnReason(const Database& db, const JobState& s, int flat, std::string& why);  // the same test without changing anything
+// `mastery`: the unit's points in what items teach, for a job unlocked by one of those entries ("requires" { "mastered": id }); null = none.
+bool jobLearn(const Database& db, JobState& s, int flat, std::string& why, const std::vector<MasteryPoints>* mastery = nullptr);
+bool jobLearnReason(const Database& db, const JobState& s, int flat, std::string& why,
+                    const std::vector<MasteryPoints>* mastery = nullptr);  // the same test without changing anything
 // Equip a learned entry of another job / take one off.
 bool jobEquip(const Database& db, JobState& s, int flat, std::string& why);
 bool jobEquipReason(const Database& db, const JobState& s, int flat, std::string& why);

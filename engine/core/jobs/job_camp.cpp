@@ -87,7 +87,7 @@ bool jobsChangeInPrep(const Database& db, Playthrough& pt, const MapDef& map, co
 
 bool jobsLearn(const Database& db, Playthrough& pt, const std::string& id, int flat, std::string& why) {
   RosterUnit* r = usable(db, pt, id, why);
-  return r && jobLearn(db, r->jobs, flat, why);
+  return r && jobLearn(db, r->jobs, flat, why, &r->mastery);
 }
 
 bool jobsEquip(const Database& db, Playthrough& pt, const std::string& id, int flat, std::string& why) {

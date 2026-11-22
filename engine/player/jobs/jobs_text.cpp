@@ -97,7 +97,7 @@ JobRows learnTabRows(const Database& db, const RosterUnit& r) {
       row.label = jobEntryName(db, e.flat) + (e.ability ? " (A)" : "");
       const bool learned = jobHasLearned(r.jobs, e.flat);
       std::string why;
-      const bool can = !learned && jobLearnReason(db, r.jobs, e.flat, why);
+      const bool can = !learned && jobLearnReason(db, r.jobs, e.flat, why, &r.mastery);
       row.extra = learned ? "Learned" : db.rules.jobs.spendJp ? intStr(e.cost) + " JP" : std::string();
       // Points an item has put into it (docs/JOBS.md "Learning from equipment"): "AP 40/100" (beside the price when JP can buy it too).
       for (size_t t = 0; t < db.teachEntries.size() && !learned; ++t) {
