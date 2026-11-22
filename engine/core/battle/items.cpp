@@ -65,6 +65,23 @@ int Battle::equippedSlot(const Unit& u) const {
   return -1;
 }
 
+void Battle::dropsOf(const Unit& u, std::vector<ItemStack>& out) const {
+  out.clear();
+  bool marked = false;
+  for (const ItemStack& s : u.items) {
+    marked = marked || s.drop;
+    if (s.drop && !db->rules.items.dropLast) out.push_back(s);
+  }
+  if (!db->rules.items.dropLast || !marked) return;
+  // "last": one item, the last one it carries, unless that is the weapon in its hand (a thief's loot goes to the end of its items).
+  const int hand = equippedSlot(u);
+  for (int i = (int)u.items.size() - 1; i >= 0; --i)
+    if (i != hand) {
+      out.push_back(u.items[(size_t)i]);
+      return;
+    }
+}
+
 bool Battle::storageOpen(const Unit& u) const {
   if (!u.alive) return false;
   switch (db->rules.items.storage) {

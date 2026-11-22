@@ -79,8 +79,9 @@ bool interaction(const Battle& b, const Unit& u, int s, Cell from, bool enemyBlo
   return false;
 }
 
-// The squares from which `u` could interact with one of the structures it goes for (free, enterable, not claimed by another unit).
-void approachCells(const Battle& b, const Unit& u, bool enemyBlocked, std::vector<Cell>& out) {
+// The squares from which `u` could interact with one of the structures it goes for (free, enterable, not claimed by another unit; with
+// `anyUnits` a square another unit stands on counts too: lootLeft asks whether anything is left at all, not what is free this turn).
+void approachCells(const Battle& b, const Unit& u, bool enemyBlocked, std::vector<Cell>& out, bool anyUnits = false) {
   out.clear();
   const int mt = b.typeOf(u).moveType;
   std::vector<Cell> ring;
@@ -96,7 +97,7 @@ void approachCells(const Battle& b, const Unit& u, bool enemyBlocked, std::vecto
       for (int i = 0; i < n; ++i) around.push_back(nb[i]);
     }
     for (Cell c : around) {
-      if (b.enterCost(c, mt) <= 0 || (b.unitAt(c) != -1 && b.unitAt(c) != u.id)) continue;
+      if (b.enterCost(c, mt) <= 0 || (!anyUnits && b.unitAt(c) != -1 && b.unitAt(c) != u.id)) continue;
       if (interaction(b, u, (int)si, c, enemyBlocked, probe)) out.push_back(c);
     }
   }
@@ -111,7 +112,8 @@ void considerPlaces(Context& cx, const Unit& u, const Reach& reach, const std::v
   if (u.aiGoals == 0 || b.structures.empty() || u.acted) return;
   if (u.aiGoals & kAiWalls) considerWalls(cx, u, reach, stops, best);
   const int mt = b.typeOf(u).moveType;
-  const bool enemyBlocked = cx.enemyFieldFor(mt)[(size_t)u.cell] >= kFar;
+  // A looter (docs/AI.md "Looting and escaping") opens the doors it goes for whether or not an enemy can be reached: they are part of its loot.
+  const bool enemyBlocked = u.behaviour.mode == AiMode::Loot || cx.enemyFieldFor(mt)[(size_t)u.cell] >= kFar;
   const bool automatic = b.db->rules.places.automatic;
 
   // 1. Do it now: from a square it can stop on.
@@ -161,6 +163,16 @@ void considerPlaces(Context& cx, const Unit& u, const Reach& reach, const std::v
     best.moveTo = bestCell;
     best.kind = ActionType::Wait;
   }
+}
+
+bool lootLeft(const Battle& b, const Unit& u) {
+  if (u.aiGoals == 0 || b.structures.empty()) return false;
+  std::vector<Cell> goals;
+  approachCells(b, u, true, goals, true);
+  if (goals.empty()) return false;
+  std::vector<int> field;
+  distanceField(b, b.typeOf(u).moveType, goals, field);  // closed doors are walls here: loot behind one it cannot open is not "left"
+  return field[(size_t)u.cell] < kFar;
 }
 
 }  // namespace ai

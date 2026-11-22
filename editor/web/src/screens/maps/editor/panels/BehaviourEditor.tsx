@@ -14,6 +14,7 @@ import { Select } from '../../../../ui/Select'
 import { TextInput } from '../../../../ui/TextInput'
 import { Check } from '../../../../ui/Toggle'
 import { B } from './behaviourText'
+import { S } from './behaviourScriptedText'
 import { MeasureField, RouteFields, ScriptedFields } from './ScriptedFields'
 
 interface Props {
@@ -54,6 +55,7 @@ export function BehaviourEditor({ value, onChange, doc, map, id = 'behaviour' }:
         <Select aria-label={B.mode} value={mode} options={BEHAVIOUR_MODES.map((m) => ({ value: m, label: B.modes[m] }))}
           onChange={(v) => set(withMode(o, v as BehaviourMode, ctx))} />
       </Field>
+      <Check label={S.attacks} help={S.attacksHelp} checked={o.attacks === false} onChange={(v) => patch({ attacks: v ? false : undefined })} />
       {mode === 'guard' && <Check label={B.react} help={B.reactHelp} checked={o.wake === 'react'} onChange={(v) => patch({ wake: v ? 'react' : undefined })} />}
       {mode === 'guardArea' && (
         <>

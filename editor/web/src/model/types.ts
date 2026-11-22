@@ -28,7 +28,7 @@ export interface Progression extends Feature {
 /** docs/ITEMS.md `rules.items`; every key is optional and a default is never written. */
 export type StorageMode = 'off' | 'anywhere' | 'structure' | 'leader'
 /** `sellPercent`: 0 to 100, default 50: what a shop that buys items back pays (docs/EVENTS.md "Preparation"). */
-export interface ItemRules extends Extra { weapons?: 'fixed' | 'carried'; inventorySize?: number; storage?: StorageMode; sellPercent?: number }
+export interface ItemRules extends Extra { weapons?: 'fixed' | 'carried'; inventorySize?: number; storage?: StorageMode; sellPercent?: number; drops?: 'marked' | 'last' }
 /** docs/ECONOMY.md `rules.supply`; no block = nothing is repaired or resupplied. */
 export interface RepairRules extends Extra { amount?: number; costShare?: number }
 export interface SupplyRules extends Extra { repair?: RepairRules; structures?: boolean }
@@ -338,6 +338,8 @@ export interface MapFile extends Extra {
   owners?: Array<{ x: number; y: number; side: string } & Extra>
   structures?: MapStructure[]
   units?: MapUnit[]
+  /** The squares a computer unit leaves the map by (docs/AI.md "Looting and escaping"); missing = none; model/exits.ts. */
+  exits?: Array<{ x: number; y: number }>
   /** Fog of war (docs/ECONOMY.md): missing = off. */
   fog?: boolean
   /** Fog options (docs/ECONOMY.md "Fog of war"): vision added to every unit (-10 to 10) and computer sides that see everything. Only with fog. */

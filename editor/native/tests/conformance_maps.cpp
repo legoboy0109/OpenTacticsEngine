@@ -18,7 +18,9 @@ const std::vector<Op> kJobUnit = {
 void addMapContexts(std::vector<Context>& c) {
   // --- a unit's computer behaviour (ai-scripted: weights set "classic", computer sides, units b1..). A key that belongs to one
   // mode gets its own context: an override below a variant is also laid into the base value every key of the context starts from.
-  c.push_back({"map-behaviour", "ai-scripted", {{"data/units.json", "units[0].tags", R"(["flavour"])"}},
+  // exits and the first unit's goesFor are there so that the modes loot and escape (which the loader refuses without them) are tried too.
+  c.push_back({"map-behaviour", "ai-scripted",
+               {{"data/units.json", "units[0].tags", R"(["flavour"])"}, {"maps/field.json", "exits", R"([{"x":0,"y":0}])"}, {"maps/field.json", "units[0].goesFor", R"(["chests"])"}},
                {"maps:units[].behaviour"},
                {{KB ".prefer{unit}.unit", "\"b2\""}, {KB ".ignores", R"(["b2"])"}, {KB ".retreat.to.terrain", R"(["fort"])"}}});
   c.push_back({"map-behaviour-within", "ai-scripted", {}, {KB ".within"}, {{KB ".within", "3"}}});
@@ -27,6 +29,8 @@ void addMapContexts(std::vector<Context>& c) {
   c.push_back({"map-behaviour-seek-xy", "ai-scripted", {}, {KB ".x", KB ".y"}, {{KB, R"({"mode":"seek","x":3,"y":3})"}}});
   c.push_back({"map-behaviour-seek-place", "srpg-doors", {kLordIsRed}, {KB ".place"}, {{KB ".place", "\"d1\""}}});
   c.push_back({"map-behaviour-patrol", "ai-scripted", {}, {KB ".route"}, {{KB ".route", R"([{"x":1,"y":1},{"x":2,"y":1}])"}}});
+  // The map's exits (docs/AI.md "Looting and escaping").
+  c.push_back({"map-exits", "ai-scripted", {}, {"maps:exits"}, {{"maps:exits", R"([{"x":0,"y":0},{"x":5,"y":5}])"}}});
 
   // --- the rest of a placed unit ---
   c.push_back({"map-unit-goes-for", "srpg-doors", {kLordIsRed}, {"maps:units[].goesFor"}, {}});

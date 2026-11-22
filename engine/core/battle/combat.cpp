@@ -298,8 +298,7 @@ void Battle::doStrike(const CombatSetup& setup, bool counter, bool extra, std::v
 // What the fallen unit was marked to drop goes to the one who struck it down.
 void Battle::defeatStruck(int def, int killer, std::vector<Event>& events) {
   std::vector<ItemStack> drops;
-  for (const ItemStack& s : units[def].items)
-    if (s.drop) drops.push_back(s);
+  dropsOf(units[(size_t)def], drops);  // docs/ITEMS.md "Drops"
   killUnit(def, events, killer);
   for (const ItemStack& s : drops) giveTo(killer, s, kDropped, events);
   defeatQuote(def, events);  // the fallen unit's last words come before the story's "defeated" events

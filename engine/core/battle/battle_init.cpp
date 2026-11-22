@@ -199,6 +199,8 @@ bool Battle::init(const Database& database, const MapDef& map, Formulas& formula
     seenKinds_.assign((size_t)teamCount, kinds);
   }
 
+  exits.clear();  // docs/AI.md "Looting and escaping": static map data, so a save never needs them (a load starts from the map)
+  for (const auto& e : map.exits) exits.push_back(grid.at(e.first, e.second));
   storyState.weather = map.weather;  // the map's own weather ("" = clear); a story `weather` command changes it later
   // Story: the map's events and objectives, everything off / 0 / not yet run.
   story = map.story;

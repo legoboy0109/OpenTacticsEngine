@@ -56,21 +56,9 @@ Order retreatOrder(Context& cx, const Unit& u, const std::vector<Cell>& stops) {
     }
     std::vector<int> field;
     if (!goals.empty()) distanceField(b, mt, goals, field);
-    int bestVal = goals.empty() ? kFar : field[(size_t)u.cell];
-    if (!goals.empty() && bestVal < kFar) {
-      Cell bestCell = kNoCell;
-      double bestDef = -1;
-      for (Cell s : stops) {
-        if (s == u.cell || field[(size_t)s] >= kFar) continue;
-        const int val = field[(size_t)s];
-        const double def = terrainDefense(b, s);
-        // The least remaining cost; equal: the better terrain, then the square found first in the move search (cheapest walk, lowest square).
-        if (val < bestVal || (val == bestVal && bestCell != kNoCell && def > bestDef)) {
-          bestVal = val;
-          bestCell = s;
-          bestDef = def;
-        }
-      }
+    if (!goals.empty() && field[(size_t)u.cell] < kFar) {
+      int bestVal = 0;
+      const Cell bestCell = stepToward(b, u, field, stops, bestVal);
       if (bestCell != kNoCell) {
         order.moveTo = bestCell;
         order.score = 100 - std::min(bestVal, 99);
@@ -80,6 +68,33 @@ Order retreatOrder(Context& cx, const Unit& u, const std::vector<Cell>& stops) {
     // No such square it can get to at all: away from the enemy instead.
   }
 
+  const Cell bestCell = safestStop(b, u, stops);
+  if (bestCell != kNoCell) {
+    order.moveTo = bestCell;
+    order.score = 100;
+  }
+  return order;
+}
+
+Cell stepToward(const Battle& b, const Unit& u, const std::vector<int>& field, const std::vector<Cell>& stops, int& bestVal) {
+  bestVal = field[(size_t)u.cell];
+  Cell bestCell = kNoCell;
+  double bestDef = -1;
+  for (Cell s : stops) {
+    if (s == u.cell || field[(size_t)s] >= kFar) continue;
+    const int val = field[(size_t)s];
+    const double def = terrainDefense(b, s);
+    // The least remaining cost; equal: the better terrain, then the square found first in the move search (cheapest walk, lowest square).
+    if (val < bestVal || (val == bestVal && bestCell != kNoCell && def > bestDef)) {
+      bestVal = val;
+      bestCell = s;
+      bestDef = def;
+    }
+  }
+  return bestCell;
+}
+
+Cell safestStop(const Battle& b, const Unit& u, const std::vector<Cell>& stops) {
   int bestCount, bestNearest;
   threatsAt(b, u, u.cell, bestCount, bestNearest);
   double bestDef = terrainDefense(b, u.cell);
@@ -98,11 +113,7 @@ Order retreatOrder(Context& cx, const Unit& u, const std::vector<Cell>& stops) {
       bestCell = s;
     }
   }
-  if (bestCell != kNoCell) {
-    order.moveTo = bestCell;
-    order.score = 100;
-  }
-  return order;
+  return bestCell;
 }
 
 }  // namespace ai

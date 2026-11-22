@@ -3,6 +3,7 @@
 // load fine but are probably not what the author meant.
 import { audioChecks } from './audioChecks'
 import { behaviourChecks } from './behaviour'
+import { exitProblems } from './exits'
 import { typeIdOf } from './characterUnits'
 import { mapDifficultyChecks } from './difficultyChecks'
 import { fogChecks } from './fogChecks'
@@ -69,6 +70,7 @@ export function mapWarnings(doc: ProjectDoc, map: MapFile, imageSize?: ImageSize
   mapWeaponChecks(doc).filter((x) => mapId !== undefined && x.mapId === mapId).forEach((x, i) => out.push({ key: `mapweapon:${i}`, text: x.text, ...(x.cell ? { cell: x.cell } : {}) }))
   // The computer units' behaviours (docs/AI.md): what the loader refuses and what is probably not meant.
   if (mapId !== undefined) behaviourChecks(doc, mapId, map).forEach((x, i) => out.push({ key: `behaviour:${i}`, text: x.text, cell: x.cell }))
+  exitProblems(map).forEach((t, i) => out.push({ key: `exits:${i}`, text: t }))
   fogChecks(doc).filter((x) => mapId !== undefined && x.mapId === mapId).forEach((x, i) => out.push({ key: `fog:${i}`, text: x.text }))
   // The map's own difficulty numbers and its units' "only on" lists (docs/DIFFICULTY.md).
   if (mapId !== undefined) mapDifficultyChecks(doc, mapId, map).forEach((x, i) => out.push({ key: `difficulty:${i}`, text: x.text, ...(x.cell ? { cell: x.cell } : {}) }))

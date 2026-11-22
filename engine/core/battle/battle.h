@@ -249,6 +249,8 @@ struct Unit {
   bool retreating = false;
   int idleSeen = 0;
   int patrolAt = 0;
+  // Looting and escaping (docs/AI.md): a looter that found nothing left to take escapes for good. Saved only when true.
+  bool escaping = false;
   // Refresh (docs/SRPG.md "Refresh an ally"): the units that refreshed this one in the present turn of its side, cleared when that turn
   // starts. Its size is the number of refreshes it has had this turn. Saved when not empty.
   std::vector<int> refreshedBy;
@@ -372,7 +374,9 @@ enum class ActionType {
   // Speed turn order (docs/TURN_ORDER.md "Charged actions"): `unit` gives up the charged action it has on its way; free, the unit may act after it.
   CancelCharge,
   // Commanders (docs/COMMANDERS.md): the active side spends its meter on power `power` of its commander; free of any unit.
-  UsePower
+  UsePower,
+  // Map exits (docs/AI.md "Looting and escaping"): a computer unit on one of the map's exits leaves the map with what it carries. Appended last.
+  LeaveMap
 };
 
 struct Action {
@@ -414,6 +418,7 @@ struct Action {
   static Action upgrade(int structure, int to) { Action a; a.type = ActionType::UpgradeStructure; a.structure = structure; a.to = to; return a; }
   static Action cancelCharge(int unit) { Action a; a.type = ActionType::CancelCharge; a.unit = unit; return a; }
   static Action usePower(int power) { Action a; a.type = ActionType::UsePower; a.power = power; return a; }
+  static Action leaveMap(int unit) { Action a; a.type = ActionType::LeaveMap; a.unit = unit; return a; }
   static Action cancelResearch() { Action a; a.type = ActionType::CancelResearch; return a; }
   static Action research(int tech) { Action a; a.type = ActionType::StartResearch; a.tech = tech; return a; }
   static Action supply(int unit) { Action a; a.type = ActionType::Supply; a.unit = unit; return a; }
@@ -542,6 +547,8 @@ class Battle {
   std::vector<CellState> cells;
   std::vector<StructureState> structures;
   std::vector<int> structureAt;  // per cell: index into `structures` or -1
+  std::vector<Cell> exits;       // the map's "exits": squares a computer unit leaves the map by (docs/AI.md "Looting and escaping")
+  bool isExit(Cell c) const;     // exits.cpp
   std::vector<int> occupant;  // per cell: unit id or -1
   std::vector<Unit> units;
   std::vector<SideState> sides;
@@ -777,6 +784,9 @@ class Battle {
   // and of the equipped weapon (the first wieldable one; -1 = unarmed).
   int weaponSlot(const Unit& u, int weapon) const;
   int equippedSlot(const Unit& u) const;
+  // What a defeated unit gives the one who defeated it (docs/ITEMS.md "Drops"): every item marked `drop`, or with rules.items "drops": "last"
+  // only its last item that is not the weapon in its hand, when anything at all is marked. Read before the unit is taken off.
+  void dropsOf(const Unit& u, std::vector<ItemStack>& out) const;
   bool hasRoom(const Unit& u) const { return (int)u.items.size() < db->rules.items.inventorySize; }
   // May this unit use its side's shared storage where it stands?
   bool storageOpen(const Unit& u) const;
@@ -795,6 +805,7 @@ class Battle {
   int unitByStoryId(const std::string& id) const;
   // Computer opponent (docs/AI.md; battle/ai_wake.cpp): wakes a guard (and its group) / every guard of a group.
   void wakeUnit(int unit);
+  void startEscaping(int unit);  // docs/AI.md "Looting and escaping": a looter with nothing left escapes from now on, for good (exits.cpp)
   void wakeGroup(const std::string& group);
   void aiTurnStart();  // docs/AI.md "Scripted-style computer players" (battle/ai_state.cpp): idle counters, retreat state, patrol squares at the start of a turn
   bool unitMatches(const UnitFilter& filter, const Unit& u) const;
@@ -1016,6 +1027,7 @@ class Battle {
 #include "core/battle/facing_internal.h"
 #include "core/battle/jobs_internal.h"
 #include "core/battle/commander_internal.h"
+#include "core/battle/exits_internal.h"
 
   StoryRun storyRun_;  // transient: empty between actions
   StoryChoice choice_;  // dialogue choices (story_choice.cpp)

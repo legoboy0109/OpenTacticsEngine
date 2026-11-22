@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { INVENTORY_MAX, INVENTORY_MIN, carriedWeapons, inventorySize, setInventorySize, setStorageMode, setWeaponsMode, storageMode, weaponItemCount } from '../../model/itemRules'
+import { INVENTORY_MAX, INVENTORY_MIN, carriedWeapons, inventorySize, itemDrops, setInventorySize, setItemDrops, setStorageMode, setWeaponsMode, storageMode, weaponItemCount, type ItemDrops } from '../../model/itemRules'
 import type { StorageMode } from '../../model/types'
 import { useDoc, useEdit } from '../../store/context'
 import { Card } from '../../ui/Card'
@@ -42,6 +42,9 @@ export function ItemsCard() {
         </Field>
         <Field label={T.storage} help={T.storageHelp}>
           <Select value={storageMode(doc)} options={STORAGE} onChange={(v) => edit((d) => setStorageMode(d, v as StorageMode))} />
+        </Field>
+        <Field label={T.drops} help={T.dropsHelp}>
+          <Select value={itemDrops(doc)} options={[{ value: 'marked', label: T.dropsMarked }, { value: 'last', label: T.dropsLast }]} onChange={(v) => edit((d) => setItemDrops(d, v as ItemDrops))} />
         </Field>
         <SellPercentField />
       </div>

@@ -2,6 +2,12 @@
 export const S = {
   patrolMode: 'Walks a route',
   patrolHelp: 'With nothing in reach it walks to the next square of its route, then the one after it, and starts again at the end. It attacks what it can reach like a guard that never goes after anyone.',
+  lootMode: 'Loots, then leaves',
+  lootHelp: 'It walks to what it goes for (chests, villages, doors, thefts; set under “Goes for” on the unit) and never walks toward the enemy. When nothing is left that it could take, it escapes for good. It still attacks what it can reach unless “Never attacks” is on.',
+  escapeMode: 'Escapes',
+  escapeHelp: 'It walks to the nearest exit of the map and leaves it (no defeat, no drops). The map needs exits (Map tab). With no exit it can reach, it keeps away from the enemy.',
+  attacks: 'Never attacks',
+  attacksHelp: 'Ticked: it never starts a fight, in any mode. It still hits back when it is attacked.',
   routeTitle: 'Route',
   routeHelp: 'Squares, counted from 1. At least 2 and at most 32. It walks them in this order and loops.',
   routeSquare: (n: number) => `Square ${n}`,

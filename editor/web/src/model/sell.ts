@@ -48,6 +48,9 @@ export function sellChecks(doc: ProjectDoc): ItemCheck[] {
   const pct = doc.game?.rules?.items?.sellPercent as unknown
   if (pct !== undefined && (typeof pct !== 'number' || !Number.isInteger(pct) || pct < SELL_PERCENT_MIN || pct > SELL_PERCENT_MAX))
     out.push({ section: 'items', text: 'The share of an item’s price that a shop pays when it buys (Rules, Items) must be a whole number from 0 to 100. The game will not load until it is.' })
+  const drops = doc.game?.rules?.items?.drops as unknown
+  if (drops !== undefined && drops !== 'marked' && drops !== 'last')
+    out.push({ section: 'items', text: 'What a defeated unit drops (Rules, Items) must be every marked item or only its last item. The game will not load until it is.' })
   for (const i of doc.items ?? [])
     if (i.sellable !== undefined && typeof i.sellable !== 'boolean') out.push({ section: 'items', text: `${i.name}: whether it can be sold must be on or off.` })
   return out

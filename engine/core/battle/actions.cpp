@@ -162,6 +162,8 @@ bool Battle::validate(const Action& action, std::string* why) const {
     case ActionType::VisitPlace:
     case ActionType::BreakPlace:
       return validatePlace(action, why);  // doors, chests and visiting (docs/SRPG.md section 10)
+    case ActionType::LeaveMap:
+      return validateLeaveMap(action, why);  // docs/AI.md "Looting and escaping"
     default:
       return validateItemAction(action, why);
   }
@@ -222,6 +224,7 @@ void Battle::applyAction(const Action& action, std::vector<Event>& events) {
     case ActionType::OpenPlace:
     case ActionType::VisitPlace:
     case ActionType::BreakPlace: applyPlace(action, events, true); break;
+    case ActionType::LeaveMap: applyLeaveMap(action, events); break;
     case ActionType::EndTurn:
       if (speedGame()) {  // docs/TURN_ORDER.md: ends the active unit's turn (speedAfterAction below closes it)
         if (activeUnit >= 0) units[(size_t)activeUnit].done = true;

@@ -55,6 +55,7 @@ def run_scripted_checks(api, tmp, games, templates, check, get_project, put_proj
 
     game_cases = [
         ("a bad turn order", ai(turnOrder="fast"), "\"turnOrder\" must be \"best\""),
+        ("a drop rule that is neither marked nor last", lambda g: g["rules"]["items"].update(drops="first"), "\"drops\" must be \"marked\""),
         ("an unknown rules.ai key", ai(speed=1), "unknown key \"speed\""),
         ("a weight out of range", ai(weights={"w": {"dmg": 101}}), "\"dmg\" must be a whole number from 0 to 100"),
         ("a priority of a unit type that is not there", ai(weights={"w": {"priority": {"dragon": 1}}}), "unknown unit type \"dragon\""),
@@ -73,10 +74,32 @@ def run_scripted_checks(api, tmp, games, templates, check, get_project, put_proj
         ("a patrol without a route", beh(0, {"mode": "patrol"}), "needs a \"route\""),
         ("a route square outside the map", beh(0, {"mode": "patrol", "route": [{"x": 1, "y": 1}, {"x": 40, "y": 1}]}), "outside the map"),
         ("ignores naming a unit that is not there", beh(0, {"ignores": ["ghost"]}), "unknown unit \"ghost\""),
+        ("an escape on a map without exits", beh(0, "escape"), "needs squares to leave by"),
+        ("a loot without goesFor", beh(0, "loot"), "needs \"goesFor\""),
+        ("attacks that is not true or false", beh(0, {"attacks": "no"}), "\"attacks\" must be true or false"),
+        ("an exit outside the map", lambda m: m.update(exits=[{"x": 40, "y": 1}]), "outside the map"),
+        ("the same exit twice", lambda m: m.update(exits=[{"x": 1, "y": 1}, {"x": 1, "y": 1}]), "listed twice"),
         ("measure without a guardArea", beh(0, {"measure": "moveCost"}), "\"measure\" goes with mode \"guardArea\""),
     ]
     for what, mutate, words in map_cases:
         save(mutate_map=mutate)
         check("scripted: %s is refused in plain words" % what, any(words in x["message"] for x in problems()), problems())
         restore()
+    # The shapes the editor writes for the loot / escape feature are accepted: an escape with exits, a looter with goesFor, "attacks": false.
+    def escapes(m):
+        m["exits"] = [{"x": 0, "y": 0}, {"x": 5, "y": 5}]
+        m["units"][0]["behaviour"] = "escape"
+        m["units"][1]["behaviour"] = {"mode": "escape", "attacks": False}
+        m["units"][2]["behaviour"] = {"attacks": False}
+        m["units"][2]["goesFor"] = ["chests"]
+        m["units"][3]["behaviour"] = "loot"
+        m["units"][3]["goesFor"] = ["doors"]
+    save(mutate_map=escapes)
+    check("scripted: exits, escape, loot and attacks: false load and the loader accepts them", problems() == [], problems())
+    st, d = get_project(api, pid)
+    field = d["maps"]["field"]
+    check("scripted: and they come back from a save untouched",
+          field["exits"] == [{"x": 0, "y": 0}, {"x": 5, "y": 5}] and field["units"][0]["behaviour"] == "escape" and
+          field["units"][1]["behaviour"] == {"mode": "escape", "attacks": False}, field["units"][0])
+    restore()
     check("scripted: and the good game is accepted again", problems() == [], problems())

@@ -18,7 +18,9 @@ enum class AiMode {
   Guard,      // waits until a hostile unit is within its threat range, then acts like Advance (or stays reactive)
   GuardArea,  // waits until a hostile unit is inside an area or within N squares, then acts like Advance
   Seek,       // heads for a named unit, a structure (place) or a square
-  Patrol      // walks a route of squares, attacking whatever it can reach on the way (docs/AI.md "Patrol route")
+  Patrol,     // walks a route of squares, attacking whatever it can reach on the way (docs/AI.md "Patrol route")
+  Loot,       // goes for the chests, villages and doors it is marked for (and steals) before anything else; then escapes (docs/AI.md "Looting and escaping")
+  Escape      // walks to the nearest of the map's "exits" and leaves the map there; never attacks
 };
 
 // A soft preference between targets (a bonus on top of the usual scoring, never a veto).
@@ -63,6 +65,7 @@ struct AiBehaviour {
   std::vector<std::string> ignores;        // "ignores": unit / character ids it never chases or attacks (unless nothing else is left)
   bool areaMoveCost = false;     // GuardArea "measure": "moveCost": `within` is a movement cost, not a distance
   bool healsRetreating = false;  // "heals": "retreating": its healing staves are used only on retreating allies (docs/AI.md "Healers that serve retreating allies")
+  bool noAttack = false;         // "attacks": false: it never starts a fight (counterattacks are rules and still happen); any mode
 
   bool isDefault() const;
 };
