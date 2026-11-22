@@ -337,7 +337,7 @@ grid and edits `tiles`, `legend`, `heights` and, on resize, `tileLayer`; everyth
   of the layer yet.
 - **Remembered** (`ui/app_settings`): zoom, tool, and the overlay switches.
 - The Qt-free parts (read / write of the grid, legend choice, flood region, resize) are in `editor/core/map_grid.*` and
-  `map_resize.cpp`, tested by `ote_editor_core_tests`, so the MCP server can use the same code (its `set_tiles` still has its own).
+  `map_resize.cpp`, tested by `ote_editor_core_tests`, so the MCP server uses the same code (its `set_tiles` and `new_map` choose legend symbols through `legendSymbolFor`).
 
 ## Tests
 Registered in ctest as `native_test_*` only when the option is ON. They set `QT_QPA_PLATFORM=offscreen`, so no window ever
@@ -412,8 +412,7 @@ QT_QPA_PLATFORM=offscreen OTE_SHOT_DIR=/some/folder ./editor/native/native_test_
 ## Not there yet
 - Map painter leftovers: no tool paints the `tileLayer` tiles (it is shown and kept on resize), structures cannot be moved on the
   canvas and units / structures cannot be added there (slots and units can be placed / moved, see "The map painter"), no 3D / isometric
-  preview, resize does not adjust coordinates inside story events, and `ote-mcp`'s `set_tiles` has its own copy of the legend
-  logic instead of `editor/core/map_grid`.
+  preview, and resize does not adjust coordinates inside story events.
 - Pickers that show the sound or the picture (the battle scene's frames are cell numbers, not a preview), and the table-level
   help of a column beyond its tooltip.
 - Drag and drop moves list items inside one file; it does not carry an item to another file, and it does not drag keys of a map (a

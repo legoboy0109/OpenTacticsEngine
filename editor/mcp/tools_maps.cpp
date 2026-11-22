@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cctype>
 
+#include "map_grid.h"
 #include "paths.h"
 #include "tools.h"
 
@@ -126,28 +127,24 @@ ToolResult getMap(Context& ctx, const Json& args) {
   return toolOk(out);
 }
 
-// The symbol of a terrain in the legend, adding one when it has none.
-bool symbolFor(Json& map, Txn& txn, const std::string& terrain, std::string& symbol, bool& added) {
-  added = false;
-  for (const auto& m : map["legend"].members())
-    if (m.second.isString() && m.second.asString() == terrain && m.first.size() == 1) { symbol = m.first; return true; }
-  std::vector<std::string> candidates;
+// The symbol of a terrain in the legend, adding one when it has none. The choice is the editor's shared one
+// (editor/core/map_grid: the terrain's own glyph, then letters of its id, in the map's own symbol style); `grid` is the map as read
+// at the start and is kept in step with the legend this adds to.
+bool symbolFor(Json& map, Txn& txn, ote_editor::MapGrid& grid, const std::string& terrain, std::string& symbol, bool& added) {
+  char glyph = 0;
   if (const Json* t = txn.peek("data/terrain.json"))
     for (const Json& r : (*t)["terrain"].items())
-      if (r["id"].isString() && r["id"].asString() == terrain && r["glyph"].isString() && r["glyph"].asString().size() == 1) candidates.push_back(r["glyph"].asString());
-  if (!terrain.empty()) { candidates.push_back(terrain.substr(0, 1)); std::string up = terrain.substr(0, 1); up[0] = (char)std::toupper((unsigned char)up[0]); candidates.push_back(up); }
-  for (const char* c = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789~=#%&*+-^:;,'"; *c; ++c) candidates.push_back(std::string(1, *c));
-  if (!map["legend"].isObject()) map.set("legend", jobj());
-  Json* legend = nullptr;
-  for (auto& m : map.mutableMembers()) if (m.first == "legend") legend = &m.second;
-  for (const std::string& cand : candidates)
-    if (!legend->has(cand.c_str()) && cand != "\"" && cand != "\\") {
-      legend->set(cand, jstr(terrain));
-      symbol = cand;
-      added = true;
-      return true;
-    }
-  return false;
+      if (r["id"].isString() && r["id"].asString() == terrain && r["glyph"].isString() && r["glyph"].asString().size() == 1) glyph = r["glyph"].asString()[0];
+  const char sym = ote_editor::legendSymbolFor(grid, terrain, glyph, added);
+  if (!sym) return false;
+  symbol = std::string(1, sym);
+  if (added) {
+    grid.legend.emplace_back(sym, terrain);
+    if (!map["legend"].isObject()) map.set("legend", jobj());
+    for (auto& m : map.mutableMembers())
+      if (m.first == "legend") m.second.set(symbol, jstr(terrain));
+  }
+  return true;
 }
 
 ToolResult setTiles(Context& ctx, const Json& args) {
@@ -162,6 +159,8 @@ ToolResult setTiles(Context& ctx, const Json& args) {
   if (!map) return toolFail(why);
   Grid grid;
   if (!gridOf(*map, grid, why)) return toolFail(why, "validate shows the loader's view of the map");
+  ote_editor::MapGrid legendGrid;  // the legend as the editor's shared code reads it
+  if (!ote_editor::readMapGrid(*map, false, legendGrid, why)) return toolFail(why, "validate shows the loader's view of the map");
   const std::vector<std::string> terrains = terrainIds(txn);
   std::vector<std::string> rows;
   for (const Json& r : (*map)["tiles"].items()) rows.push_back(r.asString());
@@ -193,7 +192,7 @@ ToolResult setTiles(Context& ctx, const Json& args) {
         return toolFail(where + ": no terrain \"" + t + "\" (the game's terrain: " + all + ")", "add_entry to data/terrain.json makes a new terrain");
       }
       bool added = false;
-      if (!symbolFor(*map, txn, t, symbol, added)) return toolFail("the legend has no free symbol left for \"" + t + "\"");
+      if (!symbolFor(*map, txn, legendGrid, t, symbol, added)) return toolFail("the legend has no free symbol left for \"" + t + "\"");
       if (added) addedLegend.set(symbol, jstr(t));
     }
     if (op.has("height")) {
@@ -262,7 +261,8 @@ ToolResult newMap(Context& ctx, const Json& args) {
   holder.set("legend", jobj());
   std::string symbol;
   bool added = false;
-  symbolFor(holder, txn, fill, symbol, added);
+  ote_editor::MapGrid emptyGrid;  // a new map has no legend yet
+  symbolFor(holder, txn, emptyGrid, fill, symbol, added);
   map.set("legend", holder["legend"]);
   Json rows = jarr();
   for (int y = 0; y < h; ++y) rows.push(jstr(std::string((size_t)w, symbol[0])));
