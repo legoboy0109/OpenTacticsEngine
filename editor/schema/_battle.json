@@ -245,7 +245,13 @@
         "stage": { "use": "stage" },
         "scene": { "type": "object", "block": true, "help": "How long a held pose waits after the result.", "fields": {
           "resultHoldMs": { "type": "int", "min": 0, "max": 5000, "default": 533, "help": "The result is over this long after the hit or miss." },
-          "resultHoldAgainMs": { "type": "int", "min": 0, "max": 5000, "default": 0, "help": "Added when the same fighter strikes again next." } } } }
+          "resultHoldAgainMs": { "type": "int", "min": 0, "max": 5000, "default": 0, "help": "Added when the same fighter strikes again next." },
+          "hitHold": { "type": "object", "help": "A hit waits by the hit points it changed (a draining bar); a miss keeps resultHoldMs.", "fields": {
+            "minMs": { "type": "number", "min": 0, "max": 5000, "help": "The shortest wait after a hit (default: resultHoldMs)." },
+            "baseMs": { "type": "number", "min": 0, "max": 5000, "help": "Added to the points' share before comparing with the minimum." },
+            "perHpMs": { "type": "number", "min": 0, "max": 1000, "help": "Milliseconds per hit point that changed." },
+            "killMs": { "type": "number", "min": 0, "max": 10000, "help": "Added when the hit defeats the unit." },
+            "noChangeMs": { "type": "number", "min": 0, "max": 5000, "help": "The wait when no hit point changed (default: the minimum)." } } } } } }
     }
   }
 }
