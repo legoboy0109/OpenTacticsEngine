@@ -42,6 +42,7 @@ struct Loop {
   // on platforms that deliver the notice from inside SDL_PollEvent on this thread it simply re-enters. Null on the web.
   SDL_Mutex* lock = nullptr;
   SDL_Window* window = nullptr;  // the console's present path reads its surface
+  bool display = true;           // false: OTE_XBOX360_NO_DISPLAY and no display (Xenia has none): frames are drawn, not shown
 };
 
 // The OS may freeze the process right after WILL_ENTER_BACKGROUND / TERMINATING returns, so these are handled here, at
@@ -102,7 +103,7 @@ void frame(Loop& L) {
 #ifdef OTE_XBOX360
   // SDL has no video driver for the console: the software renderer drew into the dummy window's surface, which goes to the
   // screen as one texture (platform/xbox360/xbox360_present.h). It waits for a front buffer, so it paces the loop too.
-  if (SDL_Surface* surf = SDL_GetWindowSurface(L.window)) {
+  if (SDL_Surface* surf = L.display ? SDL_GetWindowSurface(L.window) : nullptr) {
     if (!xbox360PresentFrame(surf->pixels, surf->pitch)) L.done = true;
   }
 #endif
@@ -169,7 +170,16 @@ int runApp(App& app, const PlatformConfig& config) {
 #ifdef OTE_XBOX360
   // The window is the display's whole picture (720p). Opening it takes the GPU and the display.
   int panelW = 0, panelH = 0;
-  if (!xbox360PresentOpen(panelW, panelH)) {
+  bool haveDisplay = xbox360PresentOpen(panelW, panelH);
+  if (!haveDisplay && SDL_getenv("OTE_XBOX360_NO_DISPLAY")) {
+    // The Xenia emulator has no display controller, so xsdk_present_open fails there; with this set (args.txt) the player
+    // still runs, drawing into its software surface only (--frames / --screenshot work). Never set it on a console.
+    OTE_WARN("no display: running without showing frames (OTE_XBOX360_NO_DISPLAY)");
+    panelW = 1280;
+    panelH = 720;
+    haveDisplay = false;
+    xbox360PresentSelfTest();
+  } else if (!haveDisplay) {
     SDL_Quit();
     return 2;
   }
@@ -268,7 +278,8 @@ int runApp(App& app, const PlatformConfig& config) {
     loop.gfx = &gfx;
     loop.vsync = !config.headless && !hiddenWindow && SDL_SetRenderVSync(ren, 1);
 #ifdef OTE_XBOX360
-    loop.vsync = true;  // the present call waits for the display: no SDL_Delay needed
+    loop.display = haveDisplay;
+    loop.vsync = haveDisplay;  // the present call waits for the display: no SDL_Delay needed
 #endif
     app.onStart(gfx);  // may load content (slow): take the first time stamp afterwards
     loop.lastNs = SDL_GetTicksNS();

@@ -13,6 +13,10 @@ bool xbox360PresentOpen(int& width, int& height);
 // Waits for a free front buffer, so it also paces the loop to the display. False when the display stopped answering.
 bool xbox360PresentFrame(const void* pixels, int pitchBytes);
 
+// For emulators without a display controller (Xenia): after xbox360PresentOpen failed at the display step, draws a test
+// pattern through the same texture / shader / quad path into plain GPU memory and compares what comes back. Logs PASS or FAIL.
+bool xbox360PresentSelfTest();
+
 void xbox360PresentClose();
 
 }  // namespace ote
