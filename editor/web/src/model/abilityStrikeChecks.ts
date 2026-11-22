@@ -27,6 +27,9 @@ export function strikeChecks(doc: ProjectDoc, a: Ability): string[] {
 export function healChecks(a: Ability): string[] {
   if (!a.effect || !('heal' in a.effect)) return []
   const h = a.effect.heal
+  // A bare word ("ful", "most") is a slip, not a formula: the loader refuses it (a formula reads the units, such as "a.mag * 2").
+  if (typeof h === 'string' && h !== 'full' && /^[A-Za-z_]+$/.test(h))
+    return [`${a.name}: “${h}” is not a formula. Write “full”, or a formula that reads the units, such as “a.mag * 2”.`]
   const ok = h === 'full' || (typeof h === 'string' && h.trim() !== '') || isWhole(h, 1, 999) ||
     (!!h && typeof h === 'object' && !Array.isArray(h) && Object.keys(h).length === 1 && isWhole(h.percent, 1, 100))
   return ok ? [] : [`${a.name}: healing must be a whole number from 1 to 999, “full”, a percent from 1 to 100, or a formula.`]

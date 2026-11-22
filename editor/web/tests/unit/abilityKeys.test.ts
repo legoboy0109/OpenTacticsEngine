@@ -101,6 +101,12 @@ describe('healing by percent and formula', () => {
     expect(healChecks(heal(true))).toHaveLength(1)
     expect(healChecks(heal({ percent: 100 }))).toEqual([])
   })
+  it('refuses a bare word as a formula, as the loader does (a slip for "full")', () => {
+    expect(healChecks(heal('ful'))).toHaveLength(1)
+    expect(healChecks(heal('most'))).toHaveLength(1)
+    expect(healChecks(heal('a.str * 2'))).toEqual([])
+    expect(healChecks(heal('12'))).toEqual([])
+  })
   it('says it in the summary', () => {
     const d = base()
     expect(abilitySummary(d, heal({ percent: 30 }))).toMatch(/30% of its maximum/)
