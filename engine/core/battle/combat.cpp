@@ -58,7 +58,7 @@ void Battle::attackOptions(int unit, Cell from, std::vector<AttackOption>& out) 
   int mapStructure = -1;
   attackWeaponsAt(u, from, weapons, &mapStructure);  // carried or fixed weapons, plus the one of the structure it would stand on
   for (int w : weapons) {
-    if (moved && !db->weapons[w].afterMove) continue;
+    if (moved && !db->weapons[w].afterMove && strikeWeapon_ < 0) continue;  // (a strike ability: the ability's "afterMove" counts)
     if (db->weapons[w].area.on()) {  // an area weapon aims at squares (area_forecast.cpp)
       areaOptions(unit, from, w, mapStructure >= 0 && w == mapWeaponOf(mapStructure), out);
       continue;
@@ -95,7 +95,7 @@ bool Battle::forecastFight(int attacker, int defender, int weapon, Cell from, Fo
   std::vector<int> owned;
   attackWeaponsAt(a, from, owned);  // (the structure it would stand on may add a weapon)
   if (std::find(owned.begin(), owned.end(), weapon) == owned.end()) return false;
-  if (!storyFight && (a.moved || from != a.cell) && !db->weapons[weapon].afterMove) return false;
+  if (!storyFight && strikeWeapon_ < 0 && (a.moved || from != a.cell) && !db->weapons[weapon].afterMove) return false;
   if (!storyFight && !areaMode && !weaponAims(weapon, from, d.cell, attacker)) return false;  // range, and the straight-line rules of line fire
 
   // Everything below only reads the battle (this method is const; no roll is made), so a unit's stats cannot change between
@@ -104,7 +104,7 @@ bool Battle::forecastFight(int attacker, int defender, int weapon, Cell from, Fo
   CombatMods modsA, modsD;
   out.arc = arcOfAttack(d, from);  // rules.facing: which side of the defender the attack comes from (front in a game without facing)
   setUpCombat(attacker, defender, weapon, from, setup, modsA, modsD);
-  if (areaMode == 1) setup.counters = false;  // only the unit on the aimed square may answer an area attack
+  if (areaMode == 1 || strikeWeapon_ >= 0) setup.counters = false;  // only the unit on the aimed square may answer an area attack; nothing answers a strike ability
   if (!strikeForecast(setup, false, modsA, modsD, out.attack)) return false;
   if (setup.counters && !strikeForecast(setup, true, modsD, modsA, out.counter)) setup.counters = false;
   out.defenderFirst = setup.counters && modsD.strikeFirst && !modsA.strikeFirst;
@@ -165,7 +165,7 @@ void Battle::doStrike(const CombatSetup& setup, bool counter, bool extra, std::v
   // An area attack (area_attack.cpp) checked its weapon once and wears it once, after its last strike: its own strikes neither look at
   // the wear nor cause any (a counter-attack is an ordinary strike).
   const bool areaStrike = fightArea_ && !counter;
-  if (areaStrike) {
+  if (areaStrike || (strikeWeapon_ >= 0 && !counter)) {  // (a strike ability: the weapon is not carried and never wears)
     // (nothing to check)
   } else if (mapStrike) {
     if (mapWeaponUses(setup.mapStructure) == 0 || mapWeaponOf(setup.mapStructure) != weapon) return;
@@ -336,12 +336,13 @@ void Battle::applyAttack(const Action& action, std::vector<Event>& events) {
   fireStory(fight, events);
   if (over || !units[a].alive || !units[d].alive ||
       !forecastFight(a, d, action.weapon, units[a].cell, f, setup)) {
-    if (units[a].alive) endOrder(a, true);
+    if (units[a].alive && strikeWeapon_ < 0) endOrder(a, true);
     return;
   }
 
   faceToward(a, units[d].cell, events);  // rules.facing: the attacker turns to its target before the first strike (the defender keeps its facing)
-  takeWeaponInHand(a, action.weapon);  // attacking with a carried weapon takes it in hand
+  const bool ability = strikeWeapon_ >= 0;  // a strike ability (ability_strike.cpp): no weapon in hand, no ammunition, no rank, applyAbility ends the order
+  if (!ability) takeWeaponInHand(a, action.weapon);  // attacking with a carried weapon takes it in hand
   int hpA = units[a].hp, hpD = units[d].hp;
   fightStrikes_[0] = fightStrikes_[1] = 0;
   fightMarks_.clear();  // marks live for one fight (skill_marks.cpp)
@@ -356,20 +357,20 @@ void Battle::applyAttack(const Action& action, std::vector<Event>& events) {
       if (!units[a].alive || !units[d].alive) break;
       // Ammunition: one per fight, spent when its first strike is made (a counter that never comes costs nothing).
       bool& spent = step.counter ? ammoD : ammoA;
-      if (!spent && !(setup.mapStructure >= 0 && !step.counter)) spendAmmo(step.counter ? d : a, step.counter ? setup.weaponD : setup.weaponA);
+      if (!spent && !(setup.mapStructure >= 0 && !step.counter) && !(ability && !step.counter)) spendAmmo(step.counter ? d : a, step.counter ? setup.weaponD : setup.weaponA);
       spent = true;
       doStrike(setup, step.counter, false, events);
     }
   }
 
   fightExperience(a, d, hpA, hpD, events);
-  ranksAfterCombat(events, combatFrom, a, d);  // weapon ranks, growth "use" (docs/SRPG.md section 7); nothing otherwise
+  if (!ability) ranksAfterCombat(events, combatFrom, a, d);  // weapon ranks, growth "use" (docs/SRPG.md section 7); nothing otherwise
   // After the experience: "defeat" / "afterCombat" skills and supports' "fought together" (docs/SRPG.md "Combat
   // pipeline"), and only then the attacker's order ends (a skill may let it act again). A fallen attacker keeps
   // its flags as they were.
   srpgAfterCombat(a, d, hpA, hpD, events);
   fightMarks_.clear();  // the afterCombat blocks were the last to ask
-  if (units[a].alive) endOrder(a, true);
+  if (units[a].alive && !ability) endOrder(a, true);
 }
 
 void Battle::fightExperience(int a, int d, int hpA, int hpD, std::vector<Event>& events, bool attackerOnly) {
@@ -416,6 +417,7 @@ void Battle::killUnit(int unit, std::vector<Event>& events, int killer) {
   if (u.leader) sides[u.side].leaderLost = true;
   if (killer >= 0 && killer != unit && units[(size_t)killer].side != u.side) {
     awardDefeatJp(killer, events);  // docs/JOBS.md
+    awardPoints(killer, db->rules.abilityPoints.perDefeat, events);  // docs/JOBS.md "Learning from equipment"
     if (db->rules.unitRanks.merit) awardMerit(killer, db->rules.unitRanks.perDefeat, events);  // docs/SRPG.md "Unit ranks" (merit mode)
   }
   // Last, and `u` is not used after it: its summons vanish, a unit it carried is put down (docs/SRPG.md).

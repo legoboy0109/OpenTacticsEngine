@@ -33,6 +33,14 @@ void Battle::abilitiesOf(const Unit& u, std::vector<int>& out) const {
     for (int flat : entries)
       if (db->jobEntries[(size_t)flat].ability) addOnce(out, db->jobEntries[(size_t)flat].ref);
   }
+  if (db->teachingOn()) {  // what equipped items teach, and what it mastered from them (docs/JOBS.md "Learning from equipment")
+    std::vector<int> taught, kept;
+    teachFromItems(u, taught);
+    teachMasteredOf(u, kept);
+    taught.insert(taught.end(), kept.begin(), kept.end());
+    for (int t : taught)
+      if (db->teachEntries[(size_t)t].ability) addOnce(out, db->teachEntries[(size_t)t].ref);
+  }
   if (db->skills.empty()) return;
   std::vector<int> skills;
   skillsOf(u, -1, skills);

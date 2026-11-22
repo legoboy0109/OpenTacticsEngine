@@ -103,6 +103,11 @@ class Formulas {
   double eval(Slot slot, const FormulaCtx& ctx, double def);
   // Damage using the weapon's own formula if it has one, else Slot Damage.
   double evalDamage(int weaponIndex, const FormulaCtx& ctx);
+  // Hit chance using the weapon's own formula ("hit") if it has one, else Slot Hit; `def` when neither exists.
+  double evalHit(int weaponIndex, const FormulaCtx& ctx, double def);
+  bool hasHit(int weaponIndex) const {
+    return has(Hit) || (weaponIndex >= 0 && weaponIndex < (int)weaponHitRefs_.size() && weaponHitRefs_[(size_t)weaponIndex] != 0);
+  }
   // Evaluates expression `index` of Database::exprs (docs/SRPG.md "Formulas in this document"): a number, or
   // 1 / 0 for true / false; nil counts as 0 (so `b.tags.flier` works as a yes/no). Returns def for an index
   // out of range and on a run-time error (logged once per expression).
@@ -141,6 +146,8 @@ class Formulas {
   bool warned_[kSlotCount];
   std::vector<int> weaponRefs_; // per weapon; 0 = no override
   std::vector<char> weaponWarned_;
+  std::vector<int> weaponHitRefs_;  // per weapon: its own "hit" formula; 0 = none
+  std::vector<char> weaponHitWarned_;
   std::vector<int> exprRefs_;   // per Database::exprs
   std::vector<char> exprWarned_;
 };

@@ -89,6 +89,7 @@ void Battle::declareCharge(const Action& action, std::vector<Event>& events) {
   } else {
     noteAbilityUse(action.unit, action.ability);  // the use, the cooldown and the item are paid now, whether or not it goes off
     spendAbilityItem(action.unit, action.ability, events);
+    payAbilityPrice(action.unit, action.ability, events);  // "spend" too (docs/SRPG.md "Unit resources")
   }
   Event e;
   e.type = EventType::ActionCharging;

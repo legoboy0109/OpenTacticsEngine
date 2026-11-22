@@ -39,20 +39,38 @@ bool Battle::jobGivesAbility(const Unit& u, int ability) const {
 }
 
 // JP goes to the job the unit uses now. One event per award: a=unit, b=JP, c=job, d=its job level now; kJobLevelUp when the level rose.
+// With "jp": { "share": n } every other unit of its side that uses jobs and is on the board gets n percent of it in the SAME job (docs/JOBS.md
+// "Sharing JP with allies"; flag kJobShared), however far away; shared JP is not shared again.
 void Battle::awardJp(int unit, int amount, std::vector<Event>& events) {
   if (!jobsGame() || amount <= 0 || unit < 0 || unit >= (int)units.size()) return;
   Unit& u = units[(size_t)unit];
   if (!u.alive || !u.jobs.on()) return;
-  int before = 1, after = 1;
-  jobAddJp(*db, u.jobs, amount, before, after);
-  Event e;
-  e.type = EventType::JpGained;
-  e.a = unit;
-  e.b = amount;
-  e.c = u.jobs.job;
-  e.d = after;
-  if (after > before) e.flags |= kJobLevelUp;
-  events.push_back(e);
+  const int job = u.jobs.job;
+  auto give = [&](int who, int jp, int flags) {
+    Unit& w = units[(size_t)who];
+    int before = 1, after = 1;
+    JobProgress& p = w.jobs.at(job);
+    before = jobLevelAt(*db, job, p.earned);
+    p.earned = std::min(kMaxJobTotal, p.earned + jp);
+    after = jobLevelAt(*db, job, p.earned);
+    Event e;
+    e.type = EventType::JpGained;
+    e.a = who;
+    e.b = jp;
+    e.c = job;
+    e.d = after;
+    e.flags = flags | (after > before ? kJobLevelUp : 0);
+    events.push_back(e);
+  };
+  give(unit, amount, 0);
+  const int share = amount * db->rules.jobs.jpShare / 100;
+  if (share <= 0) return;
+  const int side = u.side;
+  for (size_t i = 0; i < units.size(); ++i) {
+    const Unit& o = units[i];
+    if ((int)i == unit || o.side != side || !o.alive || o.cell == kNoCell || !o.jobs.on()) continue;
+    give((int)i, share, kJobShared);
+  }
 }
 
 void Battle::awardDefeatJp(int killer, std::vector<Event>& events) {

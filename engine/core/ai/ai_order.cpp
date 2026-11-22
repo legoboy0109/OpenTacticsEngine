@@ -167,6 +167,7 @@ Order bestOrder(Context& cx, const Unit& u) {
     }
 
     considerStaves(b, u, s, travel, best, healKey);  // a staff beats an attack only by its own worth (ai_staves.cpp)
+    considerStrikes(b, u, s, travel, st, best);      // abilities that attack with a weapon of their own (ai_strike.cpp)
 
     if (weights) options.clear();  // it chooses its attack by its weights, below
     else {

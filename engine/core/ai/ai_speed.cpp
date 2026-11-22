@@ -33,6 +33,10 @@ bool chargedOrder(ai::Context& cx, const Unit& u, double beat, ai::Order& out) {
   b.weaponsOf(u, weapons);
   bool any = false;
   for (int w : weapons) any = any || b.weaponCharges(w);
+  std::vector<int> have, strikes;  // charged abilities that strike (docs/AI.md "Abilities that strike"): judged like charged weapons
+  b.abilitiesOf(u, have);
+  for (int a : have)
+    if (b.abilityCharges(a) && b.abilityStrikeWeapon(a) >= 0) any = true;
   if (!any) return false;
 
   Reach reach;
@@ -48,9 +52,20 @@ bool chargedOrder(ai::Context& cx, const Unit& u, double beat, ai::Order& out) {
   for (Cell s : stops) {
     const int travel = s == u.cell ? 0 : reach.cost[(size_t)s];
     b.attackOptions(u.id, s, options);
-    for (const AttackOption& o : options) {
-      if (!b.weaponCharges(o.weapon) || o.mapWeapon) continue;
-      const PendingAction p = b.chargeFor(u.id, true, o.weapon, o.target, o.area ? o.cell : kNoCell, -1);
+    std::vector<int> owner(options.size(), -1);  // per option: the strike ability it belongs to, -1 = a weapon of the unit's own
+    ai::strikeAbilitiesAt(b, u, s, true, strikes);
+    for (int a : strikes) {
+      std::vector<AttackOption> more;
+      b.abilityStrikeOptions(u.id, a, s, more);
+      options.insert(options.end(), more.begin(), more.end());
+      owner.resize(options.size(), a);
+    }
+    for (size_t oi = 0; oi < options.size(); ++oi) {
+      const AttackOption& o = options[oi];
+      const int ability = owner[oi];
+      if (ability < 0 && (!b.weaponCharges(o.weapon) || o.mapWeapon)) continue;
+      const PendingAction p = ability < 0 ? b.chargeFor(u.id, true, o.weapon, o.target, o.area ? o.cell : kNoCell, -1)
+                                          : b.chargeFor(u.id, false, ability, o.area ? -1 : o.target, o.area ? o.cell : kNoCell, -1);
       b.turnPreview(count, order, &p);
       int landing = -1;
       for (size_t i = 0; i < order.size(); ++i)
@@ -62,6 +77,7 @@ bool chargedOrder(ai::Context& cx, const Unit& u, double beat, ai::Order& out) {
         return false;
       };
       double sc;
+      Battle::StrikeScope scope(b, ability < 0 ? -1 : o.weapon);  // a strike ability's forecasts are those of its weapon
       if (o.area) {
         AreaForecast f;
         if (!b.areaForecast(u.id, o.weapon, s, o.cell, f) || f.victims.empty()) continue;
@@ -74,6 +90,7 @@ bool chargedOrder(ai::Context& cx, const Unit& u, double beat, ai::Order& out) {
       } else {
         sc = ai::scoreAttack(b, u, b.units[(size_t)o.target], o.weapon, s);
       }
+      if (ability >= 0 && !b.db->abilities[(size_t)ability].spend.empty()) sc *= 0.9;  // (as scoreStrike: a priced strike gives way to a free one)
       if (sc <= 0) continue;
       if (p.follow) sc *= actsBefore(p.target) ? 0.7 : 0.9;
       sc -= ai::exposureCost(b, u, s);
@@ -84,8 +101,15 @@ bool chargedOrder(ai::Context& cx, const Unit& u, double beat, ai::Order& out) {
       found = true;
       out = ai::Order();
       out.score = sc;
-      out.kind = ActionType::Attack;
       out.moveTo = s == u.cell ? kNoCell : s;
+      if (ability >= 0) {  // used as an ability: declaring it starts the charge
+        out.kind = ActionType::Ability;
+        out.ability = ability;
+        out.target = o.area ? -1 : o.target;
+        out.cell = o.area ? o.cell : kNoCell;
+        continue;
+      }
+      out.kind = ActionType::Attack;
       out.target = o.target;
       out.weapon = o.weapon;
       out.cell = o.area ? o.cell : kNoCell;

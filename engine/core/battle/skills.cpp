@@ -65,6 +65,15 @@ void Battle::skillsOf(const Unit& u, int weapon, std::vector<int>& out) const {
     for (int flat : entries)
       if (!db->jobEntries[(size_t)flat].ability) add(db->jobEntries[(size_t)flat].ref);
   }
+  // What equipped items teach and what it mastered from them (docs/JOBS.md "Learning from equipment").
+  if (db->teachingOn()) {
+    std::vector<int> taught, kept;
+    teachFromItems(u, taught);
+    teachMasteredOf(u, kept);
+    taught.insert(taught.end(), kept.begin(), kept.end());
+    for (int t : taught)
+      if (!db->teachEntries[(size_t)t].ability) add(db->teachEntries[(size_t)t].ref);
+  }
   // The side's own modifiers (finished research today, factions later): as if the unit had them, after what is its own.
   if (u.side >= 0 && (size_t)u.side < sides.size())
     for (const SideModifier& m : sides[(size_t)u.side].modifiers)

@@ -3,6 +3,8 @@
 
 #include <algorithm>
 
+#include "core/jobs/mastery.h"
+
 namespace ote {
 
 namespace {
@@ -42,16 +44,40 @@ int jobUnspent(const JobState& s, int job) {
   return p ? p->earned - p->spent : 0;
 }
 
-bool jobUnlocked(const Database& db, const JobState& s, int job, std::string* why) {
+int jobMasteredCount(const Database& db, const JobState& s, int job, int slot) {
+  const JobProgress* p = s.find(job);
+  if (!p) return 0;
+  int n = 0;
+  for (int flat : p->learned)
+    if (validEntry(db, flat) && (slot < 0 || (int)db.jobEntries[(size_t)flat].slot == slot)) ++n;
+  return n;
+}
+
+bool jobUnlocked(const Database& db, const JobState& s, int job, std::string* why, const std::vector<MasteryPoints>* mastery) {
   if (!validJob(db, job)) {
     if (why) *why = "there is no such job";
     return false;
   }
-  for (const JobRequire& r : db.jobs[(size_t)job].needs)
-    if (jobLevelOf(db, s, r.job) < r.level) {
-      if (why) *why = "needs " + db.jobs[(size_t)r.job].name + " level " + std::to_string(r.level);
-      return false;
+  for (const JobRequire& r : db.jobs[(size_t)job].needs) {
+    switch (r.kind) {
+      case JobRequire::Kind::Level:
+        if (jobLevelOf(db, s, r.job) >= r.level) continue;
+        if (why) *why = "needs " + db.jobs[(size_t)r.job].name + " level " + std::to_string(r.level);
+        return false;
+      case JobRequire::Kind::Count:  // docs/JOBS.md "Unlocking by mastered entries"
+        if (jobMasteredCount(db, s, r.job, r.slot) >= r.count) continue;
+        if (why)
+          *why = "needs " + std::to_string(r.count) + " " + db.jobs[(size_t)r.job].name + (r.slot >= 0 ? std::string(" ") + jobSlotName((JobSlot)r.slot) : std::string()) +
+                 (r.count == 1 ? " entry" : " entries") + " mastered";
+        return false;
+      case JobRequire::Kind::Entry: {
+        const bool have = r.teach ? (mastery && teachMastered(db, s, *mastery, r.entry)) : jobHasLearned(s, r.entry);
+        if (have) continue;
+        if (why) *why = "needs " + (r.teach ? teachEntryName(db, r.entry) : jobEntryName(db, r.entry)) + " mastered";
+        return false;
+      }
     }
+  }
   return true;
 }
 
@@ -77,8 +103,8 @@ void jobActiveEntries(const Database& db, const JobState& s, std::vector<int>& o
     if (std::find(out.begin(), out.end(), flat) == out.end()) out.push_back(flat);
 }
 
-bool jobSwitch(const Database& db, JobState& s, int job, std::string& why) {
-  if (!jobUnlocked(db, s, job, &why)) return false;
+bool jobSwitch(const Database& db, JobState& s, int job, std::string& why, const std::vector<MasteryPoints>* mastery) {
+  if (!jobUnlocked(db, s, job, &why, mastery)) return false;
   s.job = job;
   s.equipped.erase(std::remove_if(s.equipped.begin(), s.equipped.end(),
                                   [&](int flat) { return validEntry(db, flat) && db.jobEntries[(size_t)flat].job == job; }),
@@ -94,6 +120,10 @@ bool jobLearnReason(const Database& db, const JobState& s, int flat, std::string
   const JobLearnDef& e = db.jobEntries[(size_t)flat];
   if (jobHasLearned(s, flat)) {
     why = "already learned";
+    return false;
+  }
+  if (!db.rules.jobs.spendJp) {  // docs/JOBS.md "Learning from equipment": JP are never spent
+    why = "learned only from equipment";
     return false;
   }
   std::string lock;

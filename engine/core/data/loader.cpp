@@ -10,6 +10,8 @@
 #include "core/data/loader_facing.h"
 #include "core/data/loader_height.h"
 #include "core/data/loader_jobs.h"
+#include "core/data/loader_teaching.h"
+#include "core/data/loader_unit_pools.h"
 #include "core/data/loader_unit_ranks.h"
 #include "core/data/loader_content.h"
 #include "core/data/loader_research_branch.h"
@@ -77,7 +79,7 @@ static bool loadRules(const LoadCtx& c, const Json& root, Database& db) {
   if (!c.object(root, "rules", "", rules)) return false;
   if (!c.onlyKeys(*rules, {"counterAttacks", "defeat", "economy", "production", "capture", "items", "supply", "research", "fog", "display",
                            "hitRoll", "rescue", "promotion", "places", "actionPoints", "turnOrder", "facing", "jobs", "height",
-                           "progression", "ranks", "ai"},
+                           "progression", "ranks", "ai", "abilityPoints"},
                   "rules"))
     return false;
 
@@ -135,7 +137,8 @@ static bool loadRules(const LoadCtx& c, const Json& root, Database& db) {
   if (!loadActionPointRules(c, *rules, db)) return false;  // "rules.actionPoints" (docs/SRPG.md "Action points")
   if (!loadSpeedRules(c, *rules, db)) return false;  // "rules.turnOrder" (docs/TURN_ORDER.md); after actionPoints and production, which it cannot be combined with
   if (!loadFacingRules(c, *rules, db)) return false;  // "rules.facing" (docs/SRPG.md "Facing"); before the maps whose units may say a "facing"
-  if (!loadJobRules(c, *rules, db)) return false;  // "rules.jobs" (docs/JOBS.md); data/jobs.json is read after the unit types
+  if (!loadJobRules(c, *rules, db)) return false;
+  if (!loadAbilityPointRules(c, *rules, db)) return false;  // "rules.abilityPoints" (docs/JOBS.md "Learning from equipment")  // "rules.jobs" (docs/JOBS.md); data/jobs.json is read after the unit types
   if (!loadHeightRules(c, *rules, db)) return false;  // "rules.height" (docs/SRPG.md "Height rules"); before the weapons and unit types that use its keys
 
   // ("levels" is the rank table, read by loadUnitRankRules; "computerGains" and "xpNoDamage" by loadProgressionExtras.)
@@ -182,7 +185,7 @@ static bool loadGameFile(const std::string& path, Database& db, std::string& err
   // nothing in the game reads it. Quiet: accepted, never listed in a message.
   if (!c.onlyKeys(root, {"formatVersion", "name", "description", "author", "saving", "battleScene", "battleBackgroundFrom", "battlePlatformFrom",
                          "battleSceneSides", "battleSceneStaves", "menuUnavailable", "attackWeaponChoice", "grid", "view", "font", "stats",
-                         "resources", "moveTypes", "switches", "variables", "roles", "rules", "formulas", "damageTypes", "resistRange",
+                         "resources", "unitResources", "moveTypes", "switches", "variables", "roles", "rules", "formulas", "damageTypes", "resistRange",
                          "difficulties", "styles", "scripts", "maps"},
                   "", {"editor"}))
     return false;
@@ -268,6 +271,7 @@ static bool loadGameFile(const std::string& path, Database& db, std::string& err
   if (!readIdList(c, root, "stats", true, db.stats)) return false;
   if (!readIdList(c, root, "resources", false, db.resources, {"refill"})) return false;
   if (!loadResourceRefills(c, root, db)) return false;  // "refill" of a resource (docs/ECONOMY.md "Refilling resources")
+  if (!loadUnitResources(c, root, db)) return false;  // per-unit pools (docs/SRPG.md "Unit resources")
   if (!readIdList(c, root, "moveTypes", true, db.moveTypes, {"sounds"})) return false;
   // Story switches and variables (docs/EVENTS.md); ids are what events refer to.
   if (!readIdList(c, root, "switches", false, db.switches)) return false;
@@ -448,6 +452,7 @@ bool loadGame(const std::string& gameDir, Database& out, std::string& err) {
   if (!loadUnitTypes(root + "/data/units.json", db, err)) return false;
   if (!loadTerrain(root + "/data/terrain.json", db, err)) return false;
   if (!loadJobs(root + "/data/jobs.json", db, err)) return false;  // needs unit types, skills, abilities; characters and map units name jobs (docs/JOBS.md)
+  if (!resolveTeaching(root, db, err)) return false;  // what items teach against the jobs (docs/JOBS.md "Learning from equipment")
   if (!loadCharacters(root + "/data/characters.json", db, err)) return false;  // needs unit types, items, skills, abilities
   if (!loadResearch(root + "/data/research.json", db, err)) return false;  // before structures: upgrades name technologies
   if (!loadStructures(root + "/data/structures.json", db, err)) return false;

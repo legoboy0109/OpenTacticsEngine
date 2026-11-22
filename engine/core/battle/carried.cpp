@@ -26,6 +26,7 @@ int Battle::applyRoster(Unit& u) const {
     // The skills it learned in earlier chapters, then what its (possibly new) type and level add (docs/SRPG.md).
     u.learned = r.skills;
     u.jobs = r.jobs;  // jobs: what it uses, learned and equipped in earlier chapters (docs/JOBS.md); a roster entry of a game without jobs has none
+    u.mastery = r.mastery;  // points in what items teach (docs/JOBS.md "Learning from equipment")
     u.weaponXp = r.weaponXp;  // dressUnit raises it to what the (possibly new) class gives, never lowers it
     dressUnit(u);
     u.hp = maxHp(u);  // a chapter always begins at full strength

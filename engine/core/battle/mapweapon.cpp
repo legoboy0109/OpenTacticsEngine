@@ -45,8 +45,12 @@ int Battle::mapWeaponStructure(const Unit& u, Cell cell, std::string* why) const
 }
 
 void Battle::attackWeaponsAt(const Unit& u, Cell from, std::vector<int>& out, int* mapStructure) const {
-  weaponsOf(u, out);
   if (mapStructure) *mapStructure = -1;
+  if (strikeWeapon_ >= 0) {  // a strike ability attacks with its weapon only (ability_strike.cpp)
+    out.assign(1, strikeWeapon_);
+    return;
+  }
+  weaponsOf(u, out);
   const int si = mapWeaponStructure(u, from);
   if (si < 0) return;
   const int w = mapWeaponOf(si);

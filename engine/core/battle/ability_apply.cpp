@@ -15,6 +15,10 @@ void Battle::applyAbility(const Action& action, std::vector<Event>& events, bool
     applyUnlockAbility(action, events);
     return;
   }
+  if (def.effect == AbilityEffect::Strike) {  // attacks with its weapon (ability_strike.cpp)
+    applyStrikeAbility(action, events, resolving);
+    return;
+  }
   const int team = teamOf(units[(size_t)uid]);
   const bool onCell = def.target == AbilityTarget::Cell;
   const int target = def.target == AbilityTarget::Self ? uid : onCell ? -1 : action.target;
@@ -50,6 +54,7 @@ void Battle::applyAbility(const Action& action, std::vector<Event>& events, bool
     case AbilityEffect::Refresh: break;
     case AbilityEffect::Cure: break;
     case AbilityEffect::None: break;
+    case AbilityEffect::Strike: break;  // (handled above)
   }
   if (blocked) {
     used.flags = kBlocked;
@@ -60,7 +65,7 @@ void Battle::applyAbility(const Action& action, std::vector<Event>& events, bool
   switch (def.effect) {
     case AbilityEffect::Heal: {
       Unit& t = units[(size_t)target];
-      const int amount = std::min(def.amount, maxHp(t) - t.hp);
+      const int amount = std::min(abilityHealAmount(def, uid, target), maxHp(t) - t.hp);  // a number, "full", a percent or a formula
       if (amount > 0) {
         t.hp += amount;
         Event h;
@@ -91,6 +96,7 @@ void Battle::applyAbility(const Action& action, std::vector<Event>& events, bool
   if (!resolving) {  // a charged ability paid for these when it was declared
     noteAbilityUse(uid, ability);
     spendAbilityItem(uid, ability, events);
+    payAbilityPrice(uid, ability, events);  // "spend" (docs/SRPG.md "Unit resources")
     if (!def.free) endOrder(uid);
   }
 

@@ -271,6 +271,7 @@ void Battle::start(std::vector<Event>& events) {
 void Battle::startNow(std::vector<Event>& events) {
   EventScope scope(*this, events);
   sight_.valid = false;  // state may have been set up by hand since init (roster, research, tests)
+  poolsBattleStart();     // unit resources: every unit starts with its "start" share (docs/SRPG.md "Unit resources")
   activeSide = 0;
   round = 1;
   StoryOccurrence o;  // "before the first turn": the first turn's own events come after TurnStarted

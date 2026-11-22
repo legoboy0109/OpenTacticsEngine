@@ -55,7 +55,7 @@ bool jobsChangeReason(const Database& db, const Playthrough& pt, const std::stri
   if (job < 0 || job >= (int)db.jobs.size()) return refuse(why, "there is no such job");
   if (r->jobs.job == job) return refuse(why, r->name + " is a " + db.jobs[(size_t)job].name + " already");
   std::string lock;
-  if (!jobUnlocked(db, r->jobs, job, &lock)) return refuse(why, lock);
+  if (!jobUnlocked(db, r->jobs, job, &lock, &r->mastery)) return refuse(why, lock);
   return true;
 }
 
@@ -67,7 +67,7 @@ bool jobsChange(const Database& db, Playthrough& pt, const std::string& id, int 
   const int toType = jobPlayType(db, r.jobs, job, r.type);
   const UnitTypeDef& from = db.unitTypes[(size_t)r.type];
   const UnitTypeDef& to = db.unitTypes[(size_t)toType];
-  if (!jobSwitch(db, r.jobs, job, why)) return false;  // cannot fail after the reason test
+  if (!jobSwitch(db, r.jobs, job, why, &r.mastery)) return false;  // cannot fail after the reason test
   r.stats.resize(db.stats.size(), 0);
   for (size_t s = 0; s < r.stats.size(); ++s) r.stats[s] = std::max(0, r.stats[s] + to.stats[s] - from.stats[s]);
   r.type = toType;

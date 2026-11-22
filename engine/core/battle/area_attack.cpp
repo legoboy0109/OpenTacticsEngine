@@ -19,7 +19,7 @@ void Battle::applyAreaAttack(const Action& action, std::vector<Event>& events) {
   const Cell target = aimedCell(action);
   AreaForecast f;
   if (!areaForecast(a, weapon, units[a].cell, target, f) && f.victims.empty()) {  // (validated by the caller; berserk may not have been)
-    if (units[a].alive) endOrder(a, true);
+    if (units[a].alive && strikeWeapon_ < 0) endOrder(a, true);  // (a strike ability: applyAbility ends the order)
     return;
   }
   int primary = f.primary >= 0 ? f.victims[(size_t)f.primary].unit : -1;
@@ -34,13 +34,14 @@ void Battle::applyAreaAttack(const Action& action, std::vector<Event>& events) {
     fight.other = primary;
     fireStory(fight, events);
     if (over || !units[a].alive || !areaForecast(a, weapon, units[a].cell, target, f)) {
-      if (units[a].alive) endOrder(a, true);
+      if (units[a].alive && strikeWeapon_ < 0) endOrder(a, true);
       return;
     }
     primary = f.primary >= 0 ? f.victims[(size_t)f.primary].unit : -1;
   }
   faceToward(a, target, events);  // rules.facing: the attacker turns to the square it aims at; the victims keep their facings
-  takeWeaponInHand(a, weapon);
+  const bool ability = strikeWeapon_ >= 0;  // a strike ability (ability_strike.cpp): no weapon in hand, no wear, ammunition or rank
+  if (!ability) takeWeaponInHand(a, weapon);
 
   const int hpA = units[a].hp;
   std::vector<int> hpBefore;
@@ -49,8 +50,8 @@ void Battle::applyAreaAttack(const Action& action, std::vector<Event>& events) {
   fightMarks_.clear();  // marks live for one fight (skill_marks.cpp)
   const size_t combatFrom = events.size();
   const int mapStructure = mapWeaponUsedBy(units[a], units[a].cell, weapon);
-  const int slot = mapStructure < 0 && db->rules.items.carriedWeapons ? weaponSlot(units[a], weapon) : -1;
-  if (mapStructure < 0) spendAmmo(a, weapon);  // one per attack, however many it hits (a map weapon has its own count)
+  const int slot = !ability && mapStructure < 0 && db->rules.items.carriedWeapons ? weaponSlot(units[a], weapon) : -1;
+  if (mapStructure < 0 && !ability) spendAmmo(a, weapon);  // one per attack, however many it hits (a map weapon has its own count)
 
   // The attacker's strikes, one per victim, in unit-id order. Deaths wait (doStrike pushes them to `pendingKills_`).
   fightArea_ = true;
@@ -111,11 +112,11 @@ void Battle::applyAreaAttack(const Action& action, std::vector<Event>& events) {
       leadHp = hpBefore[i];
     }
   }
-  ranksAfterCombat(events, combatFrom, a, primary);  // weapon ranks (growth "use"): the attacker once, the aimed unit if it answered
+  if (!ability) ranksAfterCombat(events, combatFrom, a, primary);  // weapon ranks (growth "use"): the attacker once, the aimed unit if it answered
   // After the experience: "defeat" / "afterCombat" skills and supports' "fought together" once per attack, with the lead victim.
   if (lead >= 0 && units[a].alive) srpgAfterCombat(a, lead, hpA, leadHp, events);
   fightMarks_.clear();
-  if (units[a].alive) endOrder(a, true);
+  if (units[a].alive && !ability) endOrder(a, true);
 }
 
 }  // namespace ote

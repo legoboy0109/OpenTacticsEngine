@@ -141,6 +141,12 @@ static std::string describeEventText(const Battle& b, const Event& e) {
     case EventType::JpGained:
       return fmt("%s earns %d JP in %s%s", unitName(b, e.a).c_str(), e.b, b.db->jobs[(size_t)e.c].id.c_str(),
                  (e.flags & kJobLevelUp) ? fmt(" (job level %d)", e.d).c_str() : "");
+    case EventType::PointsGained:  // docs/JOBS.md "Learning from equipment"
+      return fmt("%s earns %d %s in '%s' (%d now)%s", unitName(b, e.a).c_str(), e.b, b.db->rules.abilityPoints.name.c_str(),
+                 b.db->teachEntries[(size_t)e.c].refId.c_str(), e.d, (e.flags & kMastered) ? ", mastered" : "");
+    case EventType::PoolChanged:  // docs/SRPG.md "Unit resources"
+      return fmt("%s %s %d %s (%d now)", unitName(b, e.a).c_str(), e.c < 0 ? "pays" : "regains", e.c < 0 ? -e.c : e.c,
+                 b.db->unitResources[(size_t)e.b].name.c_str(), e.d);
     case EventType::UnitRankUp:
       return fmt("%s becomes %s", unitName(b, e.a).c_str(), b.db->rules.unitRanks.levels[(size_t)e.b].name.c_str());
     case EventType::StatsRaised:

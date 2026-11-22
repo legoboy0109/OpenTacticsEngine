@@ -14,6 +14,8 @@
 #include "core/data/unit_ranks.h"
 #include "core/data/height_rules.h"
 #include "core/data/jobs.h"
+#include "core/data/teaching.h"
+#include "core/data/unit_pools.h"
 #include "core/data/graphics.h"
 #include "core/data/map_change.h"
 #include "core/data/map_weapon.h"
@@ -149,6 +151,7 @@ struct WeaponDef {
   bool hasVersusDefault = false;
   double versusDefault = 1;
   std::string damageFormula;  // optional per-weapon override (Lua expr)
+  std::string hitFormula;     // weapons.json "hit": optional per-weapon hit chance (Lua expr) in place of rules.formulas.hit (docs/SRPG.md "Abilities that strike")
   std::string group;          // optional, e.g. "sword": who can wield it as an item (docs/ITEMS.md)
   std::string damageKind;     // optional free-form word ("physical", "magic", ...): skill tests `weaponKind`, formulas `w.damageKind`
   int apCost = -1;            // weapons.json "apCost" (action points only): what one attack costs; -1 = the game's attack cost
@@ -212,6 +215,8 @@ struct ItemDef {
   bool sellable = true;        // false: a shop that buys items never takes it (docs/EVENTS.md "Preparation"); no price = never bought either
   // A usable item that lights the square its user stands on (a torch; docs/ECONOMY.md "Fog of war"): like a staff's "light". 0 = none.
   int lightRadius = 0, lightTurns = 1, lightShrink = 0;
+  // "teaches" (weapon / accessory; docs/JOBS.md "Learning from equipment"): indices into Database::teachEntries, in the order written.
+  std::vector<int> teaches;
 };
 const int kHealFull = 1000000000;
 
@@ -437,6 +442,7 @@ struct RulesConfig {
   HeightRules height;        // "rules.height" (docs/SRPG.md "Height rules"); `on` is false when the block is missing
   UnitRankRules unitRanks;   // "rules.progression.levels" (docs/SRPG.md "Unit ranks"); empty when the game levels up the usual way
   JobRules jobs;             // "rules.jobs" (docs/JOBS.md); only means something when `Database::jobs` is not empty
+  AbilityPointRules abilityPoints;  // "rules.abilityPoints" (docs/JOBS.md "Learning from equipment")
   SpeedRules speed;          // "rules.turnOrder": "speed" (docs/TURN_ORDER.md); `on` is false in the usual side-by-side game
   FacingRules facing;        // "rules.facing" (docs/SRPG.md "Facing"); `on` is false when the block is missing
 
@@ -536,6 +542,7 @@ struct Database {
   HexLayout hexLayout = HexLayout::Pointy;    // only meaningful when gridType is Hex
   std::vector<StatDef> stats;
   std::vector<ResourceDef> resources;
+  std::vector<UnitResourceDef> unitResources;  // game.json "unitResources" (docs/SRPG.md "Unit resources"); empty = none
   std::vector<MoveTypeDef> moveTypes;
   std::vector<SwitchDef> switches;       // game.json "switches" (optional)
   std::vector<VariableDef> variables;    // game.json "variables" (optional)
@@ -565,6 +572,7 @@ struct Database {
   std::vector<ConditionDef> conditions;  // data/conditions.json (docs/SRPG.md section 9)
   std::vector<JobDef> jobs;              // data/jobs.json (docs/JOBS.md); empty = the game has no jobs
   std::vector<JobLearnDef> jobEntries;   // every job's learn entries in file order (JobLearnDef::flat is the index); built by the loader
+  std::vector<TeachDef> teachEntries;    // what items teach (docs/JOBS.md "Learning from equipment"); empty = no item teaches anything
   // Formula expressions of the new data (skill chances and conditions, rules.rescue.canCarry), in the order the
   // loaders registered them; compiled by Formulas::init and evaluated with Formulas::evalExpr(index, ...).
   std::vector<ExprDef> exprs;
@@ -611,6 +619,12 @@ struct Database {
   int findAbility(const std::string& id) const;
   int findJob(const std::string& id) const;
   bool jobsOn() const { return !jobs.empty(); }
+  bool teachingOn() const { return !teachEntries.empty(); }  // some item teaches (docs/JOBS.md "Learning from equipment")
+  int findUnitResource(const std::string& id) const {
+    for (size_t i = 0; i < unitResources.size(); ++i)
+      if (unitResources[i].id == id) return (int)i;
+    return -1;
+  }
   bool jobsOverlay() const {  // some job has no unit type (docs/JOBS.md "Overlay jobs")
     for (const JobDef& j : jobs)
       if (j.overlay()) return true;

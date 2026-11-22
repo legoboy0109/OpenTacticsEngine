@@ -147,6 +147,11 @@ enum class EventType {
   // Commanders (docs/COMMANDERS.md); only in a game with data/commanders.json.
   PowerUsed,        // a=side, b=commander, c=power (index in the commander's "powers"), d=meter points paid, data={meter left}; the instant effects follow as their usual events
   PowerEnded,       // a=side, b=commander, c=power: its side-wide skills are gone
+  // Learning from equipment (docs/JOBS.md "Learning from equipment"): a=unit, b=points earned, c=the entry (index into db->teachEntries), d=its points now;
+  // flags=kMastered when it became mastered with this gain. Only for a unit of a human side in a game where items teach.
+  PointsGained,
+  // Unit resources (docs/SRPG.md "Unit resources"): a=unit, b=the pool (index into db->unitResources), c=the change (negative = paid), d=what it has now.
+  PoolChanged,
   // Dialogue choices (docs/EVENTS.md "Dialogue choices"). Kept last: the numbers of the entries above are part of the golden fight hashes.
   Choice,           // a=speaker unit (-1 none), b=question text, c=free speaker name text (-1 none), d=portrait id text (-1 none), data=the answers' texts (docs/EVENTS.md "Dialogue choices")
 };
@@ -161,7 +166,9 @@ enum : int {
   kMapWeapon = 16384, // Attack: the attacker used the weapon of the structure it stands on (docs/SRPG.md "Map weapons")
   kMapWeaponSpent = 32768, // Attack with kMapWeapon: that was the structure weapon's last use
   kArea = 65536,           // Attack: one strike of an area attack (docs/SRPG.md "Area attacks and line fire"); the player plays it on the map
-  kJobLevelUp = 131072     // JpGained: the job level rose (docs/JOBS.md)
+  kJobLevelUp = 131072,    // JpGained: the job level rose (docs/JOBS.md)
+  kJobShared = 262144,     // JpGained: a share of an ally's JP (docs/JOBS.md "Sharing JP with allies")
+  kMastered = 524288       // PointsGained: the entry is mastered now (docs/JOBS.md "Learning from equipment")
 };
 // How a door or chest was opened (the `c` of DoorOpened / ChestOpened).
 enum : int { kOpenKey = 0, kOpenTrait = 1, kOpenBreak = 2, kOpenStory = 3, kOpenStaff = 4, kOpenFree = 5 /* it was not locked */ };
@@ -260,6 +267,10 @@ struct Unit {
   int facing = -1;
   // Jobs (docs/JOBS.md): the job it uses, what it learned and equipped; `jobs.job` < 0 and unused in a game without jobs and for a unit that has none. Saved in jobs games.
   JobState jobs;
+  // Learning from equipment (docs/JOBS.md): points in the entries items teach, ascending entry; empty in a game where no item teaches. Saved when not empty.
+  std::vector<MasteryPoints> mastery;
+  // Unit resources (docs/SRPG.md "Unit resources"): what it has of each, per Database::unitResources index; empty in a game without them.
+  std::vector<int> pools;
 };
 
 struct CellState {
@@ -882,6 +893,9 @@ class Battle {
 #include "core/battle/height_api.h"
 #include "core/battle/facing_api.h"
 #include "core/battle/jobs_api.h"
+#include "core/battle/teaching_api.h"
+#include "core/battle/pools_api.h"
+#include "core/battle/strike_api.h"
 #include "core/battle/commander_api.h"
 
  private:
@@ -1015,6 +1029,9 @@ class Battle {
 #include "core/battle/speed_internal.h"
 #include "core/battle/facing_internal.h"
 #include "core/battle/jobs_internal.h"
+#include "core/battle/teaching_internal.h"
+#include "core/battle/pools_internal.h"
+#include "core/battle/strike_internal.h"
 #include "core/battle/commander_internal.h"
 
   StoryRun storyRun_;  // transient: empty between actions

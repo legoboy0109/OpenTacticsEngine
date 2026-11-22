@@ -98,6 +98,12 @@ bool Formulas::init(const Database& db, std::string& err) {
     std::string label = "weapon '" + db.weapons[i].id + "' damage";
     if (!compile(db.weapons[i].damageFormula, label, weaponRefs_[i], err)) return false;
   }
+  weaponHitRefs_.assign(db.weapons.size(), 0);
+  weaponHitWarned_.assign(db.weapons.size(), 0);
+  for (size_t i = 0; i < db.weapons.size(); ++i) {
+    std::string label = "weapon '" + db.weapons[i].id + "' hit";
+    if (!compile(db.weapons[i].hitFormula, label, weaponHitRefs_[i], err)) return false;
+  }
   // The expressions the strategy-RPG data registered (docs/SRPG.md): a syntax error names the place it was written.
   exprRefs_.assign(db.exprs.size(), 0);
   exprWarned_.assign(db.exprs.size(), 0);
@@ -351,6 +357,16 @@ double Formulas::evalDamage(int weaponIndex, const FormulaCtx& ctx) {
     return v;
   }
   return eval(Damage, ctx, 0);
+}
+
+double Formulas::evalHit(int weaponIndex, const FormulaCtx& ctx, double def) {
+  if (weaponIndex >= 0 && weaponIndex < (int)weaponHitRefs_.size() && weaponHitRefs_[(size_t)weaponIndex]) {
+    bool warned = weaponHitWarned_[(size_t)weaponIndex] != 0;
+    double v = call(weaponHitRefs_[(size_t)weaponIndex], warned, "weapon hit formula", ctx, def);
+    weaponHitWarned_[(size_t)weaponIndex] = warned;
+    return v;
+  }
+  return eval(Hit, ctx, def);
 }
 
 }  // namespace ote
