@@ -62,3 +62,23 @@ TEST(the_ai_only_strikes_targets_the_abilitys_conditions_allow) {
   CHECK(best.kind == ActionType::Ability);
   CHECK_EQ(best.target, w.id("plain"));  // (Aldric would be refused: the grunt's turn wasted)
 }
+
+TEST(the_squares_offered_for_an_area_strike_include_the_reach_high_ground_adds) {
+  Duel d("strikerev_height", false);
+  // Height rules: +1 square of reach per level above the target, at most 2. Aldric stands 2 levels up; the grunt at 5,3 is 4 squares away (blaze: 3).
+  d.c.swap("game.json", R"("rules": {)", R"("rules": { "height": { "rangeBonus": { "perLevels": 1, "max": 2 } },)");
+  d.c.swap("maps/duel.json", R"("tiles": ["........", "........", "........", "........", "........"],)",
+           R"("tiles": ["........", "........", "........", "........", "........"],
+  "heights": [[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,2,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0]],)");
+  skilltest::World w("duel", d.c.dir);
+  const int flame = w.db().findAbility("flame");
+  std::vector<AttackOption> options;
+  w.b().abilityStrikeOptions(w.id("aldric"), flame, w.unit("aldric").cell, options);
+  bool offered = false;
+  for (const AttackOption& o : options) offered = offered || o.cell == w.unit("weak").cell;
+  CHECK(offered);  // what the AI may aim at ...
+  std::vector<int> units;
+  std::vector<Cell> cells;
+  w.b().abilityTargets(w.id("aldric"), flame, w.unit("aldric").cell, units, cells);
+  CHECK(std::find(cells.begin(), cells.end(), w.unit("weak").cell) != cells.end());  // ... the player may pick too
+}

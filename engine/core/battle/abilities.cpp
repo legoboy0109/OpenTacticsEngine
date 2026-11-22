@@ -76,7 +76,9 @@ void Battle::abilityTargets(int unit, int ability, Cell from, std::vector<int>& 
     if (abilityTargetOk(u, ability, from, unit, kNoCell, nullptr)) units_.push_back(unit);
   } else if (d.target == AbilityTarget::Cell) {
     std::vector<Cell> near;
-    grid.within(from, d.maxRange, near);  // ascending cell index
+    // A strike: the squares its weapon can be aimed at (the height rules may add reach), as abilityStrikeOptions offers them; else the range.
+    if (d.effect == AbilityEffect::Strike) aimCells(d.strike, from, unit, near);
+    else grid.within(from, d.maxRange, near);  // ascending cell index
     for (Cell c : near)
       if (abilityTargetOk(u, ability, from, -1, c, nullptr)) cells_.push_back(c);
   } else {
