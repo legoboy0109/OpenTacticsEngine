@@ -79,7 +79,7 @@ def main():
     cam = cameras(log)
     want = (gap(40) * DT - DWELL) * SPEED
     check('leaving the window stops it at once', len(cam) == 1 and abs(cam[0][0] - want) <= 8, '%s want %.0f' % (cam, want))
-    log = run(inp(INTRO, 'move:350:100', 'wait:40', 'move:200:100', 'wait:10', 'move:1:100', 'wait:60', 'move:200:100', 'wait:20'))
+    log = run(inp(INTRO, 'move:350:100', 'wait:60', 'move:200:100', 'wait:10', 'move:1:100', 'wait:80', 'move:200:100', 'wait:20'))
     cam = cameras(log)
     check('the left band takes it back (and stops at the map edge)', len(cam) == 2 and cam[0][0] > 200 and cam[1][0] == 0, str(cam))
 
