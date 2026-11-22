@@ -128,6 +128,7 @@ MapPage::MapPage(Project* project, JsonDocument* doc, QWidget* parent) : QWidget
   structures_ = makeCheck("structures", tr("Structures and deployment slots"), true, tr("Show structures and the preparation screen's deployment slots"));
   heights_ = makeCheck("heights", tr("Heights"), true, tr("Shade squares by height and show the number"));
   layer_ = makeCheck("layer", tr("Tile layer picture"), false, tr("Show the hand-painted tile layer instead of the terrain's own look"));
+  isoCheck_ = makeCheck("isoPreview", tr("Isometric preview"), false, tr("Show a read-only isometric picture of the map beside the canvas"));
   overlays->addStretch(1);
   connect(units_, &QCheckBox::toggled, this, [this](bool on) { view_->setShowUnits(on); saveOverlay("units", on); });
   connect(structures_, &QCheckBox::toggled, this, [this](bool on) { view_->setShowStructures(on); saveOverlay("structures", on); });
@@ -141,11 +142,16 @@ MapPage::MapPage(Project* project, JsonDocument* doc, QWidget* parent) : QWidget
   connect(palette_, &QListWidget::currentItemChanged, this, [this](QListWidgetItem* cur) {
     if (cur) view_->setTerrain(cur->data(Qt::UserRole).toString().toStdString());
   });
+  iso_ = new IsoPreview(painter_, art_, this);
+  iso_->hide();
+  connect(isoCheck_, &QCheckBox::toggled, this, [this](bool on) { iso_->setVisible(on); saveOverlay("isoPreview", on); });
   auto* split = new QSplitter(this);
   split->addWidget(palette_);
   split->addWidget(view_);
-  split->setStretchFactor(1, 1);
-  split->setSizes({190, 800});
+  split->addWidget(iso_);
+  split->setStretchFactor(1, 2);
+  split->setStretchFactor(2, 1);
+  split->setSizes({190, 600, 360});
   split->setChildrenCollapsible(false);
 
   status_ = new QLabel(this);
@@ -205,6 +211,7 @@ void MapPage::setAppSettings(AppSettings* settings) {
   units_->setChecked(settings->mapOverlay("units"));
   structures_->setChecked(settings->mapOverlay("structures"));
   layer_->setChecked(settings->mapOverlay("layer", false));
+  isoCheck_->setChecked(settings->mapOverlay("isoPreview", false));
   // Heights default to "on when the map has any"; a stored choice wins.
   if (settings->mapOverlay("heightsSet", false)) heights_->setChecked(settings->mapOverlay("heights"));
 }

@@ -319,6 +319,12 @@ grid and edits `tiles`, `legend`, `heights` and, on resize, `tileLayer`; everyth
   written until the button is released; a drag released outside the map changes nothing. Structures cannot be moved on the canvas
   (a multi-square or ring footprint must be checked to fit), and units / structures cannot be added there (they need a kind and a
   side: use the form). The terrain a slot stands on is not checked here; the problems check reports a square nobody can stand on.
+- **Isometric preview** (check box "Isometric preview", beside the canvas, remembered; `ui/iso_preview.*`). A read-only picture of the
+  map in the 2D isometric look: squares or hexagons raised to their heights with side faces where the next one lies lower, the game's
+  terrain pictures on the top faces (colour where there is none) and markers for units, structures and deployment slots. It uses the
+  engine's own pure projection maths (`core/view/iso.h`, `core/view/hex_iso.h`; no SDL, no player drawing code), at the engine's default
+  look (48 x 24 diamond, 12 pixels per height level; a game's own `isometric` sizes are not read yet), fits the whole map into its pane
+  and redraws while a stroke is under way. No clicking, no scrolling or zoom; not the 3D views.
 - **Undo.** A stroke works on a copy of the grid (so the canvas can show it live) and is written when the button is released:
   the rows that changed, as `SetValue` commands inside one macro = one undo step ("Paint terrain", "Fill area", "Fill rectangle",
   "Raise height" ...). Nothing changed = no undo step. If the file changes under a half-made stroke (Ctrl+Z while dragging) the stroke
@@ -375,6 +381,9 @@ QT_QPA_PLATFORM=offscreen OTE_SHOT_DIR=/some/folder ./editor/native/native_test_
   project check.
 - Brushes: `ote_editor_core_tests` (cell counts for squares, pointy and flat hexagons, clipping), `native_test_map_model` (byte-exact
   patches against the neighbour table of docs/HEX.md) and `native_test_map_view` (toolbar, one undo step, remembered across a restart).
+- `native_test_iso_preview`: the preview's top faces sit where the engine's projection puts them (lowering a square moves it straight
+  down), it follows a stroke in progress, clicking it changes nothing, hexagon maps draw, the check box is remembered
+  (`OTE_SHOT_DIR` saves pictures).
 - `native_test_map_screenshots`: square map, hexagon map (and a rectangle preview), heights at 100% / 250% / 40%, a tile layer, the
   resize dialog (`OTE_SHOT_DIR=... ./editor/native/native_test_map_screenshots`).
 - `native_test_conformance`: see above.
@@ -411,8 +420,7 @@ QT_QPA_PLATFORM=offscreen OTE_SHOT_DIR=/some/folder ./editor/native/native_test_
 
 ## Not there yet
 - Map painter leftovers: no tool paints the `tileLayer` tiles (it is shown and kept on resize), structures cannot be moved on the
-  canvas and units / structures cannot be added there (slots and units can be placed / moved, see "The map painter"), no 3D / isometric
-  preview, and resize does not adjust coordinates inside story events.
+  canvas and units / structures cannot be added there (slots and units can be placed / moved, see "The map painter"), no 3D preview (the 2D isometric one is read-only, fixed look), and resize does not adjust coordinates inside story events.
 - Pickers that show the sound or the picture (the battle scene's frames are cell numbers, not a preview), and the table-level
   help of a column beyond its tooltip.
 - Drag and drop moves list items inside one file; it does not carry an item to another file, and it does not drag keys of a map (a
