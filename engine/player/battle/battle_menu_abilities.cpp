@@ -129,6 +129,7 @@ bool BattleScene::abilityChosen(int id) {
   };
   // "Pushes it 2 squares away  Z:use  X:back" while the highlight is on a candidate.
   const std::string effect = abilityEffectText(*battle_.db, def);
+  const std::string effectNoChance = abilityEffectText(*battle_.db, def, false);
   const std::string hint = effect + "  {ok}:use  {cancel}:back";
   auto sayHint = [this, hint] {
     gPickHint = hint;
@@ -201,14 +202,14 @@ bool BattleScene::abilityChosen(int id) {
     std::vector<Cell> candidateCells;  // blue: who can be picked
     for (int t : units) candidateCells.push_back(battle_.units[(size_t)t].cell);
     const bool steals = def.effect == AbilityEffect::Steal;
-    auto mark = [this, user, ability, candidateCells, sayHint, stealHint, steals, effect, chanceOn](int target, Overlay& ov) {
+    auto mark = [this, user, ability, candidateCells, sayHint, stealHint, steals, effect, effectNoChance, chanceOn](int target, Overlay& ov) {
       for (Cell c : candidateCells) ov.reach[(size_t)c] = 1;
       for (const AbilityMovePreview& m : previewAbilityMoves(battle_, user, ability, target))
         for (Cell c : m.path) { ov.reach[(size_t)c] = 0; ov.attack[(size_t)c] = 1; }  // where the units would end up (and pass, for a push)
       const std::string chance = steals ? std::string() : chanceOn(target);
       if (steals) stealHint(target);
-      else if (!chance.empty()) {  // "Inflicts Sleep for 3 turns  Sleep 60%  Z:use  X:back"
-        gPickHint = effect + "  " + chance + "  {ok}:use  {cancel}:back";
+      else if (!chance.empty()) {  // "Inflicts Sleep for 3 turns  Sleep 60%  Z:use  X:back" (the chance once: per target, not the ability's)
+        gPickHint = effectNoChance + "  " + chance + "  {ok}:use  {cancel}:back";
         say(gPickHint);
       } else sayHint();
     };

@@ -12,27 +12,28 @@ std::string join(const std::string& t, const std::string& more) { return t.empty
 
 // "Sleep for 3 turns (60%)": the condition an ability puts on, its turns and its chance (docs/SRPG.md "Ability conditions"); "by a formula" when the
 // chance depends on the two units.
-std::string inflictText(const Database& db, const AbilityDef& def) {
+std::string inflictText(const Database& db, const AbilityDef& def, bool withChance) {
   std::string t = def.inflictCond >= 0 && (size_t)def.inflictCond < db.conditions.size() ? db.conditions[(size_t)def.inflictCond].name : "a condition";
   if (def.inflictTurns > 0) t += " for " + plural(def.inflictTurns, "turn", "turns");
+  if (!withChance) return t;  // (the pick hint names the chance against the highlighted target itself)
   if (def.inflictChanceExpr >= 0) t += " (a chance)";
   else if (def.inflictChance > 0) t += " (" + num(def.inflictChance) + "%)";
   return t;
 }
 
-std::string effectOnly(const Database& db, const AbilityDef& def);
+std::string effectOnly(const Database& db, const AbilityDef& def, bool withChance);
 
 }  // namespace
 
-std::string abilityEffectText(const Database& db, const AbilityDef& def) {
-  const std::string t = effectOnly(db, def);
+std::string abilityEffectText(const Database& db, const AbilityDef& def, bool withChance) {
+  const std::string t = effectOnly(db, def, withChance);
   if (def.inflictCond < 0 || def.effect == AbilityEffect::None) return t;
-  return t + "; inflicts " + inflictText(db, def);  // a condition on top of the effect (a strike that poisons)
+  return t + "; inflicts " + inflictText(db, def, withChance);  // a condition on top of the effect (a strike that poisons)
 }
 
 namespace {
 
-std::string effectOnly(const Database& db, const AbilityDef& def) {
+std::string effectOnly(const Database& db, const AbilityDef& def, bool withChance) {
   switch (def.effect) {
     case AbilityEffect::Push: return "Pushes it " + plural(def.amount, "square", "squares") + " away";
     case AbilityEffect::Pull: return "Pulls it next to you";
@@ -68,7 +69,7 @@ std::string effectOnly(const Database& db, const AbilityDef& def) {
         if (c >= 0 && (size_t)c < db.conditions.size()) t = join(t, db.conditions[(size_t)c].name);
       return "Cures " + t;
     }
-    case AbilityEffect::None: return "Inflicts " + inflictText(db, def);  // only "inflict": the condition is the whole doing
+    case AbilityEffect::None: return "Inflicts " + inflictText(db, def, withChance);  // only "inflict": the condition is the whole doing
     case AbilityEffect::Summon: {
       const SummonDef& s = def.summon;
       std::string name = s.type >= 0 && (size_t)s.type < db.unitTypes.size() ? db.unitTypes[(size_t)s.type].name : s.typeId;

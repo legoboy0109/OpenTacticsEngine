@@ -26,7 +26,8 @@ std::string stealReasonText(const std::string& why, bool shortForm);
 
 // What the effect does, in one phrase: "Pushes it 2 squares away", "Heals 10 HP", "Heals all HP", "Pulls it next to
 // you", "Swaps places with it", "Moves it behind you", "Calls a Hound (level 3, up to 2 at a time, lasts 3 turns)".
-std::string abilityEffectText(const Database& db, const AbilityDef& def);
+// withChance = false leaves out an inflict's chance (the pick hint shows the chance against the highlighted target instead).
+std::string abilityEffectText(const Database& db, const AbilityDef& def, bool withChance = true);
 // Who or what it is used on: "yourself", "an ally", "an enemy", "any unit", "a square".
 std::string abilityTargetText(const AbilityDef& def);
 // "range 1", "range 1-2"; empty for a "self" ability.
