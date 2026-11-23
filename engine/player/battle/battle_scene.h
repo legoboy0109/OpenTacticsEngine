@@ -240,12 +240,13 @@ class BattleScene : public Scene {
   void drawItems(Renderer& r);
   void itemChoice(int id);          // an entry of the small menu on an item (Use, Equip, Store, Discard)
   void chooseUseTarget(int slot);   // asks for the target when there are several, else uses at once
-  void openTradeWith(int partner);
+  void openTradeWith(int partner, int col = 0, int row = 0);
   void tradePicked();
   void closeItems();                // leaves every item screen without returning to the action menu
   void itemActionDone();            // after an action that does not end the turn: back to the action menu
   bool submitItem(const Action& a); // submit() for those; then itemActionDone()
   std::string itemsHint() const;
+  std::string tradeHint() const;
 
   // --- battle_economy.cpp: structure menu, Upgrade, Research panel, Supply (docs/ECONOMY.md "Player")
   bool openStructureAt(Cell cell);         // the menu / list of an own structure; false = nothing to offer there
@@ -293,6 +294,7 @@ class BattleScene : public Scene {
   mutable std::vector<uint8_t> prepMask_;  // addPrepTint's per-cell kind (Overlay::prep points here)
   void prepDrawPanelHead(Renderer& r);
   std::string prepHint() const;
+  std::string prepTradeHint() const;
   void prepMainMenu();
   void prepMenuChosen(int id);
   void prepUnitsOpen(int sel = 0);

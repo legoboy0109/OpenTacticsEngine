@@ -194,12 +194,52 @@ void BattleScene::prepTradeOpen(int col, int row) {
   OTE_INFO("prep trade: %s [%s] with %s", a->name.c_str(), log.c_str(), rightName.c_str());
 }
 
+// Confirm on the trade screen. With the storage on the right an item goes over at once, as it always did. Between two characters
+// an item is first picked up (framed), then a slot of either one is chosen: an item there swaps places with it, a free slot takes
+// it (the same character's two slots: a reorder). Every change is final at once (the roster), so Back afterwards keeps it.
 void BattleScene::prepTradePicked(bool direct) {
   PrepUi& p = *prep_;
   const Database& db = session_.db;
   const int row = tradePanel_.row(), col = tradePanel_.col();
   const RosterUnit* a = member(*p.pt, p.who);
   if (!a) return;
+  if (!p.with.empty()) {
+    const RosterUnit* b = member(*p.pt, p.with);
+    if (!b) return;
+    const RosterUnit& here = col == 0 ? *a : *b;
+    const bool item = row < (int)here.items.size();
+    if (!tradePanel_.holding()) {
+      if (!item) { say(col == 0 ? PrepWords::kNothingToHand : PrepWords::kNothingToTake); return; }
+      if (!direct && col == 0 && prepTradeNeedsChoice(row)) { prepTradeChoiceOpen(row); return; }  // a weapon: Pick up or Equip
+      tradePanel_.hold(col, row);
+      OTE_INFO("prep trade: picked up slot %d of %s", row, here.id.c_str());
+      return;
+    }
+    const int hc = tradePanel_.heldCol(), hr = tradePanel_.heldRow();
+    if (hc == col && hr == row) { tradePanel_.release(); return; }
+    std::string why;
+    bool ok;
+    if (!item) {
+      if (hc == col) return;  // a free slot of the same character: nothing to do
+      ok = hc == 0 ? prepGive(db, *p.pt, p.map, p.who, hr, p.with, why) : prepGive(db, *p.pt, p.map, p.with, hr, p.who, why);
+    } else if (hc == col) {
+      const std::string& id = col == 0 ? p.who : p.with;
+      ok = prepSwap(db, *p.pt, p.map, id, hr, id, row, why);
+    } else {
+      ok = hc == 0 ? prepSwap(db, *p.pt, p.map, p.who, hr, p.with, row, why) : prepSwap(db, *p.pt, p.map, p.who, row, p.with, hr, why);
+    }
+    if (!ok) {
+      uiCue(Cue::Error);
+      say(why);
+      OTE_INFO("prep refused: %s", why.c_str());
+      return;
+    }
+    uiCue(Cue::Confirm);
+    OTE_INFO("prep trade: %s", item ? "swapped" : "moved");
+    prepChanged();
+    prepTradeOpen(col, row);
+    return;
+  }
   std::string why;
   bool ok;
   if (col == 0) {
@@ -309,8 +349,10 @@ void BattleScene::prepItemsInput(const InputEvent& e) {
     }
     case PrepUi::Screen::Trade: {
       TradePanel::Result res = tradePanel_.onInput(e, r);
-      if (res == TradePanel::Back) { tradePanel_.close(); prepItemsWithOpen(); }
-      else if (res == TradePanel::Picked) prepTradePicked();
+      if (res == TradePanel::Back) {
+        if (tradePanel_.holding()) tradePanel_.release();  // Back puts the picked-up item down first
+        else { tradePanel_.close(); prepItemsWithOpen(); }
+      } else if (res == TradePanel::Picked) prepTradePicked();
       break;
     }
     case PrepUi::Screen::Shop: {

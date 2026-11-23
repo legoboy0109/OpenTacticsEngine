@@ -20,6 +20,7 @@ void TradePanel::open(const std::string& nameA, const std::vector<PanelRow>& a, 
   rows_[1] = b;
   icons_ = iconColumnOf(a, b);  // one column for both lists: the names of the two sides line up as well
   col_ = col ? 1 : 0;
+  heldCol_ = heldRow_ = -1;
   for (int c = 0; c < 2; ++c) {
     list_[c] = RowList();
     list_[c].count = (int)rows_[c].size();
@@ -66,6 +67,13 @@ void TradePanel::layout(const Renderer& r) {
     list_[c].h = shown * rowH;
   }
   detailY_ = y_ + h_ - fixedBottom + 4;
+}
+
+void TradePanel::rowCentre(const Renderer& r, int col, int row, int& x, int& y) {
+  layout(r);
+  const RowList& l = list_[col ? 1 : 0];
+  x = l.x + l.w / 2;
+  y = l.rowY(row) + l.rowH / 2;
 }
 
 void TradePanel::selectedBox(const Renderer& r, int& x, int& y, int& w, int& h) {
@@ -128,6 +136,10 @@ void TradePanel::draw(Renderer& r) {
     for (int i = 0; i < l.visible() && first + i < l.count; ++i) {
       int row = first + i;
       drawPanelRow(r, l.x, l.rowY(row), l.w, l.rowH - 1, rows_[c][(size_t)row], c == col_ && row == l.sel, icons_);
+      if (c == heldCol_ && row == heldRow_) {  // the picked-up item: a bright frame (two pixels) that stays while the cursor moves
+        r.drawRect(l.x - 1, l.rowY(row) - 1, l.w + 2, l.rowH + 1, chrome::kAccent);
+        r.drawRect(l.x, l.rowY(row), l.w, l.rowH - 1, chrome::kAccent);
+      }
     }
   }
   list_[col_].drawMore(r, chrome::kAccent);

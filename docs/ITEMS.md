@@ -136,6 +136,7 @@ in the inventory):
 | `Equip(unit, slot)` | moves a wieldable weapon to the front | no |
 | `GiveItem(unit, slot, target)` | to a neighbouring unit of the same side with room | no |
 | `TakeItem(unit, target, slot)` | from a neighbouring unit of the same side (its slot) | no |
+| `SwapItems(unit, slot, target, itemSlot)` | the unit's item `slot` and the neighbour's item `itemSlot` trade places; needs no room, so it works between two full packs. `target` = the unit itself: two slots of its own pack trade places (a reorder; `slot` and `itemSlot` differ) | no |
 | `StoreItem(unit, slot)` | into the side's storage | no |
 | `FetchItem(unit, index)` | out of the side's storage (index into it) | no |
 | `BuyItem(unit, item)` | on a square of a structure that sells it and is not owned by an enemy team; pays the price | no |
@@ -146,6 +147,14 @@ attack or wait afterwards; they cannot be undone (the player's "undo move"
 is dropped after one). Using an item that would do nothing (full HP and no
 `raise`) is refused. Storage actions need `rules.items.storage` and the
 unit to be where that setting says.
+
+`SwapItems` is the last action type (the numbers of the others are unchanged; nothing stores an action, saves hold the state). It
+holds nothing back the other trades do not: there are no "may not hold" items, so the only checks are the slots, the neighbour
+(alive, same side, adjacent) and that the unit can act. Each item keeps its uses and `drop` mark. The weapon in hand is, as ever,
+the first wieldable weapon in the pack, so a swap or reorder at the front changes it (nothing else to re-equip). The events are two
+`ItemMoved` (one per item; one for a reorder), and both units' hit points are cut to any lower maximum. The AI never trades.
+Only the acting unit's own pack can be reordered (the neighbour is not the one acting); the preparation screen reorders any
+character, as its characters are all free.
 
 **Getting an item without room** (buying, drops): it goes to the side's
 storage if the game has one (wherever the unit is); otherwise buying is
@@ -175,12 +184,23 @@ or use the storage.
 
 Action menu (after moving, as today) gains, when they apply: **Items** (the
 inventory; choosing one offers Use / Equip / Store / Discard), **Trade**
-(a neighbour of the same side: both inventories side by side, choosing an
-item hands it over), **Storage** (take from the side's storage), **Shop**
+(a neighbour of the same side: both inventories side by side; see "The trade screen" below), **Storage** (take from the side's storage), **Shop**
 (buy). The info panel lists what the unit under the cursor carries, with
 uses left; the equipped weapon is marked. With carried weapons, targeting
 cycles through weapon and target as before; the forecast names the weapon
 and its uses left.
+
+**The trade screen.** Two columns, the acting unit's items and the neighbour's, with free slots shown up to the inventory size.
+Confirm picks an item up (it gets a bright frame); Confirm on a slot of either column then puts it there: an item there **swaps**
+places with it, a free slot **moves** the item (what the screen always did). Confirm on the picked-up item, or Back, puts it back
+(Back with nothing picked up leaves the screen). The same column works too: picking another item of the acting unit's own list
+reorders it (the neighbour's column cannot be reordered in battle; a notice says so). Every swap or move is made at once, so
+backing out keeps what was done; the screen stays open for the next one, cursor in place. Left/Right switch column, Up/Down move,
+a tap selects and a second tap on the same row picks / puts down (outside = back). The hint line says what Confirm does: "pick up",
+"swap", "move here" or "put back". The preparation screen works the same between two characters (a weapon's small menu there
+offers **Pick up** instead of Hand over, and **Equip**); with the storage on the right an item still goes over at once.
+Code: engine/player/ui/trade_panel.* (the frame), `BattleScene::tradePicked` (battle_items.cpp), `prepTradePicked`
+(battle_prep_items.cpp), `prepSwap` (core/campaign/prep_items.cpp); tests tests/test_items_swap.cpp and the player scripts.
 
 **Stacked storage lists.** Wherever the shared storage is listed (the battle's Storage panel, the storage column of the
 preparation trade panel, the preparation shop's Sell list for the storage) identical copies are ONE row with a count,
