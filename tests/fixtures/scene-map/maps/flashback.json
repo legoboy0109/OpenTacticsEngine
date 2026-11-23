@@ -1,0 +1,7 @@
+{ "name": "Long Ago", "grid": { "type": "square", "width": 7, "height": 4 }, "legend": { ".": "plain", "w": "wall", "~": "river" },
+  "tiles": [ ".......", "..w....", ".....~.", "......." ],
+  "sides": [ { "id": "elders", "name": "Elders", "controller": "human", "color": "#3a7bd5" },
+             { "id": "bandits", "name": "Bandits", "controller": "ai", "color": "#c0392b" } ],
+  "units": [
+    { "type": "fighter", "id": "elder", "name": "Elder", "side": "elders", "x": 1, "y": 1, "items": ["iron_sword"] },
+    { "type": "raider", "id": "bandit", "name": "Bandit", "side": "bandits", "x": 5, "y": 1, "items": ["iron_sword"] } ] }
