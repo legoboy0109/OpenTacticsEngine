@@ -21,6 +21,7 @@ import { ForgetSkillForm, TeachSkillForm } from './forms/SkillForms'
 import { AddConditionForm, RemoveConditionForm } from './forms/ConditionForms'
 import { SetBehaviourForm, WakeGroupForm } from './forms/BehaviourForms'
 import { FightForm } from './forms/FightForm'
+import { ReturnMapForm, ShowMapForm } from './forms/ShowMapForm'
 import { ChangeSideForm, MoveUnitForm, RemoveUnitForm, ShowUnitForm } from './forms/UnitForms'
 import { useCommandEdit, type CommandRef } from './forms/useCommandEdit'
 import { ConditionList } from './ConditionList'
@@ -36,6 +37,8 @@ export function CommandForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
     case 'moveUnit': return <MoveUnitForm cmd={cmd} at={at} />
     case 'showUnit': return <ShowUnitForm cmd={cmd} at={at} />
     case 'fight': return <FightForm cmd={cmd} at={at} />
+    case 'showMap': return <ShowMapForm cmd={cmd} at={at} />
+    case 'returnMap': return <ReturnMapForm />
     case 'changeSide': return <ChangeSideForm cmd={cmd} at={at} />
     case 'promote': return <PromoteForm cmd={cmd} at={at} />
     case 'addSupport': return <AddSupportForm cmd={cmd} at={at} />

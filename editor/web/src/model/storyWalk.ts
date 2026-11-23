@@ -11,6 +11,7 @@ import type { ChoiceAnswer, Command, Condition, Filter, ObjectiveRule, Objective
 import type { ItemEntry, MapFile } from './types'
 import { withKeepList } from './storyExtras'
 import { withFightUnits } from './storyFight'
+import { shownMembers } from './storySections'
 
 /** `teamOrSide`: a win / lose names a team or, as a shorthand, a side id. */
 /** `chapter` and `map` only occur in a campaign (campaignWalk.ts); `goto` in a scene names a chapter. */
@@ -289,6 +290,12 @@ function mapMergeParties(c: Command, w: Walk, where: string): Command | Dropped 
   return { ...into, mergeParties: kept }
 }
 
+/** Ids that belong to one map: a showMap section's commands name the shown map's, so the walk of the event's own map leaves them alone. */
+const MAP_BOUND: RefKind[] = ['unit', 'side', 'team', 'teamOrSide', 'change', 'place']
+const onShownMap = (w: Walk): Walk => ({ ...w, ref: (r, where) => (MAP_BOUND.includes(r.kind) ? r.id : w.ref(r, where)) })
+/** The commands a section still reads against the battle's own map (docs/EVENTS.md "Showing another map"). */
+const readsBattleMap = (c: Command): boolean => Array.isArray(c.if) || c.setPhaseMusic !== undefined || c.setVariable !== undefined || c.addVariable !== undefined
+
 /** One command, not looking inside `if` branches (mapCommands does that so each inner command can go on its own). */
 function mapCommand(c: Command, w: Walk, where: string): Command | Dropped {
   if (c.addUnit !== undefined) return mapAddUnit(c, w, where)
@@ -363,14 +370,14 @@ function mapCommand(c: Command, w: Walk, where: string): Command | Dropped {
 
 /** A choice's answers: a hiding condition that cannot stay takes its answer with it (the check then says the choice is short of
  *  answers); the commands inside go on one by one. */
-function mapAnswers(c: Command, w: Walk, here: string): Command {
+function mapAnswers(c: Command, w: Walk, here: string, shown = false): Command {
   const kept: ChoiceAnswer[] = []
   let changed = false
   ;(c.answers ?? []).forEach((a, k) => {
     const at = `${here}, answer ${k + 1}`
     const conds = Array.isArray(a.if) ? mapConditions(a.if, w, at) : a.if
     if (conds === DROP) { changed = true; w.dropped?.({ what: 'command', text: `Answer “${a.text}” of ${w.describe?.command?.(c) ?? 'a question'}`, where: at }); return }
-    const inner = Array.isArray(a.do) ? mapCommands(a.do, w, at) : a.do
+    const inner = Array.isArray(a.do) ? mapCommands(a.do, w, at, '', shown) : a.do
     let next = a
     if (conds !== a.if) next = put(next, 'if', conds)
     if (inner !== a.do) next = put(next, 'do', inner)
@@ -381,22 +388,25 @@ function mapAnswers(c: Command, w: Walk, here: string): Command {
 }
 
 /** `trail` numbers the commands of a nested list after the `if` they sit in: "3" at the top, "3.1" inside it. */
-export function mapCommands(list: Command[], w: Walk, where: string, trail = ''): Command[] {
+export function mapCommands(list: Command[], w: Walk, where: string, trail = '', onShown = false): Command[] {
   const out: Command[] = []
   let changed = false
+  const members = trail === '' ? shownMembers(list) : null
   list.forEach((c, i) => {
     const num = trail ? `${trail}.${i + 1}` : `${i + 1}`
     const here = `${where}, command ${num}`
-    const first = mapCommand(c, w, here)
+    // A command of a showMap section names the SHOWN map's units, sides and changes: a rename or delete on this map must not touch those.
+    const shown = onShown || (members?.has(c) ?? false)
+    const first = mapCommand(c, shown && !readsBattleMap(c) ? onShownMap(w) : w, here)
     if (first === DROP) { changed = true; w.dropped?.({ what: 'command', text: w.describe?.command?.(c) ?? 'A command', where: here }); return }
     let r: Command = first
     for (const branch of ['then', 'else'] as const) {
       const inner: Command[] | undefined = r[branch]
       if (!Array.isArray(inner)) continue
-      const next = mapCommands(inner, w, where, num)
+      const next = mapCommands(inner, w, where, num, shown)
       if (next !== inner) r = { ...r, [branch]: next }
     }
-    if (Array.isArray(r.answers)) r = mapAnswers(r, w, here)
+    if (Array.isArray(r.answers)) r = mapAnswers(r, w, here, shown)
     if (r !== c) changed = true
     out.push(r)
   })

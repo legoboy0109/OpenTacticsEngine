@@ -1,3 +1,4 @@
+import { playableMaps } from '../model/cutScene'
 import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
 import type { Route } from '../router'
 import { Link } from '../router'
@@ -87,7 +88,7 @@ export function ProjectShell({ route }: { route: ProjectRoute }) {
   const [fixFirst, setFixFirst] = useState(false)
   const closeProblems = useCallback(() => { setProblemsOpen(false); setFixFirst(false) }, [])
   // Play runs the map being edited, the story on the Campaign screen, or the first map anywhere else.
-  const maps = doc.game?.maps ?? []
+  const maps = playableMaps(doc.game?.maps ?? [])  // a map only story scenes show is never played
   const playMap = route.section === 'campaign' && doc.campaign && maps.length > 0 ? PLAY_CAMPAIGN
     : (route.section === 'maps' && maps.some((m) => m.id === route.itemId) ? route.itemId : maps[0]?.id) ?? ''
   const play = usePlay(maps, useCallback(() => { setFixFirst(true); setProblemsOpen(true) }, []))

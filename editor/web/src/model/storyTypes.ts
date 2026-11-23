@@ -115,6 +115,9 @@ export interface Command extends Extra {
   showUnit?: string
   /** A staged fight between two named units (docs/EVENTS.md "A staged fight"; storyFight.ts). */
   fight?: FightSpec
+  /** Shows another map of the game for the commands that follow, until `returnMap` (docs/EVENTS.md "Showing another map"; storyShowMap.ts). `focus` (above) is then its camera start. */
+  showMap?: string
+  returnMap?: boolean
   moveUnit?: string
   x?: number
   y?: number
@@ -235,11 +238,11 @@ export type CommandKind =
   | 'setTerrain' | 'applyChange' | 'revertChange' | 'setFog' | 'setVision'
   | 'background' | 'fade' | 'wait' | 'shake' | 'leave' | 'clearStage' | 'weather' | 'narrate' | 'enter' | 'move'
   | 'setPhaseMusic'
-  | 'storeItems' | 'switchParty' | 'mergeParties' | 'showUnit' | 'fight'
+  | 'storeItems' | 'switchParty' | 'mergeParties' | 'showUnit' | 'fight' | 'showMap' | 'returnMap'
 /** In the order the loader looks for them (`goto` is only ever found in a campaign scene). */
 export const COMMAND_KINDS: CommandKind[] = [
   'say', 'choice', 'addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'promote', 'teachSkill', 'forgetSkill', 'giveItem', 'takeItem', 'giveResource',
-  'setSwitch', 'setVariable', 'addVariable', 'objective', 'win', 'lose', 'if', 'endTurn', 'focus', 'goto', 'grantResearch',
+  'setSwitch', 'setVariable', 'addVariable', 'objective', 'win', 'lose', 'if', 'endTurn', 'showMap', 'returnMap', 'focus', 'goto', 'grantResearch',
   'playMusic', 'stopMusic', 'playSound', 'addSupport', 'addCondition', 'removeCondition',
   'openDoor', 'closeDoor', 'lockDoor', 'unlockDoor', 'openChest', 'setBehaviour', 'wakeGroup',
   'setTerrain', 'applyChange', 'revertChange', 'setFog', 'setVision',

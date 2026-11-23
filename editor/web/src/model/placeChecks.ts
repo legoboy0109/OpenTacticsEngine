@@ -6,6 +6,7 @@ import { DOOR_HP_MAX, WAYS, blocksSomeone, fittingKeys, isKeyItem, keyFits, lock
 import { placeProblem } from './placeStory'
 import { isStoryId } from './storyIds'
 import { forEachCommand } from './storyWalk'
+import { sectionsOf } from './storyShowMap'
 import { PLACE_COMMANDS, PLACE_EVENTS, commandKind, type CommandKind, type PlaceEvent } from './storyTypes'
 import { abilityIsGiven } from './abilityChecks'
 import { fxList } from './staffFx'
@@ -200,10 +201,13 @@ function eventChecks(doc: ProjectDoc, mapId: string, map: MapFile, out: PlaceChe
       if (!is) say(`${q(e.id)}, “When”`, 'say what happens to it: opened, visited or destroyed.')
       else { const p = placeProblem(doc, map, String(t.place), { is }); if (p) say(`${q(e.id)}, “When”`, p) }
     }
+    const sections = sectionsOf(doc, e.do)
     forEachCommand(e.do, `${q(e.id)}`, (c, where) => {
       const kind = commandKind(c)
       if (!kind || !PLACE_CMD_SET.has(kind)) return
-      const p = placeProblem(doc, map, String((c as Record<string, unknown>)[kind] ?? ''), { command: kind })
+      const section = sections.of.get(c)  // between a showMap and its returnMap the door is one of the shown map
+      if (section && !section.shown) return
+      const p = placeProblem(doc, section?.shown ?? map, String((c as Record<string, unknown>)[kind] ?? ''), { command: kind })
       if (p) say(where, p)
     })
   }
@@ -218,7 +222,7 @@ function goalChecks(doc: ProjectDoc, mapId: string, map: MapFile, out: PlaceChec
   const sides = new Map((map.sides ?? []).map((s) => [s.id, s]))
   // Placed units, then the units "Add a unit" commands bring in (the same rules; a command has no square on the map to point at).
   const units: Array<{ u: MapUnit; where: string; cell?: { x: number; y: number } }> = (map.units ?? []).map((u) => ({ u, where: `The unit at ${u.x + 1}, ${u.y + 1}`, cell: { x: u.x, y: u.y } }))
-  for (const e of map.events ?? []) forEachCommand(e.do, `${q(e.id)}`, (c, w) => { if (c.addUnit) units.push({ u: c.addUnit, where: `Event ${w}, the unit it adds` }) })
+  for (const e of map.events ?? []) forEachCommand(e.do, `${q(e.id)}`, (c, w) => { if (c.addUnit && !sectionsOf(null, e.do).of.has(c)) units.push({ u: c.addUnit, where: `Event ${w}, the unit it adds` }) })
   for (const { u, where, cell } of units) {
     if (u.goesFor === undefined) continue
     const say = (text: string, note?: boolean) => out.push({ section: 'maps', mapId, cell, note, text: `${where}: ${text}` })

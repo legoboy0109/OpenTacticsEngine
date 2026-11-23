@@ -6,6 +6,7 @@ import { mapChangeText } from './mapChangeStory'
 import { placesOf } from './placeStory'
 import { namedUnits, teamsOf, unitDisplayName } from './storyIds'
 import { fightText } from './storyFight'
+import { showMapText } from './storyShowMapText'
 import { levelName, pairLabel } from './supports'
 import {
   asFilter, commandKind, conditionKind, filterKind, rectOf, ruleKind, triggerKind,
@@ -203,6 +204,8 @@ export function commandText(c: SumCtx, cmd: Command): string {
     }
     case 'removeUnit': return cmd.hide === true ? `Hides ${filterText(c, cmd.removeUnit)} (it can come back)` : `Removes ${filterText(c, cmd.removeUnit)}`
     case 'fight': return fightText(c, cmd)
+    case 'showMap': return showMapText(c, cmd)
+    case 'returnMap': return 'Goes back to the battle’s map'
     case 'showUnit': return `Brings back ${unitText(c, cmd.showUnit ?? '')} at ${squareText(cmd.x ?? 0, cmd.y ?? 0)}`
     case 'moveUnit': return `${cmd.walk ? 'Walks' : 'Moves'} ${unitText(c, cmd.moveUnit ?? '')} to ${squareText(cmd.x ?? 0, cmd.y ?? 0)}`
     case 'changeSide': return `Moves ${filterText(c, cmd.changeSide)} to side ${sideName(c, cmd.side ?? '')}`

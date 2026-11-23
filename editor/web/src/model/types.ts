@@ -79,7 +79,8 @@ export interface Style extends Named {
   /** Placeholder colour of structure blocks in this style (structure id -> colour). */
   structureColors?: Record<string, string>
 }
-export interface MapRef extends Named { file: string }
+/** `cutScene`: a map only story scenes show (`showMap`); never played, so it has no events, objectives or preparation and no chapter or free battle uses it. */
+export interface MapRef extends Named { file: string; cutScene?: boolean }
 
 export type SavingMode = 'any' | 'continue' | 'off'
 

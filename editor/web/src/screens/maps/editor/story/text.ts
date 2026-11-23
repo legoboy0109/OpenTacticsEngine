@@ -191,6 +191,8 @@ export const S = {
     moveUnit: 'Move a unit',
     showUnit: 'Bring a hidden unit back',
     fight: 'Stage a fight',
+    showMap: 'Show another map',
+    returnMap: 'Back to the battle’s map',
     changeSide: 'Change a unit’s side',
     promote: 'Promote a unit',
     addSupport: 'Add support points',

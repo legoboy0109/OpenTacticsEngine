@@ -129,6 +129,8 @@ export const T = {
   settingsTitle: 'Map',
   nameLabel: 'Name',
   nameHelp: 'What players see.',
+  cutSceneLabel: 'Only for story scenes',
+  cutSceneHelp: 'A map that is never played: an event of another map shows it with “Show another map” (a flashback, a place the story visits). It is left out of the Play list, the chapters and the free battles, and it has no events, objectives or preparation of its own.',
   sizeLabel: 'Size',
   sizeValue: (w: number, h: number) => `${w} × ${h} squares`,
   resizeButton: 'Resize…',

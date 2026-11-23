@@ -25,7 +25,8 @@ export function ChapterForm({ id }: { id: string }) {
   const mapKnown = maps.some((m) => m.id === chapter.map)
   const mapOptions = [
     ...(mapKnown ? [] : [{ value: chapter.map, label: chapter.map ? `${chapter.map} (not there any more)` : C.mapChoose, disabled: chapter.map === '' }]),
-    ...maps.map((m) => ({ value: m.id, label: m.name || m.id })),
+    // a map only story scenes show is not offered; one already chosen stays visible so it can be changed (the checks say why)
+    ...maps.filter((m) => m.cutScene !== true || m.id === chapter.map).map((m) => ({ value: m.id, label: m.name || m.id })),
   ]
   // "Next chapter": the default (the following chapter), or any chapter; a value that names nothing stays visible.
   const nextKnown = !chapter.next || campaign.chapters.some((c) => c.id === chapter.next)

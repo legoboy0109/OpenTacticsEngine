@@ -1,4 +1,5 @@
 // The campaign's name and rules: what happens to defeated units and lost chapters, and which maps can be played alone.
+import { playableMaps } from '../../model/cutScene'
 import { useState } from 'react'
 import {
   defeatRule, fallenRule, freeMaps, freeMode, freeNote, freeWhen, removeCampaign, setCampaignName, setDefeatRule, setFallenRule, setFreeMap,
@@ -44,7 +45,7 @@ export function SettingsCard() {
         {mode === 'chosen' && (
           <FieldGroup label={C.freePick}>
             <div className="stack tight" data-testid="free-maps">
-              {(doc.game?.maps ?? []).map((m) => (
+              {playableMaps(doc.game?.maps ?? []).map((m) => (
                 <Check key={m.id} label={m.name || m.id} checked={chosen.has(m.id)} onChange={(on) => edit((d) => setFreeMap(d, m.id, on))} />
               ))}
             </div>
