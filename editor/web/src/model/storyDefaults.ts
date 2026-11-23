@@ -7,6 +7,7 @@ import { firstPlaceFor, firstPlaceForEvent } from './placeStory'
 import { namedUnits, teamsOf } from './storyIds'
 import { pairsOf } from './supports'
 import { newFight } from './storyFight'
+import { newShowMap } from './storyShowMapEdit'
 import {
   filterKind, type Command, type CommandKind, type Condition, type ConditionKind, type Filter, type FilterKind,
   type ObjectiveRule, type RuleKind, type Trigger, type TriggerKind,
@@ -117,6 +118,8 @@ export function newCommand(c: DefCtx, kind: CommandKind): Command {
     case 'removeUnit': return { removeUnit: defaultFilter(c) }
     case 'moveUnit': return { moveUnit: firstUnit(c), x: 0, y: 0 }
     case 'showUnit': return { showUnit: firstUnit(c), x: 0, y: 0 }
+    case 'showMap': return newShowMap(c.doc, Object.keys(c.doc.maps).find((k) => c.doc.maps[k] === c.map) ?? '')
+    case 'returnMap': return { returnMap: true }
     case 'fight': return { fight: newFight(namedUnits(c.doc, c.map).map((u) => u.id)) }
     case 'changeSide': return { changeSide: defaultFilter(c), side: firstSide(c) }
     case 'addSupport': return { addSupport: firstPair(c.doc), by: 10 }

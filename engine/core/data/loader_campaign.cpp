@@ -44,8 +44,11 @@ bool readFreeMaps(const CampaignLoader& L, const Database& db, const Json& f, co
   out.freeBattles = CampaignDef::FreeBattles::List;
   for (size_t i = 0; i < f.size(); ++i) {
     if (!f[i].isString()) return L.fail(where, "entry " + std::to_string(i + 1) + " must be a map id");
-    if (db.findMap(f[i].asString()) < 0)
-      return L.fail(where, "entry " + std::to_string(i + 1) + " names unknown map " + quoted(f[i].asString()));
+    const int m = db.findMap(f[i].asString());
+    if (m < 0) return L.fail(where, "entry " + std::to_string(i + 1) + " names unknown map " + quoted(f[i].asString()));
+    if (db.maps[(size_t)m].cutScene)  // docs/EVENTS.md "Showing another map"
+      return L.fail(where, "entry " + std::to_string(i + 1) + " names map " + quoted(f[i].asString()) +
+                               ", a cut-scene map (game.json \"cutScene\": true): it is only shown by scenes, never played");
     out.freeMaps.push_back(f[i].asString());
   }
   return true;
@@ -84,6 +87,9 @@ bool readChapter(CampaignLoader& L, const Database& db, const Json& e, size_t in
   if (!L.ctx().str(e, "name", where, ch.name) || !L.ctx().str(e, "map", where, map, true)) return false;
   ch.map = db.findMap(map);
   if (ch.map < 0) return L.fail(where, "\"map\" names unknown map " + quoted(map));
+  if (db.maps[(size_t)ch.map].cutScene)  // docs/EVENTS.md "Showing another map"
+    return L.fail(where, "\"map\" names " + quoted(map) + ", a cut-scene map (game.json \"cutScene\": true): it is only shown by the showMap "
+                         "command of another map's events, never played as a chapter");
   if (!L.ctx().str(e, "next", where, ch.next)) return false;  // checked once every chapter is known
   if (e.has("party") && !L.partyRef(e["party"], where, "party", ch.party)) return false;  // docs/EVENTS.md "Parties"
   if (e.has("before") && !L.chapterScene(e["before"], where + ": \"before\"", true, ch.before)) return false;

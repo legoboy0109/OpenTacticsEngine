@@ -57,7 +57,7 @@ void BattleScene::ensureLayout(const Renderer& r) {
 }
 
 bool BattleScene::humanTurn() const {
-  return !battle_.over && !autoplay_ && !battle_.sides[battle_.activeSide].ai;
+  return !other_ && !battle_.over && !autoplay_ && !battle_.sides[battle_.activeSide].ai;
 }
 
 Cell BattleScene::cellAt(int x, int y) const {
@@ -216,6 +216,7 @@ void BattleScene::update(double dt) {
   if (covered_) return;  // hot-seat cover: nothing plays (or is decided) until the next player confirms
   view_.sceneMode = host_.battleScene();  // the player's setting, else the game's default: effective at once
   view_.update(dt, battle_);
+  updateOtherMap();  // a story scene shows another map / comes back (battle_other_map.cpp)
   if (prep_ && prep_->intro && !view_.busy()) prepOpenScreen();  // the beforePrep scene is over
   if (sceneHold_ >= 0) {  // Cancel / Menu held while a scene plays: half a second fast-forwards it (battle_input.cpp)
     if (!view_.inScene()) sceneHold_ = -1;
@@ -399,7 +400,7 @@ void BattleScene::draw(Renderer& r) {
       r.drawText(x + (w - r.textWidth(label)) / 2, y + (h - layout_.lh) / 2, label, Color(235, 238, 255));
     }
   }
-  bool aiActing = !battle_.over && !humanTurn();  // nobody to inspect for: AI is playing
+  bool aiActing = other_ || (!battle_.over && !humanTurn());  // nobody to inspect for: AI is playing (or a scene shows another map)
   drawPanel(r, ctx, aiActing ? kNoCell : cursor_, autoplay_);
   drawTurnStrip(r);  // (a speed game only) after the panel, which covers the map's overshoot, and under the hint line and the banners
   if (prep_ && !prep_->intro) prepDrawPanelHead(r);  // "Turn 1 / You" means nothing before the battle: say what this is

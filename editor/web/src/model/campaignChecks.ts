@@ -5,6 +5,7 @@
 import { sceneProblems } from './sceneChecks'
 import { unreachedChapters } from './campaignFlow'
 import { freeBattleChecks } from './campaignFree'
+import { isCutScene } from './cutScene'
 import { allSideIds, definedStoryIds } from './campaignRoster'
 import { chapterName, type Campaign, type Chapter } from './campaignTypes'
 import { SCENE_TITLE, walkCampaign } from './campaignWalk'
@@ -37,7 +38,7 @@ function refProblem(doc: ProjectDoc, c: Campaign, r: Ref): { topic: CampaignChec
   const pick = (what: string, topic: CampaignCheck['topic']) => (r.id === '' ? { topic, level: 'error' as const, text: `pick ${what}.` } : null)
   switch (r.kind) {
     case 'party': return pick('a party', 'general') ?? (partiesOf(c).some((x) => x.id === r.id) ? null : { topic: 'general', level: 'error', text: partiesOf(c).length === 0 ? 'this campaign has no parties yet: add some in “The parties”.' : `“${r.id}” is not a party of this campaign.` })
-    case 'map': return pick('a map', 'map') ?? (known(doc.game?.maps) ? null : { topic: 'map', level: 'error', text: `“${r.id}” is not a map of this game.` })
+    case 'map': return pick('a map', 'map') ?? (known(doc.game?.maps) ? (isCutScene(doc, r.id) ? { topic: 'map', level: 'error', text: `“${r.id}” is a map only story scenes show (“Only for story scenes”); it is never played, so a chapter or the free battles cannot use it.` } : null) : { topic: 'map', level: 'error', text: `“${r.id}” is not a map of this game.` })
     case 'chapter': return pick('a chapter', 'chapter') ?? (c.chapters.some((x) => x.id === r.id) ? null : { topic: 'chapter', level: 'error', text: `“${r.id}” is not a chapter of this campaign.` })
     case 'switch': return pick('a switch', 'switch') ?? (known(doc.game?.switches) ? null : { topic: 'switch', level: 'error', text: `“${r.id}” is not a switch of this game.` })
     case 'variable': return pick('a variable', 'variable') ?? (known(doc.game?.variables) ? null : { topic: 'variable', level: 'error', text: `“${r.id}” is not a variable of this game.` })

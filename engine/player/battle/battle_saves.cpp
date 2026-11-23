@@ -51,8 +51,11 @@ void BattleScene::writeContinue() {
 // including a unit that has only moved). No new file kind; a decided battle writes nothing (its Continue file is gone or the
 // story flow owns it), exactly as updateSaves() does.
 void BattleScene::onSuspend() {
-  if (!continueOn() || mode_ == Mode::Result || battle_.over) return;
+  if (!continueOn() || mode_ == Mode::Result || ownBattle().over) return;
+  // A scene that shows another map: the save is the battle's own (docs/EVENTS.md "Showing another map"), never the shown map.
+  swapOwnBattle();
   writeContinue();
+  swapOwnBattle();
   OTE_INFO("lifecycle: Continue save written");
 }
 

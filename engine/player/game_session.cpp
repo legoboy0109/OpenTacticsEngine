@@ -38,6 +38,10 @@ bool GameSession::startMap(const std::string& mapId, unsigned seed, std::string&
   battle.setTestLevel(testLevel);
   startEvents.clear();
   campaign.reset();  // a free battle is not part of a playthrough
+  if (db.cutSceneMap(mapId)) {  // docs/EVENTS.md "Showing another map"
+    err = "map \"" + mapId + "\" is a cut-scene map (game.json \"cutScene\": true): story scenes show it, it is never played";
+    return false;
+  }
   if (!loadMap(db, mapId, map, err)) return false;
   applyFactionPicks(map);  // the person's choices of the faction screen
   applyCommanderPicks(map);  // ... and of the commander screen (docs/COMMANDERS.md)
@@ -67,6 +71,10 @@ bool GameSession::startMapPrep(const std::string& mapId, unsigned seed, std::str
   battle = Battle();
   startEvents.clear();
   campaign.reset();
+  if (db.cutSceneMap(mapId)) {  // docs/EVENTS.md "Showing another map"
+    err = "map \"" + mapId + "\" is a cut-scene map (game.json \"cutScene\": true): story scenes show it, it is never played";
+    return false;
+  }
   if (!loadMap(db, mapId, map, err)) return false;
   applyFactionPicks(map);
   applyCommanderPicks(map);

@@ -18,7 +18,7 @@ int Battle::winnerAgainst(int team) const {
 }
 
 void Battle::endBattle(int winner, std::vector<Event>& events) {
-  if (over) return;
+  if (over || sceneOnly_) return;  // a shown map (story_show_map.cpp) never ends a battle
   over = true;
   winnerTeam = winner;
   awardBattlePoints(winner, events);  // docs/JOBS.md "Learning from equipment": points for the win, before the battle's last event
@@ -66,7 +66,7 @@ bool Battle::objectiveHolds(const ObjectiveRule& r, bool win) const {
 }
 
 void Battle::checkObjectives(std::vector<Event>& events) {
-  if (over || !story) return;
+  if (over || !story || sceneOnly_) return;
   const ObjectiveSet& set = story->objectives[(size_t)storyState.objectives];
   // Losing is checked first: if both hold at the same moment the human team has lost.
   for (const ObjectiveRule& r : set.lose)

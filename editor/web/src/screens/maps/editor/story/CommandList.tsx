@@ -10,13 +10,17 @@ import { commandKind, type Command, type CommandKind } from '../../../../model/s
 import { Select, type OptionGroup } from '../../../../ui/Select'
 import { CommandForm } from './CommandForm'
 import { P } from './forms/placeText'
+import { SM } from './forms/showMapText'
+import { showMapOptions } from '../../../../model/storyShowMapEdit'
 import { MC } from './forms/mapChangeText'
 import { EX } from './forms/extrasText'
 import { PT } from './forms/partyText'
 import { storageMode } from '../../../../model/itemRules'
 import { changeIds } from '../../../../model/mapChanges'
 import { RowButtons } from '../../../../ui/RowButtons'
-import { useStory, type Story } from './StoryContext'
+import { BATTLE_READERS, sectionsOf, type Section } from '../../../../model/storyShowMap'
+import { shownScope } from '../../../../model/storyShownScope'
+import { StoryScope, useStory, type Story } from './StoryContext'
 import { S } from './text'
 
 /** Which row is open: the path to its list plus its index. */
@@ -32,6 +36,8 @@ interface Props {
   onSelect: (key: string | null) => void
   /** Names the list for assistive technology and tests ("Then", "If 2: Then"). */
   name: string
+  /** Set on a nested list (an If's branch, an answer) that sits between a "Show another map" and its "Back": its commands act on that map. */
+  shown?: Section
 }
 
 const GROUPS: Array<{ group: string; kinds: CommandKind[] }> = [
@@ -41,7 +47,7 @@ const GROUPS: Array<{ group: string; kinds: CommandKind[] }> = [
   { group: S.commandGroups.story, kinds: ['setSwitch', 'setVariable', 'addVariable', 'objective', 'win', 'lose'] },
   { group: S.commandGroups.flow, kinds: ['if', 'endTurn', 'focus', 'goto'] },
   { group: S.commandGroups.sound, kinds: ['playMusic', 'stopMusic', 'playSound', 'setPhaseMusic'] },
-  { group: S.commandGroups.scene, kinds: ['background', 'fade', 'wait', 'shake', 'enter', 'move', 'leave', 'clearStage', 'weather', 'narrate'] },
+  { group: S.commandGroups.scene, kinds: ['background', 'fade', 'wait', 'shake', 'enter', 'move', 'leave', 'clearStage', 'weather', 'narrate', 'showMap', 'returnMap'] },
   { group: S.commandGroups.places, kinds: ['openDoor', 'closeDoor', 'lockDoor', 'unlockDoor', 'openChest'] },
   { group: MC.group, kinds: ['setTerrain', 'applyChange', 'revertChange', 'setFog', 'setVision'] },
   { group: EX.group, kinds: ['storeItems'] },
@@ -56,7 +62,8 @@ const SCENE_KINDS: CommandKind[] = ['say', 'choice', 'addSupport', 'takeItem', '
 const placeWhy = (story: Story, kind: CommandKind): string | null => (placesForCommand(story.doc, story.map, kind).length > 0 ? null : P.noneYetShort)
 
 /** The menu of commands, grouped. A kind that cannot be used yet says why in its name and cannot be chosen. */
-function menu(story: Story, talk: boolean): OptionGroup[] {
+/** `at`: whether the list is the event's own (showMap / returnMap only go there) and whether a shown map is still open at its end. */
+function menu(story: Story, talk: boolean, at: { top: boolean; open: boolean }): OptionGroup[] {
   const { doc } = story
   const why: Partial<Record<CommandKind, string | null>> = {
     promote: (doc.units?.length ?? 0) > 1 ? null : 'needs two unit types',
@@ -84,6 +91,8 @@ function menu(story: Story, talk: boolean): OptionGroup[] {
     mergeParties: (doc.campaign?.parties?.length ?? 0) > 1 ? null : PT.noParties,
     storeItems: storageMode(doc) === 'off' ? EX.noStorage : doc.items?.length ? null : 'no items yet',
     fight: story.units.length >= 2 ? null : 'needs two named units',
+    showMap: !at.top ? SM.menuTopOnly : at.open ? SM.menuAlready : showMapOptions(doc, story.mapId).length ? null : SM.menuNoOther,
+    returnMap: !at.top ? SM.menuTopOnly : at.open ? null : SM.menuNothing,
     applyChange: changeIds(story.map).length ? null : MC.noChangesYet, revertChange: changeIds(story.map).length ? null : MC.noChangesYet,
   }
   // A support conversation (`scene.only`) takes the listed kinds and nothing else.
@@ -94,11 +103,21 @@ function menu(story: Story, talk: boolean): OptionGroup[] {
   })).filter((g) => g.options.length > 0)
 }
 
-export function CommandList({ eventId, path, commands, talk, selected, onSelect, name }: Props) {
+/** The story the commands of a section see: the shown map's units, sides, size and changes instead of the battle's. */
+function scoped(story: Story, section: Section | undefined): Story {
+  const scope = section ? shownScope(story.doc, section) : null
+  return scope ? { ...story, ...scope } : story
+}
+
+export function CommandList({ eventId, path, commands, talk, selected, onSelect, name, shown }: Props) {
   const story = useStory()
   const { apply } = story
+  // The event's own list knows its sections; a nested list inherits the one it sits in.
+  const sections = path.length === 0 ? sectionsOf(story.doc, commands) : null
+  const sectionOf = (c: Command): Section | undefined => shown ?? sections?.of.get(c)
+  const openAtEnd = shown ?? sections?.list.find((x) => !x.back)  // a new command at the end of an open section acts on the shown map
   const add = (kind: string) => {
-    apply((m) => addCommand(m, eventId, path, newCommand(story, kind as CommandKind)))
+    apply((m) => addCommand(m, eventId, path, newCommand(scoped(story, openAtEnd), kind as CommandKind)))
     onSelect(cmdKey(path, commands.length))
   }
   const move = (from: number, to: number) => {
@@ -119,22 +138,25 @@ export function CommandList({ eventId, path, commands, talk, selected, onSelect,
           const open = selected === key
           const kind = commandKind(c)
           const label = S.commandN(i + 1)
+          const section = sectionOf(c)
+          // The "Show another map" command itself is still a command of the battle's map (it picks the shown map); the ones after it act on that map.
+          const acting = section && section.show !== c && !(kind && BATTLE_READERS.includes(kind)) ? scoped(story, section) : story  // an If's conditions, a variable and setPhaseMusic read the battle's own map
           return (
             <li key={i} className="command-row" data-open={open || undefined} data-kind={kind ?? 'unknown'}>
               <div className="story-row-head">
                 <button type="button" className="command-sentence" aria-expanded={open} data-testid={`command-${kind}`} onClick={() => onSelect(open ? null : key)}>
-                  {S.openCommand(i + 1, commandText(story, c))}
+                  {S.openCommand(i + 1, commandText(acting, c))}
                 </button>
                 <RowButtons index={i} count={commands.length} up={S.moveCommandUp(`${name} ${label}`)} down={S.moveCommandDown(`${name} ${label}`)} del={S.deleteCommand(`${name} ${label}`)}
                   onUp={() => move(i, i - 1)} onDown={() => move(i, i + 1)} onDelete={() => remove(i)} />
               </div>
-              {open && <div className="command-form"><CommandForm cmd={c} at={{ eventId, path, index: i }} /></div>}
+              {open && <div className="command-form"><StoryScope value={acting}><CommandForm cmd={c} at={{ eventId, path, index: i }} /></StoryScope></div>}
               {kind === 'choice' && (
                 <div className="command-nested">
                   {(c.answers ?? []).map((a, k) => (
                     <div key={k} className="nested-part" data-testid={`answer-${k + 1}`}>
                       <h4>{S.answerPart(k + 1, a.text ?? '')}</h4>
-                      <CommandList eventId={eventId} path={[...path, [i, `answer${k}`]]} commands={a.do ?? []} talk={talk} selected={selected} onSelect={onSelect}
+                      <CommandList eventId={eventId} path={[...path, [i, `answer${k}`]]} commands={a.do ?? []} talk={talk} selected={selected} onSelect={onSelect} shown={section && section.show !== c ? section : undefined}
                         name={`${name === S.then ? '' : `${name}, `}Question ${i + 1}: Answer ${k + 1}`} />
                     </div>
                   ))}
@@ -145,7 +167,7 @@ export function CommandList({ eventId, path, commands, talk, selected, onSelect,
                   {(['then', 'else'] as const).map((b) => (
                     <div key={b} className="nested-part">
                       <h4>{b === 'then' ? S.thenPart : S.elsePart}</h4>
-                      <CommandList eventId={eventId} path={[...path, [i, b]]} commands={c[b] ?? []} talk={talk} selected={selected} onSelect={onSelect}
+                      <CommandList eventId={eventId} path={[...path, [i, b]]} commands={c[b] ?? []} talk={talk} selected={selected} onSelect={onSelect} shown={section && section.show !== c ? section : undefined}
                         name={`${name === S.then ? '' : `${name}, `}If ${i + 1}: ${b === 'then' ? S.thenPart : 'Otherwise'}`} />
                     </div>
                   ))}
@@ -155,7 +177,7 @@ export function CommandList({ eventId, path, commands, talk, selected, onSelect,
           )
         })}
       </ol>
-      <Select data-learn="add-command" aria-label={`${name}: ${S.addCommand}`} value="" placeholder={S.addCommand} options={menu(story, talk)} onChange={add} />
+      <Select data-learn="add-command" aria-label={`${name}: ${S.addCommand}`} value="" placeholder={S.addCommand} options={menu(story, talk, { top: path.length === 0, open: !!openAtEnd && path.length === 0 })} onChange={add} />
     </div>
   )
 }

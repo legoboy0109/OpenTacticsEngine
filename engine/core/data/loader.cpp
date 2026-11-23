@@ -317,9 +317,10 @@ static bool loadGameFile(const std::string& path, Database& db, std::string& err
     if (!c.str(m, "id", where, ref.id, true) || ref.id.empty()) return c.fail(where, "\"id\" is required");
     where = "map \"" + ref.id + "\"";
     if (db.findMap(ref.id) >= 0) return c.fail(where, "duplicate id");
-    if (!c.onlyKeys(m, {"id", "name", "file"}, where)) return false;
+    if (!c.onlyKeys(m, {"id", "name", "file", "cutScene"}, where)) return false;
     ref.name = ref.id;
     if (!c.str(m, "name", where, ref.name)) return false;
+    if (!c.boolean(m, "cutScene", where, ref.cutScene)) return false;  // docs/EVENTS.md "Showing another map"
     if (!c.str(m, "file", where, ref.file, true)) return false;
     db.maps.push_back(ref);
   }

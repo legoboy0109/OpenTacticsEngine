@@ -128,7 +128,14 @@ void Battle::cmdFocus(const Command& c, std::vector<Event>& events) {
 
 void Battle::runCommand(const Command& c, std::vector<Event>& events) {
   using K = Command::Kind;
+  // docs/EVENTS.md "Showing another map" (story_show_map.cpp): while a map is shown, the commands on units, squares and the camera act on it.
+  if (shown_ && onShownMap(c)) {
+    shown_->runCommand(c, events);
+    return;
+  }
   switch (c.kind) {
+    case K::ShowMap: storyShowMap(c, events); break;
+    case K::ReturnMap: storyReturnMap(events); break;
     case K::Say: cmdSay(c, events); break;
     case K::Choice: storyChoice(c, events); break;
     case K::AddUnit: storyAddUnit(c.newUnit, events); break;

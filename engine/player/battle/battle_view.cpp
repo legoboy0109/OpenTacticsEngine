@@ -89,6 +89,11 @@ void BattleView::ensureUnits(const Battle& b) {
 void BattleView::push(const std::vector<Event>& events) {
   for (const Event& e : events) {
     queue_.push_back(e);
+    // A shown map's entries (docs/EVENTS.md "Showing another map") name its units, not this view's: they get their bookkeeping on the view
+    // that plays them (BattleScene::showOtherMap pushes them there).
+    if (e.type == EventType::MapShown) ++pushShown_;
+    if (e.type == EventType::MapReturned && pushShown_ > 0) --pushShown_;
+    if (pushShown_ > 0 || e.type == EventType::MapReturned) continue;
     // The rules already show the unit on its new side; the view keeps the old colour until the
     // SideChanged entry plays (a line like "Join us!" comes first).
     if (e.type == EventType::SideChanged && e.a >= 0 && (size_t)e.a < units.size() && units[(size_t)e.a].side < 0)
@@ -253,7 +258,7 @@ void BattleView::begin(const Battle& b) {
   cur_.dur = 0;
   cur_.fired = false;
   cur_.hideAtEnd = false;
-  if (beginPlaces(b) || beginStory(b) || beginEconomy(b) || beginCommander(b) || beginFog(b) || beginSpeed(b) || beginSrpg(b) || beginMapChange(b)) return;
+  if (beginOtherMap() || beginPlaces(b) || beginStory(b) || beginEconomy(b) || beginCommander(b) || beginFog(b) || beginSpeed(b) || beginSrpg(b) || beginMapChange(b)) return;
   const float cx = tile_ / 2.0f;
   switch (e.type) {
     case EventType::TurnStarted: beginTurnStarted(b); break;
@@ -297,6 +302,8 @@ void BattleView::begin(const Battle& b) {
     case EventType::ItemEquipped:
     case EventType::MusicChanged:  // sound only (battle_view_sound.cpp)
     case EventType::SoundRequested:
+    case EventType::MapShown:     // beginOtherMap took these above
+    case EventType::MapReturned:
     case EventType::BattleEnded: break;
     // Story entries are handled by beginStory() above (battle_view_story.cpp).
     case EventType::Dialogue:
@@ -529,6 +536,7 @@ void BattleView::startNext(const Battle& b) {
 }
 
 void BattleView::skip(const Battle& b) {
+  if (mapRequest() != 0) return;  // the maps are being swapped (BattleScene::updateOtherMap): nothing to finish here
   if (fight.active) {  // the scene has its own skip, except for the lines of a quote it is waiting for
     if (fight.talking) talkNext(b);
     return;

@@ -21,6 +21,7 @@ const std::vector<Context>& contexts() {
 
 const std::map<QString, QString>& skipped() {
   static const std::map<QString, QString> s = {
+      {"maps:events[].do[]{returnMap}*", "a returnMap needs a showMap before it in the same event (cross-key rule); the test replaces the event's first command, so the pair is covered by the engine's show-map tests and the editor's unit tests"},
       {"game:font.file", "needs a font file inside the game folder; the test only writes JSON"},
       {"abilities:if[]*", "the conditions are the shared definition _skills#condition, every shape of it is tried under skills:blocks[].if; an ability judges only the target unit (no fight: initiating, distance, arc, strike, marked, counterattack are refused) and this game has none of the ids many shapes name"},
       {"items:if[]*", "the conditions are the shared definition _skills#condition, every shape of it is tried under skills:blocks[].if; a staff judges only the target unit (no fight) and this game has none of the ids many shapes name"},

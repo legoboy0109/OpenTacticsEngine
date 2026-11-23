@@ -82,6 +82,8 @@ bool checkBehaviourUnits(const LoadCtx& c, const Database& db, const std::vector
 bool checkMapBehaviours(const Database& db, const Json& root, const MapDef& m, const std::string& file, std::string& err);
 // Story ids of the units that addUnit commands create (loader_events.cpp).
 void collectAddedUnitIds(const Json& commands, std::vector<std::string>& out);
+// The ids the addUnit commands of a showMap section create: the event's own list from entry `from` up to its returnMap (loader_events.cpp).
+void collectShownUnitIds(const Json& commands, size_t from, std::vector<std::string>& out);
 // Names of guard groups in addUnit / setBehaviour blocks of a command list (loader_behaviour.cpp).
 void collectBehaviourGroups(const Json& commands, std::vector<std::string>& out);
 // A list of items handed out by data ("items" of a unit type or a map unit, "storage" of a map side):

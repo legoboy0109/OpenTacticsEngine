@@ -40,7 +40,7 @@ bool StoryLoader::showUnitCommand(const Json& e, const std::string& at, Command&
   // The unit is named by its id; it must be one this map knows (a unit placed by the map or an addUnit), as for moveUnit.
   if (!unitId(e["showUnit"], at, "\"showUnit\"", out.unit)) return false;
   if (!c_.integer(e, "x", at, out.x, true) || !c_.integer(e, "y", at, out.y, true)) return false;
-  if (out.x < 0 || out.y < 0 || out.x >= map_.width || out.y >= map_.height)
+  if (out.x < 0 || out.y < 0 || out.x >= map_->width || out.y >= map_->height)
     return fail(at, "the square " + std::to_string(out.x) + "," + std::to_string(out.y) + " is outside the map");
   return true;
 }

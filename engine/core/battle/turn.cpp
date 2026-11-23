@@ -119,7 +119,7 @@ bool Battle::ownsHq(int side) const {
 }
 
 void Battle::checkDefeat(std::vector<Event>& events) {
-  if (over) return;
+  if (over || sceneOnly_) return;  // a shown map (story_show_map.cpp) is a scene: nobody is defeated there
   const RulesConfig& rules = db->rules;
   std::vector<int> fallen;  // units that left with a defeated side: story events hear of them afterwards
 

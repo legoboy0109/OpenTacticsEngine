@@ -1,0 +1,6 @@
+{ "name": "The Field", "grid": { "type": "square", "width": 6, "height": 3 }, "legend": { ".": "plain" },
+  "tiles": [ "......", "......", "......" ],
+  "sides": [ { "id": "blue", "controller": "human" }, { "id": "red", "controller": "ai" } ],
+  "units": [
+    { "type": "fighter", "id": "hero", "name": "Hero", "side": "blue", "x": 1, "y": 1, "items": ["iron_sword"] },
+    { "type": "raider", "id": "r1", "name": "Raider", "side": "red", "x": 4, "y": 1, "items": ["iron_sword"] } ] }

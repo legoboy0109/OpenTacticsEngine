@@ -376,7 +376,10 @@ bool loadUnits(const LoadCtx& c, const Database& db, const Json& root, MapDef& m
 
 }  // namespace
 
-bool loadMap(const Database& db, const std::string& mapId, MapDef& out, std::string& err) {
+namespace {
+
+// `story` false: the shape only (loadMapShape): no events, objectives or preparation are read.
+bool loadMapFile(const Database& db, const std::string& mapId, MapDef& out, std::string& err, bool story) {
   int idx = db.findMap(mapId);
   if (idx < 0) {
     err = "game.json: no map with id \"" + mapId + "\"";
@@ -396,9 +399,14 @@ bool loadMap(const Database& db, const std::string& mapId, MapDef& out, std::str
   if (!loadGrid(c, db, root, m) || !loadTiles(c, db, root, m) || !readMapTileLayer(c, db, root, m) || !loadSides(c, db, root, m) ||
       !readMapFog(c, root, m) || !readMapWeather(c, root, m) || !readMapExits(c, root, m) || !readMapBattleBackground(c, db, root, m) || !readMapBattleTables(c, db, root, m) || !loadStructures(c, db, root, m, structureAt) ||
       !readMapChanges(c, db, root, m) || !readMapDifficulty(c, db, root, m) ||
-      !loadUnits(c, db, root, m, structureAt) || !checkPlaceVisitors(c, db, m) || !loadMapStory(db, root, m, path, err) ||
-      !loadMapPrep(c, db, root, m, structureAt))
+      !loadUnits(c, db, root, m, structureAt) || !checkPlaceVisitors(c, db, m))
     return false;
+  if (ref.cutScene)  // docs/EVENTS.md "Showing another map": a map only scenes show is never played
+    for (const char* k : {"events", "objectives", "prep"})
+      if (root.has(k))
+        return c.fail("", std::string("\"") + k + "\" makes no sense on a cut-scene map (game.json \"cutScene\": true): it is only shown by "
+                          "the showMap command of another map's events and never played; put the scene's commands in that event");
+  if (story && (!loadMapStory(db, root, m, path, err) || !loadMapPrep(c, db, root, m, structureAt))) return false;
   // Last, so that a more specific message of the readers above (a "tileLayer" that is not an object, ...) is the one a maker sees first; a
   // typo in a key the readers never look at is what is left to find here.
   // Every key a map may have. The audio loader (engine/player/sound/audio_data.cpp) reads "music", "playerTurnMusic", "enemyTurnMusic",
@@ -411,6 +419,14 @@ bool loadMap(const Database& db, const std::string& mapId, MapDef& out, std::str
   out = m;
   err.clear();
   return true;
+}
+
+}  // namespace
+
+bool loadMap(const Database& db, const std::string& mapId, MapDef& out, std::string& err) { return loadMapFile(db, mapId, out, err, true); }
+
+bool loadMapShape(const Database& db, const std::string& mapId, MapDef& out, std::string& err) {
+  return loadMapFile(db, mapId, out, err, false);
 }
 
 }  // namespace ote

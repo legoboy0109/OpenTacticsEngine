@@ -84,6 +84,17 @@ class BattleScene : public Scene {
   // Fills a cell's screen box (from cellScreenBox) in a colour: the box, or the hexagon inside it on a hexagon map.
   void fillCellBox(Renderer& r, int x, int y, int w, int h, Color col) const;
 
+  // --- battle_other_map.cpp: a story scene on another map of the game (docs/EVENTS.md "Showing another map")
+  struct OtherMap;                    // the battle's own map, put aside while a shown map is on screen
+  std::shared_ptr<OtherMap> other_;   // null = the battle's own map is on screen
+  bool onOtherMap() const { return other_ != nullptr; }
+  const Battle& ownBattle() const;    // the battle itself, also while another map is on screen (saves, music)
+  void swapOwnBattle();               // while another map is shown: swaps the battle's own Battle into battle_ and back (nothing otherwise)
+  const MapDef& shownMapDef() const;  // the map on screen (the shown one, else the session's)
+  void updateOtherMap();              // the view waits at MapShown / MapReturned: swap the maps
+  void showOtherMap();
+  void returnFromOtherMap();
+
   // --- battle_fight.cpp: the side-view battle scene (docs/BATTLE_SCENE.md)
   void updateFight(double dt);  // starts the scene when the view holds a fight, plays it, hands the result back
   void startFight();

@@ -14,8 +14,9 @@ import { inventorySize } from './itemRules'
 import { readingProblems } from './readingChecks'
 import { addSupportChecks, supportConditionChecks, supportTriggerChecks } from './supportStoryChecks'
 import { definedUnitIds, isStoryId, teamsOf } from './storyIds'
-import { conditionKind, rectOf, commandKind, triggerKind, type Command, type Condition, type ObjectiveRule, type Objectives, type StoryEvent } from './storyTypes'
+import { conditionKind, rectOf, commandKind, triggerKind, type Command, type CommandKind, type Condition, type ObjectiveRule, type Objectives, type StoryEvent } from './storyTypes'
 import { forEachCommand, walkStory, type Ref } from './storyWalk'
+import { ownCommands, sectionRefs, sectionRefusals, sectionsOf, showMapProblems, type Sections } from './storyShowMap'
 import type { MapFile, ProjectDoc } from './types'
 
 export interface StoryCheck { text: string; eventId?: string }
@@ -23,7 +24,7 @@ export interface StoryCheck { text: string; eventId?: string }
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 const BIG = 1_000_000_000
 
-function refProblem(doc: ProjectDoc, map: MapFile, defined: Set<string>, r: Ref): string | null {
+export function refProblem(doc: ProjectDoc, map: MapFile, defined: Set<string>, r: Ref): string | null {
   const known = (list: Array<{ id: string }> | undefined) => !!list?.some((x) => x.id === r.id)
   const missing = (what: string) => (r.id === '' ? `pick ${what}.` : null)
   switch (r.kind) {
@@ -77,10 +78,36 @@ function objectivesChecks(map: MapFile, o: Objectives, where: string, say: (w: s
     (o[k] ?? []).forEach((r, i) => ruleChecks(map, r, `${where}, “${k === 'win' ? 'Win' : 'Lose'}” entry ${i + 1}`, k === 'win', say))
 }
 
-function commandChecks(doc: ProjectDoc, map: MapFile, e: StoryEvent, c: Command, where: string, say: (w: string, t: string) => void, ids: Map<string, number>, stores: Map<string, number>): void {
+interface CommandCtx { mapId: string; sections: Sections; top: Set<Command>; defined: Set<string> }
+
+/** The sentences for a command that sits between a showMap and its returnMap: what is refused there, and the names it points at, read
+ *  against the shown map (the battle's own map for an `if`'s conditions, a variable that reads a unit and setPhaseMusic). */
+function sectionChecks(doc: ProjectDoc, map: MapFile, c: Command, kind: CommandKind | null, shown: MapFile, unitIds: string[], where: string, defined: Set<string>, say: (w: string, t: string) => void): void {
+  for (const t of sectionRefusals(c, kind)) say(where, t)
+  const refs = sectionRefs(c, kind)
+  const own = new Set(unitIds)
+  for (const r of refs.shown) { const p = refProblem(doc, shown, own, r); if (p) say(where, p) }
+  for (const r of refs.battle) { const p = refProblem(doc, map, defined, r); if (p) say(where, p) }
+}
+
+function commandChecks(doc: ProjectDoc, battleMap: MapFile, e: StoryEvent, c: Command, where: string, say: (w: string, t: string) => void, battleIds: Map<string, number>, stores: Map<string, number>, ctx: CommandCtx): void {
   const talk = triggerKind(e.when ?? {}) === 'talk'
   for (const t of sceneProblems(doc, c, false)) say(where, t)  // scene presentation (sceneChecks.ts)
-  switch (commandKind(c)) {
+  const kind = commandKind(c)
+  if (kind === 'showMap' || kind === 'returnMap') { for (const t of showMapProblems(doc, ctx.mapId, c, kind, ctx.top.has(c), ctx.sections)) say(where, t); return }
+  // Between a showMap and its returnMap the commands act on the shown map: its size, units and sides are the ones to check against.
+  const section = ctx.sections.of.get(c)
+  let map = battleMap
+  let ids = battleIds
+  if (section) {
+    if (!section.shown) { for (const t of sectionRefusals(c, kind)) say(where, t); return }  // the showMap says the map is unknown
+    sectionChecks(doc, battleMap, c, kind, section.shown, section.unitIds, where, ctx.defined, say)
+    map = section.shown
+    ids = new Map()
+    for (const u of section.shown.units ?? []) if (u.id) ids.set(u.id, (ids.get(u.id) ?? 0) + 1)
+    for (const x of section.cmds) if (x.addUnit?.id) ids.set(x.addUnit.id, (ids.get(x.addUnit.id) ?? 0) + 1)
+  }
+  switch (kind) {
     case 'say':
       if (!String(c.say ?? '').trim()) say(where, 'the text to say is empty.')
       if (typeof c.portrait === 'string' && c.portrait && !doc.graphics?.portraits?.[c.portrait]) say(where, `the portrait “${c.portrait}” has no picture yet (Art, Portraits).`)
@@ -201,7 +228,7 @@ export function storyChecks(doc: ProjectDoc, mapId: string): StoryCheck[] {
   const ids = new Map<string, number>()
   const count = (id: string | undefined) => { if (id) ids.set(id, (ids.get(id) ?? 0) + 1) }
   for (const u of map.units ?? []) count(u.id)
-  for (const ev of map.events ?? []) forEachCommand(ev.do, '', (c) => count(c.addUnit?.id))
+  for (const ev of map.events ?? []) ownCommands(ev.do, (c) => count(c.addUnit?.id))  // a showMap section's units are the shown map's
   for (const u of map.units ?? []) {
     if (u.id === undefined) continue
     const where = `the unit at ${u.x + 1}, ${u.y + 1}`
@@ -229,7 +256,9 @@ export function storyChecks(doc: ProjectDoc, mapId: string): StoryCheck[] {
       if (a.w < 1 || a.h < 1 || outside(map, a)) say(`${where}, “When”`, 'the area does not fit inside the map.')
     }
     if (kind === 'talk' && trig.talk && trig.talk === trig.to) say(`${where}, “When”`, 'a unit cannot talk to itself.')
-    forEachCommand(e.do, where, (c, w) => commandChecks(doc, map, e, c, w, say, ids, stores))
+    const sections = sectionsOf(doc, e.do)
+    const top = new Set(e.do ?? [])
+    forEachCommand(e.do, where, (c, w) => commandChecks(doc, map, e, c, w, say, ids, stores, { mapId, sections, top, defined }))
     seesChecks(map, e.if, `${where}, “Only if”`, say)
     forEachCommand(e.do, where, (c, w) => seesChecks(map, c.if, w, say))
     supportTriggerChecks(doc, trig, `${where}, “When”`, say)
@@ -245,6 +274,7 @@ export function storyChecks(doc: ProjectDoc, mapId: string): StoryCheck[] {
     if (kind === 'beforePrep')
       forEachCommand(e.do, where, (c, w) => {
         const k = commandKind(c)
+        if (k === 'fight' && sections.of.has(c)) return  // a staged fight on a shown map is only a scene: allowed here
         if (k && (BEFORE_PREP_REFUSED as readonly string[]).includes(k)) say(w, `“${k}” makes no sense before the preparation screen (no party is deployed yet, no turn has started, the battle cannot be decided, and the screen rebuilds the map the event runs on, so it must not ask or fight).`)
       })
   }

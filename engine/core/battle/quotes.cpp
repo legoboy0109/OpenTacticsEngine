@@ -70,6 +70,7 @@ void Battle::fightQuotes(int attacker, int defender, std::vector<Event>& events)
 }
 
 void Battle::defeatQuote(int unit, std::vector<Event>& events) {
+  if (sceneOnly_) return;  // a shown map (story_show_map.cpp): the scene's lines are the maker's, the real battle's quotes stay unsaid
   const Unit& u = units[(size_t)unit];
   if (u.character < 0) return;
   const CharacterDef& ch = db->characters[(size_t)u.character];

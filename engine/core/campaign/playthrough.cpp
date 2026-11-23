@@ -37,7 +37,7 @@ const ChapterDef* currentChapter(const Database& db, const Playthrough& pt) {
 }
 
 bool freeBattleAllowed(const Database& db, const std::string& mapId) {
-  if (db.findMap(mapId) < 0) return false;
+  if (db.findMap(mapId) < 0 || db.cutSceneMap(mapId)) return false;  // (a cut-scene map is never a battle: docs/EVENTS.md "Showing another map")
   if (!db.campaign) return true;  // no campaign: every map is a single battle, as before
   switch (db.campaign->freeBattles) {
     case CampaignDef::FreeBattles::All: return true;

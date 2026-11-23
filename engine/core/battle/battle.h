@@ -154,6 +154,10 @@ enum class EventType {
   PoolChanged,
   // Dialogue choices (docs/EVENTS.md "Dialogue choices"). Kept last: the numbers of the entries above are part of the golden fight hashes.
   Choice,           // a=speaker unit (-1 none), b=question text, c=free speaker name text (-1 none), d=portrait id text (-1 none), data=the answers' texts (docs/EVENTS.md "Dialogue choices")
+  // Another map shown by a story scene (docs/EVENTS.md "Showing another map"). After Choice so the numbers above stay. The entries between a
+  // MapShown and its MapReturned belong to the shown map (their units and squares are those of Battle::shownMaps[a].end, not of this battle).
+  MapShown,         // a=index into Battle::shownMaps, b=the map (index into db->maps), c=the square the camera starts on (-1 = the middle)
+  MapReturned,      // a=the same index: back to the battle's own map
 };
 
 enum : int {
@@ -829,6 +833,19 @@ class Battle {
   // Neighbouring living units of the same side (trade partners).
   void tradePartners(int unit, std::vector<int>& out) const;
 
+  // ---- another map shown by a story scene (story_show_map.cpp; docs/EVENTS.md "Showing another map") ----
+  // Each showMap that ran in this battle: the shown map as it was set up (`start`) and as the scene left it (`end`). Presentation only: the
+  // player plays the entries between MapShown and MapReturned on these (MapShown's `a` is the index). Grows by one per showMap; never saved.
+  struct ShownMap {
+    std::shared_ptr<const Battle> start, end;
+    std::shared_ptr<const MapDef> def;  // the map's data (the battle scene's backdrop by terrain, ...)
+    int map = -1;          // index into db->maps
+    Cell focus = kNoCell;  // where the camera starts (kNoCell = the middle of the map)
+  };
+  std::vector<ShownMap> shownMaps;
+  // True for the Battle of a shown map: no story events, objectives, defeats, quotes or end of battle happen on it.
+  bool sceneOnly() const { return sceneOnly_; }
+
   // ---- story (story*.cpp, objectives.cpp; docs/EVENTS.md) ----
   // Wording of dialogue, names, labels and objectives is kept here; events carry indices into it.
   const std::string& storyText(int index) const;
@@ -1069,6 +1086,12 @@ class Battle {
 #include "core/battle/exits_internal.h"
 
   StoryRun storyRun_;  // transient: empty between actions
+  // story_show_map.cpp: the map a running event shows (null = the battle's own), and whether this Battle is such a map.
+  std::shared_ptr<Battle> shown_;
+  bool sceneOnly_ = false;
+  bool onShownMap(const Command& c) const;  // the command acts on the shown map's units (else on this battle)
+  void storyShowMap(const Command& c, std::vector<Event>& events);
+  void storyReturnMap(std::vector<Event>& events);
   bool beforePrepDone_ = false, beforePrepSeen_ = false;  // transient, never saved: a started battle has run them (story_before_prep.cpp)
   StoryChoice choice_;  // dialogue choices (story_choice.cpp)
   // story_choice.cpp: apply / start when questions wait; the command; the pieces of apply / start without that.

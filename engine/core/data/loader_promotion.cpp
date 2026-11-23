@@ -133,7 +133,7 @@ bool StoryLoader::promoteCommand(const Json& e, const std::string& at, Command& 
     if (out.index < 0) return fail(at, "\"to\" names unknown unit type " + quoted(to));
     return true;
   }
-  for (const MapUnitDef& u : map_.units) {
+  for (const MapUnitDef& u : map_->units) {
     if (u.id != out.unit) continue;
     const UnitTypeDef& t = db_.unitTypes[(size_t)u.type];
     if (t.promotions.size() != 1)

@@ -1606,3 +1606,21 @@ Wording is placeholder. Model checks mirror the loader (docs/EVENTS.md, BATTLE_S
   The checks refuse a marker on an event that is not a reach event and an unknown marker (`model/markers.ts`). The map canvas does not draw markers.
 - **Art screen, "Unit badges" card** (after Story backgrounds): a row per badge with its name, image, "one piece of the image" (column, row), tag (a list of the tags the game has is shown), whose units (every side /
   the computer's / the player's), corner and offset; move, delete; a badge goes with its image. The map canvas draws badges over placed units the way the player does (`art/scene.ts` `ResolvedBadge`, `drawUnits.ts`).
+
+## Showing another map, cut-scene maps (web editor)
+
+Wording is placeholder. Model checks mirror the loader (docs/EVENTS.md "Showing another map"); tests `editor/web/tests/unit/showMap.test.ts`; native conformance context `cmd-showmap`.
+
+- **Map editor > Events > Add a command > Scene**: **Show another map** (`{ "showMap": "<map id>", "focus": ... }`) and **Back to the battle’s map** (`{ "returnMap": true }`). The form picks one of the game’s
+  other maps (cut-scene maps first) and, optionally, where the view starts (the usual place / a square / a unit of that map). Both commands only go in the event’s own list: the menu disables them
+  inside an If or an answer, "Show" while a map is shown, "Back" while none is. The end of an event returns by itself.
+- **The commands between the two ("a section") act on the shown map.** The command list shows them with the shown map’s units, sides, size and changes (`CommandList.tsx` hands the forms a scoped
+  Story, `model/storyShownScope.ts`), so the unit pickers offer that map’s units and the units the section adds. An If’s conditions, a variable that reads a unit and "Music by situation" still
+  read the battle’s own map. Units a section adds are not units of the event’s own map (`ownCommands` in `model/storyShowMap.ts`; the unit pickers, the duplicate-name check and the rename / delete
+  walk leave them out: `model/storySections.ts`, `storyWalk.ts`).
+- **Checks** (`model/storyShowMap.ts`, called from `storyChecks.ts` / `placeChecks.ts`): showMap and returnMap only at the top of the event; a second showMap before a Back; a stray Back; the map must
+  exist and not be the event’s own; the camera square inside the shown map and the camera unit one of its units; in a section the loader’s refusals (win, lose, end the turn, questions, objectives,
+  items, resources, research, promote, skills, support, behaviour, wake a group, fog, vision, bring a hidden unit back, hide a unit, and "the unit that set the event off"); every unit / side /
+  change name read against the shown map. A staged fight inside a section is allowed in a "Before the preparation screen" event.
+- **Map editor > Map tab**: **Only for story scenes** (game.json `"cutScene": true`, `model/cutScene.ts`). Such a map is left out of the Play list, the campaign’s chapter map list and the free-battle
+  list, and a check refuses events, objectives or a preparation on it, and a chapter or free battle that names it (the tabs stay, so a map that already has them can be cleaned up).

@@ -152,6 +152,7 @@ non-repeating event can still run at a later occurrence of its trigger.
 | `{ "playSound": "thunder" }` | one sound effect (entry `SoundRequested`) |
 | `{ "setTerrain": "bridge", "area": { "x": 4, "y": 1, "w": 1, "h": 3 } }` or `{ "setTerrain": "bridge", "cells": [[4, 1], [4, 2]] }` | gives the squares that terrain at once (exactly one of `area` / `cells`): see "Changing the map" below (map events only) |
 | `{ "applyChange": "bridge" }`, `{ "revertChange": "bridge" }` | applies one of the map's named `changes`, or puts back what its squares held before it was applied (map events only) |
+| `{ "showMap": "flashback", "focus": "elder" }`, `{ "returnMap": true }` | a scene on another map of the game, its own temporary units, then back to the battle's map (implied at the end of the event): see "Showing another map" below (map events only) |
 | `{ "setFog": false }`, `{ "setVision": -1 }` | fog of war on / off, and an adjustment added to every unit's vision (-10..10): docs/ECONOMY.md "Fog options" (map events only) |
 
 **Running.** Events run in file order for one occurrence, and an event that
@@ -432,6 +433,7 @@ indices for `Battle::storyText(i)`):
 | `MusicChanged` | a = text index of the track id (-1 = the story stopped the music), b = fade in milliseconds (-1 = not given) |
 | `SoundRequested` | a = text index of the sound id |
 | `TerrainChanged` | a = number of squares, b = the terrain they all got (-1 = not all the same), data = the squares (cell numbers). Public (every team: terrain is known to all). Comes before `Choice`, which stays the last entry |
+| `MapShown`, `MapReturned` | "Showing another map": a = index into `Battle::shownMaps`; MapShown b = map index, c = focus cell (-1 none). The entries between them belong to the shown map |
 | `SceneEffect` | "Scene presentation": a = the command (`SceneFx::Kind`: background, fade, wait, shake, leave, weather, enter, move; enter / move: b = speaker, c = ms, d = place `kPos*`, flags `kSceneFadeTrans` = fade / slide, data = [portrait text index] for an enter that names one), b = text index (picture id, speaker, weather; -1 none), c = ms, d = fade colour / shake strength, flags `kSceneOut` / `kSceneFadeTrans` / `kSceneAuto`. A `Dialogue` entry also carries the line's `position` / narrate in its flags and "auto" in `data`; a walked `UnitRelocated` carries the path in `data` |
 
 With fog of war every event, these included, also carries `Event::seen` (a bit per team: dialogue, focus and
@@ -1052,10 +1054,76 @@ populated.
   battle saved after the start has the events' `fired` list as it always had (a `beforePrep` event is a map event like the others; a repeat of it, `"repeat": true`, never comes).
   Nothing in a save is new, and a game without the trigger saves and hashes as before.
 - **Commands refused** (loader, `battle: beforePrep` events only, also inside `if` branches): `win`, `lose`, `endTurn`, `choice`, `fight` (`"fight" makes no sense in a "beforePrep" event
-  (it runs before the preparation screen: ...)`). `{ "actor": true }` is refused too (nobody acts yet).
+  (it runs before the preparation screen: ...)`). `{ "actor": true }` is refused too (nobody acts yet). A `fight` on another map shown by `showMap` is allowed ("Showing another map").
 - **Skipping.** The skip control fast-forwards the scene like any other map scene (dialogue, fades and waits).
 - Code: `Battle::runBeforePrep` / `setBeforePrepSeen` (`core/battle/story_before_prep.cpp`, `battle_init.cpp`), `BattleScene::prepStart` / `prepOpenScreen` (`player/battle/battle_prep.cpp`),
   `GameSession::prepResumed`. Tests: `tests/test_story_before_prep.cpp`, `tests/story_order_player_test.py` (fixture `tests/fixtures/story-order`), `editor/web/tests/unit/orderQuotesBadge.test.ts`.
+
+## Showing another map
+
+A map event can show **another map of the game** for a while (a flashback, a far-away place, what happens at the enemy's camp) and then come back to the battle. `showMap` switches the
+picture to that map, the commands after it act on that map's own units, and `returnMap` (or the end of the event) brings the battle's map back. The battle itself is never touched.
+
+```json
+{ "id": "memory", "when": { "battle": "start" }, "do": [
+  { "say": "I remember that day.", "speaker": "hero" },
+  { "fade": "out", "ms": 300 },
+  { "showMap": "flashback", "focus": "elder" },
+  { "fade": "in", "ms": 300 },
+  { "say": "Leave this village.", "speaker": "elder" },
+  { "moveUnit": "elder", "x": 4, "y": 1, "walk": true },
+  { "fight": { "attacker": "elder", "defender": "bandit", "strikes": [ { "by": "attacker", "result": "hit", "damage": 99 } ] } },
+  { "setSwitch": "remembered", "to": true },
+  { "fade": "out", "ms": 300 },
+  { "returnMap": true },
+  { "fade": "in", "ms": 300 },
+  { "say": "Never again.", "speaker": "hero" } ] }
+```
+
+| Command | What |
+|---|---|
+| `{ "showMap": "flashback" }` | shows the map with that id (game.json `maps`, not the battle's own) as its file sets it up: its terrain, its units on their squares, its weather. Optional `"focus"`: a unit id of that map or a square `{ "x": 3, "y": 1 }`, where the camera starts (default: the middle of the map) |
+| `{ "returnMap": true }` | the battle's own map again, as it was. Implied at the end of the event, so a scene that ends on the other map is fine |
+
+**What acts where.** Between `showMap` and the return, commands that act on units, squares or the camera act on the **shown map's temporary units**: `say` (the speaker is a unit of the
+shown map), `addUnit`, `removeUnit`, `moveUnit` (also walked), `changeSide`, `focus`, `fight`, `addCondition`, `removeCondition`, the door and chest commands, `setTerrain`,
+`applyChange` / `revertChange` (the shown map's own `changes`) and the `weather` scene command. They are thrown away at the return. These stay with the **battle and persist**:
+`setSwitch`, `setVariable`, `addVariable` (the shown map starts with the battle's switches and variables), `playMusic` / `stopMusic` / `playSound` (the music goes on after the return), and
+the scene's presentation: `fade`, `background`, `wait`, `shake`, standing portraits (`enter`, `leave`, `move`): a fade-out before `showMap` hides the change and is still dark after it, so
+fade in after it. An `if` (its conditions) and a variable read from a unit (`"level": "hero"`) judge the battle itself, so they name the battle's units; the commands in its branches act
+on the shown map.
+
+**Refused** while another map is shown (loader: `"giveItem" acts on the battle itself and cannot run while another map is shown (showMap "flashback"): put it after the { "returnMap": true }`):
+`win`, `lose`, `endTurn`, `choice`, `objective`, `giveItem`, `takeItem`, `storeItems`, `giveResource`, `grantResearch`, `promote`, `teachSkill`, `forgetSkill`, `addSupport`,
+`setBehaviour`, `wakeGroup`, `setFog`, `setVision`, `showUnit`, and `removeUnit` with `"hide"`. A unit id of the battle's own map there is an error that says so (use `speakerName` and
+`portrait` to let a battle character speak over the shown map). The loader also refuses: an unknown map, the battle's own map, a second `showMap` before the `returnMap`, a `returnMap`
+with nothing shown, `showMap` / `returnMap` inside an `if` or a choice's answer (both go in the event's own `do` list), a `focus` outside the shown map, and a shown map that does not
+load. Units a section adds are known to the rest of that section only.
+
+**Staged fights.** A `fight` on the shown map plays like any staged fight (the side-view battle scene when it is on), and it is allowed in a `battle: beforePrep` event there (a scene,
+thrown away; on the battle's own map `beforePrep` still refuses it). A fight with real rolls uses the shown map's own random numbers (seeded from the battle's without drawing from
+them), so the battle's dice are where they were and the same scene plays the same way again. A unit that falls there is gone from the shown map only: no defeat events, no defeat
+quotes, the battle cannot end, nobody gains experience that stays.
+
+**Cut-scene maps.** A map only meant to be shown is marked in game.json: `{ "id": "flashback", "name": "Long Ago", "file": "maps/flashback.json", "cutScene": true }`. Such a map is
+never played: it is not offered in the map list or as a free battle (`freeBattles: "all"` leaves it out, a list naming it is a loader error), a chapter whose `map` is one is a loader
+error, and `--map` / `ote-sim` refuse it. Its file has no `events`, `objectives` or `prep` (a loader error: the scene that shows it has the story). Any other map can be shown too; its
+own events, objectives and preparation are not used when it is.
+
+**Where.** Map events, any trigger (`battle: beforePrep`, `start`, `won`, `lost`, `turn`, `reach`, ...). For a chapter's end scene use a `battle: won` map event: campaign scenes (a
+chapter's `before` / `after`) have no map, so `showMap` is not a command there. Every kind of view (top-down, isometric, 3D isometric, full 3D) draws the shown map the usual way.
+
+**Event stream.** `MapShown` (a = index into `Battle::shownMaps`, b = map index, c = the focus cell or -1) and `MapReturned` (a = the same index) wrap the shown map's entries, which
+name the shown map's units and squares. The core runs the section on a throw-away `Battle` (`sceneOnly()`); `Battle::shownMaps` keeps it as set up and as the scene left it, for the
+player, which swaps its battle, view, projection and camera to them at `MapShown` and back at `MapReturned`. The entries are seen by every team under fog.
+
+**Saves.** Nothing new is saved and nothing of the shown map is: the rules run a whole event at once, so a save is never made in the middle of one; a Continue save written while the
+player is still showing the scene (the app sent to the background) is the battle's own, after the event, as it is for any scene. The switches and variables the scene set are in it.
+Games without `showMap` save and hash as before (the shown map's file is not part of the save hash).
+
+- Code: `Battle::storyShowMap` / `storyReturnMap` / `onShownMap` (`core/battle/story_show_map.cpp`), `StoryLoader::showMapCommand` (`core/data/loader_story_show_map.cpp`),
+  `loadMapShape`, `BattleScene::showOtherMap` / `returnFromOtherMap` (`player/battle/battle_other_map.cpp`), `BattleView::mapRequest` (`player/battle/battle_view_other_map.cpp`).
+  Tests: `tests/test_story_show_map.cpp`, `tests/show_map_player_test.py` (fixture `tests/fixtures/scene-map`).
 
 ## Battle and defeat quotes
 

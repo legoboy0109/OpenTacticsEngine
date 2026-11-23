@@ -504,7 +504,12 @@ struct StyleDef {
   std::vector<int32_t> structureColors;
 };
 
-struct MapRef { std::string id, name, file; };
+struct MapRef {
+  std::string id, name, file;
+  // game.json "cutScene": true (docs/EVENTS.md "Showing another map"): a map only story scenes show (showMap); never played, so it is not
+  // offered as a battle, cannot be a campaign chapter, and its file may have no events, objectives or preparation.
+  bool cutScene = false;
+};
 
 struct CampaignDef;  // data/campaign.json (core/data/campaign.h)
 
@@ -617,6 +622,11 @@ struct Database {
   bool canWieldGroup(int unitType, const std::string& group, int character = -1) const;  // also a staff's group
   int findUnitType(const std::string& id) const;
   int findMap(const std::string& id) const;
+  // A map of game.json marked "cutScene" (docs/EVENTS.md "Showing another map"): never played as a battle.
+  bool cutSceneMap(const std::string& id) const {
+    const int i = findMap(id);
+    return i >= 0 && maps[(size_t)i].cutScene;
+  }
   int findStyle(const std::string& id) const;
   int findCharacter(const std::string& id) const;
   int findSkill(const std::string& id) const;

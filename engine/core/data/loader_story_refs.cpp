@@ -48,18 +48,18 @@ bool StoryLoader::onlyKeys(const Json& o, std::initializer_list<const char*> key
 }
 
 bool StoryLoader::sideIndex(const std::string& id, const std::string& where, const char* what, int& out) const {
-  out = findMapSide(map_, id);
+  out = findMapSide(*map_, id);
   if (out >= 0) return true;
   return fail(where, std::string(what) + " names unknown side " + quoted(id));
 }
 
 bool StoryLoader::teamIndex(const std::string& id, const std::string& where, const char* what, int& out) const {
-  std::vector<std::string> names = teamNames(map_);
+  std::vector<std::string> names = teamNames(*map_);
   for (size_t i = 0; i < names.size(); ++i)
     if (names[i] == id) { out = (int)i; return true; }
-  int side = findMapSide(map_, id);  // a side id means the side's team
+  int side = findMapSide(*map_, id);  // a side id means the side's team
   if (side >= 0) {
-    std::string team = map_.sides[(size_t)side].team.empty() ? id : map_.sides[(size_t)side].team;
+    std::string team = map_->sides[(size_t)side].team.empty() ? id : map_->sides[(size_t)side].team;
     out = (int)(std::find(names.begin(), names.end(), team) - names.begin());
     return true;
   }
@@ -69,9 +69,15 @@ bool StoryLoader::teamIndex(const std::string& id, const std::string& where, con
 bool StoryLoader::unitId(const Json& j, const std::string& where, const char* what, std::string& out) const {
   if (!j.isString()) return fail(where, std::string(what) + " must be a unit id (text)");
   out = j.asString();
-  if (std::find(unitIds.begin(), unitIds.end(), out) == unitIds.end())
+  if (std::find(unitIds.begin(), unitIds.end(), out) == unitIds.end()) {
+    // docs/EVENTS.md "Showing another map": a unit of the battle's own map is not on the shown one.
+    if (shown_ && std::find(saved_.unitIds.begin(), saved_.unitIds.end(), out) != saved_.unitIds.end())
+      return fail(where, std::string(what) + " names " + quoted(out) + ", a unit of the battle's own map, but map " + quoted(shown_->id) +
+                             " is shown now and the commands act on its units (a line said over it: write \"speakerName\" and \"portrait\")");
     return fail(where, std::string(what) + " names unknown unit " + quoted(out) +
-                           " (give the unit an \"id\" in the map's units)");
+                           (shown_ ? " of the shown map " + quoted(shown_->id) + " (its units and the ones this showMap section adds)"
+                                   : std::string(" (give the unit an \"id\" in the map's units)")));
+  }
   return true;
 }
 
@@ -121,7 +127,7 @@ bool StoryLoader::filter(const Json& j, const std::string& where, const char* wh
   }
   if (m.first == "team") {
     out.kind = UnitFilter::Kind::Team;
-    std::vector<std::string> names = teamNames(map_);
+    std::vector<std::string> names = teamNames(*map_);
     auto it = std::find(names.begin(), names.end(), v.asString());
     if (it == names.end()) return fail(where, w + ".team names unknown team " + quoted(v.asString()));
     out.index = (int)(it - names.begin());
@@ -141,10 +147,10 @@ bool StoryLoader::rect(const Json& j, const std::string& where, Rect& out) const
       !c_.integer(j, "w", where, out.w) || !c_.integer(j, "h", where, out.h))
     return false;
   if (out.w < 1 || out.h < 1) return fail(where, "\"w\" and \"h\" of an area must be at least 1");
-  if (out.x < 0 || out.y < 0 || out.x + out.w > map_.width || out.y + out.h > map_.height)
+  if (out.x < 0 || out.y < 0 || out.x + out.w > map_->width || out.y + out.h > map_->height)
     return fail(where, "the area " + std::to_string(out.x) + "," + std::to_string(out.y) + " " + std::to_string(out.w) +
-                           " x " + std::to_string(out.h) + " does not fit inside the map (" + std::to_string(map_.width) +
-                           " x " + std::to_string(map_.height) + ")");
+                           " x " + std::to_string(out.h) + " does not fit inside the map (" + std::to_string(map_->width) +
+                           " x " + std::to_string(map_->height) + ")");
   return true;
 }
 

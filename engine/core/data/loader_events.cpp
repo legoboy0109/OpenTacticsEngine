@@ -8,17 +8,47 @@
 
 namespace ote {
 
+namespace {
+
+void collectAllAddedIds(const Json& commands, std::vector<std::string>& out);
+
+// The addUnit ids of one entry, its nested lists included.
+void collectEntryIds(const Json& c, std::vector<std::string>& out) {
+  if (!c.isObject()) return;
+  const Json& u = c["addUnit"];
+  if (u.isObject() && u["id"].isString()) out.push_back(u["id"].asString());
+  if (u.isObject() && u["character"].isString()) out.push_back(u["character"].asString());  // a character's id
+  collectAllAddedIds(c["then"], out);
+  collectAllAddedIds(c["else"], out);
+  for (const Json& a : c["answers"].items()) collectAllAddedIds(a["do"], out);  // a choice's answers
+}
+
+// Every addUnit id of a list, nested lists included.
+void collectAllAddedIds(const Json& commands, std::vector<std::string>& out) {
+  for (const Json& c : commands.items()) collectEntryIds(c, out);
+}
+
+}  // namespace
+
 // Story ids of units that addUnit commands create (looked at before parsing, so that
 // an event may refer to a unit that a later event adds). Tolerates malformed input.
+// The units a showMap section adds live on the map it shows, not on this one: skipped (docs/EVENTS.md "Showing another map").
 void collectAddedUnitIds(const Json& commands, std::vector<std::string>& out) {
+  bool shown = false;
   for (const Json& c : commands.items()) {
     if (!c.isObject()) continue;
-    const Json& u = c["addUnit"];
-    if (u.isObject() && u["id"].isString()) out.push_back(u["id"].asString());
-    if (u.isObject() && u["character"].isString()) out.push_back(u["character"].asString());  // a character's id
-    collectAddedUnitIds(c["then"], out);
-    collectAddedUnitIds(c["else"], out);
-    for (const Json& a : c["answers"].items()) collectAddedUnitIds(a["do"], out);  // a choice's answers
+    if (c.has("showMap")) shown = true;
+    if (c.has("returnMap")) shown = false;
+    if (!shown) collectEntryIds(c, out);
+  }
+}
+
+// The ids a showMap section adds: the entries of the event's own list from `from` up to its returnMap (or the end).
+void collectShownUnitIds(const Json& commands, size_t from, std::vector<std::string>& out) {
+  for (size_t i = from; i < commands.size(); ++i) {
+    const Json& c = commands[i];
+    if (c.isObject() && (c.has("returnMap") || c.has("showMap"))) break;
+    collectEntryIds(c, out);
   }
 }
 

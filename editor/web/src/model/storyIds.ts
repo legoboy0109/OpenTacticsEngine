@@ -2,7 +2,7 @@
 import { storyIdOf, typeIdOf } from './characterUnits'
 import { makeId } from './ids'
 import { coexistOn } from './unitVariants'
-import { forEachCommand } from './storyWalk'
+import { ownCommands } from './storyShowMap'
 import type { MapFile, MapUnit, ProjectDoc } from './types'
 
 /** Letters, digits, "_" and "-", 1 to 64 characters (the loader's isStoryId). */
@@ -46,7 +46,7 @@ export function namedUnits(doc: ProjectDoc, map: MapFile): NamedUnit[] {
     out.push({ id, label: `${unitDisplayName(doc, u)} (${id})`, source })
   }
   for (const u of map.units ?? []) add(u, 'placed')
-  for (const e of map.events ?? []) forEachCommand(e.do, '', (c) => { if (c.addUnit && typeof c.addUnit === 'object') add(c.addUnit, 'added') })
+  for (const e of map.events ?? []) ownCommands(e.do, (c) => { if (c.addUnit && typeof c.addUnit === 'object') add(c.addUnit, 'added') })  // not a showMap section's: those are the shown map's
   return out
 }
 
@@ -59,7 +59,7 @@ export const takenUnitIds = (map: MapFile, except?: MapUnit): string[] => {
   const out: string[] = []
   const meets = (u: MapUnit) => except === undefined || coexistOn(except.difficulty, u.difficulty) !== null
   for (const u of map.units ?? []) { const id = u !== except && meets(u) ? storyIdOf(u) : undefined; if (id) out.push(id) }
-  for (const e of map.events ?? []) forEachCommand(e.do, '', (c) => { const u = c.addUnit; if (u && u !== except && typeof u === 'object' && u.id && meets(u)) out.push(u.id) })
+  for (const e of map.events ?? []) ownCommands(e.do, (c) => { const u = c.addUnit; if (u && u !== except && typeof u === 'object' && u.id && meets(u)) out.push(u.id) })
   return out
 }
 

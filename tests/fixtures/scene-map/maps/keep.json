@@ -1,0 +1,24 @@
+{ "name": "The Keep", "grid": { "type": "square", "width": 9, "height": 3 }, "legend": { ".": "plain", "~": "river" },
+  "tiles": [ "....~....", "....~....", "....~...." ],
+  "sides": [ { "id": "blue", "controller": "human" }, { "id": "red", "controller": "ai" } ],
+  "units": [
+    { "type": "fighter", "id": "hero", "name": "Hero", "side": "blue", "x": 1, "y": 1, "leader": true, "items": ["iron_sword"] },
+    { "type": "bird", "id": "wing", "name": "Wing", "side": "blue", "x": 1, "y": 0, "items": ["iron_sword"] },
+    { "type": "raider", "id": "r1", "name": "Raider", "side": "red", "x": 7, "y": 1, "items": ["iron_sword"] } ],
+  "events": [
+    { "id": "flash", "when": { "battle": "start" }, "do": [
+      { "say": "I remember that day.", "speaker": "hero" },
+      { "fade": "out", "ms": 300 },
+      { "showMap": "flashback", "focus": "elder" },
+      { "fade": "in", "ms": 300 },
+      { "say": "Leave this village.", "speaker": "elder" },
+      { "addUnit": { "id": "brute", "type": "raider", "name": "Brute", "side": "bandits", "x": 4, "y": 2, "items": ["iron_sword"] } },
+      { "moveUnit": "elder", "x": 4, "y": 1 },
+      { "fight": { "attacker": "elder", "defender": "bandit", "strikes": [ { "by": "attacker", "result": "hit", "damage": 99 } ] } },
+      { "say": "Who is next?", "speaker": "elder" },
+      { "setSwitch": "remembered", "to": true },
+      { "addVariable": "seen", "by": 1 },
+      { "fade": "out", "ms": 300 },
+      { "returnMap": true },
+      { "fade": "in", "ms": 300 },
+      { "say": "Never again.", "speaker": "hero" } ] } ] }

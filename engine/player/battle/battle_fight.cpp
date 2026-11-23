@@ -17,7 +17,7 @@ void BattleScene::startFight() {
   env.view = &view_;
   env.sprites = host_.sprites();
   env.styleIndex = styleIdx_;
-  env.map = &session_.map;
+  env.map = &shownMapDef();  // (a staged fight on a map a scene shows: that map's backdrops)
   env.audio = &host_.gameAudio();
   env.forecasts = &forecasts_;
   env.levelsGained = view_.fight.levelsGained;
