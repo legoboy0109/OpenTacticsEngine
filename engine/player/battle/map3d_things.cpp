@@ -5,6 +5,7 @@
 
 #include "battle/battle_draw.h"
 #include "battle/carrier_marker.h"
+#include "battle/unit_badge.h"
 #include "battle/condition_marker.h"
 #include "battle/facing_marker.h"
 #include "battle/unit_rank_view.h"
@@ -376,6 +377,7 @@ void Map3D::drawOnTop(Renderer& r, const DrawCtx& c) {
       r.fillRect(sx - uw / 2, sy - body - 1, 5, 5, a(Color(0, 0, 0, 220)));
       r.fillRect(sx - uw / 2 + 1, sy - body, 3, 3, a(Color(255, 210, 40)));
     }
+    drawUnitBadges(r, c, u, sx - uw / 2, sy - body, uw, body, al);  // a boss marker and the like (docs/GRAPHICS.md "Unit badges"): over the billboard, in screen space
     drawCarrierMarker(r, c, u, sx + uw / 2, sy - body, uw, al);  // top right corner: a unit with someone off the board
     drawConditionMarker(r, c, u, sx - uw / 2, sy, al);           // bottom left corner: its conditions (docs/SRPG.md section 9)
     drawRankBadge(r, c, u, sx + uw / 2, sy, uw, al);              // bottom right corner: its rank (docs/SRPG.md "Unit ranks")

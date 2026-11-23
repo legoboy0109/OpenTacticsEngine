@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "battle/carrier_marker.h"
+#include "battle/unit_badge.h"
 #include "battle/condition_marker.h"
 #include "battle/facing_marker.h"
 #include "battle/unit_rank_view.h"
@@ -53,6 +54,7 @@ void drawIsoUnitFigure(Renderer& r, const DrawCtx& c, const Unit& u, const UnitV
     r.fillRect(cx - uw / 2, bodyTop - 1, 5, 5, scaled(Color(0, 0, 0, 220), al));
     r.fillRect(cx - uw / 2 + 1, bodyTop, 3, 3, scaled(Color(255, 210, 40), al));
   }
+  drawUnitBadges(r, c, u, cx - uw / 2, bodyTop, uw, foot - bodyTop, al);  // a boss marker and the like (docs/GRAPHICS.md "Unit badges"), over the figure
   drawCarrierMarker(r, c, u, cx + uw / 2, bodyTop, uw, al);  // top right corner: a unit with someone off the board
   drawConditionMarker(r, c, u, cx - uw / 2, foot, al);       // bottom left corner: its conditions (docs/SRPG.md section 9)
   drawRankBadge(r, c, u, cx + uw / 2, foot, uw, al);          // bottom right corner: its rank (docs/SRPG.md "Unit ranks")

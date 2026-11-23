@@ -4,6 +4,7 @@
 
 #include "battle/battle_draw.h"
 #include "battle/carrier_marker.h"
+#include "battle/unit_badge.h"
 #include "battle/facing_marker.h"
 #include "battle/unit_rank_view.h"
 #include "battle/condition_marker.h"
@@ -101,6 +102,7 @@ void drawUnit(Renderer& r, const DrawCtx& c, const Unit& u, const UnitView& v, i
   }
   int fill = mx > 0 ? std::max(v.hp > 0 ? 1 : 0, barW * std::min(v.hp, mx) / mx) : 0;
   r.fillRect(bx, barY, fill, 2, scaled(hpColor(v.hp, mx), al));
+  drawUnitBadges(r, c, u, sx, sy, t, t, al);  // a boss marker and the like (docs/GRAPHICS.md "Unit badges"), over the unit's square and its bar
 }
 
 // The pixel row of the bottom edge of a structure's footprint or picture box (what it sorts with units by).

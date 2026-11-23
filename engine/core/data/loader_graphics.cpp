@@ -445,7 +445,7 @@ bool loadGraphics(const std::string& path, Database& db, std::string& err) {
   if (!loadObjectFile(path, root, err)) return false;
   LoadCtx c(err, path);
 
-  if (!c.onlyKeys(root, {"sheets", "unitMarker", "backgrounds", "tilesets", "terrain", "units", "structures", "portraits", "icons", "styles", "battle"}, ""))
+  if (!c.onlyKeys(root, {"sheets", "unitMarker", "backgrounds", "tilesets", "terrain", "units", "structures", "portraits", "icons", "badges", "styles", "battle"}, ""))
     return false;
   const Json* sheets;
   if (!c.array(root, "sheets", "", sheets)) return false;
@@ -487,6 +487,7 @@ bool loadGraphics(const std::string& path, Database& db, std::string& err) {
   if (!readSceneBackgrounds(c, db, root)) return false;
   if (!readTilesets(c, db, root)) return false;  // loader_tilesets.cpp
   if (!readIcons(c, db, root)) return false;
+  if (!readBadges(c, db, root)) return false;
 
   GraphicsSet base;
   base.terrain.assign(db.terrains.size(), Look());
