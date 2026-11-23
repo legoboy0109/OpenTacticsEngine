@@ -87,7 +87,8 @@ TEST(hints_unknown_tokens_and_plain_text_stay) {
 TEST(hints_every_player_template_expands_clean) {  // no token left behind, and no empty line, on any device
   const char* all[] = {PrepWords::kHintMain, PrepWords::kHintUnits, PrepWords::kHintPick, PrepWords::kHintPlace, PrepWords::kHintView,
                        PrepWords::kHintList, PrepWords::kHintTrade, PrepWords::kHintBuy, PrepWords::kHintBuyTabs, PrepWords::kHintSellWho,
-                       PrepWords::kHintSell, PrepWords::kHintTradeEquip, PrepWords::kHintAsk, EconomyWords::kHintStructure,
+                       PrepWords::kHintSell, PrepWords::kHintTradeEquip, PrepWords::kHintTradePick, PrepWords::kHintTradeSwap, PrepWords::kHintTradeMove,
+                       PrepWords::kHintTradePut, PrepWords::kHintTradePickEquip, PrepWords::kHintAsk, EconomyWords::kHintStructure,
                        EconomyWords::kHintUpgrade, EconomyWords::kHintResearch, kDialogueHint, kChoiceHint};
   for (const char* t : all)
     for (InputDevice d : {K, C, T}) {

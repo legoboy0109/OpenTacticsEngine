@@ -167,7 +167,7 @@ def test_items(gid, tag, saves):
     log = go(gid, menu_to(2) + ',confirm,confirm,wait:3', name='trade_' + tag, saves=saves)
     check(tag + ': the trade panel names both sides', bool(lines(log, 'prep trade: Sera [Potion, Ring, -] with Tomas')), last(log, 'prep trade'))
     s = fresh_saves('items_' + tag)
-    log = go(gid, menu_to(2) + ',confirm,confirm,confirm,wait:3', saves=s)
+    log = go(gid, menu_to(2) + ',confirm,confirm,confirm,right,confirm,wait:3', saves=s)  # pick the potion up, put it in Tomas's free slot
     save = continue_save(s, gid)
     r = roster_of(save) if save else {}
     check(tag + ': the potion went to Tomas and stays in the playthrough (and the save)',
@@ -404,11 +404,11 @@ def test_equip(gid, tag):
     to_trade = menu_to(2) + ',confirm,confirm'  # Items, Sera, trade with Tomas (the first other)
     log = go(gid, to_trade + ',wait:3', name='equip_trade_' + tag)
     check(tag + ': the trade panel lists Sera\'s weapons', bool(lines(log, 'prep trade: Sera [Sword, Axe, Potion] with Tomas')), last(log, 'prep trade'))
-    log = go(gid, to_trade + ',confirm,wait:3')
-    check(tag + ': the weapon in hand has nothing to equip: Confirm hands it over at once (no menu)',
+    log = go(gid, to_trade + ',confirm,right,down,down,confirm,wait:3')
+    check(tag + ': the weapon in hand has nothing to equip: Confirm picks it up at once (no menu), a free slot takes it',
           not lines(log, 'prep item menu:') and bool(lines(log, 'prep trade: Sera [Axe, Potion, -]')), last(log, 'prep'))
     log = go(gid, to_trade + ',down,confirm,wait:3', name='equip_menu_' + tag)
-    check(tag + ': another wieldable weapon offers Hand over and Equip', last(log, 'prep item menu:') == 'prep item menu: Hand over, Equip', last(log, 'prep item menu:'))
+    check(tag + ': another wieldable weapon offers Pick up and Equip', last(log, 'prep item menu:') == 'prep item menu: Pick up, Equip', last(log, 'prep item menu:'))
     log = go(gid, to_trade + ',down,confirm,cancel,wait:3')
     check(tag + ': cancelling the small menu leaves everything as it was',
           not lines(log, 'prep: equipped') and 'UI bug' not in log and len(lines(log, 'prep trade:')) == 1, log[-300:])
@@ -431,12 +431,21 @@ def test_equip(gid, tag):
     check(tag + ': Tomas\'s pack is [Sword, Bow]', bool(lines(log, 'prep trade: Tomas [Sword, Bow, -] with Sera')), last(log, 'prep trade'))
     log = go(gid, to_tomas + ',confirm,wait:3', name='equip_blocked_' + tag)
     check(tag + ': Equip on a sword the archer cannot wield is greyed with the reason',
-          last(log, 'prep item menu:') == 'prep item menu: Hand over, Equip [Tomas cannot wield that.]', last(log, 'prep item menu:'))
+          last(log, 'prep item menu:') == 'prep item menu: Pick up, Equip [Tomas cannot wield that.]', last(log, 'prep item menu:'))
     s = fresh_saves('equip_blocked_' + tag)
     log = go(gid, to_tomas + ',confirm,down,confirm,wait:3', saves=s)
     save = continue_save(s, gid)
     check(tag + ': choosing the greyed entry changes nothing',
           save is not None and pack_ids(save, 'tomas', gid) == ['sword_item', 'bow_item'] and not lines(log, 'prep: equipped'), str(save and pack_ids(save, 'tomas', gid)))
+    # a swap between two characters: Sera's Axe (menu: Pick up) and Tomas's Bow trade places, packs stay the same size
+    s = fresh_saves('swap_' + tag)
+    log = go(gid, to_trade + ',down,confirm,confirm,right,wait:3', name='swap_holding_' + tag, saves=s)
+    check(tag + ': picking the Axe up from the small menu changes nothing yet', 'swapped' not in log and 'UI bug' not in log and len(lines(log, 'prep trade:')) == 2, log[-300:])
+    log = go(gid, to_trade + ',down,confirm,confirm,right,confirm,wait:3', saves=s)
+    save = continue_save(s, gid)
+    check(tag + ': Axe and Bow swap places: [Sword, Bow, Potion] and [Sword, Axe]',
+          bool(lines(log, 'prep trade: swapped')) and save is not None and pack_ids(save, 'sera', gid) == ['sword_item', 'bow_item', 'potion'] and
+          pack_ids(save, 'tomas', gid) == ['sword_item', 'axe_item'], str(save and (pack_ids(save, 'sera', gid), pack_ids(save, 'tomas', gid))))
     # touch: select the row, tap it again (the small menu opens), tap Equip
     log = go(gid, to_trade + ',down,confirm,wait:3')
     rows = menu_rows(log, 'prep item menu rows:')
