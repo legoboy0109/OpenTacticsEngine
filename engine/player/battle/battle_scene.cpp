@@ -400,9 +400,16 @@ void BattleScene::draw(Renderer& r) {
       r.drawText(x + (w - r.textWidth(label)) / 2, y + (h - layout_.lh) / 2, label, Color(235, 238, 255));
     }
   }
-  bool aiActing = other_ || (!battle_.over && !humanTurn());  // nobody to inspect for: AI is playing (or a scene shows another map)
-  drawPanel(r, ctx, aiActing ? kNoCell : cursor_, autoplay_);
-  drawTurnStrip(r);  // (a speed game only) after the panel, which covers the map's overshoot, and under the hint line and the banners
+  bool aiActing = !battle_.over && !humanTurn();  // nobody to inspect for: AI is playing
+  if (other_) {
+    // A scene on another map (a flashback): the battle's turn, side and funds mean nothing there (owner 2026-11-23: hide the panel).
+    // Its empty frame stays, because it covers the map's overshoot.
+    r.fillRect(layout_.vw, 0, layout_.panelW, layout_.vh, Color(20, 23, 38));
+    r.fillRect(layout_.vw, 0, 1, layout_.vh, Color(90, 98, 140));
+  } else {
+    drawPanel(r, ctx, aiActing ? kNoCell : cursor_, autoplay_);
+    drawTurnStrip(r);  // (a speed game only) after the panel, which covers the map's overshoot, and under the hint line and the banners
+  }
   if (prep_ && !prep_->intro) prepDrawPanelHead(r);  // "Turn 1 / You" means nothing before the battle: say what this is
   drawHint(r, layout_, hint());
   drawFloats(r, ctx, true);
