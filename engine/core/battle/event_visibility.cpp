@@ -86,6 +86,8 @@ uint32_t Battle::eventSeenBy(const Event& e) const {
     case EventType::SoundRequested:
     case EventType::TerrainChanged:  // terrain is known to everybody anyway
     case EventType::SceneEffect:
+    case EventType::MapShown:  // docs/EVENTS.md "Showing another map": a scene
+    case EventType::MapReturned:
     case EventType::PowerUsed:  // docs/COMMANDERS.md: a commander's power is announced to everybody
     case EventType::PowerEnded:
       return kSeenByAll;
@@ -201,8 +203,15 @@ void Battle::stampEvents() {
   std::vector<Event>& events = *sightEvents_;
   if (stampFrom_ >= events.size()) return;
   ensureSight();
+  int shownMap = 0;  // inside MapShown .. MapReturned: the shown map's entries, a scene every team sees (docs/EVENTS.md "Showing another map")
   for (size_t i = stampFrom_; i < events.size(); ++i) {
     Event& e = events[i];
+    if (e.type == EventType::MapShown) ++shownMap;
+    if (shownMap > 0) {
+      e.seen = kSeenByAll;
+      if (e.type == EventType::MapReturned) --shownMap;
+      continue;
+    }
     e.seen = eventSeenBy(e);
     if (e.type == EventType::UnitMoved) {
       // For each team the first and last path index where it saw the mover (its own team saw every step).

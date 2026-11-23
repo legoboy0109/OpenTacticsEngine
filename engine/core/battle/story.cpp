@@ -184,7 +184,7 @@ bool Battle::triggerMatches(const Trigger& t, const StoryOccurrence& o) const {
 }
 
 void Battle::fireStory(const StoryOccurrence& o, std::vector<Event>& events) {
-  if (!story) return;
+  if (!story || sceneOnly_) return;  // a shown map (story_show_map.cpp) has no events of its own
   for (size_t i = 0; i < story->events.size(); ++i) {
     const StoryEvent& ev = story->events[i];
     if (ev.when.kind == Trigger::Kind::Talk) continue;  // only the Talk action starts these
@@ -219,6 +219,7 @@ void Battle::drainStory(std::vector<Event>& events) {
     run.talker = q.talker;
     run.actor = q.actor;
     runCommands(ev.commands, events);
+    storyReturnMap(events);  // an event that ends with another map shown goes back to its own (docs/EVENTS.md "Showing another map")
     run.talker = -1;
     run.actor = -1;
   }
