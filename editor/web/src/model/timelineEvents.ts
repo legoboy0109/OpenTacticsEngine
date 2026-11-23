@@ -11,7 +11,7 @@ export const EVENT_GROUPS: EventGroup[] = ['start', 'turn', 'reach', 'talk', 'de
 
 export function groupOf(kind: TriggerKind | null): EventGroup {
   switch (kind) {
-    case 'start': return 'start'
+    case 'start': case 'beforePrep': return 'start'
     case 'turn': case 'everyTurn': return 'turn'
     case 'reach': case 'talk': case 'defeated': case 'fight': case 'promoted': case 'support': case 'won': case 'lost': case 'end': return kind
     default: return 'other'

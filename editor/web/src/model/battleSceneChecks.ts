@@ -12,6 +12,7 @@ export function sceneChoiceProblems(doc: ProjectDoc): string[] {
   if (platformFrom(doc) === 'own' && platformList(doc).length === 0) out.push('The game has no platforms yet, so this changes nothing: it only decides which platform each fighter stands on.')
   if (g?.battleSceneSides !== undefined && !SCENE_SIDES.includes(g.battleSceneSides)) out.push('“Which side each fighter stands on” must be by the map, your fighter on the right or your fighter on the left.')
   if (g?.battleSceneStaves !== undefined && typeof g.battleSceneStaves !== 'boolean') out.push('“Staves in the battle scene” must be on or off.')
+  if (g?.quotesPerFight !== undefined && g.quotesPerFight !== 'both' && g.quotesPerFight !== 'one') out.push('“Battle quotes per fight” must be both fighters or one.')
   if (sceneStaves(doc) && staffItems(doc).length === 0) out.push('The game has no staves yet, so this changes nothing: it only applies to a staff used on one other unit.')
   if (sceneSides(doc) !== 'map') {
     const maps = Object.values(doc.maps).filter((m): m is NonNullable<typeof m> => !!m)

@@ -26,6 +26,26 @@ export function actorWithoutActor(list: Condition[] | undefined): boolean {
 /** The hint for an event with a `actor` test whose “When” has nobody acting. */
 export const ACTOR_NOBODY = 'it asks about “The unit that set this off”, but nothing here sets it off with a unit (its “When” is a turn, the battle or a support level), so that is never true.'
 
+/** Does this command (not the ones nested in its then / else / answers) use `{ "actor": true }` as a unit filter anywhere (its own keys or an `if` condition)? */
+export function usesActorFilter(c: Command): boolean {
+  const look = (v: unknown, depth: number): boolean => {
+    if (depth > 6 || v === null || typeof v !== 'object') return false
+    if (Array.isArray(v)) return v.some((x) => look(x, depth + 1))
+    const o = v as Record<string, unknown>
+    if (o.actor === true) return true
+    return Object.entries(o).some(([k, x]) => k !== 'then' && k !== 'else' && k !== 'answers' && look(x, depth + 1))
+  }
+  return look(c, 0)
+}
+
+/** Why a trigger's or an objective's filter cannot be the unit that set the event off. */
+export const ACTOR_FILTER_ELSEWHERE = 'it names “The unit that set the event off”, which only a command of an event with a unit that sets it off (a unit reaches, falls, fights, talks, is promoted, uses a door) can name; not a trigger, an objective, a battle / turn / support event or a scene.'
+/** The hint for a command that names the acting unit in an event whose “When” has nobody acting. */
+export const ACTOR_FILTER_NOBODY = 'it names “The unit that set the event off”, but nothing here sets it off with a unit (its “When” is a turn, the battle or a support level), so the game refuses it.'
+
+/** Commands that make no sense in a “before the preparation screen” event (the loader refuses them): the party is not deployed, no turn has started and the screen's choices rebuild the map it runs on. */
+export const BEFORE_PREP_REFUSED = ['win', 'lose', 'endTurn', 'choice', 'fight'] as const
+
 /** A campaign scene has no unit that set it off: the loader refuses `actor` there. */
 export const SCENE_ACTOR_PROBLEM = 'a scene has no unit that set it off, so “The unit that set this off” cannot be asked here.'
 

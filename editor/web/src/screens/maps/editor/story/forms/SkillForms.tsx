@@ -10,7 +10,7 @@ export function TeachSkillForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
   return (
     <div className="stack tight">
       <SkillPick label={S.teachSkillPick} value={cmd.teachSkill ?? ''} onChange={(v) => patch({ teachSkill: v })} />
-      <FilterPicker label={S.teachWho} value={typeof cmd.to === 'object' ? cmd.to : {}} onChange={(f) => patch({ to: f ?? {} })} />
+      <FilterPicker actor label={S.teachWho} value={typeof cmd.to === 'object' ? cmd.to : {}} onChange={(f) => patch({ to: f ?? {} })} />
       <p className="help">{S.teachHelp}</p>
     </div>
   )
@@ -21,7 +21,7 @@ export function ForgetSkillForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
   return (
     <div className="stack tight">
       <SkillPick label={S.forgetSkillPick} value={cmd.forgetSkill ?? ''} onChange={(v) => patch({ forgetSkill: v })} />
-      <FilterPicker label={S.forgetWho} value={asFilter(cmd.from) ?? {}} onChange={(f) => patch({ from: f ?? {} })} />
+      <FilterPicker actor label={S.forgetWho} value={asFilter(cmd.from) ?? {}} onChange={(f) => patch({ from: f ?? {} })} />
       <p className="help">{S.forgetHelp}</p>
     </div>
   )

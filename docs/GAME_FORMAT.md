@@ -24,8 +24,8 @@ The message names the file, the entry and the key and, when a known key is a sli
 neighbours swapped), says which: `data/weapons.json: weapon "sword": unknown key "rnage" - did you mean "range"?`. A list of the keys
 the object takes follows when it is short. This holds for `game.json` (the root and every block of it: `view`, `font`, `roles`, `formulas`,
 `rules` and each block inside it, the entries of `stats`, `resources`, `moveTypes`, `switches`, `variables`, `maps` and `styles`), the root and every
-row of every file in `data/`, `data/graphics.json` (sheets, looks, portraits, icons, styles, battle sets, animations, effects, assignments, backgrounds,
-platforms), and the root of a map with its grid, sides, structures, units and unit item lists. (A map's root is judged last: a more specific
+row of every file in `data/`, `data/graphics.json` (sheets, looks, portraits, icons, badges, markers, styles, battle sets, animations, effects, assignments, backgrounds,
+platforms, the scene's `quote` timing), and the root of a map with its grid, sides, structures, units and unit item lists. (A map's root is judged last: a more specific
 message of a reader that looks at a key wins when both apply.)
 
 Keys the loader itself does not read but something else does are accepted (and never listed in a message):
@@ -59,6 +59,7 @@ or writing anything: `ote-editor --validate <game folder>` (docs/EDITOR_API.md).
   "battlePlatformFrom": "same",                              // optional: "same" (default) | "own": each fighter's battle platform from the square of its own terrain (docs/BATTLE_SCENE.md "Platforms")
   "battleSceneSides": "map",                                 // optional: "map" (default) | "playerRight" | "playerLeft": which side of the scene each fighter stands on
   "battleSceneStaves": false,                                // optional: true = a staff used on one other unit plays in the scene (docs/BATTLE_SCENE.md "Staves in the scene")
+  "quotesPerFight": "both",                                  // optional: "both" (default: each fighter may say its battle quote) | "one" (at most one per fight; docs/EVENTS.md "Battle and defeat quotes")
   "menuUnavailable": "grey",                                 // optional: "grey" (default) | "hide": an action with nothing to act on stays greyed or is left out of the action menu (docs/SRPG.md "Menu options")
   "attackWeaponChoice": "equipped",                          // optional: "equipped" (default) | "pick": Attack goes straight to the targets or asks which weapon first (docs/SRPG.md "Menu options")
   "saving": "any",                                           // optional: "any" | "continue" | "off"

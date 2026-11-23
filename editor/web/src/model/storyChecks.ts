@@ -3,10 +3,11 @@
 // own messages still show in the Problems list after a save. Plus two hints the loader does not give (a portrait with no
 // picture, an `if` with no conditions).
 import { sceneProblems } from './sceneChecks'
+import { eventMarkerProblem } from './markers'
 import { fightProblems } from './storyFight'
 import { audioRefProblem } from './audioChecks'
 import { mapChangeChecks } from './mapChangeStory'
-import { ACTOR_NOBODY, actorWithoutActor, storeItemsProblems, triggerHasActor } from './storyExtras'
+import { ACTOR_FILTER_ELSEWHERE, ACTOR_FILTER_NOBODY, ACTOR_NOBODY, BEFORE_PREP_REFUSED, actorWithoutActor, storeItemsProblems, triggerHasActor, usesActorFilter } from './storyExtras'
 import { blockProblems, groupNames } from './behaviour'
 import { choiceChecks, storeCounts } from './choiceChecks'
 import { inventorySize } from './itemRules'
@@ -217,6 +218,8 @@ export function storyChecks(doc: ProjectDoc, mapId: string): StoryCheck[] {
     if (!isStoryId(e.id)) say(where, 'the name may use only letters, digits, _ and - (up to 64).')
     if (seen.has(e.id)) say(where, 'another event has the same name.')
     seen.add(e.id)
+    const mp = eventMarkerProblem(doc, e)
+    if (mp) say(where, mp)
     const trig = e.when ?? {}
     const kind = triggerKind(trig)
     if (!kind) say(where, 'it has no “When”.')
@@ -235,6 +238,15 @@ export function storyChecks(doc: ProjectDoc, mapId: string): StoryCheck[] {
     forEachCommand(e.do, where, (c) => { if (actorWithoutActor(c.if)) asksActor = true })
     if (kind && !triggerHasActor(kind) && asksActor) say(where, ACTOR_NOBODY)
     forEachCommand(e.do, where, (c, w) => supportConditionChecks(doc, c.if, w, say))
+    // `{ "actor": true }` as a unit filter: only in a command of an event with a unit that sets it off; never in a trigger.
+    if (kind && !triggerHasActor(kind)) forEachCommand(e.do, where, (c, w) => { if (usesActorFilter(c)) say(w, ACTOR_FILTER_NOBODY) })
+    if (usesActorFilter(trig as unknown as Command) || usesActorFilter({ if: e.if } as unknown as Command)) say(`${where}, “When” or “Only if”`, ACTOR_FILTER_ELSEWHERE)
+    // A “before the preparation screen” event: what the loader refuses there.
+    if (kind === 'beforePrep')
+      forEachCommand(e.do, where, (c, w) => {
+        const k = commandKind(c)
+        if (k && (BEFORE_PREP_REFUSED as readonly string[]).includes(k)) say(w, `“${k}” makes no sense before the preparation screen (no party is deployed yet, no turn has started, the battle cannot be decided, and the screen rebuilds the map the event runs on, so it must not ask or fight).`)
+      })
   }
 
   // Do the names these events point at exist? (one walk for every kind of name)
@@ -250,6 +262,9 @@ export function storyChecks(doc: ProjectDoc, mapId: string): StoryCheck[] {
     },
   })
   current = undefined
-  if (map.objectives) objectivesChecks(map, map.objectives, 'the objectives', say)
+  if (map.objectives) {
+    objectivesChecks(map, map.objectives, 'the objectives', say)
+    if (usesActorFilter(map.objectives as unknown as Command)) say('the objectives', ACTOR_FILTER_ELSEWHERE)
+  }
   return out
 }

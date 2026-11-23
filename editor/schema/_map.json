@@ -145,7 +145,9 @@
         { "name": "unit type", "key": "type", "node": { "type": "object", "fields": {
           "type": { "type": "ref", "ref": "data/units.json", "required": true, "help": "Every unit of this type." } } } },
         { "name": "tag", "key": "tag", "node": { "type": "object", "fields": {
-          "tag": { "type": "ref", "ref": "tags:data/units.json", "required": true, "help": "Every unit whose type has this tag." } } } } ]
+          "tag": { "type": "ref", "ref": "tags:data/units.json", "required": true, "help": "Every unit whose type has this tag." } } } },
+        { "name": "the acting unit", "key": "actor", "node": { "type": "object", "fields": {
+          "actor": { "type": "bool", "required": true, "help": "The unit that set the event off (true). Only in the commands of an event whose trigger has one: reach, defeated, fight, talk, promoted, place." } } } } ]
     },
     "prep": {
       "type": "object", "block": true, "help": "The preparation screen before the battle (docs/EVENTS.md Preparation).",

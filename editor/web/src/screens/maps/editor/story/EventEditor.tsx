@@ -2,12 +2,14 @@
 // its area and the squares its commands use.
 import { useEffect, useState } from 'react'
 import type { StoryCheck } from '../../../../model/storyChecks'
-import { eventIds, renameEvent, setEventConditions, setEventRepeat } from '../../../../model/storyEdit'
+import { markerList } from '../../../../model/markers'
+import { eventIds, patchEvent, renameEvent, setEventConditions, setEventRepeat } from '../../../../model/storyEdit'
 import { idProblem } from '../../../../model/storyIds'
 import { eventOverlays } from '../../../../model/storyOverlays'
 import { triggerKind, type StoryEvent } from '../../../../model/storyTypes'
 import { Field } from '../../../../ui/Field'
 import { Icon } from '../../../../ui/Icon'
+import { Select } from '../../../../ui/Select'
 import { Check } from '../../../../ui/Toggle'
 import { CommandList } from './CommandList'
 import { ConditionList } from './ConditionList'
@@ -18,7 +20,7 @@ import { S } from './text'
 import { TriggerForm } from './TriggerForm'
 
 export function EventEditor({ event, checks, onBack }: { event: StoryEvent; checks: StoryCheck[]; onBack: () => void }) {
-  const { apply, map, vs } = useStory()
+  const { apply, map, vs, doc } = useStory()
   const [selected, setSelected] = useState<string | null>(null)
   const kind = triggerKind(event.when ?? {})
   const others = eventIds(map).filter((id) => id !== event.id)
@@ -40,6 +42,12 @@ export function EventEditor({ event, checks, onBack }: { event: StoryEvent; chec
         <p className="help">{S.onlyIfHelp}</p>
         <ConditionList name={S.onlyIf} conditions={event.if ?? []} onChange={(list, k) => apply((m) => setEventConditions(m, event.id, list), k && `event:${event.id}:if:${k}`)} />
       </section>
+      {kind === 'reach' && markerList(doc).length > 0 && (
+        <Field label={S.marker} help={S.markerHelp}>
+          <Select aria-label={S.marker} value={event.marker ?? ''} options={[{ value: '', label: S.markerNone }, ...markerList(doc).map((m) => ({ value: m.id, label: m.id }))]}
+            onChange={(v) => apply((m) => patchEvent(m, event.id, { marker: v === '' ? undefined : v }))} />
+        </Field>
+      )}
       <Check label={S.repeat} help={kind === 'everyTurn' ? S.repeatAlways : S.repeatHelp} checked={kind === 'everyTurn' || event.repeat === true} disabled={kind === 'everyTurn'}
         onChange={(v) => apply((m) => setEventRepeat(m, event.id, v))} />
       <section className="story-section">

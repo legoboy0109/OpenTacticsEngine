@@ -248,8 +248,8 @@
             "fields": {
               "battle": {
                 "type": "enum",
-                "values": ["start", "won", "lost", "end"],
-                "help": "start: before the first turn; won / lost: when decided; end: either.",
+                "values": ["start", "beforePrep", "won", "lost", "end"],
+                "help": "start: before the first turn; beforePrep: on the map before the preparation screen (right before start on a map without one); won / lost: when decided; end: either.",
                 "required": true
               }
             }
@@ -1267,6 +1267,7 @@
         "when": {"use": "trigger", "help": "What sets the event off.", "required": true},
         "if": {"use": "conditions", "help": "Conditions judged when the event is about to run: all must hold."},
         "repeat": {"type": "bool", "help": "Runs every time it fires (default: once)."},
+        "marker": {"type": "ref", "ref": "keys:data/graphics.json#markers", "help": "A reach event only: a marker (data/graphics.json) drawn on the squares of its area while the event can still run."},
         "do": {"use": "commands", "help": "The commands, run in order.", "required": true}
       }
     }

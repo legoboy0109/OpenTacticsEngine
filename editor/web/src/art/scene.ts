@@ -4,15 +4,28 @@ import { findSheet, unitMarkerOn } from '../model/graphics'
 import { effectiveLook } from '../model/graphicsLooks'
 import { inheritsGeneralArt } from '../model/styleView'
 import { lookCells, lookShape, type LookShape } from '../model/pickCell'
-import type { Game, Look, ProjectDoc, Sheet } from '../model/types'
+import type { Badge, Game, Look, ProjectDoc, Sheet } from '../model/types'
 import type { LoadedImage } from '../store/art'
 
 /** A look whose image is loaded and which can be drawn. */
 export interface Resolved { look: Look; shape: LookShape; cw: number; ch: number; img: CanvasImageSource; iw: number; ih: number }
 export interface ResolvedUnit { base: Resolved; sides: Map<string, Resolved> }
 
+/** A unit badge (docs/GRAPHICS.md "Unit badges") with its image decoded: where in the image, who wears it, and where it sits on the unit's square. */
+export interface ResolvedBadge {
+  badge: Badge
+  img: CanvasImageSource
+  sx: number; sy: number; sw: number; sh: number
+  /** Unit types and characters that have the badge's tag (a unit type's tag or a character's tag). */
+  types: Set<string>
+  characters: Set<string>
+}
+
 export interface ArtScene {
   marker: boolean
+  /** Unit badges, in drawing order, and the game's tile size (what their size and offset are measured in). */
+  badges: ResolvedBadge[]
+  tileSize: number
   terrain: Map<string, Resolved>
   units: Map<string, ResolvedUnit>
   /** Structure id -> its picture (and per-owner pictures); drawn across the whole footprint. */
@@ -46,7 +59,7 @@ function joinSet(doc: ProjectDoc, id: string, look: Look): Set<string> {
 export function buildArtScene(doc: ProjectDoc, style: string | undefined, src: ImageSource): ArtScene | null {
   const g = doc.graphics
   if (!g || g.sheets.length === 0) return null
-  const scene: ArtScene = { marker: unitMarkerOn(doc), terrain: new Map(), units: new Map(), structures: new Map(), joinSame: new Map(), tallRows: 0, animated: false }
+  const scene: ArtScene = { marker: unitMarkerOn(doc), badges: [], tileSize: doc.game?.view?.tileSize ?? 24, terrain: new Map(), units: new Map(), structures: new Map(), joinSame: new Map(), tallRows: 0, animated: false }
   const inherit = inheritsGeneralArt(doc.game, style)
   const note = (r: Resolved) => { if (r.shape === 'animated' || (r.shape === 'join' && lookCells(r.look).length > 1)) scene.animated = true }
   for (const t of doc.terrain ?? []) {
@@ -67,6 +80,19 @@ export function buildArtScene(doc: ProjectDoc, style: string | undefined, src: I
       note(r)
       scene.tallRows = Math.max(scene.tallRows, Math.ceil(r.ch / r.cw) - 1)
     }
+  }
+  for (const b of g.badges ?? []) {
+    const sheet = findSheet(doc, b.sheet)
+    const im = sheet ? src.image(sheet.file) : null
+    if (!sheet || !im || im.status !== 'ready' || !im.img || typeof b.tag !== 'string') continue
+    const whole = !Array.isArray(b.cell)
+    const types = new Set((doc.units ?? []).filter((u) => (u.tags ?? []).includes(b.tag)).map((u) => u.id))
+    const characters = new Set((doc.characters ?? []).filter((c) => ((c as { tags?: string[] }).tags ?? []).includes(b.tag) || types.has((c as { type?: string }).type ?? '')).map((c) => c.id))
+    scene.badges.push({
+      badge: b, img: im.img, types, characters,
+      sx: whole ? 0 : b.cell![0] * sheet.cellWidth, sy: whole ? 0 : b.cell![1] * sheet.cellHeight,
+      sw: whole ? im.width : sheet.cellWidth, sh: whole ? im.height : sheet.cellHeight,
+    })
   }
   for (const s of doc.structures ?? []) {
     const entry = effectiveLook(g, 'structures', s.id, style, inherit)

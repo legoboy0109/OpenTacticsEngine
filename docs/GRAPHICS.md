@@ -27,6 +27,7 @@ units do, drawn across their whole footprint.
     { "id": "knight", "file": "art/knight.png", "cellWidth": 24, "cellHeight": 24 }  // a single image
   ],
   "unitMarker": true,                      // optional, default true (see "Units")
+  "badges": [ { "id": "boss", "sheet": "marks", "tag": "boss", "sides": "computer", "offset": [1, -1] } ],   // optional: a picture on the units that have a tag (see "Unit badges")
 
   "terrain": {                             // terrain id -> look
     "plain":  { "sheet": "tiles", "variants": [[0,0],[1,0],[2,0]] },
@@ -257,6 +258,56 @@ details' Items page, the weapon line of the attack, area and staff forecasts, an
   weapon's; a unit type's own weapon uses the weapon's.
 - Editors: `data/graphics.json` is edited as text for now (the web editor keeps the key as it is and drops an icon whose sheet is removed; the native
   editor's schema knows it). Fixture and test: `tests/fixtures/icon-lists`, `tests/icons_player_test.py`, `tests/test_icons.cpp`.
+
+## Unit badges
+
+```jsonc
+"badges": [ { "id": "boss", "sheet": "marks", "cell": [0, 0], "tag": "boss", "sides": "computer", "anchor": "bottomRight", "offset": [1, -1] } ]
+```
+
+A **badge** is a small picture drawn on the map sprite of every unit that carries a tag: a boss marker, a "leader" star, a quest-giver mark. The same list serves every style and every kind of view.
+
+- `id` (letters, digits, `_`, `-`; unique), `sheet` (an image of the file) and optionally `cell` ([column, row]: one cell; without it the picture is the sheet's **whole image**, whatever its cell size, as a story background).
+- `tag`: a **unit type's tag** (`units.json` `"tags"`) **or a character's tag** (`characters.json` `"tags"`): a unit wears the badge when either has it. A tag no unit type and no character has is a loader error.
+- `sides` (optional, default `"all"`): `"all"`, `"computer"` (the sides the computer plays), `"player"` (the sides a person plays) or a list of side ids (`["red", "green"]`). It is judged on the side the unit is drawn
+  on (a unit that has just changed side wears the old side's badge until the change has played).
+- `anchor` (optional, default `"bottomRight"`): `"topLeft"`, `"topRight"`, `"bottomLeft"`, `"bottomRight"` or `"center"`: the corner (or middle) of the unit's square on which the **same corner of the badge** sits.
+- `offset` (optional, default `[0, 0]`): `[x, y]`, whole numbers -256 to 256, in pixels **of one square of the game's `tileSize`**, added after the anchor (so `[1, -1]` with `bottomRight` puts an 8 x 8 badge
+  one pixel past the right edge and one above the bottom edge of a 16-pixel square: the classic boss marker at +9, +7).
+- **Size.** The picture is drawn at its own size scaled by *the square's size on screen / the game's `tileSize`* (an 8 x 8 badge is 8 x 8 on a 16 pixel game at 1x, 16 x 16 at 2x): it grows and shrinks with the map zoom and
+  never with the UI scale; the offset scales the same way. Hard pixels (nearest), as the unit's own picture.
+- **Where.** Over the unit's picture or placeholder (in the flat views also over its hit-point bar, so it is never half hidden), on every kind of view: top-down squares and hexagons (over the unit's square), 2D isometric (over the figure's box: its
+  width and its picture's height), and the 3D views (in screen space over the unit's billboard: it follows the unit and is not hidden by a wall standing in front of it, the same limit the unit's markers have).
+  A unit the viewer cannot see (fog of war), a unit that is off the board (carried) and a defeated unit are not drawn, so neither is their badge. It fades with the unit.
+- Several badges may apply to one unit: they are drawn in list order.
+- Loader refusals (`data/graphics.json: badge "boss": ...`): `unknown key`, `unknown sheet`, `cell [5, 0] is outside sheet`, `"tag" names "x", which no unit type ... and no character ... has`, `"sides" must be "all", "computer",
+  "player" or a list of side ids`, `"anchor" must be ...`, `"offset" must be [x, y]: whole numbers from -256 to 256`, `duplicate id`, `"badges" must be a list`.
+- Code: `Graphics::badges` (`BadgeDef`), `data/loader_badges.cpp`, player `battle/unit_badge.{h,cpp}` (called from `drawUnit`, `drawIsoUnitFigure` and the 3D billboard pass). Tests: `tests/test_badges.cpp`,
+  `tests/story_order_player_test.py` (a screenshot), `editor/web/tests/unit/orderQuotesBadge.test.ts`. Editor: Art > Unit badges. The web editor's map canvas draws them the same way over the map's placed units (`editor/web/src/screens/maps/editor/drawUnits.ts`, `art/scene.ts`).
+
+## Map markers
+
+```jsonc
+"markers": [ { "id": "interest", "sheet": "marks", "cell": [2, 0], "anchor": "center", "offset": [0, 0] } ]   // data/graphics.json
+{ "id": "hidden_recruit", "when": { "reach": { "x": 3, "y": 0, "w": 2, "h": 1 }, "by": { "side": "blue" } }, "marker": "interest", "do": [ ... ] }   // a map event
+```
+
+A **marker** is a small picture drawn on a map square to say "something of interest here": the square a hidden recruit appears from, a hidden item. It is **bound to an event**: a `reach` event with `"marker": "<id>"`
+shows the marker on **every square of its area** (`reach` rectangle) **while the event can still run**: it has not run yet (or it repeats) **and** its `if` conditions hold now (a spent switch hides it). When the event has run
+(a non-repeating one), or the switch it waits on is spent, the marker is gone; it comes back by itself if a condition becomes true again. Nothing is saved for it: it is worked out from the saved `fired` list, switches and variables
+(`Battle::markerSpots`), so a loaded battle shows exactly what it showed.
+
+- Marker keys: `id` (letters, digits, `_`, `-`; unique), `sheet` and optional `cell` (as a badge: no cell = the sheet's whole image), `anchor` (default `"center"`: which point of the square the same point of the picture goes on) and
+  `offset` `[x, y]` (-256 to 256, pixels of one square of the game's `tileSize`). Size and offset scale with the square on screen like a badge's. Same list for every style.
+- Event key `marker`: only on an event whose `when` is `reach` (loader: `"marker" is for an event whose "when" is a "reach" area`), naming an id of `markers` (`"marker" names unknown marker "x"`). An event's own `if` is judged with no acting unit:
+  an `actor` condition there hides the marker.
+- **Views.** Drawn over the map, under the cursor and the dialogue, in every kind of view: flat squares, hexagons, 2D isometric and the 3D views (on the square's box on screen, in screen space: not hidden by something standing in front of it, the
+  limit the badges have). A unit standing on the square is drawn under it (the marker is small and centred by default; give it an `offset` if that matters).
+- **Fog of war.** A marker is shown on a square the viewer cannot see: the terrain and the events' areas are not secret information (the veil dims the square under it). A game that wants a hidden spot hidden uses no marker.
+- Loader refusals: `unknown key`, `unknown sheet`, `cell ... is outside sheet`, `duplicate id`, `"anchor" must be ...`, `"offset" must be [x, y] ...`, `"markers" must be a list`.
+- Not built: markers placed on a map without an event, and `addMarker` / `removeMarker` story commands (an event's own condition does the same job: make a switch false to remove the marker).
+- Code: `Graphics::markers` (`MarkerDef`), `data/loader_badges.cpp` (`readMarkers`), `StoryEvent::marker`, `Battle::markerSpots` (`battle/story_before_prep.cpp`), player `battle/unit_badge.cpp` (`drawMapMarker`) called from
+  `BattleScene::draw`. Tests: `tests/test_badges.cpp`, `tests/story_order_player_test.py` (a screenshot), `editor/web/tests/unit/orderQuotesBadge.test.ts`. Editor: Art > Map markers, the "Marker on the area" picker of a reach event.
 
 ## Backgrounds (story scenes)
 

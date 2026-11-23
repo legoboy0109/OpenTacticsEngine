@@ -1602,5 +1602,7 @@ Wording is placeholder. Model checks mirror the loader (docs/EVENTS.md, BATTLE_S
   `removeCondition`, `teachSkill` / `forgetSkill`, `setBehaviour`. The checks say when the event's "When" has nobody acting, and refuse it in a trigger, an event's own condition and the objectives.
 - **Art screen, "Quotes in the scene"** (inside the scene timing of the battle animations card): the three times `leadMs`, `slideOutMs`, `slideInMs` (defaults 150 / 300 / 300, never written when default).
 - **Rules > Battle animations**: **Battle quotes in a fight**: both fighters may speak, or at most one (`quotesPerFight`).
+- **Art screen, "Map markers" card** (after Unit badges): a row per marker (name, image, optional piece, point of the square, offset, Delete). **Map editor > Events**: a reach event gets a **Marker on the area** picker (shown when the game has markers).
+  The checks refuse a marker on an event that is not a reach event and an unknown marker (`model/markers.ts`). The map canvas does not draw markers.
 - **Art screen, "Unit badges" card** (after Story backgrounds): a row per badge with its name, image, "one piece of the image" (column, row), tag (a list of the tags the game has is shown), whose units (every side /
   the computer's / the player's), corner and offset; move, delete; a badge goes with its image. The map canvas draws badges over placed units the way the player does (`art/scene.ts` `ResolvedBadge`, `drawUnits.ts`).

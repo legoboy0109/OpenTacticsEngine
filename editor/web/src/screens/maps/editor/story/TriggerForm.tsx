@@ -16,7 +16,7 @@ import { P } from './forms/placeText'
 import { S } from './text'
 
 const GROUPS: Array<{ group: string; kinds: TriggerKind[] }> = [
-  { group: S.triggerGroups.battle, kinds: ['start', 'won', 'lost', 'end'] },
+  { group: S.triggerGroups.battle, kinds: ['start', 'beforePrep', 'won', 'lost', 'end'] },
   { group: S.triggerGroups.turns, kinds: ['turn', 'everyTurn'] },
   { group: S.triggerGroups.units, kinds: ['reach', 'defeated', 'fight', 'talk', 'promoted', 'support', 'place'] },
 ]

@@ -24,6 +24,9 @@ export const S = {
   // --- one event ---
   eventName: 'Name',
   eventNameHelp: 'Only for finding the event again. Letters, digits, _ and - (no spaces).',
+  marker: 'Marker on the area',
+  markerHelp: 'A picture (Art, Map markers) drawn on the squares of the area while the event can still run: not yet run, or repeating, and its conditions true. It goes when the event has run or a condition is spent.',
+  markerNone: 'No marker',
   repeat: 'Repeat',
   repeatHelp: 'Off: it happens only the first time. On: every time it is triggered.',
   repeatAlways: 'An every-turn event always repeats.',
@@ -41,6 +44,7 @@ export const S = {
   triggerGroups: { battle: 'The battle', turns: 'Turns', units: 'Units' },
   triggerKinds: {
     start: 'Battle starts',
+    beforePrep: 'Before the preparation screen (on the map)',
     won: 'Battle is won',
     lost: 'Battle is lost',
     end: 'Battle ends (won or lost)',
@@ -80,6 +84,7 @@ export const S = {
     team: 'Any unit of team…',
     type: 'Any unit of type…',
     tag: 'Any unit with tag…',
+    actor: 'The unit that set the event off',
   } as Record<FilterKind, string>,
   filterDefault: (what: string) => `Default (${what})`,
   filterUnit: 'unit',

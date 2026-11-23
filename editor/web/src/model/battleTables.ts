@@ -49,6 +49,15 @@ export function setSceneStaves(doc: ProjectDoc, on: boolean): ProjectDoc {
   return { ...doc, game: patchObj(doc.game, { battleSceneStaves: on ? true : undefined }) }
 }
 
+/** "Battle quotes per fight" (docs/EVENTS.md "Battle and defeat quotes"): 'both' is the default and is written as NO key. */
+export type QuotesPerFight = 'both' | 'one'
+export const QUOTES_PER_FIGHT: QuotesPerFight[] = ['both', 'one']
+export const quotesPerFight = (doc: ProjectDoc): QuotesPerFight => doc.game?.quotesPerFight ?? 'both'
+export function setQuotesPerFight(doc: ProjectDoc, v: QuotesPerFight): ProjectDoc {
+  if (!doc.game || quotesPerFight(doc) === v) return doc
+  return { ...doc, game: patchObj(doc.game, { quotesPerFight: v === 'both' ? undefined : v }) }
+}
+
 // --- platforms (data/graphics.json "battle") -----------------------------------------------------------------------------------
 export interface PlatformRow { id: string; sheet: string; cell: CellRef; far?: CellRef; right?: CellRef; farRight?: CellRef }
 export const platformList = (doc: ProjectDoc): PlatformRow[] => Object.entries(battleOf(doc).platforms ?? {}).map(([id, p]) => ({ id, sheet: p.sheet, cell: p.cell, far: p.far, right: p.right, farRight: p.farRight }))

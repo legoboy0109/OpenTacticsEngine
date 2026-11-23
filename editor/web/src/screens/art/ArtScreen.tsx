@@ -14,6 +14,10 @@ import { Toggle } from '../../ui/Toggle'
 import { ImageDetails } from './ImageDetails'
 import { BattleAnimsCard } from './battle/BattleAnimsCard'
 import { BackgroundsCard } from './BackgroundsCard'
+import { BadgesCard } from './BadgesCard'
+import { MarkersCard } from './MarkersCard'
+import { markersUsingSheet } from '../../model/markers'
+import { badgesUsingSheet } from '../../model/badges'
 import { TilesetsCard } from './TilesetsCard'
 import { mapsUsingTileset, removeSheetAndTilesets, tilesetsUsingSheet } from '../../model/tilesets'
 import { PortraitsCard } from './PortraitsCard'
@@ -99,6 +103,8 @@ function ArtBody({ itemId }: { itemId?: string }) {
         </Card>
         <PortraitsCard />
         <BackgroundsCard />
+        <BadgesCard />
+        <MarkersCard />
         <TilesetsCard />
         <BattleAnimsCard />
         <UnusedFiles say={say} />
@@ -110,6 +116,8 @@ function ArtBody({ itemId }: { itemId?: string }) {
           {users.map((u) => <li key={`${u.kind}:${u.id}`}>{T.usedByItem(u.kind, u.name)}</li>)}
           {(target ? portraitsUsingSheet(doc, target.id) : []).map((p) => <li key={`portrait:${p}`}>{T.usedByPortrait(p)}</li>)}
           {(target ? backgroundsUsingSheet(doc, target.id) : []).map((b) => <li key={`background:${b}`}>{T.usedByBackground(b)}</li>)}
+          {(target ? badgesUsingSheet(doc, target.id) : []).map((b) => <li key={`badge:${b}`}>{T.usedByBadge(b)}</li>)}
+          {(target ? markersUsingSheet(doc, target.id) : []).map((b) => <li key={`marker:${b}`}>{T.usedByMarker(b)}</li>)}
           {(target ? tilesetsUsingSheet(doc, target.id) : []).map((t) => <li key={`tileset:${t}`}>{T.usedByTileset(t, mapsUsingTileset(doc, t))}</li>)}
         </ul>
         <p className="help">{T.removeUnusedNote}</p>

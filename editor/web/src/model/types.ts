@@ -117,6 +117,8 @@ export interface Game extends Extra {
   battleSceneSides?: 'map' | 'playerRight' | 'playerLeft'
   /** A staff used on one other unit plays in the battle scene (docs/BATTLE_SCENE.md "Staves in the scene"): missing = false (staves stay on the map). */
   battleSceneStaves?: boolean
+  /** How many battle quotes a fight may have (docs/EVENTS.md "Battle and defeat quotes"): missing = 'both' (each fighter may speak); 'one' = at most one. */
+  quotesPerFight?: 'both' | 'one'
   /** An action with nothing to act on in the unit's menu (docs/SRPG.md "Menu options"): missing = 'grey' (it stays, greyed); 'hide' leaves it out. */
   menuUnavailable?: 'grey' | 'hide'
   /** What Attack does first (docs/SRPG.md "Menu options"): missing = 'equipped' (straight to the targets); 'pick' asks which weapon. */
@@ -486,7 +488,9 @@ export interface BattleEffectDef extends Extra {
 }
 /** data/graphics.json "battle" > "scene": how long a held pose waits after the result (docs/BATTLE_SCENE.md "Holding a pose"). */
 export interface HitHoldDef extends Extra { minMs?: number; baseMs?: number; perHpMs?: number; killMs?: number; noChangeMs?: number }
-export interface BattleSceneTimingDef extends Extra { resultHoldMs?: number; resultHoldAgainMs?: number; hitHold?: HitHoldDef }
+/** "quote" (docs/BATTLE_SCENE.md "Quotes in the scene"): the hiding and sliding of a quote played inside the scene. */
+export interface QuoteTimingDef extends Extra { leadMs?: number; slideOutMs?: number; slideInMs?: number }
+export interface BattleSceneTimingDef extends Extra { resultHoldMs?: number; resultHoldAgainMs?: number; hitHold?: HitHoldDef; quote?: QuoteTimingDef }
 /** data/graphics.json "battle". */
 export interface BattleSection extends Extra {
   sets?: Record<string, BattleSetDef>
@@ -528,8 +532,30 @@ export interface StageBandDef extends Extra {
 /** A tileset of hand-painted maps (docs/GRAPHICS.md "Tile layer"): a sheet whose cells are the tiles, numbered row by row from 0; model/tilesets.ts. */
 export interface Tileset extends Extra { sheet: string; animations?: Record<string, { frames: number[]; ms?: number }> }
 export interface TileLayer extends Extra { tileset: string; cells: string[] }
+/** A small picture drawn on the map sprite of the units that carry a tag (docs/GRAPHICS.md "Unit badges"); model/badges.ts. */
+export interface Badge extends Extra {
+  id: string
+  sheet: string
+  cell?: CellRef
+  tag: string
+  sides?: 'all' | 'computer' | 'player' | string[]
+  anchor?: 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight' | 'center'
+  offset?: [number, number]
+}
+/** A map marker (docs/GRAPHICS.md "Map markers"); model/markers.ts. */
+export interface Marker extends Extra {
+  id: string
+  sheet: string
+  cell?: CellRef
+  anchor?: 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight' | 'center'
+  offset?: [number, number]
+}
 export interface Graphics extends Extra {
   sheets: Sheet[]
+  /** Map markers, by name. */
+  markers?: Marker[]
+  /** Unit badges, in drawing order. */
+  badges?: Badge[]
   /** Tilesets of tile layers: id -> sheet (and animated tiles). */
   tilesets?: Record<string, Tileset>
   /** The side-view battle scene's animation sets, rules and backgrounds. */

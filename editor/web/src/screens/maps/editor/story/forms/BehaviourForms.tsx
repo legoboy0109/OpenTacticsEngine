@@ -13,7 +13,7 @@ export function SetBehaviourForm({ cmd, at }: { cmd: Command; at: CommandRef }) 
   const { doc, map } = useStory()
   return (
     <div className="stack tight" data-testid="set-behaviour-form">
-      <FilterPicker label={B.setBehaviourWho} value={asFilter(cmd.units) ?? {}} onChange={(f) => patch({ units: f ?? {} })} />
+      <FilterPicker actor label={B.setBehaviourWho} value={asFilter(cmd.units) ?? {}} onChange={(f) => patch({ units: f ?? {} })} />
       {/* A block that is the default is written as "advance": the command must hold something. */}
       <BehaviourEditor value={cmd.setBehaviour} doc={doc} map={map} id="set-behaviour"
         onChange={(next, k) => patch({ setBehaviour: next ?? 'advance' }, k && `behaviour:${k}`)} />

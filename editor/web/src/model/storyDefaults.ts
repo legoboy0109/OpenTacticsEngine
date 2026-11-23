@@ -44,6 +44,7 @@ export function newFilter(c: DefCtx, kind: FilterKind): Filter {
     case 'team': return { team: teamsOf(c.map)[0]?.id ?? '' }
     case 'type': return { type: c.doc.units?.[0]?.id ?? '' }
     case 'tag': return { tag: '' }
+    case 'actor': return { actor: true }
     default: return {}
   }
 }
@@ -59,6 +60,7 @@ export function defaultFilter(c: DefCtx): Filter {
 export function newTrigger(c: DefCtx, kind: TriggerKind): Trigger {
   switch (kind) {
     case 'start': return { battle: 'start' }
+    case 'beforePrep': return { battle: 'beforePrep' }
     case 'won': return { battle: 'won' }
     case 'lost': return { battle: 'lost' }
     case 'end': return { battle: 'end' }

@@ -58,6 +58,12 @@ void addStoryContexts(std::vector<Context>& c) {
                {{"data/graphics.json", "icons", R"({"rifle":{"sheet":"tiles","cell":[0,0]}})"}},
                {"graphics:icons"},
                {}});
+  // Unit badges and map markers (docs/GRAPHICS.md): demo-srpg has the unit tag "mounted" and the sheet "tiles".
+  c.push_back({"gfx-badges", "demo-srpg",
+               {{"data/graphics.json", "badges", R"([{"id":"b","sheet":"tiles","tag":"mounted"}])"},
+                {"data/graphics.json", "markers", R"([{"id":"m","sheet":"tiles"}])"}},
+               {"graphics:badges", "graphics:markers"},
+               {{"graphics:badges", R"([{"id":"b","sheet":"tiles","tag":"mounted"}])"}, {"graphics:badges[].tag", "\"mounted\""}}});
 
   // A 3D style of demo-srpg (the first entry of `styles` is what the keys are tried in): sprites, models and standing things.
   c.push_back({"gfx-style", "demo-srpg",

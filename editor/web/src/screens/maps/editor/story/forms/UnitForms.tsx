@@ -11,7 +11,7 @@ export function RemoveUnitForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
   const { patch } = useCommandEdit(at)
   return (
     <div className="stack tight">
-      <FilterPicker label={S.removeWho} value={cmd.removeUnit} onChange={(f) => patch({ removeUnit: f ?? {} })} />
+      <FilterPicker actor label={S.removeWho} value={cmd.removeUnit} onChange={(f) => patch({ removeUnit: f ?? {} })} />
       <Check label={S.hideUnit} help={S.hideUnitHelp} checked={cmd.hide === true} onChange={(v) => patch({ hide: v ? true : undefined })} />
       <p className="help">{S.removeHelp}</p>
     </div>
@@ -43,7 +43,7 @@ export function ChangeSideForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
   const { patch } = useCommandEdit(at)
   return (
     <div className="stack tight">
-      <FilterPicker label={S.changeWho} value={cmd.changeSide} onChange={(f) => patch({ changeSide: f ?? {} })} />
+      <FilterPicker actor label={S.changeWho} value={cmd.changeSide} onChange={(f) => patch({ changeSide: f ?? {} })} />
       <SidePick label={S.changeTo} help={S.changeHelp} value={cmd.side ?? ''} onChange={(v) => patch({ side: v })} />
     </div>
   )
