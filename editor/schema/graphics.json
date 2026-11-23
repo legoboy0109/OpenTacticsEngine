@@ -133,6 +133,22 @@
       "backgrounds": { "type": "map", "free": true, "help": "Story backgrounds by id (letters, digits, _ and -): a whole sheet or one cell.", "of": { "type": "object", "fields": {
         "sheet": { "type": "ref", "ref": "@sheets", "required": true, "help": "The sheet." },
         "cell": { "use": "cell", "help": "One cell of it (default: the whole sheet)." } } } },
+      "badges": { "type": "list", "help": "A small picture drawn on the map sprite of the units that carry a tag (a boss marker). The same in every style.", "of": { "type": "object", "fields": {
+        "id": { "type": "string", "required": true, "help": "Unique id (letters, digits, _ and -)." },
+        "sheet": { "type": "ref", "ref": "@sheets", "required": true, "help": "The sheet." },
+        "cell": { "use": "cell", "help": "One cell of it (default: the whole sheet image)." },
+        "tag": { "type": "string", "required": true, "help": "A unit type's tag or a character's tag; every unit with it wears the badge." },
+        "sides": { "type": "variant", "help": "Whose units wear it (default: all).", "variants": [
+          { "name": "all, computer or player", "kind": "string", "node": { "type": "enum", "values": ["all", "computer", "player"] } },
+          { "name": "these sides", "kind": "array", "sample": ["red"], "node": { "type": "list", "of": { "type": "string" } } } ] },
+        "anchor": { "type": "enum", "values": ["topLeft", "topRight", "bottomLeft", "bottomRight", "center"], "default": "bottomRight", "help": "Which corner of the unit's square the same corner of the badge goes on." },
+        "offset": { "type": "list", "length": 2, "sample": [0, 0], "of": { "type": "int", "min": -256, "max": 256 }, "help": "[x, y]: moved by this many pixels of one square of the game's tile size (it scales with the zoom)." } } } },
+      "markers": { "type": "list", "help": "A small picture an event puts on the squares of its reach area (\"something of interest here\"): name it in the event's \"marker\".", "of": { "type": "object", "fields": {
+        "id": { "type": "string", "required": true, "help": "Unique id (letters, digits, _ and -)." },
+        "sheet": { "type": "ref", "ref": "@sheets", "required": true, "help": "The sheet." },
+        "cell": { "use": "cell", "help": "One cell of it (default: the whole sheet image)." },
+        "anchor": { "type": "enum", "values": ["topLeft", "topRight", "bottomLeft", "bottomRight", "center"], "default": "center", "help": "Which point of the square the same point of the picture goes on." },
+        "offset": { "type": "list", "length": 2, "sample": [0, 0], "of": { "type": "int", "min": -256, "max": 256 }, "help": "[x, y]: moved by this many pixels of one square of the game's tile size (it scales with the zoom)." } } } },
       "tilesets": { "type": "map", "free": true, "help": "Tilesets of a map's tile layer by id: a sheet whose cells are numbered tiles.", "of": { "type": "object", "fields": {
         "sheet": { "type": "ref", "ref": "@sheets", "required": true, "help": "The sheet." },
         "animations": { "type": "map", "free": true, "help": "Animated tiles by tile number.", "of": { "type": "object", "fields": {

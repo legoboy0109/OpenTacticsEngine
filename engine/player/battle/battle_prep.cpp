@@ -44,6 +44,27 @@ void BattleScene::prepStart() {
     view_.push(session_.startEvents);
     return;
   }
+  if (!p.map.prep->slots.empty()) cursor_ = battle_.grid.at(p.map.prep->slots[0].x, p.map.prep->slots[0].y);  // (the camera starts there too)
+  // docs/EVENTS.md "Before the preparation screen": the map's `beforePrep` events play first, on the map with the units placed
+  // (nothing of the screen is drawn meanwhile); a screen restored from a save runs them again without showing them.
+  if (battle_.hasBeforePrep()) {
+    std::vector<Event> ev;
+    battle_.runBeforePrep(ev);
+    view_.resync(battle_);  // the view starts from the state they made, the entries tell how it came about (like a battle-start run)
+    if (!session_.prepResumed && !ev.empty()) {
+      view_.push(ev);
+      p.intro = true;
+      OTE_INFO("prep: %d beforePrep entries play before the screen", (int)ev.size());
+    }
+  }
+  session_.prepResumed = false;
+  if (p.intro) return;  // update() opens the screen when the scene is over (prepOpenScreen)
+  prepOpenScreen();
+}
+
+void BattleScene::prepOpenScreen() {
+  PrepUi& p = *prep_;
+  p.intro = false;
   mode_ = Mode::Prep;
   if (!p.map.prep->slots.empty()) {  // the cursor starts on the first slot
     const PrepSlot& s = p.map.prep->slots[0];
@@ -67,6 +88,10 @@ void BattleScene::prepRebuild() {
     ok = session_.rebuildFreePrep(host_.args().seed, err);
   }
   if (!ok) OTE_WARN("prep: the battle could not be rebuilt: %s", err.c_str());
+  if (battle_.hasBeforePrep()) {  // the same events again, unseen: the screen shows the map as they left it
+    std::vector<Event> unseen;
+    battle_.runBeforePrep(unseen);
+  }
   view_.resync(battle_);
   sel_ = -1;
   overlay_ = Overlay();
@@ -477,7 +502,7 @@ void BattleScene::prepInput(const InputEvent& e) {
 
 // The slot squares' colours live in battle_draw.h (Tone::PrepFree / PrepTaken / PrepCarry), painted by every kind of view under the units.
 void BattleScene::addPrepTint(Overlay& ov) const {
-  if (!prep_) return;
+  if (!prep_ || prep_->intro) return;
   const PrepUi& p = *prep_;
   const PrepDef& def = *p.map.prep;
   prepMask_.assign((size_t)battle_.grid.cellCount(), 0);

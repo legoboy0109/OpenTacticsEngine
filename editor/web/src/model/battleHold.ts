@@ -3,7 +3,7 @@
 // (checkHolds, readSceneTiming) in plain words. Defaults are never written.
 import { DODGE_ANIMS, HIT_ANIMS, HOLD_ANIMS, HOLD_DELAY_MAX, battleOf, type AnimKey } from './battleArt'
 import { withBattle } from './battleTables'
-import type { BattleAnimDef, BattleSceneTimingDef, HitHoldDef, ProjectDoc } from './types'
+import type { BattleAnimDef, BattleSceneTimingDef, HitHoldDef, ProjectDoc, QuoteTimingDef } from './types'
 
 /** What the scene waits after the blow when the game does not say (milliseconds), and the extra wait before the same fighter strikes again. */
 export const RESULT_HOLD_DEFAULT = 533
@@ -61,6 +61,27 @@ export function setHitHold(doc: ProjectDoc, key: HitHoldKey, v: number | undefin
   })
 }
 
+/** "quote" (docs/BATTLE_SCENE.md "Quotes in the scene"): when a battle quote begins after the scene opens and how long the backdrop slides. Defaults are never written. */
+export const QUOTE_KEYS = ['leadMs', 'slideOutMs', 'slideInMs'] as const
+export type QuoteKey = typeof QUOTE_KEYS[number]
+export const QUOTE_DEFAULT: Record<QuoteKey, number> = { leadMs: 150, slideOutMs: 300, slideInMs: 300 }
+export const QUOTE_MAX = 5000
+export const quoteTiming = (doc: ProjectDoc): Record<QuoteKey, number> => ({ ...QUOTE_DEFAULT, ...(battleOf(doc).scene?.quote ?? {}) })
+
+/** Sets one key of "quote"; the default is written as no key and an emptied "quote" / "scene" section goes. */
+export function setQuoteTiming(doc: ProjectDoc, key: QuoteKey, v: number): ProjectDoc {
+  return withBattle(doc, (b) => {
+    const q: QuoteTimingDef = { ...(b.scene?.quote ?? {}) }
+    if (v === QUOTE_DEFAULT[key]) delete q[key]
+    else q[key] = v
+    const next: BattleSceneTimingDef = { ...(b.scene ?? {}) }
+    if (Object.keys(q).length) next.quote = q
+    else delete next.quote
+    const { scene: _old, ...rest } = b
+    return Object.keys(next).length ? { ...rest, scene: next } : rest
+  })
+}
+
 /** Does any animation of the game hold a pose? (Only then do the scene durations matter.) */
 export const usesHolds = (doc: ProjectDoc): boolean =>
   Object.values(battleOf(doc).sets ?? {}).some((s) => Object.values(s.animations ?? {}).some((a) => a.holdFrame !== undefined || a.startFrame !== undefined))
@@ -104,6 +125,14 @@ export function sceneTimingProblems(doc: ProjectDoc): string[] {
   }
   check('How long a held pose waits after the result', s.resultHoldMs)
   check('The extra wait before the same fighter strikes again', s.resultHoldAgainMs)
+  const q = s.quote
+  if (q !== undefined) {
+    if (typeof q !== 'object' || q === null || Array.isArray(q)) out.push('The quote timing must be a group of settings.')
+    else for (const [k, v] of Object.entries(q)) {
+      if (!(QUOTE_KEYS as readonly string[]).includes(k)) { out.push(`The quote timing has a setting “${k}” the game does not know.`); continue }
+      if (!whole(v) || v < 0 || v > QUOTE_MAX) out.push(`The quote timing: “${k}” must be a whole number from 0 to ${QUOTE_MAX} milliseconds.`)
+    }
+  }
   const hh = s.hitHold
   if (hh !== undefined) {
     if (typeof hh !== 'object' || hh === null || Array.isArray(hh)) out.push('The wait by the damage must be a group of settings.')

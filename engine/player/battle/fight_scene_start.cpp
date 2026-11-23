@@ -169,7 +169,14 @@ bool FightScene::start(const Env& env, const std::vector<Event>& run) {
   FighterTimes times[2] = {fighter_[0].times, fighter_[1].times};
   tl_ = buildTimelineList(script_, times, fx, stageOn && lay.each ? lay.panMs : -1,
                          stageOn && lay.each ? lay.panStartMs : -1, art.timing.resultHoldMs, art.timing.resultHoldAgainMs,
-                         art.timing.hitHold);
+                         art.timing.hitHold, env.quoteDefeat);
+  stops_.clear();  // docs/BATTLE_SCENE.md "Quotes in the scene"
+  nextStop_ = 0;
+  phase_ = Phase::None;
+  phaseT_ = 0;
+  if (env.quoteBefore) stops_.push_back({art.timing.quote.leadMs / 1000.0, false});
+  if (env.quoteDefeat && tl_.defeatStopAt >= 0) stops_.push_back({tl_.defeatStopAt, true});
+  std::stable_sort(stops_.begin(), stops_.end(), [](const Stop& a, const Stop& b) { return a.at < b.at; });
   pickBackdrop(cells, pair);
   preloadArt();
 

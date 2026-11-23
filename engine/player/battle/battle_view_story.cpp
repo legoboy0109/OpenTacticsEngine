@@ -151,6 +151,31 @@ bool BattleView::beginStory(const Battle& b) {
   }
 }
 
+// The lines of a quote said inside the battle scene (docs/BATTLE_SCENE.md "Quotes in the scene"): the same box and the same log line as on the map.
+void BattleView::startQuote(const Battle& b, bool defeat) {
+  fight.talk = defeat ? fight.quoteDefeat : fight.quoteBefore;
+  fight.quoteShown[defeat ? 1 : 0] = true;
+  fight.talkAt = 0;
+  fight.talking = true;
+  talkNext(b);
+}
+
+void BattleView::talkNext(const Battle& b) {
+  dialogue.active = false;
+  while (fight.talkAt < fight.talk.size()) {
+    const Event& e = fight.talk[fight.talkAt++];
+    dialogue.line = dialogueLine(b, e);
+    ++dialogue.serial;
+    OTE_INFO("dialogue: %s | %s%s", dialogue.line.name.c_str(), dialogue.line.text.c_str(), skipping_ ? " (skipped)" : "");
+    dialogue.staged = false;
+    if (skipping_ || (dialogue.line.text.empty() && dialogue.line.name.empty())) continue;
+    dialogue.active = true;
+    fight.talkTimer = 0;
+    return;
+  }
+  fight.talking = false;
+}
+
 bool BattleView::progressStory(const Battle& b) {
   const Event& e = cur_.ev;
   float p = cur_.dur > 0 ? std::min(1.0f, cur_.t / cur_.dur) : 1.0f;

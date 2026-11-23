@@ -1,5 +1,6 @@
 #include "battle/battle_scene.h"
 #include "battle/art_preload.h"
+#include "battle/unit_badge.h"
 #include "battle/battle_prep_ui.h"
 
 #include <algorithm>
@@ -210,11 +211,12 @@ void BattleScene::followCamera(double dt) {
 
 void BattleScene::update(double dt) {
   time_ += (float)dt;
-  host_.gameAudio().music().prep(prep_ != nullptr);  // the preparation screen's music (docs/SOUND.md "Music by situation")
+  host_.gameAudio().music().prep(prep_ != nullptr && !prep_->intro);  // the preparation screen's music (docs/SOUND.md "Music by situation")
   updateShopMusic();  // the music of a shop screen (docs/SOUND.md "Shop music")
   if (covered_) return;  // hot-seat cover: nothing plays (or is decided) until the next player confirms
   view_.sceneMode = host_.battleScene();  // the player's setting, else the game's default: effective at once
   view_.update(dt, battle_);
+  if (prep_ && prep_->intro && !view_.busy()) prepOpenScreen();  // the beforePrep scene is over
   if (sceneHold_ >= 0) {  // Cancel / Menu held while a scene plays: half a second fast-forwards it (battle_input.cpp)
     if (!view_.inScene()) sceneHold_ = -1;
     else if ((sceneHold_ += (float)dt) >= 0.5f) {
@@ -280,7 +282,7 @@ std::string BattleScene::hint() const {
 std::string BattleScene::hintBase() const {
   if (noticeTime_ > 0 && !notice_.empty()) return notice_;
   if (view_.dialogue.active) return dialogue_.choosing() ? kChoiceHint : kDialogueHint;
-  if (mode_ == Mode::Prep) return prepHint();
+  if (mode_ == Mode::Prep && !prep_->intro) return prepHint();
   if (mode_ == Mode::Result)
     return chapterBattle() ? "{confirmTap}: continue"
            : session_.db.campaign ? "{confirmTap}: back to the game page" : "{confirmTap}: back to map select";
@@ -361,7 +363,16 @@ void BattleScene::draw(Renderer& r) {
   addChargeTint(shownOverlay);  // speed turn order: the squares of charged actions on their way
   addPrepTint(shownOverlay);  // preparation: the deployment squares, as a ground tint under the units
   drawMap(r, ctx, shownOverlay, cursor_, human);
-  if (prep_) prepDrawSlots(r);  // the numbers of the deployment squares
+  if (!session_.db.graphics.markers.empty()) {  // map markers of reach events (docs/GRAPHICS.md "Map markers"): over the map, in every kind of view
+    std::vector<Battle::MarkerSpot> spots;
+    battle_.markerSpots(spots);
+    for (const Battle::MarkerSpot& s : spots) {
+      int mx, my, mw, mh;
+      cellScreenBox(s.cell, mx, my, mw, mh);
+      drawMapMarker(r, ctx, s.marker, mx, my, mw, mh);
+    }
+  }
+  if (prep_ && !prep_->intro) prepDrawSlots(r);  // the numbers of the deployment squares
   drawFloats(r, ctx, false);
   drawStory(r);
   if (shaking) {
@@ -391,7 +402,7 @@ void BattleScene::draw(Renderer& r) {
   bool aiActing = !battle_.over && !humanTurn();  // nobody to inspect for: AI is playing
   drawPanel(r, ctx, aiActing ? kNoCell : cursor_, autoplay_);
   drawTurnStrip(r);  // (a speed game only) after the panel, which covers the map's overshoot, and under the hint line and the banners
-  if (prep_) prepDrawPanelHead(r);  // "Turn 1 / You" means nothing before the battle: say what this is
+  if (prep_ && !prep_->intro) prepDrawPanelHead(r);  // "Turn 1 / You" means nothing before the battle: say what this is
   drawHint(r, layout_, hint());
   drawFloats(r, ctx, true);
   if (stage.backgroundShown()) {  // a story background hides the map and the panels; the hint line stays readable
@@ -423,10 +434,11 @@ void BattleScene::draw(Renderer& r) {
   }
   if (!view_.banner.empty()) drawBanner(r, layout_, view_.banner, view_.bannerColor, 2, view_.bannerSub);
   if (mode_ == Mode::UnitInfo && idleView && human) drawUnitInfoOverlay(r);
-  if (view_.dialogue.active) dialogue_.draw(r);
+  if (view_.dialogue.active && !view_.fight.talking) dialogue_.draw(r);
   drawLevelUp(r, layout_, view_.levelUp);
   if (mode_ == Mode::Result) drawBanner(r, layout_, resultText_, resultColor_, 3, resultSub_);
   fightScene_.draw(r);  // the battle scene covers everything while a fight plays
+  if (view_.dialogue.active && view_.fight.talking) dialogue_.draw(r);  // ... except the lines of a quote it is waiting for
   drawStageFade(r, stage);  // a fade covers the whole screen, the dialogue and the fights included
 }
 

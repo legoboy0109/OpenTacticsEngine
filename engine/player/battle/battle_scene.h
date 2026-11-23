@@ -285,7 +285,9 @@ class BattleScene : public Scene {
   // --- battle_prep.cpp, battle_prep_items.cpp: the preparation screen (docs/EVENTS.md "Preparation"). Mode::Prep; its state is PrepUi.
   struct PrepUi;
   std::shared_ptr<PrepUi> prep_;  // null in an ordinary battle
+  bool quoteStarted_ = false;     // the scene is waiting on a quote whose lines the view is saying (battle_fight.cpp)
   void prepStart();
+  void prepOpenScreen();          // opens the main menu (after the beforePrep scene, if the map has one)
   void prepRebuild();             // the not-yet-started Battle again from the choice made so far (also after a trade or a purchase)
   void prepChanged();             // after any change: rebuild, redraw the picture, write the Continue save
   void prepInput(const InputEvent& e);

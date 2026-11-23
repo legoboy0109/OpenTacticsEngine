@@ -147,8 +147,40 @@ struct SceneBackground {
   SpriteCell cell;
 };
 
+// A small picture drawn on the map sprite of the units that carry a tag (docs/GRAPHICS.md "Unit badges"): a boss marker. The same in every style.
+struct BadgeDef {
+  enum class Sides { All, Computer, Player, List };
+  enum class Anchor { TopLeft, TopRight, BottomLeft, BottomRight, Center };
+  std::string id;
+  int sheet = -1;
+  bool whole = true;  // true: the sheet's whole image; false: just `cell`
+  SpriteCell cell;
+  std::string tag;    // a unit type's tag or a character's tag
+  Sides sides = Sides::All;
+  std::vector<std::string> sideIds;  // Sides::List: map side ids
+  Anchor anchor = Anchor::BottomRight;  // which corner (or the middle) of the unit's square the same corner of the badge is put on
+  int dx = 0, dy = 0;  // then moved by this, in pixels of one square of the game's tile size (it grows and shrinks with the map zoom)
+};
+
+// A small picture an event puts on the squares of its area to say "something here" (docs/GRAPHICS.md "Map markers"). The same in every style.
+struct MarkerDef {
+  std::string id;
+  int sheet = -1;
+  bool whole = true;  // true: the sheet's whole image; false: just `cell`
+  SpriteCell cell;
+  BadgeDef::Anchor anchor = BadgeDef::Anchor::Center;  // which point of the square the same point of the picture goes on
+  int dx = 0, dy = 0;  // then moved by this, in pixels of one square of the game's tile size
+};
+
 struct Graphics {
   std::vector<SheetDef> sheets;
+  std::vector<MarkerDef> markers;  // root key "markers"
+  int findMarker(const std::string& id) const {
+    for (size_t i = 0; i < markers.size(); ++i)
+      if (markers[i].id == id) return (int)i;
+    return -1;
+  }
+  std::vector<BadgeDef> badges;  // root key "badges"
   // Backgrounds of story scenes (root key "backgrounds"; the same for every style). Not the battle scene's (`battle`).
   std::vector<SceneBackground> backgrounds;
   // Tilesets of hand-painted maps (root key "tilesets", the same for every style; docs/GRAPHICS.md "Tile layer").

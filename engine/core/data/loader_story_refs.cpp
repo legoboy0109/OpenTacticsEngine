@@ -89,13 +89,22 @@ bool StoryLoader::filter(const Json& j, const std::string& where, const char* wh
   if (j.size() > 1) {
     std::string keys;
     for (const Json::Member& m : j.members()) keys += (keys.empty() ? "\"" : ", \"") + m.first + "\"";
-    return fail(where, w + " names more than one thing (" + keys + "); a unit filter has one of unit, side, team, type, tag");
+    return fail(where, w + " names more than one thing (" + keys + "); a unit filter has one of unit, side, team, type, tag, actor");
   }
   const Json::Member& m = j.members()[0];
   const Json& v = m.second;
   if (m.first == "unit") {
     out.kind = UnitFilter::Kind::Unit;
     return unitId(v, where, (w + ".unit").c_str(), out.unit);
+  }
+  if (m.first == "actor") {
+    if (!actorOk_)
+      return fail(where, w + ": \"actor\" names the unit that set the event off, so it is for the commands of a map event whose trigger "
+                              "has one (reach, defeated, fight, talk, promoted, place), not for triggers, objectives, battle / turn / "
+                              "support events or campaign scenes");
+    if (!v.isBool() || !v.asBool()) return fail(where, w + ".actor must be true");
+    out.kind = UnitFilter::Kind::Actor;
+    return true;
   }
   if (m.first == "tag") {
     if (!v.isString()) return fail(where, w + ".tag must be text");
@@ -104,7 +113,7 @@ bool StoryLoader::filter(const Json& j, const std::string& where, const char* wh
     return true;
   }
   if (m.first != "side" && m.first != "team" && m.first != "type")
-    return fail(where, w + ": " + unknownKeyText(m.first, {"unit", "side", "team", "type", "tag"}));
+    return fail(where, w + ": " + unknownKeyText(m.first, {"unit", "side", "team", "type", "tag", "actor"}));
   if (!v.isString()) return fail(where, w + "." + m.first + " must be text");
   if (m.first == "side") {
     out.kind = UnitFilter::Kind::Side;

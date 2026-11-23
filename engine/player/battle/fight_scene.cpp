@@ -174,16 +174,66 @@ void FightScene::fire(const FightBeat& beat, bool quiet) {
   }
 }
 
+// A quote stop begins: the clock stands still, the fighters are hidden and the backdrop slides away (the lines are the screen's).
+void FightScene::beginQuote(bool skippedTo) {
+  const bool defeat = stops_[nextStop_++].defeat;
+  OTE_INFO("battle scene: quote (%s)", defeat ? "defeat" : "battle");
+  phaseT_ = 0;
+  phase_ = env_.battle->db->graphics.battle.timing.quote.slideOutMs > 0 && !skippedTo ? Phase::Out : Phase::Hold;
+}
+
+void FightScene::updateQuote(double dt) {
+  const QuoteTiming& q = env_.battle->db->graphics.battle.timing.quote;
+  phaseT_ += dt;
+  if (phase_ == Phase::Out && phaseT_ >= q.slideOutMs / 1000.0) {
+    phase_ = Phase::Hold;
+    phaseT_ = 0;
+  } else if (phase_ == Phase::In && phaseT_ >= q.slideInMs / 1000.0) {
+    phase_ = Phase::None;
+    phaseT_ = 0;
+  }
+}
+
+void FightScene::quoteDone() {
+  if (phase_ != Phase::Hold) return;
+  OTE_INFO("battle scene: quote over");
+  phaseT_ = 0;
+  phase_ = env_.battle->db->graphics.battle.timing.quote.slideInMs > 0 ? Phase::In : Phase::None;
+}
+
 void FightScene::update(double dt) {
   if (!active_) return;
-  t_ += dt;
-  while (nextBeat_ < tl_.beats.size() && tl_.beats[nextBeat_].t <= t_) fire(tl_.beats[nextBeat_++], false);
+  if (phase_ != Phase::None) {  // a quote: the clock stands still
+    updateQuote(dt);
+    return;
+  }
+  double want = t_ + dt;
+  const bool stopNow = nextStop_ < stops_.size() && want >= stops_[nextStop_].at;
+  if (stopNow) want = std::max(t_, stops_[nextStop_].at);
+  t_ = want;
+  while (nextBeat_ < tl_.beats.size() && (stopNow ? tl_.beats[nextBeat_].t < t_ : tl_.beats[nextBeat_].t <= t_)) fire(tl_.beats[nextBeat_++], false);
+  if (stopNow) {
+    beginQuote(false);
+    return;
+  }
   if (t_ >= tl_.total) t_ = tl_.total;
   floats_.erase(std::remove_if(floats_.begin(), floats_.end(), [&](const Float& f) { return t_ - f.born >= f.life; }), floats_.end());
 }
 
 void FightScene::skip() {
   if (!active_ || t_ >= tl_.total) return;
+  if (phase_ == Phase::Out || phase_ == Phase::In) {  // a slide under way ends at once
+    phase_ = phase_ == Phase::Out ? Phase::Hold : Phase::None;
+    phaseT_ = 0;
+    return;
+  }
+  if (phase_ == Phase::Hold) return;  // the lines are being said: the dialogue box has the input
+  if (nextStop_ < stops_.size()) {  // a quote is still to come: skip up to it (its lines are never lost), the fight goes on after it
+    while (nextBeat_ < tl_.beats.size() && tl_.beats[nextBeat_].t < stops_[nextStop_].at) fire(tl_.beats[nextBeat_++], true);
+    t_ = std::max(t_, stops_[nextStop_].at);
+    beginQuote(true);
+    return;
+  }
   skipped_ = true;
   while (nextBeat_ < tl_.beats.size()) fire(tl_.beats[nextBeat_++], true);
   t_ = tl_.total;

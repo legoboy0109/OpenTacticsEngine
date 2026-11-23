@@ -98,6 +98,8 @@ export function VariablePick({ label, value, onChange }: { label: string; value:
 }
 
 const KINDS: FilterKind[] = ['any', 'unit', 'side', 'team', 'type', 'tag']
+/** Offered only by the commands' forms (`actor`): the unit that set the event off (the checks say when the event's trigger has none). */
+const KINDS_WITH_ACTOR: FilterKind[] = [...KINDS, 'actor']
 
 interface FilterProps {
   label: string
@@ -106,15 +108,17 @@ interface FilterProps {
   /** required: "any unit" is written as {}. optional: "any unit" is the same as leaving it out. defaultLabel: a "Default" choice leaves it out and "any unit" is written as {}. */
   mode?: 'required' | 'optional' | 'default'
   defaultLabel?: string
+  /** Offer "The unit that set the event off" (a command's filter in a map event). */
+  actor?: boolean
 }
 
 /** "Which unit(s)": a specific named unit, a side, a team, a unit type, a tag or anyone. */
-export function FilterPicker({ label, value, onChange, mode = 'required', defaultLabel }: FilterProps) {
+export function FilterPicker({ label, value, onChange, mode = 'required', defaultLabel, actor = false }: FilterProps) {
   const story = useStory()
   const kind: FilterKind | 'default' = value === undefined ? (mode === 'default' ? 'default' : 'any') : filterKind(value)
   const options: Option[] = [
     ...(mode === 'default' ? [{ value: 'default', label: S.filterDefault(defaultLabel ?? '') }] : []),
-    ...KINDS.map((k) => ({ value: k, label: S.filterKinds[k] })),
+    ...(actor || value?.actor === true ? KINDS_WITH_ACTOR : KINDS).map((k) => ({ value: k, label: S.filterKinds[k] })),
   ]
   const pick = (k: string) => {
     if (k === 'default') return onChange(undefined)

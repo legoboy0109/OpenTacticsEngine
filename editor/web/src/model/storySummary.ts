@@ -88,6 +88,7 @@ export function filterText(c: SumCtx, f: Filter | string | undefined): string {
     case 'team': return `any unit of team ${teamText(c, flt!.team!)}`
     case 'type': return `any ${typeName(c, flt!.type!)}`
     case 'tag': return `any unit with the tag “${flt!.tag}”`
+    case 'actor': return 'the unit that set the event off'
     default: return 'any unit'
   }
 }
@@ -97,6 +98,7 @@ export function triggerText(c: SumCtx, t: Trigger): string {
   const whose = side ? `, ${sideName(c, side)}’s turn` : ''
   switch (triggerKind(t)) {
     case 'start': return 'The battle starts'
+    case 'beforePrep': return 'Before the preparation screen'
     case 'won': return 'The battle is won'
     case 'lost': return 'The battle is lost'
     case 'end': return 'The battle ends'

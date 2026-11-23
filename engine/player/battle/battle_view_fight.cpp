@@ -4,6 +4,7 @@
 
 #include "battle/battle_view.h"
 #include "battle/fight_script.h"
+#include "core/data/scene_fx.h"
 
 namespace ote {
 
@@ -47,6 +48,15 @@ bool BattleView::takeFightRun(const Battle& b) {
   }
   fight.levelsGained.clear();
   fight.hpGained.clear();
+  fight.quoteBefore.clear();
+  fight.quoteDefeat.clear();
+  fight.quoteShown[0] = fight.quoteShown[1] = false;
+  fight.talking = false;
+  // The defeat quote right behind the fall is said inside the scene, after the bar has emptied (the scene's timeline stops there).
+  while (!staff && !queue_.empty() && queue_.front().type == EventType::Dialogue && (queue_.front().flags & kDialogueDefeat)) {
+    fight.quoteDefeat.push_back(queue_.front());
+    queue_.pop_front();
+  }
   for (const Event& e : queue_) {  // what follows the fight, up to the next strike
     if (e.type == EventType::Attack || e.type == EventType::TurnStarted || e.type == EventType::UnitMoved) break;
     if (e.type != EventType::LevelUp || (e.a != u0 && e.a != u1)) continue;
@@ -61,6 +71,36 @@ bool BattleView::takeFightRun(const Battle& b) {
   cur_.t = 0;
   hasFocus = false;
   return true;
+}
+
+// cur_.ev is a line of a battle quote. When the lines of the quote are followed at once by a fight the scene shows, they are taken into that fight's
+// run (the scene says them after it has opened, before the first strike); otherwise they play where they are, on the map.
+bool BattleView::takeQuoteRun(const Battle& b) {
+  if (cur_.ev.type != EventType::Dialogue || !(cur_.ev.flags & kDialogueQuote)) return false;
+  std::vector<Event> quote(1, cur_.ev);
+  while (!queue_.empty() && queue_.front().type == EventType::Dialogue && (queue_.front().flags & kDialogueQuote)) {
+    quote.push_back(queue_.front());
+    queue_.pop_front();
+  }
+  bool taken = false;
+  if (!queue_.empty() && (queue_.front().type == EventType::Attack || queue_.front().type == EventType::SkillActivated)) {
+    const Event head = queue_.front();
+    queue_.pop_front();
+    cur_.ev = head;
+    taken = takeFightRun(b);
+    if (taken) {
+      fight.quoteBefore = quote;
+      return true;
+    }
+    queue_.push_front(head);  // not a fight the scene shows (out of sight, an area attack ...): the quote stays on the map
+  }
+  for (size_t i = quote.size(); i-- > 1;) {  // put the rest back in order; the first is the entry that plays now
+    quote[i].flags &= ~kDialogueQuote;
+    queue_.push_front(quote[i]);
+  }
+  cur_.ev = quote[0];
+  cur_.ev.flags &= ~kDialogueQuote;
+  return false;
 }
 
 // Undoes what the start events' fights did to the view's picture of the units (it was made from the state after them): a hit gives its damage
@@ -99,6 +139,20 @@ void BattleView::fightFinished(const Battle& b) {
   run.swap(fight.events);
   fight.active = false;
   cur_.active = false;
+  // A quote the scene did not get to say (a fight with no fall for a defeat quote ...) plays now on the map, before whatever comes next.
+  {
+    std::vector<Event> left;
+    if (!fight.quoteShown[0]) left.insert(left.end(), fight.quoteBefore.begin(), fight.quoteBefore.end());
+    if (!fight.quoteShown[1]) left.insert(left.end(), fight.quoteDefeat.begin(), fight.quoteDefeat.end());
+    for (size_t i = left.size(); i-- > 0;) {
+      left[i].flags &= ~(kDialogueQuote | kDialogueDefeat);
+      queue_.push_front(left[i]);
+    }
+    fight.quoteBefore.clear();
+    fight.quoteDefeat.clear();
+    fight.talking = false;
+    dialogue.active = false;
+  }
   const size_t floatsBefore = floats.size();
   const std::string noticeBefore = notice;
   quiet_ = true;

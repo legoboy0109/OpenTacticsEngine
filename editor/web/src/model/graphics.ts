@@ -82,6 +82,18 @@ function keepBackgrounds(all: Graphics['backgrounds'], sheetId: string): Graphic
   return Object.keys(kept).length ? kept : undefined
 }
 
+function keepBadges(all: Graphics['badges'], sheetId: string): Graphics['badges'] {
+  if (!all) return all
+  const kept = all.filter((b) => b.sheet !== sheetId)
+  return kept.length ? kept : undefined
+}
+
+function keepMarkers(all: Graphics['markers'], sheetId: string): Graphics['markers'] {
+  if (!all) return all
+  const kept = all.filter((m) => m.sheet !== sheetId)
+  return kept.length ? kept : undefined
+}
+
 function keepPortraits(all: NonNullable<Graphics['portraits']>, sheetId: string): Graphics['portraits'] {
   const kept = Object.fromEntries(Object.entries(all).filter(([, p]) => p.sheet !== sheetId))
   return Object.keys(kept).length ? kept : undefined
@@ -112,6 +124,9 @@ export function removeSheet(doc: ProjectDoc, id: string): ProjectDoc {
     icons: g.icons && keepIcons(g.icons, id),
     // ... and so do the story scene backgrounds
     backgrounds: keepBackgrounds(g.backgrounds, id),
+    // ... and the unit badges
+    badges: keepBadges(g.badges, id),
+    markers: keepMarkers(g.markers, id),
   })
   return { ...doc, graphics: dropBattleSheet(next, id) }  // battle sets, effects and backgrounds that draw from the image go too
 }

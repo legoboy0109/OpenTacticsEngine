@@ -21,8 +21,8 @@ sets. Presentation only: the rules core's event stream is the single source of t
 In the scene: every fight between two units (a player's attack, the computer's attack, counters, follow-up strikes, skills that
 fire, drain, recoil, conditions put on in the fight, a weapon that breaks, the fall), and, with `"battleSceneStaves": true`, a staff used on
 one other unit ("Staves in the scene"). **Abilities, attacks on doors, every other staff (map-wide, on oneself, moving a unit, a light, a lock),
-and everything else stay on the map in this version.** Battle quotes (before) and defeat quotes (after) are dialogue on the map and
-keep their place in the stream: quotes, scene, defeat quote. Experience, level-up box and rank-up come after the scene as before
+and everything else stay on the map in this version.** Battle quotes and defeat quotes are said **inside the scene** ("Quotes in the scene"): the battle quote after the scene opens, the defeat quote after the
+killing blow's bar has emptied. Experience, level-up box and rank-up come after the scene as before
 (the scene shows the fighters' level and maximum hit points as they were when the fight began). Confirm / Cancel / tap skips the
 rest of the fight to its result. A fight out of the viewer's sight (fog) is not shown.
 
@@ -30,6 +30,29 @@ Log lines (`[info] battle scene: ...`) for tests: `start A (Lv n) vs B (Lv n), m
 picture`, `X sheet: "id" (side S)` (only when the fighter's side has a sheet of its own for the set), `skill NAME (unit)`, `strike A -> B [(counter)] [(crit)]`, `hit|crit A -> B DMG`, `miss A -> B`, `drain X +n`, `recoil X -n`,
 `defeated X`, `end` or `end (skipped)` (skipped beats are still logged, in order). A staff use adds `staff heal B +N`, `staff miss B`, `staff condition X (B)`,
 `staff repair X (B)` and ends its `start` line with `, staff ITEM on B` ("Staves in the scene"); an effect with `"speed"` adds `effect ID flight N ms` ("Travel and distance"). Also, only in a game that uses the newer settings: `left A, right B` (who stands where, with `battleSceneSides`), `background "id" (terrain t)` (when the game has platforms, a map table or `battleBackgroundFrom: attacker`) and `platform "id"` (when one is used); a game with none of them logs exactly what it always did.
+
+## Quotes in the scene
+
+A character's **battle quote** and **defeat quote** (docs/EVENTS.md "Battle and defeat quotes") are said inside the scene when the scene shows the fight, as the classic handheld games do:
+
+- **Battle quote**: the scene opens, `leadMs` later the **fighters vanish** (platforms, boxes and numbers too) and the **backdrop slides away** upward over `slideOutMs`, leaving a cleared (black) screen; the quote's lines
+  play in the ordinary dialogue box over it; when the last one is dismissed the backdrop slides back over `slideInMs` and the fighters return with it; then the fight begins (first strike). Both fighters' quotes (the attacked unit
+  first) are one stop; with game.json `"quotesPerFight": "one"` only the first speaker's.
+- **Defeat quote**: the killing blow lands, the struck fighter plays its hurt pose while its bar drains, and **when the bar has emptied** the scene stops, hides, slides away and says the quote, then slides back and **only then does the
+  falling (defeat) animation start**. A fighter with no hurt animation just stands while the bar drains. (Without a defeat quote the fall starts at the blow as always: a fight with no quotes has exactly the timeline it had.)
+- The scene's own clock stands still during a stop (nothing fires, no sound plays, floating numbers wait); the dialogue box takes the input; the Skip tab / hold Cancel skip the lines as on the map. **Confirm / Cancel / tap**
+  while the scene runs skips to the next quote stop (the lines are never lost), and the same again after it skips the rest of the fight; a slide under way ends at once.
+- **Fights the scene does not show** (out of the viewer's sight, an area attack, a staff use) and **the scene switched off** keep today's behaviour: the quotes are dialogue on the map, before the fight / after the fall.
+  Quote lines that a scene could not place (a defeat quote of a fight with no fall) play on the map after it.
+- **Data** (`data/graphics.json` `"battle"` > `"scene"` > `"quote"`; all optional, whole milliseconds 0 to 5000, defaults shown): `{ "leadMs": 150, "slideOutMs": 300, "slideInMs": 300 }`. `leadMs` = how long
+  after the scene opens a battle quote begins (the scene's own 0.4 s lead-in to the first strike is longer than the default, so the quote comes before the fighters move); `0` = at once; `slideOutMs` / `slideInMs` `0` = a cut. Refusals:
+  `battle scene quote: unknown key "x"`, `"leadMs" must be ...` (`battle scene quote` names the place).
+- **Log** (for tests; a fight with no quotes logs exactly what it did): `battle scene: quote (battle)` or `quote (defeat)` when the stop begins (the fighters are gone), the usual `dialogue: Speaker | text` lines,
+  `battle scene: quote over` when the last line was dismissed.
+- Presentation only: the stream, saves, hashes and `ote-sim` results do not change (the `Dialogue` entries of a quote carry a flag the player reads). Code: `FightScene::beginQuote` / `updateQuote` / `quoteDone` and the draw in
+  `fight_scene*.cpp`, the stops in the timeline (`FightTimeline::defeatStopAt`, `buildTimelineList(defeatStop)`), `BattleView::takeQuoteRun` / `startQuote` / `talkNext` (`battle_view_fight.cpp`,
+  `battle_view_story.cpp`), `BattleScene::updateFight` (`battle_fight.cpp`). Tests: `tests/test_fight_timeline.cpp` (the defeat stop), `tests/test_battle_scene_settings.cpp` (the keys), `tests/story_order_player_test.py`
+  (fixture `tests/fixtures/story-order`), `editor/web/tests/unit/orderQuotesBadge.test.ts`. Editor: Art > Battle animations > "Quotes in the scene" (the three times); Rules > Battle animations > "Battle quotes in a fight".
 
 ## Staves in the scene
 

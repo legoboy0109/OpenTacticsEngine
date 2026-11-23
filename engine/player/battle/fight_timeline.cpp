@@ -139,9 +139,9 @@ namespace {
 class TimelineBuilder {
  public:
   TimelineBuilder(const FightScript& s, const FighterTimes times[2], const std::vector<std::vector<EffectTimes>>& effectsByStrike, int panMs, int panStartMs,
-                  int resultHoldMs, int resultHoldAgainMs, const HitHold& hitHold)
+                  int resultHoldMs, int resultHoldAgainMs, const HitHold& hitHold, bool defeatStop)
       : s_(s), times_(times), effectsByStrike_(effectsByStrike), useCam_(panMs >= 0), pan_(panMs >= 0 ? sec(panMs) : 0), panStartMs_(panStartMs),
-        resultHoldMs_(resultHoldMs), resultHoldAgainMs_(resultHoldAgainMs), hitHold_(hitHold) {}
+        resultHoldMs_(resultHoldMs), resultHoldAgainMs_(resultHoldAgainMs), hitHold_(hitHold), defeatStop_(defeatStop) {}
 
   FightTimeline build() {
     if (!s_.valid) return tl_;
@@ -410,6 +410,8 @@ class TimelineBuilder {
     const int i = (int)k.i, d = k.d;
     const FighterTimes& dt = times_[d];
     tl_.beats.push_back({k.hitT, BeatKind::Hit, i, d, st.damage, st.crit, ""});
+    const bool hpMoves = st.damage > 0 || st.hpBefore[d] != st.hpAfterHit[d];
+    const double drain = hpMoves ? std::min(0.7, std::max(0.3, kDrainTime * st.damage / std::max(1, st.hpBefore[d] > 0 ? st.hpBefore[d] : 10) + 0.25)) : 0.0;
     FightPose dp;
     dp.start = k.hitT;
     dp.strike = i;
@@ -417,7 +419,19 @@ class TimelineBuilder {
       dp.anim = BaDefeat;
       dp.dur = dt.has[BaDefeat] ? sec(dt.total[BaDefeat]) : sec(kFallbackDefeatMs);
       dp.fallback = !dt.has[BaDefeat];
-      tl_.beats.push_back({k.hitT + dp.dur, BeatKind::Defeated, i, d, 0, false, ""});
+      if (defeatStop_) {  // the fall waits for the defeat quote: hurt while the bar drains, then the stop, then the fall
+        FightPose hp;
+        hp.start = k.hitT;
+        hp.strike = i;
+        hp.anim = BaHurt;
+        hp.dur = dt.has[BaHurt] ? sec(dt.total[BaHurt]) : sec(kFallbackHurtMs);
+        hp.fallback = !dt.has[BaHurt];
+        tl_.poses[d].push_back(hp);
+        addSounds(tl_, hp, d, dt, i);
+        dp.start = std::max(k.hitT + drain, k.hitT + hp.dur);
+        tl_.defeatStopAt = dp.start;
+      }
+      tl_.beats.push_back({dp.start + dp.dur, BeatKind::Defeated, i, d, 0, false, ""});
     } else {
       dp.anim = BaHurt;
       dp.dur = dt.has[BaHurt] ? sec(dt.total[BaHurt]) : sec(kFallbackHurtMs);
@@ -430,9 +444,8 @@ class TimelineBuilder {
     }
     tl_.poses[d].push_back(dp);
     addSounds(tl_, dp, d, dt, i);
-    k.end = std::max(k.end, k.hitT + dp.dur + (st.dies[d] ? 0.3 : 0.0));
-    if (st.damage > 0 || st.hpBefore[d] != st.hpAfterHit[d]) {
-      const double drain = std::min(0.7, std::max(0.3, kDrainTime * st.damage / std::max(1, st.hpBefore[d] > 0 ? st.hpBefore[d] : 10) + 0.25));
+    k.end = std::max(k.end, dp.start + dp.dur + (st.dies[d] ? 0.3 : 0.0));
+    if (hpMoves) {
       tl_.hp.push_back({k.hitT, k.hitT + drain, d, st.hpBefore[d], st.hpAfterHit[d]});
       k.end = std::max(k.end, k.hitT + drain);
     }
@@ -484,6 +497,7 @@ class TimelineBuilder {
   const double pan_;
   const int panStartMs_, resultHoldMs_, resultHoldAgainMs_;
   const HitHold hitHold_;
+  const bool defeatStop_;
   FightTimeline tl_;
   int camSide_ = 0;
   double t_ = 0;
@@ -492,8 +506,8 @@ class TimelineBuilder {
 }  // namespace
 
 FightTimeline buildTimelineList(const FightScript& s, const FighterTimes times[2], const std::vector<std::vector<EffectTimes>>& effectsByStrike, int panMs, int panStartMs, int resultHoldMs, int resultHoldAgainMs,
-                                const HitHold& hitHold) {
-  return TimelineBuilder(s, times, effectsByStrike, panMs, panStartMs, resultHoldMs, resultHoldAgainMs, hitHold).build();
+                                const HitHold& hitHold, bool defeatStop) {
+  return TimelineBuilder(s, times, effectsByStrike, panMs, panStartMs, resultHoldMs, resultHoldAgainMs, hitHold, defeatStop).build();
 }
 
 }  // namespace ote

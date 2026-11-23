@@ -64,6 +64,8 @@ enum : int {
   kSceneAuto = 4,        // SceneEffect Fade: the core faded it in by itself at the end of the run of events
   kDialoguePosMask = 7,  // Dialogue flags: position (kPos*)
   kDialogueNarrate = 8,  // Dialogue flags: narrate line
+  kDialogueQuote = 64,   // Dialogue flags: a line of a battle quote (before the fight's first strike); the battle scene may play it inside the scene
+  kDialogueDefeat = 128, // Dialogue flags: a line of a defeat quote (right after UnitDied); the battle scene may play it inside the scene
   kFocusNoWait = 16,     // Focus flags: "wait": false
   kRelocateWalk = 32     // UnitRelocated flags: walk (data = the path, from..to)
 };

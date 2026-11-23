@@ -14,7 +14,7 @@ export function GiveItemForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
   return (
     <div className="stack tight">
       <ItemPick label={S.giveItem} value={cmd.giveItem ?? ''} onChange={(v) => patch({ giveItem: v })} />
-      <FilterPicker label={S.giveItemTo} value={typeof cmd.to === 'object' ? cmd.to : {}} onChange={(f) => patch({ to: f ?? {} })} />
+      <FilterPicker actor label={S.giveItemTo} value={typeof cmd.to === 'object' ? cmd.to : {}} onChange={(f) => patch({ to: f ?? {} })} />
       <p className="help">{S.giveItemHelp}</p>
     </div>
   )
@@ -29,7 +29,7 @@ export function TakeItemForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
       <ItemPick label={S.takeItem} value={cmd.takeItem ?? ''} onChange={(v) => patch({ takeItem: v })} />
       {scene
         ? <UnitPick label={S.takeItemFromScene} value={typeof cmd.from === 'string' ? cmd.from : ''} onChange={(v) => patch({ from: v })} />
-        : <FilterPicker label={S.takeItemFrom} value={asFilter(cmd.from) ?? {}} onChange={(f) => patch({ from: f ?? {} })} />}
+        : <FilterPicker actor label={S.takeItemFrom} value={asFilter(cmd.from) ?? {}} onChange={(f) => patch({ from: f ?? {} })} />}
       <Check label={S.takeItemAll} help={S.takeItemAllHelp} checked={cmd.all === true} onChange={(v) => patch({ all: v ? true : undefined })} />
       <p className="help">{scene ? S.takeItemHelpScene : S.takeItemHelp}</p>
     </div>

@@ -762,10 +762,20 @@ bool readSceneTiming(const LoadCtx& c, const Json& b, BattleSceneTiming& out) {
   const Json& sc = b["scene"];
   if (!sc.isObject()) return c.fail("battle scene", "must be an object such as { \"resultHoldMs\": 533, \"resultHoldAgainMs\": 0 }");
   for (const Json::Member& m : sc.members())
-    if (m.first != "resultHoldMs" && m.first != "resultHoldAgainMs" && m.first != "hitHold")
-      return c.fail("battle scene", unknownKeyText(m.first, {"resultHoldMs", "resultHoldAgainMs", "hitHold"}));
+    if (m.first != "resultHoldMs" && m.first != "resultHoldAgainMs" && m.first != "hitHold" && m.first != "quote")
+      return c.fail("battle scene", unknownKeyText(m.first, {"resultHoldMs", "resultHoldAgainMs", "hitHold", "quote"}));
   if (!c.integerIn(sc, "resultHoldMs", "battle scene", 0, 5000, out.resultHoldMs) || !c.integerIn(sc, "resultHoldAgainMs", "battle scene", 0, 5000, out.resultHoldAgainMs))
     return false;
+  if (sc.has("quote")) {  // "quote": { "leadMs", "slideOutMs", "slideInMs" } (whole milliseconds, 0..5000)
+    const Json& q = sc["quote"];
+    const std::string at = "battle scene quote";
+    if (!q.isObject()) return c.fail(at, "must be an object such as { \"leadMs\": 150, \"slideOutMs\": 300, \"slideInMs\": 300 }");
+    for (const Json::Member& m : q.members())
+      if (m.first != "leadMs" && m.first != "slideOutMs" && m.first != "slideInMs") return c.fail(at, unknownKeyText(m.first, {"leadMs", "slideOutMs", "slideInMs"}));
+    if (!c.integerIn(q, "leadMs", at, 0, 5000, out.quote.leadMs) || !c.integerIn(q, "slideOutMs", at, 0, 5000, out.quote.slideOutMs) ||
+        !c.integerIn(q, "slideInMs", at, 0, 5000, out.quote.slideInMs))
+      return false;
+  }
   if (!sc.has("hitHold")) return true;
   // "hitHold": { "minMs", "baseMs", "perHpMs", "killMs", "noChangeMs" } (all optional; decimals allowed).
   const Json& h = sc["hitHold"];

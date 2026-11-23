@@ -1,7 +1,7 @@
 // Two more choices of the "Battle animations" default (docs/BATTLE_SCENE.md): whose square decides the backdrop and platform, and which
 // side of the scene each fighter stands on. Shown with the scene's default; both are presentation only.
 import { sceneChoiceProblems } from '../../model/battleSceneChecks'
-import { SCENE_SIDES, backgroundFrom, platformFrom, sceneSides, sceneStaves, setBackgroundFrom, setPlatformFrom, setSceneSides, setSceneStaves, type BackgroundFrom, type PlatformFrom, type SceneSides } from '../../model/battleTables'
+import { SCENE_SIDES, backgroundFrom, platformFrom, quotesPerFight, sceneSides, sceneStaves, setBackgroundFrom, setPlatformFrom, setQuotesPerFight, setSceneSides, setSceneStaves, type BackgroundFrom, type PlatformFrom, type QuotesPerFight, type SceneSides } from '../../model/battleTables'
 import { useDoc, useEdit } from '../../store/context'
 import { Field } from '../../ui/Field'
 import { Select } from '../../ui/Select'
@@ -28,6 +28,10 @@ export function BattleSceneChoices() {
           onChange={(v) => edit((d) => setSceneSides(d, v as SceneSides))} />
       </Field>
       <p className="help">{BC.sidesChoicesHelp[sides]}</p>
+      <Field label={BC.quotes} help={BC.quotesHelp}>
+        <Select aria-label={BC.quotes} value={quotesPerFight(doc)} options={[{ value: 'both', label: BC.quotesBoth }, { value: 'one', label: BC.quotesOne }]}
+          onChange={(v) => edit((d) => setQuotesPerFight(d, v as QuotesPerFight))} />
+      </Field>
       <Toggle label={BC.staves} help={BC.stavesHelp} checked={sceneStaves(doc)} onChange={(on) => edit((d) => setSceneStaves(d, on))} />
       {sceneChoiceProblems(doc).map((p) => <p key={p} className="help" role="alert">{p}</p>)}
     </div>

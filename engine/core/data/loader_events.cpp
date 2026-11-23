@@ -55,7 +55,8 @@ static bool readTrigger(StoryLoader& L, const Json& w, const std::string& where,
     else if (s == "won") t.kind = K::BattleWon;
     else if (s == "lost") t.kind = K::BattleLost;
     else if (s == "end") t.kind = K::BattleEnd;
-    else return L.fail(at, "\"battle\" must be \"start\", \"won\", \"lost\" or \"end\"");
+    else if (s == "beforePrep") t.kind = K::BeforePrep;
+    else return L.fail(at, "\"battle\" must be \"start\", \"beforePrep\", \"won\", \"lost\" or \"end\"");
     return true;
   }
   if (k == "turn") {
@@ -107,15 +108,30 @@ static bool readEvents(StoryLoader& L, const Json& list, const std::string& mapN
     for (const StoryEvent& o : data.events)
       if (o.id == ev.id) return L.fail(mapName + ": event \"" + ev.id + "\"", "duplicate id");
     where = mapName + ": event \"" + ev.id + "\"";
-    if (!L.onlyKeys(e, {"id", "when", "if", "repeat", "do"}, where)) return false;
+    if (!L.onlyKeys(e, {"id", "when", "if", "repeat", "do", "marker"}, where)) return false;
     if (!e.has("when")) return L.fail(where, "missing required \"when\" (the trigger)");
     if (!readTrigger(L, e["when"], where, ev.when)) return false;
     if (e.has("if") && !L.conditions(e["if"], where, ev.cond)) return false;
     if (!L.ctx().boolean(e, "repeat", where, ev.repeat)) return false;
+    if (e.has("marker")) {  // docs/GRAPHICS.md "Map markers": shown on the squares of a reach area while the event can still run
+      std::string mid;
+      if (!L.ctx().str(e, "marker", where, mid)) return false;
+      if (ev.when.kind != Trigger::Kind::Reach)
+        return L.fail(where, "\"marker\" is for an event whose \"when\" is a \"reach\" area: the marker is drawn on the squares of that area");
+      ev.marker = L.db().graphics.findMarker(mid);
+      if (ev.marker < 0) return L.fail(where, "\"marker\" names unknown marker \"" + mid + "\" (data/graphics.json \"markers\")");
+    }
     if (ev.when.kind == Trigger::Kind::Turn && ev.when.round == 0) ev.repeat = true;  // "every" round means every round
     if (!e.has("do")) return L.fail(where, "missing required \"do\" (the commands to run)");
     bool talk = ev.when.kind == Trigger::Kind::Talk;
-    if (!L.commands(e["do"], where + ": \"do\"", talk, ev.commands, ev.endsTurnOnTalk)) return false;
+    using TK = Trigger::Kind;
+    const TK tk = ev.when.kind;
+    L.allowActorFilter(tk == TK::Reach || tk == TK::Defeated || tk == TK::Fight || tk == TK::Talk || tk == TK::Promoted || tk == TK::Place);
+    L.readingBeforePrep(tk == TK::BeforePrep);
+    bool ok = L.commands(e["do"], where + ": \"do\"", talk, ev.commands, ev.endsTurnOnTalk);
+    L.allowActorFilter(false);
+    L.readingBeforePrep(false);
+    if (!ok) return false;
     data.events.push_back(ev);
   }
   return true;

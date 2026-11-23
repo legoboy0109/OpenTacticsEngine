@@ -13,6 +13,7 @@ namespace ote {
 struct BattleScene::PrepUi {
   enum class Screen { Main, Units, Positions, ItemsWho, ItemsWith, Trade, TradeChoice, Shop, ShopFor, SellWho, SellItems, View, Begin, Jobs };
   Screen screen = Screen::Main;
+  bool intro = false;           // the map's beforePrep scene is playing: the screen opens when it is over (prepOpenScreen)
   MapDef map;                   // the chapter's (or the free battle's) map, as the loader read it
   Playthrough* pt = nullptr;    // the playthrough in play, or the scratch one of a free battle
   bool campaign = false;        // a chapter of a story: the roster, the storage and the shop exist

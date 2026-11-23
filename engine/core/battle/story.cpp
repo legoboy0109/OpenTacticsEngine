@@ -65,6 +65,7 @@ bool Battle::unitMatches(const UnitFilter& f, const Unit& u) const {
     case UnitFilter::Kind::Side: return u.side == f.index;
     case UnitFilter::Kind::Team: return teamOf(u) == f.index;
     case UnitFilter::Kind::Type: return u.type == f.index;
+    case UnitFilter::Kind::Actor: return storyRun_.actor >= 0 && u.id == storyRun_.actor;
     case UnitFilter::Kind::Tag: {
       for (const std::string& t : typeOf(u).tags)
         if (t == f.unit) return true;

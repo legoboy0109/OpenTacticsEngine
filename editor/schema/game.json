@@ -25,6 +25,7 @@
       "battlePlatformFrom": { "type": "enum", "values": ["same", "own"], "default": "same", "help": "same: both fighters on one platform; own: each on the platform of its own square." },
       "battleSceneSides": { "type": "enum", "values": ["map", "playerRight", "playerLeft"], "default": "map", "help": "Which side of the scene each fighter stands on." },
       "battleSceneStaves": { "type": "bool", "default": false, "help": "A staff used on one other unit plays in the scene." },
+      "quotesPerFight": { "type": "enum", "values": ["both", "one"], "default": "both", "help": "both: each fighter may say its battle quote (the attacked unit first); one: at most one battle quote per fight." },
       "menuUnavailable": { "type": "enum", "values": ["grey", "hide"], "default": "grey", "help": "An action with nothing to act on stays greyed in the menu, or is left out." },
       "attackWeaponChoice": { "type": "enum", "values": ["equipped", "pick"], "default": "equipped", "help": "Attack goes straight to the targets, or first asks which weapon to use." },
       "grid": {

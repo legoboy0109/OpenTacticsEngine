@@ -152,14 +152,15 @@ def index_of(log, needle, start=0):
 
 def test_scene_order_quotes_levelup():
     make_game('s_kill', small_hp, xp, lambda g: os.remove(g + '/data/campaign.json'))  # no campaign: a single battle writes its Continue save
-    # Two quote lines, then the scene plays by itself, then the defeat quote (two lines) and the level-up box.
+    # The scene opens, the two battle quote lines are said inside it (before the first strike), the strike and the hit play, the defeat quote (two lines) is said
+    # inside it after the bar has emptied, then the fall; the level-up box comes after the scene (docs/BATTLE_SCENE.md "Quotes in the scene").
     LINE = ['wait:20', 'confirm', 'wait:4']
     inp = ','.join(ATTACK + LINE * 2 + ['wait:90'] + LINE * 2 + ['wait:30'] + ['confirm'] * 3 + ['wait:30'])
     log = run('s_kill', inp)
     sc = scene_lines(log)
     check('scene: starts with both fighters and their art', sc[:3] == ['start Eirik (Lv 1) vs Gorm (Lv 1), melee, 1 strike(s)', 'Eirik art: set "knight"', 'Gorm art: map picture'], str(sc[:4]))
-    check('scene: the strike, the hit, the fall, the end, in order',
-          [s for s in sc[3:]] == ['strike Eirik -> Gorm', 'hit Eirik -> Gorm 2', 'defeated Gorm', 'end'] or [s for s in sc[3:]][:4] == ['strike Eirik -> Gorm', 'hit Eirik -> Gorm 2', 'defeated Gorm', 'end'], str(sc))
+    want = ['quote (battle)', 'quote over', 'strike Eirik -> Gorm', 'hit Eirik -> Gorm 2', 'quote (defeat)', 'quote over', 'defeated Gorm', 'end']
+    check('scene: the quote, the strike, the hit, the defeat quote, the fall, the end, in order', sc[3:] == want or sc[3:][:len(want)] == want, str(sc))
     q1 = index_of(log, 'dialogue: Gorm | Eirik. At last.')
     q2 = index_of(log, 'dialogue: Eirik | Gorm! Your raids end today.')
     s0 = index_of(log, 'battle scene: start')
@@ -167,8 +168,8 @@ def test_scene_order_quotes_levelup():
     d1 = index_of(log, 'dialogue: Gorm | Impossible...')
     d2 = index_of(log, 'dialogue: Mira | Brother!')
     levelled = [u for u in saved_units('s_kill') if u.get('name') == 'Eirik']
-    check('order: battle quotes, then the scene', 0 <= q1 < q2 < s0, '%d %d %d' % (q1, q2, s0))
-    check('order: the scene, then the defeat quote and the friend\'s answer', 0 <= s1 < d1 < d2, '%d %d %d' % (s1, d1, d2))
+    check('order: the scene opens, then the battle quotes, then the first strike', 0 <= s0 < q1 < q2 < index_of(log, 'battle scene: strike'), '%d %d %d' % (q1, q2, s0))
+    check('order: the hit, then the defeat quote and the friend\'s answer, then the fall', 0 <= index_of(log, 'battle scene: hit') < d1 < d2 < index_of(log, 'battle scene: defeated') < s1, '%d %d %d' % (s1, d1, d2))
     check('after the fight: the experience and the level-up still happen (Eirik is Lv 2 in the Continue save)',
           levelled and levelled[0].get('level') == 2, str(levelled) + log[-400:])
     check('the map does not play the strike a second time (no map floats logged as strikes)', log.count('battle scene: start') == 1)

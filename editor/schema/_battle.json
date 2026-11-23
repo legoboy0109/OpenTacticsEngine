@@ -246,6 +246,10 @@
         "scene": { "type": "object", "block": true, "help": "How long a held pose waits after the result.", "fields": {
           "resultHoldMs": { "type": "int", "min": 0, "max": 5000, "default": 533, "help": "The result is over this long after the hit or miss." },
           "resultHoldAgainMs": { "type": "int", "min": 0, "max": 5000, "default": 0, "help": "Added when the same fighter strikes again next." },
+          "quote": { "type": "object", "help": "A battle or defeat quote played inside the scene: the fighters vanish, the backdrop slides away, the lines play, it all comes back.", "fields": {
+            "leadMs": { "type": "int", "min": 0, "max": 5000, "default": 150, "help": "How long after the scene opens a battle quote begins." },
+            "slideOutMs": { "type": "int", "min": 0, "max": 5000, "default": 300, "help": "The backdrop slides away over this long." },
+            "slideInMs": { "type": "int", "min": 0, "max": 5000, "default": 300, "help": "The backdrop slides back over this long." } } },
           "hitHold": { "type": "object", "help": "A hit waits by the hit points it changed (a draining bar); a miss keeps resultHoldMs.", "fields": {
             "minMs": { "type": "number", "min": 0, "max": 5000, "help": "The shortest wait after a hit (default: resultHoldMs)." },
             "baseMs": { "type": "number", "min": 0, "max": 5000, "help": "Added to the points' share before comparing with the minimum." },

@@ -10,15 +10,16 @@ import type { Extra, ItemEntry, MapUnit } from './types'
 export interface Rect { x: number; y: number; w: number; h: number }
 
 /** Which unit(s): exactly one key, or none = any unit. */
-export interface Filter extends Extra { unit?: string; side?: string; team?: string; type?: string; tag?: string }
-export type FilterKind = 'any' | 'unit' | 'side' | 'team' | 'type' | 'tag'
-export const FILTER_KINDS: FilterKind[] = ['any', 'unit', 'side', 'team', 'type', 'tag']
+export interface Filter extends Extra { unit?: string; side?: string; team?: string; type?: string; tag?: string; actor?: boolean }
+/** `actor`: the unit that set the running event off (docs/EVENTS.md "The actor as a target"); only inside the commands of an event whose trigger has one. */
+export type FilterKind = 'any' | 'unit' | 'side' | 'team' | 'type' | 'tag' | 'actor'
+export const FILTER_KINDS: FilterKind[] = ['any', 'unit', 'side', 'team', 'type', 'tag', 'actor']
 
 export type CompareOp = '=' | '!=' | '<' | '<=' | '>' | '>='
 export const COMPARE_OPS: CompareOp[] = ['=', '!=', '<', '<=', '>', '>=']
 
 export interface Trigger extends Extra {
-  battle?: 'start' | 'won' | 'lost' | 'end'
+  battle?: 'start' | 'beforePrep' | 'won' | 'lost' | 'end'
   /** A round number, or "every". */
   turn?: number | 'every'
   side?: string
@@ -43,8 +44,8 @@ export interface Trigger extends Extra {
 export type PlaceEvent = 'opened' | 'visited' | 'destroyed'
 export const PLACE_EVENTS: PlaceEvent[] = ['opened', 'visited', 'destroyed']
 /** The kinds the editor offers (the file has six keys; battle and turn split in more). */
-export type TriggerKind = 'start' | 'won' | 'lost' | 'end' | 'turn' | 'everyTurn' | 'reach' | 'defeated' | 'fight' | 'talk' | 'promoted' | 'support' | 'place'
-export const TRIGGER_KINDS: TriggerKind[] = ['start', 'won', 'lost', 'end', 'turn', 'everyTurn', 'reach', 'defeated', 'fight', 'talk', 'promoted', 'support', 'place']
+export type TriggerKind = 'start' | 'beforePrep' | 'won' | 'lost' | 'end' | 'turn' | 'everyTurn' | 'reach' | 'defeated' | 'fight' | 'talk' | 'promoted' | 'support' | 'place'
+export const TRIGGER_KINDS: TriggerKind[] = ['start', 'beforePrep', 'won', 'lost', 'end', 'turn', 'everyTurn', 'reach', 'defeated', 'fight', 'talk', 'promoted', 'support', 'place']
 
 export interface Condition extends Extra {
   switch?: string
@@ -260,6 +261,8 @@ export interface StoryEvent extends Extra {
   when: Trigger
   if?: Condition[]
   repeat?: boolean
+  /** A reach event only: a marker of data/graphics.json drawn on the squares of its area while it can still run (docs/GRAPHICS.md "Map markers"). */
+  marker?: string
   do: Command[]
 }
 
@@ -274,7 +277,7 @@ export type { ItemEntry }
 const has = (o: object, k: string) => Object.prototype.hasOwnProperty.call(o, k)
 
 export function triggerKind(t: Trigger): TriggerKind | null {
-  if (has(t, 'battle')) return t.battle === 'won' || t.battle === 'lost' || t.battle === 'end' ? t.battle : 'start'
+  if (has(t, 'battle')) return t.battle === 'won' || t.battle === 'lost' || t.battle === 'end' || t.battle === 'beforePrep' ? t.battle : 'start'
   if (has(t, 'turn')) return t.turn === 'every' ? 'everyTurn' : 'turn'
   for (const k of ['reach', 'defeated', 'fight', 'talk', 'promoted', 'support', 'place'] as const) if (has(t, k)) return k
   return null
@@ -302,6 +305,7 @@ export function ruleKind(r: ObjectiveRule): RuleKind | null {
 /** Which filter key is set; none (or an empty object) = any unit. */
 export function filterKind(f: Filter | undefined): FilterKind {
   if (!f) return 'any'
+  if (f.actor === true) return 'actor'
   return (FILTER_KINDS.find((k) => k !== 'any' && typeof f[k] === 'string') ?? 'any')
 }
 

@@ -22,6 +22,9 @@ void BattleScene::startFight() {
   env.forecasts = &forecasts_;
   env.levelsGained = view_.fight.levelsGained;
   env.hpGained = view_.fight.hpGained;
+  env.quoteBefore = !view_.fight.quoteBefore.empty();  // quotes the scene says itself (docs/BATTLE_SCENE.md "Quotes in the scene")
+  env.quoteDefeat = !view_.fight.quoteDefeat.empty();
+  quoteStarted_ = false;
   fightSerial_ = view_.fight.serial;
   if (!fightScene_.start(env, view_.fight.events)) {  // nothing to show after all: the map plays it
     OTE_WARN("battle scene: the fight has no strike to show; played on the map");
@@ -37,6 +40,16 @@ void BattleScene::updateFight(double dt) {
     return;
   }
   fightScene_.update(dt);
+  if (const FightScene::QuoteWait w = fightScene_.quoteWaiting(); w != FightScene::QuoteWait::None) {
+    if (!quoteStarted_) {  // the fighters are gone and the backdrop too: now the lines
+      quoteStarted_ = true;
+      view_.startQuote(battle_, w == FightScene::QuoteWait::Defeat);
+    }
+    if (!view_.fight.talking) {  // the last line was dismissed
+      quoteStarted_ = false;
+      fightScene_.quoteDone();
+    }
+  }
   if (fightScene_.finished()) {
     fightScene_.close();
     view_.fightFinished(battle_);

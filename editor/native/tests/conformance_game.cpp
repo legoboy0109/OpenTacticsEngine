@@ -8,7 +8,7 @@ void addGameContexts(std::vector<Context>& c) {
   // plain-economy: styles, economy, production, capture, structures; one map, one resource.
   c.push_back({"game-general", "plain-economy", {},
                {"game:formatVersion", "game:name", "game:description", "game:author", "game:saving", "game:battleScene",
-                "game:battleBackgroundFrom", "game:battlePlatformFrom", "game:battleSceneSides", "game:battleSceneStaves",
+                "game:battleBackgroundFrom", "game:battlePlatformFrom", "game:battleSceneSides", "game:battleSceneStaves", "game:quotesPerFight",
                 "game:menuUnavailable", "game:attackWeaponChoice", "game:view", "game:font", "game:stats", "game:roles",
                 "game:moveTypes", "game:switches", "game:variables", "game:maps", "game:formulas",
                 "game:styles", "game:rules.economy", "game:rules.production", "game:rules.capture", "game:rules.hitRoll",

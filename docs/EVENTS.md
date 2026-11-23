@@ -89,6 +89,7 @@ variable). Messages name the map, the event and the command:
 | Trigger | Fires |
 |---|---|
 | `{ "battle": "start" }` | before the first turn (before the first `TurnStarted` entry) |
+| `{ "battle": "beforePrep" }` | **before the preparation screen**, on the map with the starting units placed and visible, between the chapter's `before` scene and the screen (on a map without a preparation screen: right before `battle: start`): see "Before the preparation screen" below |
 | `{ "battle": "won" }` / `"lost"` / `"end"` | when the battle is decided, right after the `BattleEnded` entry: `won` if the human team won, `lost` if it did not (also a draw), `end` either way |
 | `{ "turn": 4, "side": "red" }` | at the start of that side's turn in round 4 (after income); `side` optional = the first side; `"turn": "every"` = every round (refined: it implies `repeat`) |
 | `{ "reach": { "x": 5, "y": 2, "w": 2, "h": 1 }, "by": <filter> }` | when a matching unit **ends** a move inside the rectangle (`w`, `h` default 1). Walking through does not count. Refined: units moved by a `moveUnit` command also "end a move"; units of the computer's side count like any other |
@@ -96,6 +97,8 @@ variable). Messages name the map, the event and the command:
 | `{ "fight": <filter>, "with": <filter> }` | just before a fight begins, when one of the two fighters matches `fight` and the other `with` (`with` optional), whichever one attacks. If the event takes a fighter off the map or ends the battle there is no fight (the attacker's action is spent) |
 | `{ "place": "d1", "is": "opened" \| "visited" \| "destroyed", "by": <filter> }` | a door or chest of the map (its `id` in the map's `structures`) was opened, a place visited or destroyed (docs/SRPG.md section 10); `by` optional = by anyone, also by a story command |
 | `{ "talk": "eirik", "to": "lyra", "label": "Talk" }` | adds **Talk** to the first unit's action menu while the two units (named by id) are alive and next to each other; fires when chosen (does not end the turn unless the event says so). `label` defaults to "Talk". Only the first unit can start it; the computer's side never does |
+
+An event may also carry `"marker": "<id>"` (a `reach` event only): a picture of `data/graphics.json` `"markers"` is drawn on the squares of its area while the event can still run (docs/GRAPHICS.md "Map markers").
 
 ### Conditions (`if`, and inside the `if` command)
 
@@ -290,6 +293,28 @@ Recipe:
 ```
 
 A campaign scene has no acting unit: the scene loader refuses it (`"actor" is for map events only: a campaign scene has no unit that set it off`).
+
+#### The actor as a target
+
+Where a command takes a unit filter, `{ "actor": true }` is a filter too: **the unit that set the running event off** (the table above says which unit that is
+for each trigger). One `reach` event on an area can give an item to whichever unit stopped there, once:
+
+```json
+{ "id": "hidden_potion", "when": { "reach": { "x": 7, "y": 3, "w": 2, "h": 2 }, "by": { "side": "blue" } },
+  "do": [ { "giveItem": "potion", "to": { "actor": true } }, { "say": "Found a potion." } ] }
+```
+
+It works in every command whose target is a filter: `giveItem` (`to`), `takeItem` (`from`), `removeUnit`, `changeSide`, `storeItems`, `addCondition` /
+`removeCondition`, `teachSkill` / `forgetSkill`, `setBehaviour` (`units`) and in the filters of conditions inside a command (`alive`, `carries`, `hasSkill` ...). It is
+the `actor` *condition*'s sibling: the condition asks "is the actor this kind of unit?", the filter *is* the actor.
+
+- **Where it is refused** (loader, with a message that names the event and the command): in a trigger's own filters (`by`, `defeated`, `fight`, `with`, `promoted`), in an
+  event's own `if`, in the objectives, in events whose trigger has no acting unit (`battle` start / beforePrep / won / lost / end, `turn`, `support`), and in campaign scenes. `{ "actor": false }` and
+  `{ "actor": true, "side": "blue" }` (a filter has one thing) are refused too. A `place` event set off by a story command has no actor at run time: the filter then matches nobody
+  (nothing happens, nothing breaks).
+- A queued event keeps its own actor, and the actor is the unit as it stands when the command runs (after earlier commands of the same event).
+- Rules in `Battle::unitMatches` (`UnitFilter::Kind::Actor`, reading `StoryRun::actor`), loader in `data/loader_story_refs.cpp`; tests `tests/test_story_before_prep.cpp`,
+  `editor/web/tests/unit/orderQuotesBadge.test.ts`. Editor: the unit pickers of the commands offer "The unit that set the event off"; the model checks refuse it where the loader does.
 Loader refusals are those of a unit filter (`unknown unit "x"`, `unknown side`, `unknown key`, a filter that is not an object or an id). Code:
 `battle/story_actor.cpp` (and `StoryRun::actor` in `story_state.h`), `data/loader_story_actor.cpp`; tests `tests/test_extras_actor.cpp`,
 `tests/srpg_player_extras_test.py`.
@@ -794,7 +819,7 @@ Built (PLAN k item 8; rules `engine/core/campaign/prep*.cpp`, loader `engine/cor
 All wording is placeholder (player: `battle/prep_text.h`; editor: `panels/prepText.ts`).
 
 A map may have a **preparation screen** shown before its battle. The maker chooses per map: no `"prep"` key = the map starts exactly
-as it is placed (data, saves and hashes unchanged). Order: the chapter's `before` scene, then the screen, then the battle-start events.
+as it is placed (data, saves and hashes unchanged). Order: the chapter's `before` scene, then the map's **`beforePrep` events** (below), then the screen, then the battle-start events.
 
 ```jsonc
 "prep": {
@@ -994,6 +1019,44 @@ a battle or a scene) stops at the next question. Hint line while the answers are
 confirm". Test scripts: the player logs `choice: ... N answers: 0@x,y 1@x,y` (row centres, logical pixels) and `choice: battle|scene
 answer N`; `tests/choice_player_test.py` and the game `tests/fixtures/choice-story` use them.
 
+## Before the preparation screen
+
+`{ "battle": "beforePrep" }` is a map event that runs **before the preparation screen**, on the map itself, with the starting units already placed and visible: a camera move over
+the map, a few lines of dialogue, a unit that turns to the player's side, a reinforcement that is loaded, a fade in. Without it the order is chapter `before` scene (pictures and
+text) -> preparation screen -> `battle: start` events, so the map's own opening could only come after the screen. With it:
+
+1. the chapter's `before` scene (campaign, as before);
+2. the map's `beforePrep` events, played on the map (dialogue, `focus`, `fade`, `wait`, `addUnit`, `changeSide`, `moveUnit`, `setSwitch` ...);
+3. the preparation screen (when the map has a `prep` block; the screen's menu opens when the scene is over, and nothing of the screen is drawn meanwhile: no slot numbers, no panel title);
+4. the `battle: start` events.
+
+**A map without a preparation screen** runs its `beforePrep` events right before its `battle: start` events (the same stream, one after the other), so a map can always use both.
+The simulator, `--autoplay` and a plain `startMap` do the same (they have no screen). Which units are on the map: the ones the preparation shows when it opens (the default pick of
+deployed characters on their slots, the computer's units, the units that stay where they are placed): the same battle the screen shows, so the player sees a map that is already
+populated.
+
+```json
+{ "id": "opening", "when": { "battle": "beforePrep" }, "do": [
+  { "fade": "in", "ms": 800 },
+  { "focus": { "x": 14, "y": 3 }, "ms": 1200 },
+  { "say": "The fort looks quiet.", "speakerName": "Scout" },
+  { "focus": { "x": 2, "y": 8 }, "ms": 900 } ] }
+```
+
+- **What the screen's choices do to it.** The preparation screen rebuilds the battle after every change (who is deployed, trades, purchases). The `beforePrep` events then run again on the
+  rebuilt map **without being shown**, so what they made (units added, sides changed, switches set, terrain changed) is still there, and again when Begin is chosen: the battle that starts
+  has had them run exactly once, silently, on the final deployment (`Battle::setBeforePrepSeen`). So write them so that running them again on the same starting map gives the same result: no
+  random choices (a `choice` or a staged `fight` is refused), and commands that name a *deployable* character act on whoever is deployed (a benched character is simply not there).
+- **Saves.** A save made on the preparation screen restores into the screen and **does not show the scene again** (it runs silently, as above). A save made while the scene is still playing
+  is the one from before it (the screen's Continue save is written when its menu opens, after the scene), so loading it plays the scene from its start like the `before` scene. A
+  battle saved after the start has the events' `fired` list as it always had (a `beforePrep` event is a map event like the others; a repeat of it, `"repeat": true`, never comes).
+  Nothing in a save is new, and a game without the trigger saves and hashes as before.
+- **Commands refused** (loader, `battle: beforePrep` events only, also inside `if` branches): `win`, `lose`, `endTurn`, `choice`, `fight` (`"fight" makes no sense in a "beforePrep" event
+  (it runs before the preparation screen: ...)`). `{ "actor": true }` is refused too (nobody acts yet).
+- **Skipping.** The skip control fast-forwards the scene like any other map scene (dialogue, fades and waits).
+- Code: `Battle::runBeforePrep` / `setBeforePrepSeen` (`core/battle/story_before_prep.cpp`, `battle_init.cpp`), `BattleScene::prepStart` / `prepOpenScreen` (`player/battle/battle_prep.cpp`),
+  `GameSession::prepResumed`. Tests: `tests/test_story_before_prep.cpp`, `tests/story_order_player_test.py` (fixture `tests/fixtures/story-order`), `editor/web/tests/unit/orderQuotesBadge.test.ts`.
+
 ## Battle and defeat quotes
 
 Built (PLAN k item 7; owner: "go ahead", scope below is the assistant's default for the owner to correct). A **character**
@@ -1025,6 +1088,8 @@ character) have none. All wording is placeholder.
 - **How often**: `"map"` = once per battle (state in the battle, saved); `"campaign"` = once per playthrough (carried between
   chapters; a lost chapter that is retried does not use it up; in a game without a campaign it is the same as `"map"`);
   `"always"` = every time. There is no "per opponent": a quote against one character is one pair already.
+- **One quote per fight** (game.json `"quotesPerFight": "one"`; default `"both"`, the behaviour above): only the first speaker in the order above (the attacked unit, else the
+  attacker) says its battle quote; the other one keeps its quote (its "once" is not used up) for another fight. Defeat quotes are not affected (only one unit falls in a fight).
 - **Defeat quote**: said right after a unit is **struck down in a fight** (its killing strike, a counter included, on any turn), before
   the `defeated` story events (and so before the victory when it was the boss). Which set: `falls` normally; `retreats` only for a
   unit of a human (non-computer) side in a game whose `data/campaign.json` says `"fallen": "return"` (the unit comes back next
@@ -1032,6 +1097,10 @@ character) have none. All wording is placeholder.
   are offered (`falls` is then for enemies and other sides). A set that is absent is silent.
 - **Not defeats**: a poison tick, fuel running out, a unit lost with its carrier, a side wiped out by the defeat rules, and a story
   `removeUnit` never say a defeat quote. Only a fight does.
+- **In the battle scene.** With the side-view battle scene on (docs/BATTLE_SCENE.md "Quotes in the scene") the quotes are said **inside the scene** instead of on the map: a battle quote after the scene
+  opens and before the first strike, a defeat quote after the killing blow's bar has emptied and before the fall, each over a cleared screen (fighters hidden, backdrop slid away). The entries of the stream
+  carry flags for this (`kDialogueQuote`, `kDialogueDefeat` on the `Dialogue` entry), so the order of the stream, the rules and `ote-sim` are unchanged. With the scene off (or a fight
+  the scene does not show: out of sight, an area attack) nothing changes: on the map, as below.
 - **Stream**: the lines are `Dialogue` entries in the action's own event list, in this order: battle quotes, `fight` events' lines,
   the strikes, the killing strike, `UnitDied`, the defeat quote, the `defeated` events' lines, then the rest (experience, victory).
   Nothing waits; no new event type. The player shows them in the normal dialogue box before the combat animation / after the fall

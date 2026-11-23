@@ -17,7 +17,7 @@ export function AddConditionForm({ cmd, at }: { cmd: Command; at: CommandRef }) 
   return (
     <div className="stack tight">
       <ConditionPick label={S.addConditionPick} value={id} onChange={(v) => patch({ addCondition: v, ...(countsTurns(doc, v) ? {} : { turns: undefined }) })} />
-      <FilterPicker label={S.addConditionWho} value={typeof cmd.to === 'object' ? cmd.to : {}} onChange={(f) => patch({ to: f ?? {} })} />
+      <FilterPicker actor label={S.addConditionWho} value={typeof cmd.to === 'object' ? cmd.to : {}} onChange={(f) => patch({ to: f ?? {} })} />
       {counts && (
         <Field label={S.addConditionTurns} help={S.addConditionTurnsHelp}>
           <NumberInput value={cmd.turns} min={1} max={99} allowEmpty onChange={(n) => patch({ turns: n }, 'turns')} />
@@ -33,7 +33,7 @@ export function RemoveConditionForm({ cmd, at }: { cmd: Command; at: CommandRef 
   return (
     <div className="stack tight">
       <ConditionPick label={S.removeConditionPick} value={cmd.removeCondition ?? ''} withAll onChange={(v) => patch({ removeCondition: v })} />
-      <FilterPicker label={S.removeConditionWho} value={asFilter(cmd.from) ?? {}} onChange={(f) => patch({ from: f ?? {} })} />
+      <FilterPicker actor label={S.removeConditionWho} value={asFilter(cmd.from) ?? {}} onChange={(f) => patch({ from: f ?? {} })} />
       <p className="help">{S.removeConditionHelp}</p>
     </div>
   )

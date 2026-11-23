@@ -14,12 +14,47 @@ export const glyphOfType = (u: Unit | undefined, fallback: string): string => (u
 export function drawAnyUnit(g: CanvasRenderingContext2D, scene: Scene, u: MapUnit, cx: number, cy: number, cw: number, ch: number, side: Rgb, alpha: number, glyph: boolean, time: number): void {
   const pic = unitPicture(scene.art ?? null, u.type ?? '', u.side)
   if (pic && drawUnitArt(g, pic, { on: scene.art!.marker, color: css(side) }, time, cx, cy, cw, ch, alpha)) {
+    drawBadges(g, scene, u, cx, cy, cw, ch, alpha)
     if (u.leader) drawLeaderPip(g, cx, cy, cw, alpha)
     drawBehaviourMark(g, u, cx, cy, cw, ch, alpha)
     return
   }
   drawUnit(g, scene, u, cx, cy, cw, ch, side, alpha, glyph)
+  drawBadges(g, scene, u, cx, cy, cw, ch, alpha)
   drawBehaviourMark(g, u, cx, cy, cw, ch, alpha)
+}
+
+/** Unit badges (docs/GRAPHICS.md "Unit badges"), as the player draws them: the picture at its own size times (the square on screen / the game's tile size), the same
+ *  corner of it on the unit's square, then moved by the offset (scaled the same). */
+function drawBadges(g: CanvasRenderingContext2D, scene: Scene, u: MapUnit, cx: number, cy: number, cw: number, ch: number, alpha: number): void {
+  const art = scene.art
+  if (!art || art.badges.length === 0) return
+  const k = cw / Math.max(1, art.tileSize)
+  const sideDef = scene.map.sides?.find((s) => s.id === u.side)
+  const computer = sideDef?.controller === 'ai'
+  for (const rb of art.badges) {
+    const b = rb.badge
+    if (!(rb.types.has(u.type ?? '') || (u.character !== undefined && rb.characters.has(u.character)))) continue
+    const rule = b.sides ?? 'all'
+    if (rule === 'computer' && !computer) continue
+    if (rule === 'player' && computer) continue
+    if (Array.isArray(rule) && !rule.includes(u.side)) continue
+    const dw = Math.max(1, Math.round(rb.sw * k)), dh = Math.max(1, Math.round(rb.sh * k))
+    let x = cx, y = cy
+    switch (b.anchor ?? 'bottomRight') {
+      case 'topLeft': break
+      case 'topRight': x = cx + cw - dw; break
+      case 'bottomLeft': y = cy + ch - dh; break
+      case 'bottomRight': x = cx + cw - dw; y = cy + ch - dh; break
+      case 'center': x = cx + Math.trunc((cw - dw) / 2); y = cy + Math.trunc((ch - dh) / 2); break
+    }
+    x += Math.round((b.offset?.[0] ?? 0) * k)
+    y += Math.round((b.offset?.[1] ?? 0) * k)
+    g.globalAlpha = alpha
+    g.imageSmoothingEnabled = false
+    g.drawImage(rb.img, rb.sx, rb.sy, rb.sw, rb.sh, x, y, dw, dh)
+    g.globalAlpha = 1
+  }
 }
 
 /** A computer unit that does not simply advance (docs/AI.md) wears a small letter in its bottom right corner: H holds, G guards, S seeks, T starts late. */

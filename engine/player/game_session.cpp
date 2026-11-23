@@ -84,6 +84,7 @@ bool GameSession::startPreparedMap(unsigned seed, std::string& err) {
   }
   if (!rebuildFreePrep(seed, err)) return false;
   startEvents.clear();
+  battle.setBeforePrepSeen(true);  // the screen was shown after the `beforePrep` events: they run again, silently, on the final deployment
   battle.start(startEvents);
   std::string log;  // what the preparation handed over: each human named unit's pack, the storage and the funds
   for (const Unit& u : battle.units) {

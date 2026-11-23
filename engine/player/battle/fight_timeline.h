@@ -157,6 +157,7 @@ struct FightTimeline {
   std::vector<FightPulse> flashes, shakes;  // an effect's flash and shake lists
   std::vector<FightHideWin> hides;
   std::vector<FightFadeWin> fades;
+  double defeatStopAt = -1;                 // buildTimelineList(defeatStop): when the killing blow's bar has emptied and the defeat quote is said (-1 = none)
   int camStart = 0;                         // the side the camera begins on (the fighter that acts first)
   std::vector<FightCamKey> cam;             // empty = no camera (both fighters in one picture)
 
@@ -180,8 +181,10 @@ struct FightTimeline {
 // `resultHoldMs` / `resultHoldAgainMs` (docs/BATTLE_SCENE.md "Holding a pose"): a held pose waits until the hit (or miss) moment plus `resultHoldMs`, or until the strike's
 // effects are all over if later, plus `resultHoldAgainMs` when the same fighter strikes again next. Only used by animations that hold.
 // `hitHold` (when on): a hit's wait grows with the hit points it changed instead of `resultHoldMs`.
+// `defeatStop` (docs/BATTLE_SCENE.md "Quotes in the scene"): the struck fighter that falls plays its hurt pose while the bar drains and begins its defeat
+// pose only when the bar has emptied (and the hurt pose is over), at `defeatStopAt`: the scene stops there for the defeat quote. Everything else keeps its time.
 FightTimeline buildTimelineList(const FightScript& s, const FighterTimes times[2], const std::vector<std::vector<EffectTimes>>& effectsByStrike, int panMs = -1,
-                                int panStartMs = -1, int resultHoldMs = 533, int resultHoldAgainMs = 0, const HitHold& hitHold = HitHold());
+                                int panStartMs = -1, int resultHoldMs = 533, int resultHoldAgainMs = 0, const HitHold& hitHold = HitHold(), bool defeatStop = false);
 // At most one effect per strike (EffectTimes::has false = none): the form the first scene used.
 FightTimeline buildTimeline(const FightScript& s, const FighterTimes times[2], const std::vector<EffectTimes>& effectByStrike);
 

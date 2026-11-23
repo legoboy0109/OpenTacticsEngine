@@ -108,7 +108,10 @@ FightScene::Geo FightScene::geometry(const Renderer& r) const {
   return g;
 }
 
-void FightScene::drawBackground(Renderer& r, const Geo& g, unsigned hidden, uint32_t hideRgb) const {
+void FightScene::drawBackground(Renderer& r, const Geo& g0, unsigned hidden, uint32_t hideRgb, int slide) const {
+  Geo g = g0;
+  g.shakeY -= slide;  // a quote slides the backdrop up and away (the picture paths read the shake as their offset)
+  const int oy = -slide;
   const Database& db = *env_.battle->db;
   const BattleArt& art = db.graphics.battle;
   if (hidden & kHideBackdrop) {  // an effect's "hide": the stage is a plain colour for a while
@@ -145,13 +148,13 @@ void FightScene::drawBackground(Renderer& r, const Geo& g, unsigned hidden, uint
   const int bands = 24;
   for (int i = 0; i < bands; ++i) {
     const int y0 = horizon * i / bands, y1 = horizon * (i + 1) / bands;
-    r.fillRect(0, y0, g.W, y1 - y0 + 1, mix(skyTop, skyLow, (float)i / (bands - 1)));
+    r.fillRect(0, y0 + oy, g.W, y1 - y0 + 1, mix(skyTop, skyLow, (float)i / (bands - 1)));
   }
-  r.fillRect(0, horizon, g.W, g.H - horizon, mix(ground, Color(0, 0, 0), 0.25f));
-  r.fillRect(0, horizon, g.W, 2, mix(ground, Color(255, 255, 255), 0.25f));
+  r.fillRect(0, horizon + oy, g.W, g.H - horizon, mix(ground, Color(0, 0, 0), 0.25f));
+  r.fillRect(0, horizon + oy, g.W, 2, mix(ground, Color(255, 255, 255), 0.25f));
   const int below = g.H - horizon - 2;
   for (int i = 0; i < 6; ++i)  // the ground gets darker towards the viewer
-    r.fillRect(0, horizon + 2 + below * i / 6, g.W, below / 6 + 1, Color(0, 0, 0, (uint8_t)(10 + i * 8)));
+    r.fillRect(0, horizon + 2 + below * i / 6 + oy, g.W, below / 6 + 1, Color(0, 0, 0, (uint8_t)(10 + i * 8)));
 }
 
 // The picture under a fighter (docs/BATTLE_SCENE.md "Platforms"): enlarged like the fighter, centred on its foot point.
@@ -497,7 +500,15 @@ void FightScene::draw(Renderer& r) const {
   applyShake(g);
   uint32_t hideRgb = 0;
   const unsigned hidden = tl_.hiddenAt(t_, hideRgb);
-  drawBackground(r, g, hidden, hideRgb);
+  // A quote (docs/BATTLE_SCENE.md "Quotes in the scene"): the fighters are gone and the backdrop slides away; it slides back with them at the end.
+  const QuoteTiming& qt = env_.battle->db->graphics.battle.timing.quote;
+  int slide = 0;
+  if (phase_ == Phase::Out) slide = (int)std::lround(g.H * std::min(1.0, phaseT_ / std::max(0.001, qt.slideOutMs / 1000.0)));
+  else if (phase_ == Phase::Hold) slide = g.H;
+  else if (phase_ == Phase::In) slide = (int)std::lround(g.H * (1.0 - std::min(1.0, phaseT_ / std::max(0.001, qt.slideInMs / 1000.0))));
+  if (slide > 0) r.fillRect(0, 0, g.W, g.H, Color(0, 0, 0));
+  drawBackground(r, g, hidden, hideRgb, slide);
+  if (phase_ == Phase::Out || phase_ == Phase::Hold) return;  // nothing else is drawn over the cleared screen (the dialogue box is the screen's)
   drawFades(r, g, true);
   drawEffects(r, g, FxLayer::Screen);
   if (script_.ranged() && !g.panning) drawRange(r, g);  // (a camera that follows one fighter has no line to draw)
