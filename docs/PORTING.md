@@ -93,9 +93,9 @@ handlers are additions that call the same actions. No screen has text entry. Ski
 that square, so resting on a square in the outer rows scrolls nothing. The map scrolls from the pointer only when the pointer is
 pushed against the **edge of the picture** (`battle/edge_scroll.h`, the one place for the numbers): inside a band along an edge a
 quarter of a tile wide (`kBandTiles`, at least 2 pixels; at the viewport's own edge and at the picture's edge, over the info panel
-or the hint line), for `kDwellSeconds` = 0.5 s, then at `kTilesPerSecond` = 5 tiles a second (frame-rate independent, so 120
-pixels a second at a 24-pixel tile; the owner's tuning: the first values, 0.25 s and 8 tiles, started too easily and moved too
-fast; an eighth-tile band was tried and was unusable in a browser, where the pointer slides out of the frame and must be rested
+or the hint line), for `kDwellSeconds` = 0.25 s, then at `kTilesPerSecond` = 8 tiles a second (frame-rate independent, so 192
+pixels a second at a 24-pixel tile; a "too fast" complaint once lowered these to 0.5 s and 5 tiles, but it was about the menu
+lists, not the map, so they went back; an eighth-tile band was tried and was unusable in a browser, where the pointer slides out of the frame and must be rested
 inside the band: `tools/webtest/suites/edgescroll.mjs`). It stops at once when the pointer leaves the band or the window; a corner scrolls both ways.
 It works with the cursor free (idle, a unit selected, choosing a facing, the preparation's Positions / View screens) and not while
 a menu or list is open, something is animating, a dialogue or fight scene plays, or in the full 3D view (its own camera). Only a

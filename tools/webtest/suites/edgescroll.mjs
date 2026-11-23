@@ -66,8 +66,8 @@ export async function run(env) {
     d = await rest(right - 72, mid[1], 1500);
     C.check(`edge scroll 3x: resting a tile inside the right edge does not scroll (moved ${d})`, d[0] === 0 && d[1] === 0, JSON.stringify(d));
     // shorter than the dwell: nothing
-    d = await rest(right - 6, mid[1], 250);
-    C.check(`edge scroll 3x: passing through the band (0.25 s) does not scroll (moved ${d})`, d[0] === 0 && d[1] === 0, JSON.stringify(d));
+    d = await rest(right - 6, mid[1], 60);
+    C.check(`edge scroll 3x: passing through the band (0.06 s, the dwell is 0.25 s) does not scroll (moved ${d})`, d[0] === 0 && d[1] === 0, JSON.stringify(d));
     // overshooting out of the frame and staying out: nothing (the pointer left)
     d = await rest(right + 40, mid[1], 1000);
     C.check(`edge scroll 3x: a pointer that left the frame does not scroll (moved ${d})`, d[0] === 0 && d[1] === 0, JSON.stringify(d));
