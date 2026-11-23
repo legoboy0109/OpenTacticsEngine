@@ -134,6 +134,17 @@ describe('the keys of a behaviour block', () => {
     expect(one({ inflictOnlyOn: 'mages' })).toContain('“afflicts only”')
   })
 
+  it('"lootBlockedBy": written only as units, only for mode loot, kept by withMode inside loot, checked like the loader', () => {
+    expect(tidyBehaviour({ mode: 'loot', lootBlockedBy: 'nothing' })).toBe('loot')
+    expect(tidyBehaviour({ mode: 'loot', lootBlockedBy: 'units' })).toEqual({ mode: 'loot', lootBlockedBy: 'units' })
+    expect(tidyBehaviour({ mode: 'hold', lootBlockedBy: 'units' })).toBe('hold')  // not a key of any other mode
+    const d = fixture()
+    const one = (b: unknown): string => texts(withUnits(d, (u) => u.map((x) => (x.id === 'r5' ? { ...x, behaviour: b as MapUnit['behaviour'] } : x)))).join('\n')
+    expect(one({ mode: 'hold', lootBlockedBy: 'units' })).toContain('“loot is blocked by” goes with')
+    expect(one({ mode: 'loot', lootBlockedBy: 'walls' })).toContain('“loot is blocked by” must be')
+    expect(withMode({ mode: 'loot', lootBlockedBy: 'units' }, 'hold', contextOf(d, map(d))).lootBlockedBy).toBeUndefined()
+  })
+
   it('"loot" and "escape" are bare names, "attacks" is written only as false, and their checks say what the loader says', () => {
     expect(tidyBehaviour({ mode: 'loot' })).toBe('loot')
     expect(tidyBehaviour({ mode: 'escape' })).toBe('escape')

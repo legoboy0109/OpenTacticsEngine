@@ -80,6 +80,8 @@ def run_scripted_checks(api, tmp, games, templates, check, get_project, put_proj
         ("a staffFirst past 100", beh(0, {"staffFirst": 101}), "\"staffFirst\" must be a whole number from 0 to 100"),
         ("a staffPick that is neither best nor lastPlaced", beh(0, {"staffPick": "first"}), "\"staffPick\" must be \"best\""),
         ("an inflictOnlyOn that is neither anyone nor casters", beh(0, {"inflictOnlyOn": "mages"}), "\"inflictOnlyOn\" must be \"anyone\""),
+        ("a lootBlockedBy that is neither nothing nor units", beh(0, {"mode": "loot", "lootBlockedBy": "walls"}), "\"lootBlockedBy\" must be \"nothing\""),
+        ("a lootBlockedBy outside the loot mode", beh(0, {"lootBlockedBy": "units"}), "\"lootBlockedBy\" goes with mode \"loot\""),
         ("an exit outside the map", lambda m: m.update(exits=[{"x": 40, "y": 1}]), "outside the map"),
         ("the same exit twice", lambda m: m.update(exits=[{"x": 1, "y": 1}, {"x": 1, "y": 1}]), "listed twice"),
         ("measure without a guardArea", beh(0, {"measure": "moveCost"}), "\"measure\" goes with mode \"guardArea\""),
@@ -95,7 +97,7 @@ def run_scripted_checks(api, tmp, games, templates, check, get_project, put_proj
         m["units"][1]["behaviour"] = {"mode": "escape", "attacks": False}
         m["units"][2]["behaviour"] = {"attacks": False}
         m["units"][2]["goesFor"] = ["chests"]
-        m["units"][3]["behaviour"] = "loot"
+        m["units"][3]["behaviour"] = {"mode": "loot", "lootBlockedBy": "units"}
         m["units"][3]["goesFor"] = ["doors"]
         m["units"][4]["behaviour"] = {"staffFirst": 0, "staffPick": "lastPlaced", "inflictOnlyOn": "casters"}
     save(mutate_map=escapes)

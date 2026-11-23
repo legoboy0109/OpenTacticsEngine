@@ -81,7 +81,8 @@ bool interaction(const Battle& b, const Unit& u, int s, Cell from, bool enemyBlo
 
 // The squares from which `u` could interact with one of the structures it goes for (free, enterable, not claimed by another unit; with
 // `anyUnits` a square another unit stands on counts too: lootLeft asks whether anything is left at all, not what is free this turn).
-void approachCells(const Battle& b, const Unit& u, bool enemyBlocked, std::vector<Cell>& out, bool anyUnits = false) {
+// `hostileBlocks`: a square a hostile unit stands on is no approach square at all ("lootBlockedBy": "units").
+void approachCells(const Battle& b, const Unit& u, bool enemyBlocked, std::vector<Cell>& out, bool anyUnits = false, bool hostileBlocks = false) {
   out.clear();
   const int mt = b.typeOf(u).moveType;
   std::vector<Cell> ring;
@@ -98,6 +99,7 @@ void approachCells(const Battle& b, const Unit& u, bool enemyBlocked, std::vecto
     }
     for (Cell c : around) {
       if (b.enterCost(c, mt) <= 0 || (!anyUnits && b.unitAt(c) != -1 && b.unitAt(c) != u.id)) continue;
+      if (hostileBlocks && b.unitAt(c) != -1 && b.isEnemy(u, b.units[(size_t)b.unitAt(c)])) continue;
       if (interaction(b, u, (int)si, c, enemyBlocked, probe)) out.push_back(c);
     }
   }
@@ -167,6 +169,31 @@ void considerPlaces(Context& cx, const Unit& u, const Reach& reach, const std::v
 
 bool lootLeft(const Battle& b, const Unit& u) {
   if (u.aiGoals == 0 || b.structures.empty()) return false;
+  if (u.behaviour.lootBlockedByUnits) {  // "lootBlockedBy": "units": walk out from the unit; a square a hostile unit stands on is a wall
+    std::vector<Cell> goals;
+    approachCells(b, u, true, goals, true, true);
+    if (goals.empty()) return false;
+    const int mt = b.typeOf(u).moveType;
+    std::vector<char> seen((size_t)b.grid.cellCount(), 0), isGoal((size_t)b.grid.cellCount(), 0);
+    for (Cell g : goals) isGoal[(size_t)g] = 1;
+    std::vector<Cell> open(1, u.cell);
+    seen[(size_t)u.cell] = 1;
+    while (!open.empty()) {
+      const Cell c = open.back();
+      open.pop_back();
+      if (isGoal[(size_t)c]) return true;
+      Cell nb[Grid::kMaxNeighbors];
+      const int n = b.grid.neighbors(c, nb);
+      for (int i = 0; i < n; ++i) {
+        const Cell d = nb[i];
+        if (seen[(size_t)d] || b.enterCost(d, mt) <= 0) continue;
+        if (b.unitAt(d) != -1 && b.isEnemy(u, b.units[(size_t)b.unitAt(d)])) continue;
+        seen[(size_t)d] = 1;
+        open.push_back(d);
+      }
+    }
+    return false;
+  }
   std::vector<Cell> goals;
   approachCells(b, u, true, goals, true);
   if (goals.empty()) return false;

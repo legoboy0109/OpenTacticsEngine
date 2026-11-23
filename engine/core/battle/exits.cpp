@@ -16,6 +16,13 @@ void Battle::startEscaping(int unit) {
   units[(size_t)unit].escaping = true;
 }
 
+void Battle::stopEscaping(int unit) {
+  if (unit < 0 || unit >= (int)units.size() || !units[(size_t)unit].escaping) return;
+  touch();
+  OTE_INFO("ai: %s sees a way to loot again and stops escaping", units[(size_t)unit].name.c_str());
+  units[(size_t)unit].escaping = false;
+}
+
 bool Battle::validateLeaveMap(const Action& action, std::string* why) const {
   const Unit& u = units[(size_t)action.unit];
   if (!sides[(size_t)u.side].ai) {

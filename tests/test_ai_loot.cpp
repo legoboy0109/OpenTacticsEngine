@@ -188,3 +188,61 @@ TEST(ai_loot_drops_last_gives_only_the_last_item_that_is_not_the_weapon_in_hand)
     CHECK_EQ(out[0].item, potion);
   }
 }
+
+// ---- "lootBlockedBy": "units" (docs/AI.md "Looting and escaping"): five blue guards in a column (x = 3) shut r1 (x = 1) off from both chests (x = 4) ----
+namespace {
+
+void walledLooter(DCopy& c, bool option) {
+  looter(c);
+  c.swap(kMarket, R"("exits": [ { "x": 0, "y": 0 } ])", R"("exits": [ { "x": 10, "y": 4 } ])");  // an exit r1 cannot reach through the wall either
+  if (option)
+    c.swap(kMarket, R"("behaviour": { "mode": "loot", "attacks": false })", R"("behaviour": { "mode": "loot", "attacks": false, "lootBlockedBy": "units" })");
+  std::string guards;
+  for (int y = 0; y < 5; ++y)
+    guards += R"({ "type": "fighter", "id": "g)" + std::to_string(y) + R"(", "side": "blue", "x": 3, "y": )" + std::to_string(y) + R"(, "items": [] }, )";
+  c.swap(kMarket, R"("units": [)", "\"units\": [" + guards);
+}
+
+}  // namespace
+
+TEST(ai_loot_blocked_by_units_a_looter_walled_off_from_every_chest_escapes_and_returns_when_a_way_opens) {
+  Doors w("ai_loot_blocked", "market", [](DCopy& c) { walledLooter(c, true); });
+  CHECK(w.unit("r1").behaviour.lootBlockedByUnits);
+  CHECK(!ai::lootLeft(w.b(), w.unit("r1")));  // the wall of guards: nothing it can walk to
+  w.redTurn();
+  CHECK(w.unit("r1").escaping);  // no way through right now, so it makes for the exit (and cannot reach it: it keeps away, no chest opened)
+  CHECK_STR(w.kind("c1"), "chest");
+  // A guard steps aside: the way is open, the next turn it loots again.
+  w.put("g1", 9, 1);
+  CHECK(ai::lootLeft(w.b(), w.unit("r1")));
+  w.redTurn();
+  CHECK(!w.unit("r1").escaping);
+  CHECK(w.unit("r1").alive && w.unit("r1").cell != kNoCell);
+}
+
+TEST(ai_loot_blocked_by_units_off_by_default_units_in_the_way_do_not_count) {
+  Doors w("ai_loot_unblocked_default", "market", [](DCopy& c) { walledLooter(c, false); });
+  CHECK(!w.unit("r1").behaviour.lootBlockedByUnits);
+  CHECK(ai::lootLeft(w.b(), w.unit("r1")));  // as before: only terrain and closed doors count
+  w.redTurn();
+  CHECK(!w.unit("r1").escaping);
+}
+
+TEST(ai_loot_blocked_by_units_the_key_is_read_checked_and_written_back) {
+  auto err = [](const char* name, const char* behaviour) {
+    DCopy c(name);
+    looter(c);
+    c.swap(kMarket, R"("behaviour": { "mode": "loot", "attacks": false })", behaviour);
+    Database db;
+    MapDef m;
+    std::string e;
+    return loadGame(c.dir, db, e) && loadMap(db, "market", m, e) ? std::string() : e;
+  };
+  CHECK_STR(err("ai_loot_lb_ok", R"("behaviour": { "mode": "loot", "lootBlockedBy": "units" })"), "");
+  CHECK_STR(err("ai_loot_lb_ok2", R"("behaviour": { "mode": "loot", "lootBlockedBy": "nothing" })"), "");
+  CHECK(says(err("ai_loot_lb_e1", R"("behaviour": { "mode": "loot", "lootBlockedBy": "walls" })"), "\"lootBlockedBy\" must be \"nothing\""));
+  CHECK(says(err("ai_loot_lb_e2", R"("behaviour": { "mode": "loot", "lootBlockedBy": true })"), "\"lootBlockedBy\" must be \"nothing\""));
+  CHECK(says(err("ai_loot_lb_e3", R"("behaviour": { "mode": "advance", "lootBlockedBy": "units" })"), "goes with mode \"loot\""));
+  Doors w("ai_loot_lb_save", "market", [](DCopy& c) { walledLooter(c, true); });
+  CHECK_STR(behaviourToJson(w.unit("r1").behaviour).dump(0), R"({"mode":"loot","lootBlockedBy":"units","attacks":false})");
+}

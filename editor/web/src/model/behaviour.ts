@@ -18,7 +18,7 @@ export interface BehaviourObj {
   mode?: string; wake?: string; group?: string; fromTurn?: number; area?: Rect; within?: number
   unit?: string; place?: string; x?: number; y?: number; prefer?: Prefer
   /** The scripted-style keys (model/behaviourScripted.ts). */
-  order?: number; weights?: string; caution?: string; retreat?: unknown; idleTurns?: number; route?: unknown; ignores?: string[]; measure?: string; heals?: string; attacks?: boolean; staffFirst?: number; staffPick?: string; inflictOnlyOn?: string
+  order?: number; weights?: string; caution?: string; retreat?: unknown; idleTurns?: number; route?: unknown; ignores?: string[]; measure?: string; heals?: string; attacks?: boolean; staffFirst?: number; staffPick?: string; inflictOnlyOn?: string; lootBlockedBy?: string
   [k: string]: unknown
 }
 export type Behaviour = string | BehaviourObj
@@ -89,7 +89,7 @@ export function withMode(b: unknown, mode: BehaviourMode, ctx: BehaviourContext)
   const o: BehaviourObj = { mode }
   if (old.fromTurn !== undefined) o.fromTurn = old.fromTurn
   if (old.prefer !== undefined) o.prefer = old.prefer
-  for (const k of SCRIPTED_KEYS) if (old[k] !== undefined && k !== 'route' && k !== 'measure') (o as Record<string, unknown>)[k] = old[k]  // they belong to every mode (route and measure to one each)
+  for (const k of SCRIPTED_KEYS) if (old[k] !== undefined && k !== 'route' && k !== 'measure' && k !== 'lootBlockedBy') (o as Record<string, unknown>)[k] = old[k]  // they belong to every mode (route, measure and lootBlockedBy to one mode each)
   if (mode === old.mode) return { ...old }
   if (mode === 'guard' || mode === 'guardArea') if (old.group !== undefined) o.group = old.group
   if (mode === 'guardArea') o.within = 3

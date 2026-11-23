@@ -61,6 +61,7 @@
           "staffFirst": { "type": "int", "min": 0, "max": 100, "help": "Chance (percent) that, before its usual choice, it uses a staff it could use now; the game rolls 0 to 99 and it acts when the roll is at most this (0 = one time in a hundred). Missing = never." },
           "staffPick": { "type": "enum", "values": ["best", "lastPlaced"], "default": "best", "help": "lastPlaced: its staves go to the unit placed last among the legal targets (an afflicting staff skips foes that already have any condition or cannot be hit)." },
           "inflictOnlyOn": { "type": "enum", "values": ["anyone", "casters"], "default": "anyone", "help": "casters: a staff whose condition stops staves (a silence) goes only to foes that carry something it would stop (a staff they can use now, or a weapon of a forbidden kind)." },
+          "lootBlockedBy": { "type": "enum", "values": ["nothing", "units"], "default": "nothing", "when": { "mode": ["loot"] }, "help": "units: enemy units standing in the way block the looter's paths to the remaining loot. While every path is blocked it escapes; it goes back to looting on the turn a path opens. nothing: only walls and closed doors block (units in the way never count)." },
           "attacks": { "type": "bool", "default": true, "help": "false: it never starts a fight (it still counterattacks), in any mode." } } } } ]
     },
     "unit": {

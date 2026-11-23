@@ -102,6 +102,12 @@ export function ScriptedFields({ o, patch, doc, map, id }: Props) {
           <Select aria-label={S.inflictOnlyOn} value={o.inflictOnlyOn === 'casters' ? 'casters' : 'anyone'} options={(['anyone', 'casters'] as const).map((h) => ({ value: h, label: S.inflictOnlyOnChoices[h] }))}
             onChange={(v) => patch({ inflictOnlyOn: v === 'casters' ? 'casters' : undefined })} />
         </Field>
+        {o.mode === 'loot' && (
+          <Field label={S.lootBlockedBy} help={S.lootBlockedByHelp}>
+            <Select aria-label={S.lootBlockedBy} value={o.lootBlockedBy === 'units' ? 'units' : 'nothing'} options={(['nothing', 'units'] as const).map((h) => ({ value: h, label: S.lootBlockedByChoices[h] }))}
+              onChange={(v) => patch({ lootBlockedBy: v === 'units' ? 'units' : undefined })} />
+          </Field>
+        )}
         <Check label={S.retreat} help={S.retreatHelp} checked={retreat !== undefined} onChange={(v) => patch({ retreat: v ? defaultRetreat() : undefined })} />
         {retreat !== undefined && (
           <div className="stack tight" data-testid={`${id}-retreat`}>
