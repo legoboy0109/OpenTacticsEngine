@@ -2864,6 +2864,34 @@ refused, and changes no `ote-sim` result). Placeholders for the owner:
 - The AI uses inflict / cure staves with a simple worth rule, ignores the rest.
 - Staves that pick nobody show no forecast (as before).
 
+### Status abilities: what a status-heavy tactics game needs (gap list)
+
+A tactics game whose job abilities are mostly status spells and techniques (sleep, silence, haste, protect, esuna-style cures, drains,
+damage that also poisons) was checked against the engine, need by need. **Built** = added by this round (sections "Ability
+conditions" below); **possible** = already expressible, with how; **not built** = missing, with why.
+
+| Need | Verdict | How / why |
+|---|---|---|
+| A status ability that can miss (a hit roll for the condition, by formula, the target's resistance) | **built** | `"inflict": { "condition": "sleep", "chance": "a.mag + 40 - b.res" }` on any ability (a = user, b = target; 1..100 or a formula). Rolled per target; a miss is `ConditionResisted` with `kMissed` |
+| Damage plus a condition (one target or an area) | possible, **chance built** | A strike ability's `inflict` hits every unit the strike hit (area too); the weapon's own `inflict` has a `chance`. The ability's `inflict` now takes `chance` too |
+| Cure one condition, a list, or all | possible | `"effect": { "cure": ["poison"] }` / `"all"` (abilities, staves, items, skills) |
+| Cure every *harmful* condition (esuna) / strip every *helpful* one (dispel) | **built** | condition `"kind": "harmful"` (default) or `"helpful"`; a cure list may be `"harmful"` / `"helpful"`; a cure ability may target an enemy or any unit |
+| Heal and cure in one ability (first-aid style) | not built | an ability has one effect; needs a second-effect rule (order, legality when only one part would act). Small, left for the owner |
+| Status / heal / cure abilities with an area | not built | only strike abilities have areas (their weapon's). An area for other effects needs the area pick, forecast and AI for non-strike abilities |
+| Revive a defeated unit | not built | a defeated unit leaves the board at once; there is no "down but on the map" state. Needs a design (a downed state: occupancy, win checks, saves, AI, a `revive` effect) |
+| Drain (damage that heals the user) | possible | the strike weapon's `strike` block `{ "drain": 100 }` |
+| Protect / shell (less damage from physical / magic) | possible | a condition with a `combat` block `"if": [ { "weaponKind": "physical", "who": "foe" } ], "do": [ { "damageTakenPercent": 66 } ]` (the weapon's `damageKind`) |
+| Haste / slow | possible | `"stats": { "spd": 3 }` in an `always` block: the speed turn order reads the stat as the rules see it (a flat change, not a percent) |
+| Stop / sleep (no turns, no dodge) | possible | `cannotAct` (no counter, no dodge by default); a stopped unit gains no charge in the speed order |
+| Blind (lower hit) | possible | a `combat` block `{ "hit": -50 }` |
+| Always hit a sleeping / stopped unit | possible | `cannotAct` without `"dodge": true` makes every strike on it hit (hit 100) |
+| Hit or chance changed by a condition (in a formula) | **built** | formulas see `a.conditions.<id>` / `b.conditions.<id>` (turns left; -1 for an uncounted one; nil when absent). Skill tests `{ "condition": id }` already existed |
+| Doom (a count, then defeat) | possible (with the formula above) | `"turns": 3` and a `turnStart` block `"if": [ { "formula": "a.conditions.doom == 0" } ], "do": [ { "hurt": { "percent": 100, "canKill": true }, "to": "self" } ]` |
+| Charm (acts for the other side) / confuse (acts at random) | not built | berserk attacks the nearest of any side; charm needs a side switch for the AI and the win checks, confuse a random plan. Design decision for the owner |
+| Petrify (does not count as standing for the win check) | not built | cannotAct exists; leaving the unit out of "all defeated" is a win-rule change for the owner |
+| Reflect (a spell bounces back to its caster) | not built | needs a rule for the new target, range and area, and "no bounce twice". Design decision |
+| The computer weighing status and cure abilities | **built** | status abilities are scored by the condition's worth times the chance; helpful ones go to allies, harmful ones to foes; it never cures what is not there, never re-applies what is still on, and does not cure an ally of a helpful condition |
+
 ### Not built (follow-ups)
 
 Carrying a condition over to the next campaign map; condition sounds; a picture instead of the text tag; the AI inflicting beneficial conditions, seeking
