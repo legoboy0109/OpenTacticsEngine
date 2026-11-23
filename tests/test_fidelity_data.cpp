@@ -134,7 +134,7 @@ TEST(fidelity_ability_loader_refusals) {
   struct Case { const char* from; const char* to; const char* says; };
   const Case cases[] = {
       {"\"inflict\": { \"condition\": \"poison\", \"turns\": 2 }", "\"inflict\": { \"condition\": \"nonesuch\" }", "unknown condition"},
-      {"\"inflict\": { \"condition\": \"poison\", \"turns\": 2 }", "\"inflict\": { \"condition\": \"poison\", \"chance\": 50 }", "unknown key"},
+      {"\"inflict\": { \"condition\": \"poison\", \"turns\": 2 }", "\"inflict\": { \"condition\": \"poison\", \"chance\": 101 }", "\"chance\" must be a percent from 1 to 100"},
       {"\"inflict\": { \"condition\": \"poison\", \"turns\": 2 }", "\"inflict\": \"poison\"", "\"inflict\" must be"},
       {"\"xp\": 4", "\"xp\": -1", "\"xp\" must be a whole number"},
       {"\"xp\": 4", "\"xp\": true", "\"xp\" must be a whole number"},

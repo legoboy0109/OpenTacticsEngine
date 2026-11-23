@@ -362,8 +362,9 @@ TEST(cure_loader_refusals) {
     return c.gameError();
   };
   const std::string head = "{ \"id\": \"x\", \"target\": \"";
-  CHECK(saysIn(say(head + "enemy\", \"effect\": { \"cure\": \"all\" } }"), "\"cure\" needs \"target\": \"self\" or \"ally\""));
-  CHECK(saysIn(say(head + "ally\", \"effect\": { \"cure\": [] } }"), "\"cure\" must be \"all\" or a list of condition ids"));
+  CHECK(saysIn(say(head + "cell\", \"effect\": { \"cure\": \"all\" } }"), "\"cure\" needs a target unit"));
+  CHECK(say(head + "enemy\", \"effect\": { \"cure\": \"all\" } }").empty());  // a dispel (docs/SRPG.md "Ability conditions")
+  CHECK(saysIn(say(head + "ally\", \"effect\": { \"cure\": [] } }"), "\"cure\" must be \"all\", \"harmful\", \"helpful\" or a list of condition ids"));
   CHECK(saysIn(say(head + "ally\", \"effect\": { \"cure\": [\"gout\"] } }"), "\"cure\" names unknown condition \"gout\""));
   CHECK(say(head + "ally\", \"effect\": { \"cure\": [\"poison\", \"curse\"] } }").empty());
 }

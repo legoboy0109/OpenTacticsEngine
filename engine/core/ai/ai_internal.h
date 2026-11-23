@@ -203,6 +203,18 @@ double scoreStrike(const Battle& b, const Unit& u, int ability, const AttackOpti
 // Every instant strike ability from `s` (its travel cost `travel`): replaces `best` with an Ability order when one beats it.
 void considerStrikes(const Battle& b, const Unit& u, Cell s, int travel, const Stance& st, Order& best);
 
+// ---- ai_conditions.cpp (docs/AI.md "Status abilities") ----
+// What putting `condition` on `t` is worth to `user` at `chance` percent: a share of t's value, 0 on the wrong side for its kind (a helpful one
+// on a foe, a harmful one on its own team) and 0 where it would not take hold (immune, or on already for as long).
+double conditionWorth(const Battle& b, const Unit& user, const Unit& t, int condition, int turns, int chance);
+// What a cure ability is worth used on `t`: a share of t's value (once) when it would take off a harmful condition of its own team or a helpful
+// one of a foe; 0 otherwise (so a blessing is never cured from an ally, a curse never from a foe).
+double cureWorth(const Battle& b, const Unit& user, const Unit& t, const AbilityDef& d);
+// What a strike ability's own "inflict" adds to the option's score (each unit it would hit and not defeat, times the strike's hit chance).
+double strikeInflictWorth(const Battle& b, const Unit& u, int ability, const AttackOption& o, Cell s);
+// Every instant status ability (only "inflict") and cure ability from `s`: replaces `best` with an Ability order when one beats it.
+void considerStatusAbilities(const Battle& b, const Unit& u, Cell s, int travel, Order& best);
+
 // ---- ai_staves.cpp (docs/SRPG.md section 8 "AI"; docs/AI.md sections 9 and 10) ----
 // What a unit's behaviour asks of its staves ("heals", "staffPick", "inflictOnlyOn"). A default policy changes nothing. `keys` (per kind of staff: heal, afflict, cure)
 // = the unit placed last that a staff of the kind could serve this turn (-1 = none: such a staff is then not used), filled by lastPlacedKeys when a rule picks it.

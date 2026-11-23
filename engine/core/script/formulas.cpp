@@ -247,6 +247,18 @@ void Formulas::pushUnit(const Unit* u, const FormulaCtx& ctx, const std::vector<
       lua_pushboolean(L_, sd.ai ? 0 : 1); lua_setfield(L_, -2, "human");
     }
   }
+  // `conditions` (docs/SRPG.md "Ability conditions"): one entry per condition the unit has, by id, = the turns it has left as the info shows them
+  // (0 on its last turn), -1 for one that lasts until cured or the map ends; nil when it does not have it. Only in a game with conditions, and
+  // set before the stats so a stat of that name wins.
+  if (!db_->conditions.empty()) {
+    lua_createtable(L_, 0, (int)u->conditions.size());
+    for (const ConditionState& cs : u->conditions) {
+      if (cs.condition < 0 || (size_t)cs.condition >= db_->conditions.size()) continue;
+      lua_pushinteger(L_, cs.left >= 0 ? cs.left : -1);
+      lua_setfield(L_, -2, db_->conditions[(size_t)cs.condition].id.c_str());
+    }
+    lua_setfield(L_, -2, "conditions");
+  }
   lua_pushinteger(L_, follow); lua_setfield(L_, -2, "followShift");
   lua_pushinteger(L_, tri); lua_setfield(L_, -2, "trianglePercent");
   lua_pushinteger(L_, numbers->carryBonus); lua_setfield(L_, -2, "carryBonus");

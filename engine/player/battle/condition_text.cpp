@@ -38,6 +38,13 @@ std::string conditionDurationShort(const Database& db, const ConditionState& cs)
 std::string conditionAppliedText(const Database& db, int condition) { return conditionName(db, condition) + "!"; }
 std::string conditionCuredText(const Database& db, int condition) { return std::string("Cured ") + conditionName(db, condition); }
 
+std::string conditionMissedText(const Database& db, int condition) { return conditionName(db, condition) + " missed"; }
+
+std::string conditionChanceText(const Database& db, int condition, int chance) {
+  if (chance < 0 || condition < 0) return "";
+  return conditionName(db, condition) + " " + std::to_string(chance) + "%";
+}
+
 std::string conditionEndedText(const Database& db, int condition, int why) {
   if (why == kConditionCured) return conditionCuredText(db, condition);
   if (why == kConditionReplaced) return "";  // the new condition says it all

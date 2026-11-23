@@ -9,6 +9,7 @@
 // the menu is open).
 #include "battle/ability_preview.h"
 #include "battle/ability_text.h"
+#include "battle/condition_text.h"
 #include "battle/item_text.h"
 #include "battle/srpg_menu_ids.h"
 #include "battle/strike_preview.h"
@@ -127,10 +128,19 @@ bool BattleScene::abilityChosen(int id) {
     else itemActionDone();
   };
   // "Pushes it 2 squares away  Z:use  X:back" while the highlight is on a candidate.
-  const std::string hint = abilityEffectText(*battle_.db, def) + "  {ok}:use  {cancel}:back";
+  const std::string effect = abilityEffectText(*battle_.db, def);
+  const std::string hint = effect + "  {ok}:use  {cancel}:back";
   auto sayHint = [this, hint] {
     gPickHint = hint;
     say(hint);
+  };
+  // The chance of the ability's condition on the unit under the cursor ("Sleep 60%"; docs/SRPG.md "Ability conditions"), only for one that rolls.
+  auto chanceOn = [this, user, ability](int target) -> std::string {
+    if (!battle_.abilityInflictRolls(ability) || target < 0) return "";
+    const int p = battle_.abilityInflictChance(user, ability, target, battle_.units[(size_t)user].cell);
+    const std::string t = conditionChanceText(*battle_.db, battle_.db->abilities[(size_t)ability].inflictCond, p);
+    OTE_INFO("condition chance: %s", t.c_str());  // (the player tests read it)
+    return t;
   };
   // A steal's forecast: how many of the highlighted foe's items can be taken.
   auto stealHint = [this, user, ability](int target) {
@@ -164,11 +174,13 @@ bool BattleScene::abilityChosen(int id) {
       if (units.empty()) { say(AbilityWords::kNothingToTarget); return true; }
       std::vector<Cell> candidateCells;
       for (int t : units) candidateCells.push_back(battle_.units[(size_t)t].cell);
-      beginPickUnit(units, [use](int t) { use(t, kNoCell); }, [this, user, ability, candidateCells, sayLine](int target, Overlay& ov) {
+      beginPickUnit(units, [use](int t) { use(t, kNoCell); }, [this, user, ability, candidateCells, sayLine, chanceOn](int target, Overlay& ov) {
         for (Cell c : candidateCells) ov.reach[(size_t)c] = 1;
         ov.reach[(size_t)battle_.units[(size_t)target].cell] = 0;
         ov.attack[(size_t)battle_.units[(size_t)target].cell] = 1;
-        const std::string line = strikeUnitLine(battle_, user, ability, target);
+        std::string line = strikeUnitLine(battle_, user, ability, target);
+        const std::string chance = chanceOn(target);
+        if (!line.empty() && !chance.empty()) line += ", " + chance;
         OTE_INFO("strike forecast: %s", line.c_str());  // (the player tests read it)
         sayLine(line);
       });
@@ -189,12 +201,16 @@ bool BattleScene::abilityChosen(int id) {
     std::vector<Cell> candidateCells;  // blue: who can be picked
     for (int t : units) candidateCells.push_back(battle_.units[(size_t)t].cell);
     const bool steals = def.effect == AbilityEffect::Steal;
-    auto mark = [this, user, ability, candidateCells, sayHint, stealHint, steals](int target, Overlay& ov) {
+    auto mark = [this, user, ability, candidateCells, sayHint, stealHint, steals, effect, chanceOn](int target, Overlay& ov) {
       for (Cell c : candidateCells) ov.reach[(size_t)c] = 1;
       for (const AbilityMovePreview& m : previewAbilityMoves(battle_, user, ability, target))
         for (Cell c : m.path) { ov.reach[(size_t)c] = 0; ov.attack[(size_t)c] = 1; }  // where the units would end up (and pass, for a push)
+      const std::string chance = steals ? std::string() : chanceOn(target);
       if (steals) stealHint(target);
-      else sayHint();
+      else if (!chance.empty()) {  // "Inflicts Sleep for 3 turns  Sleep 60%  Z:use  X:back"
+        gPickHint = effect + "  " + chance + "  {ok}:use  {cancel}:back";
+        say(gPickHint);
+      } else sayHint();
     };
     if (steals) {  // the foe first, then which of its items
       beginPickUnit(units, [this, user, ability, id, clearHint](int t) {

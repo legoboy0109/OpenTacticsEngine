@@ -46,7 +46,10 @@ bool BattleView::beginConditions(const Battle& b) {
       OTE_INFO("condition ended: %s - %s (%s)", who.c_str(), name.c_str(), e.c >= 0 && e.c < 5 ? kWhy[e.c] : "?");
       break;
     }
-    case EventType::ConditionResisted: OTE_INFO("condition resisted: %s - %s", who.c_str(), name.c_str()); break;
+    case EventType::ConditionResisted:
+      if (e.flags & kMissed) OTE_INFO("condition missed: %s - %s (%d%%)", who.c_str(), name.c_str(), e.d);  // an ability's chance (the player tests read it)
+      else OTE_INFO("condition resisted: %s - %s", who.c_str(), name.c_str());
+      break;
     default: OTE_INFO("condition tick: %s - %s (%s)", who.c_str(), name.c_str(), e.c == kTickActsAlone ? "acts on its own" : "cannot act"); break;
   }
   if (!v.visible) {  // not on the map (or out of sight): nothing to show
@@ -66,7 +69,7 @@ bool BattleView::beginConditions(const Battle& b) {
       break;
     }
     case EventType::ConditionResisted:
-      addFloat(ConditionWords::kImmune, x, y, kPlainColor, 1.0f);
+      addFloat((e.flags & kMissed) ? conditionMissedText(db, e.b) : std::string(ConditionWords::kImmune), x, y, kPlainColor, 1.0f);
       cur_.dur = kEndedDur;
       break;
     default:

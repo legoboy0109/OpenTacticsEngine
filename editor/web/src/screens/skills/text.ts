@@ -249,6 +249,8 @@ export const T = {
   moveAgainNotHelp: 'After a fight the unit’s turn ends as usual; after any other action it may still move.',
   cureWhich: 'Which conditions',
   cureAll: 'All of them',
+  cureHarmful: 'Every harmful one',
+  cureHelpful: 'Every helpful one',
   curePick: 'Only these',
   auraMatchPick: 'Only units of this type or tag',
   auraMatchAny: 'Any unit',

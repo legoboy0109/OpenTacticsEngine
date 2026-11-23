@@ -14,20 +14,20 @@ const itemOf = (doc: ProjectDoc, id: string) => doc.items?.find((x) => x.id === 
 
 // --- a usable item: cures ------------------------------------------------------------------------------------------------------
 
-export type CureMode = 'none' | 'list' | 'all'
+export type CureMode = 'none' | 'list' | 'all' | 'harmful' | 'helpful'
 export interface ItemCure { mode: CureMode; ids: string[] }
 export function itemCureOf(item: Item): ItemCure {
-  if (item.cure === 'all') return { mode: 'all', ids: [] }
+  if (item.cure === 'all' || item.cure === 'harmful' || item.cure === 'helpful') return { mode: item.cure, ids: [] }
   if (Array.isArray(item.cure)) return { mode: 'list', ids: item.cure.filter((x): x is string => typeof x === 'string') }
   return { mode: 'none', ids: [] }
 }
 
-/** "Cures": nothing / every condition. ("The conditions I pick" is only written with the first pick, `setItemCureIds`: the loader refuses an
- *  empty list, so the form keeps that choice unsaved until something is ticked.) */
-export function setItemCureMode(doc: ProjectDoc, id: string, mode: 'none' | 'all'): ProjectDoc {
+/** "Cures": nothing / every condition / every harmful or helpful one. ("The conditions I pick" is only written with the first pick, `setItemCureIds`:
+ *  the loader refuses an empty list, so the form keeps that choice unsaved until something is ticked.) */
+export function setItemCureMode(doc: ProjectDoc, id: string, mode: Exclude<CureMode, 'list'>): ProjectDoc {
   const item = itemOf(doc, id)
   if (!item || itemCureOf(item).mode === mode) return doc
-  return patchItem(doc, id, { cure: mode === 'all' ? 'all' : undefined })
+  return patchItem(doc, id, { cure: mode === 'none' ? undefined : mode })
 }
 /** The listed conditions in the game's order (from any mode: the first pick starts the list); unticking the last one switches curing off. */
 export function setItemCureIds(doc: ProjectDoc, id: string, ids: string[]): ProjectDoc {

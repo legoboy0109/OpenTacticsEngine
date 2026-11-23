@@ -3,6 +3,7 @@
 // once); what an ability itself names (a summoned unit type, the unit and terrain keys of its "if") is checked last,
 // in resolveAbilityRefs.
 #include "core/data/ability_grants.h"
+#include "core/data/loader_conditions.h"
 #include "core/data/loader_content.h"
 #include "core/data/loader_events.h"
 #include "core/data/loader_places.h"
@@ -160,9 +161,11 @@ bool readEffect(const LoadCtx& c, Database& db, const Json& e, const std::string
       a.cureAll = true;
       return true;
     }
-    if (!v.isArray() || v.size() == 0) return c.fail(where, "\"cure\" must be \"all\" or a list of condition ids");
+    if ((a.cureKind = cureKindOf(v)) != 0) return true;  // "harmful" / "helpful": resolved with the conditions (resolveAbilityRefs)
+    const char* form = "\"cure\" must be \"all\", \"harmful\", \"helpful\" or a list of condition ids";
+    if (!v.isArray() || v.size() == 0) return c.fail(where, form);
     for (size_t i = 0; i < v.size(); ++i) {
-      if (!v[i].isString() || v[i].asString().empty()) return c.fail(where, "\"cure\" must be \"all\" or a list of condition ids");
+      if (!v[i].isString() || v[i].asString().empty()) return c.fail(where, form);
       a.cureIds.push_back(v[i].asString());
     }
   } else if (e.has("unlock")) {
@@ -224,8 +227,7 @@ bool readAbility(const LoadCtx& c, Database& db, const Json& e, const std::strin
       if (a.target != AbilityTarget::Ally) return c.fail(where, "\"refresh\" needs \"target\": \"ally\"");
       break;
     case AbilityEffect::Cure:
-      if (a.target != AbilityTarget::Self && a.target != AbilityTarget::Ally)
-        return c.fail(where, "\"cure\" needs \"target\": \"self\" or \"ally\"");
+      if (a.target == AbilityTarget::Cell) return c.fail(where, "\"cure\" needs a target unit: \"target\" must be \"self\", \"ally\", \"enemy\" or \"unit\"");
       break;
     case AbilityEffect::Push:
     case AbilityEffect::Pull:
@@ -370,6 +372,7 @@ bool resolveAbilityRefs(const std::string& root, Database& db, std::string& err)
     }
     if (a.effect == AbilityEffect::Cure) {
       if (db.conditions.empty()) return c.fail(where, "\"cure\" needs conditions (data/conditions.json); this game has none");
+      if (a.cureKind) a.cures = conditionsOfKind(db, a.cureKind);  // "harmful" / "helpful" (docs/SRPG.md "Ability conditions")
       for (const std::string& id : a.cureIds) {
         const int k = db.findCondition(id);
         if (k < 0) return c.fail(where, "\"cure\" names unknown condition \"" + id + "\" (data/conditions.json)");

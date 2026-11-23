@@ -114,7 +114,7 @@ export function effectText(doc: ProjectDoc, e: Extra, when?: When): string {
       const what = typeof amount === 'string' ? `an amount from the formula ${amount}` : `${amount} HP`
       return o?.instead === true ? `the strike turns on its wielder, who takes ${what} instead of the foe` : `the wielder loses ${what} (it can be defeated)`
     }
-    case 'cure': return v === 'all' ? 'is cured of every condition' : `is cured of ${((Array.isArray(v) ? v : []) as string[]).map((id) => conditionNameOf(doc, id)).join(' and ')}`
+    case 'cure': return v === 'all' ? 'is cured of every condition' : v === 'harmful' ? 'is cured of every harmful condition' : v === 'helpful' ? 'loses every helpful condition' : `is cured of ${((Array.isArray(v) ? v : []) as string[]).map((id) => conditionNameOf(doc, id)).join(' and ')}`
     case 'nullifySkills': {
       if (v === true) return 'the foe’s skills do not work in this fight'
       if (Array.isArray(v)) return `the foe’s ${(v as string[]).map((id) => skillNameOf(doc, id)).join(' and ')} ${v.length === 1 ? 'does' : 'do'} not work in this fight`

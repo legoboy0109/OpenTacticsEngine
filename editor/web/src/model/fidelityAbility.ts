@@ -21,18 +21,38 @@ export function setAbilityXp(a: Ability, text: string): Ability {
   return next
 }
 
-export interface AbilityInflict { condition: string; turns?: number }
+export interface AbilityInflict { condition: string; turns?: number; chance?: number | string }
 export const abilityInflict = (a: Ability): AbilityInflict | undefined => {
-  const v = a.inflict as { condition?: unknown; turns?: unknown } | undefined
-  return v && typeof v === 'object' && typeof v.condition === 'string' ? { condition: v.condition, turns: typeof v.turns === 'number' ? v.turns : undefined } : undefined
+  const v = a.inflict as { condition?: unknown; turns?: unknown; chance?: unknown } | undefined
+  return v && typeof v === 'object' && typeof v.condition === 'string'
+    ? { condition: v.condition, turns: typeof v.turns === 'number' ? v.turns : undefined,
+        chance: typeof v.chance === 'number' || typeof v.chance === 'string' ? v.chance : undefined }
+    : undefined
 }
 
-/** condition '' removes the key; turns undefined = the condition's own. */
+/** condition '' removes the key; turns undefined = the condition's own. A chance (and any other key) already there is kept. */
 export function setAbilityInflict(a: Ability, condition: string, turns?: number): Ability {
   const next: Ability = { ...a }
-  if (condition === '') delete next.inflict
-  else next.inflict = turns === undefined ? { condition } : { condition, turns }
+  if (condition === '') {
+    delete next.inflict
+    return next
+  }
+  const was = (a.inflict && typeof a.inflict === 'object' ? a.inflict : {}) as Record<string, unknown>
+  const v: Record<string, unknown> = { ...was, condition }
+  if (turns === undefined) delete v.turns
+  else v.turns = turns
+  next.inflict = v as Ability['inflict']
   return next
+}
+
+/** The chance it takes hold (docs/SRPG.md "Ability conditions"): "60" -> 60, other text = a formula, '' -> removed (always takes hold). */
+export function setAbilityInflictChance(a: Ability, text: string): Ability {
+  if (!a.inflict || typeof a.inflict !== 'object') return a
+  const v: Record<string, unknown> = { ...(a.inflict as Record<string, unknown>) }
+  const amount = amountFromText(text)
+  if (amount === undefined) delete v.chance
+  else v.chance = amount
+  return { ...a, inflict: v as Ability['inflict'] }
 }
 
 export function abilityExtraProblems(doc: ProjectDoc, a: Ability): string[] {
@@ -52,6 +72,9 @@ export function abilityExtraProblems(doc: ProjectDoc, a: Ability): string[] {
       if (!cond) out.push(`The condition "${i.condition}" does not exist (Conditions screen).`)
       else if (i.turns !== undefined && (cond.until === 'cured' || cond.until === 'mapEnd')) out.push(`"${cond.name}" does not count turns, so a number of turns means nothing.`)
       if (i.turns !== undefined && (!Number.isInteger(i.turns) || i.turns < 1 || i.turns > 99)) out.push('Turns must be a whole number from 1 to 99.')
+      const ch = (inf as { chance?: unknown }).chance
+      if (ch !== undefined && !(typeof ch === 'string' && ch.trim() !== '') && !(typeof ch === 'number' && Number.isInteger(ch) && ch >= 1 && ch <= 100))
+        out.push('The chance must be a percent from 1 to 100 or a formula (a = the user, b = the target).')
     }
     if (a.target === 'cell' || (a.effect && ('summon' in a.effect || 'unlock' in a.effect)))
       out.push('An ability that gives a condition needs a unit to give it to (not a summon, an unlock or a square).')

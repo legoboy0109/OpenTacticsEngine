@@ -53,10 +53,13 @@ export function StaffConditionParts({ id }: { id: string }) {
       {cure.on && cure.editable && (
         <div className="indent stack" data-testid="staff-cure">
           <Field label={C.staffCureWhich}>
-            <Select value={cure.all ? 'all' : 'list'} options={[{ value: 'list', label: C.staffCureKinds.list }, { value: 'all', label: C.staffCureKinds.all }]}
-              onChange={(v) => { if (v === 'all') { setPicking(false); edit((d) => setCure(d, id, 'all')) } else if (stored.all || !stored.on) setPicking(true) }} />
+            <Select value={cure.all ? 'all' : cure.kind ?? 'list'} options={[{ value: 'list', label: C.staffCureKinds.list }, { value: 'all', label: C.staffCureKinds.all },
+              { value: 'harmful', label: C.staffCureKinds.harmful }, { value: 'helpful', label: C.staffCureKinds.helpful }]}
+              onChange={(v) => {
+                if (v !== 'list') { setPicking(false); edit((d) => setCure(d, id, v as 'all' | 'harmful' | 'helpful')) } else if (stored.all || stored.kind || !stored.on) setPicking(true)
+              }} />
           </Field>
-          {!cure.all && <MultiSelect label={C.staffCureList} options={options} value={cure.ids} onChange={(v) => { if (v.length) { setPicking(false); edit((d) => setCure(d, id, v)) } }} />}
+          {!cure.all && !cure.kind && <MultiSelect label={C.staffCureList} options={options} value={cure.ids} onChange={(v) => { if (v.length) { setPicking(false); edit((d) => setCure(d, id, v)) } }} />}
           {picking && <p className="help" data-testid="staff-cure-pick">{C.cureNeedsOne}</p>}
         </div>
       )}

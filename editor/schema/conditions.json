@@ -11,6 +11,7 @@
       "until": { "type": "enum", "values": ["cured", "mapEnd"], "excludes": ["turns", "scale"], "help": "Lasts until it is cured, or until the map ends (use turns or until)." },
       "wearOff": { "type": "int", "min": 1, "max": 99, "help": "Percent chance each turn that it ends early." },
       "endsWhenStruck": { "type": "bool", "help": "Ends when the unit is hit." },
+      "kind": { "type": "enum", "values": ["harmful", "helpful"], "help": "harmful (the default): a curse that cure \"harmful\" takes off; helpful: a blessing (cure \"helpful\" strips it; the computer gives it to its own side)." },
       "replaces": { "type": "list", "of": { "type": "ref", "ref": "data/conditions.json" }, "help": "Conditions it removes when it is put on." },
       "scale": { "type": "enum", "values": ["turnsLeft"], "help": "The numbers of its always blocks count as many times as it has turns left (needs turns)." },
       "blocks": { "type": "list", "required": true, "help": "What the condition does (at least one block); same blocks as a skill, plus cannotAct, cannotMove, forbid, berserk.", "of": {

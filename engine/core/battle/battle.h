@@ -104,7 +104,7 @@ enum class EventType {
   ConditionApplied,
   // a=unit, b=condition, c=why: kConditionRanOut, kConditionWoreOff (early), kConditionCured, kConditionReplaced, kConditionStruck
   ConditionEnded,
-  // a=unit that is immune, b=condition, c=the unit that tried
+  // a=unit that is immune, b=condition, c=the unit that tried; with kMissed: not immune, an ability's chance roll failed (d = the chance)
   ConditionResisted,
   // a=unit, b=condition, c=what: kTickActsAlone (berserk, its own action follows), kTickCannotAct (its turn is skipped)
   ConditionTick,
@@ -168,7 +168,8 @@ enum : int {
   kArea = 65536,           // Attack: one strike of an area attack (docs/SRPG.md "Area attacks and line fire"); the player plays it on the map
   kJobLevelUp = 131072,    // JpGained: the job level rose (docs/JOBS.md)
   kJobShared = 262144,     // JpGained: a share of an ally's JP (docs/JOBS.md "Sharing JP with allies")
-  kMastered = 524288       // PointsGained: the entry is mastered now (docs/JOBS.md "Learning from equipment")
+  kMastered = 524288,      // PointsGained: the entry is mastered now (docs/JOBS.md "Learning from equipment")
+  kMissed = 1048576        // ConditionResisted: not immune, an ability's "chance" roll failed (d = the chance; docs/SRPG.md "Ability conditions")
 };
 // How a door or chest was opened (the `c` of DoorOpened / ChestOpened).
 enum : int { kOpenKey = 0, kOpenTrait = 1, kOpenBreak = 2, kOpenStory = 3, kOpenStaff = 4, kOpenFree = 5 /* it was not locked */ };
@@ -907,6 +908,7 @@ class Battle {
 #include "core/battle/teaching_api.h"
 #include "core/battle/pools_api.h"
 #include "core/battle/strike_api.h"
+#include "core/battle/ability_conditions_api.h"
 #include "core/battle/commander_api.h"
 
  private:

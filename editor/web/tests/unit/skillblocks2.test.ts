@@ -87,7 +87,7 @@ describe('abilities: steal, refresh, move past, cure', () => {
   it('each effect accepts the targets the loader accepts, and changing the effect repairs the target', () => {
     expect(TARGETS_FOR.steal).toEqual(['enemy'])
     expect(TARGETS_FOR.refresh).toEqual(['ally'])
-    expect(TARGETS_FOR.cure).toEqual(['self', 'ally'])
+    expect(TARGETS_FOR.cure).toEqual(['self', 'ally', 'enemy', 'unit'])
     expect(TARGETS_FOR.movePast).toEqual(['ally', 'enemy', 'unit'])
     let d = addAbility(base(), 'Pick')
     let a = d.abilities!.find((x) => x.id === 'pick')!
@@ -148,7 +148,8 @@ describe('abilities: steal, refresh, move past, cure', () => {
     expect(mk({ target: 'ally', effect: { refresh: { perTurn: 0 } } })[0]).toMatch(/from 1 to 9/)
     expect(mk({ target: 'ally', effect: { cure: [] } })[0]).toMatch(/cures nothing yet/)
     expect(mk({ target: 'ally', effect: { cure: ['gout'] } })[0]).toMatch(/does not exist/)
-    expect(mk({ target: 'enemy', effect: { cure: 'all' } })[0]).toMatch(/curing works on the unit itself or an ally/)
+    expect(mk({ target: 'enemy', effect: { cure: 'all' } })).toEqual([])  // a dispel (docs/SRPG.md "Ability conditions")
+    expect(mk({ target: 'cell', effect: { cure: 'all' } })[0]).toMatch(/curing works on a unit, not a square/)
     expect(mk({ target: 'unit', effect: { movePast: true } })).toEqual([])
     expect(mk({ target: 'cell', effect: { movePast: true } })[0]).toMatch(/needs a unit next to it/)
   })

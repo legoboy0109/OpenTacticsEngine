@@ -45,15 +45,23 @@ const storyCommands = (doc: ProjectDoc): Extra[] => {
 export function canBeInflicted(doc: ProjectDoc, id: string): boolean {
   if ((doc.items ?? []).some((i) => (i.kind === 'staff' && fxList(i).some((e) => fxKind(e) === 'inflict' && (e.inflict as Extra | undefined)?.condition === id)) || (i.kind === 'usable' && i.inflict?.condition === id))) return true
   if ((doc.weapons ?? []).some((w) => w.inflict?.condition === id)) return true
+  if ((doc.abilities ?? []).some((a) => (a.inflict as Extra | undefined)?.condition === id)) return true  // an ability's "inflict"
   if (allBlocks(doc).some((o) => o.blocks.some((b) => effectsIn(b).some((e) => (e.inflict as Extra | undefined)?.condition === id)))) return true
   return storyCommands(doc).some((c) => c.addCondition === id)
 }
 
+/** "harmful" (the default) or "helpful" (docs/SRPG.md "Ability conditions"). */
+export const kindOf = (doc: ProjectDoc, id: string): 'harmful' | 'helpful' => ((doc.conditions ?? []).find((c) => c.id === id)?.kind === 'helpful' ? 'helpful' : 'harmful')
+
 /** Does anything take it off? A staff or usable item that cures it (or every condition), another condition that replaces it, a story command. */
 export function canBeCured(doc: ProjectDoc, id: string): boolean {
   for (const i of doc.items ?? []) {
-    if (i.kind === 'staff' && (() => { const c = cureOf(i); return c.on && (c.all || c.ids.includes(id)) })()) return true
-    if (i.kind === 'usable' && (i.cure === 'all' || (Array.isArray(i.cure) && i.cure.includes(id)))) return true
+    if (i.kind === 'staff' && (() => { const c = cureOf(i); return c.on && (c.all || c.kind === kindOf(doc, id) || c.ids.includes(id)) })()) return true
+    if (i.kind === 'usable' && (i.cure === 'all' || i.cure === kindOf(doc, id) || (Array.isArray(i.cure) && i.cure.includes(id)))) return true
+  }
+  for (const a of doc.abilities ?? []) {  // a cure ability (docs/SRPG.md "Ability conditions": also every harmful / helpful one)
+    const c = a.effect?.cure
+    if (c === 'all' || c === kindOf(doc, id) || (Array.isArray(c) && c.includes(id))) return true
   }
   if ((doc.conditions ?? []).some((c) => c.replaces?.includes(id))) return true
   return storyCommands(doc).some((c) => c.removeCondition === id || c.removeCondition === 'all')
@@ -69,6 +77,7 @@ function shapeIssues(doc: ProjectDoc, c: Condition): string[] {
   else if (c.turns === undefined && c.until === undefined) out.push('it needs to say how long it lasts: a number of turns, until cured, or until the map ends.')
   else if (c.until !== undefined && c.until !== 'cured' && c.until !== 'mapEnd') out.push('it lasts “until” cured or until the map ends, nothing else.')
   else if (c.turns !== undefined && (!whole(c.turns) || c.turns < 1 || c.turns > CONDITION_TURNS_MAX)) out.push(`the turns must be a whole number from 1 to ${CONDITION_TURNS_MAX}.`)
+  if (c.kind !== undefined && c.kind !== 'harmful' && c.kind !== 'helpful') out.push('its kind must be harmful (a curse) or helpful (a blessing).')
   if (c.wearOff !== undefined && (!whole(c.wearOff) || c.wearOff < 1 || c.wearOff > CONDITION_WEAROFF_MAX)) out.push(`the chance to wear off early must be a whole number from 1 to ${CONDITION_WEAROFF_MAX} (leave it out for never).`)
   if (c.scale !== undefined) {
     if (c.scale !== 'turnsLeft') out.push('the effects can only fade as the turns left run out (“turnsLeft”).')
@@ -131,7 +140,7 @@ export function siteChecks(doc: ProjectDoc): ConditionCheck[] {
     const say = (text: string) => out.push({ section: 'items', ids: [i.id], text: `${i.name}: ${text}`, blocks: true })
     if (i.kind !== 'usable' && (i.cure !== undefined || i.inflict !== undefined)) say('only a usable item can cure or inflict a condition.')
     if (i.cure !== undefined) {
-      if (i.cure !== 'all') {
+      if (i.cure !== 'all' && i.cure !== 'harmful' && i.cure !== 'helpful') {
         if (!Array.isArray(i.cure) || i.cure.length === 0) say('curing needs a list of conditions, or every condition.')
         else {
           const seenIds = new Set<string>()

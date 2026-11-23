@@ -254,6 +254,8 @@ export interface Unit extends Named {
 export type ItemKind = 'usable' | 'weapon' | 'accessory' | 'staff'
 /** Who a staff works on (docs/SRPG.md section 8); a usable item only has 'self' and 'ally'. */
 export type ItemTarget = 'self' | 'ally' | 'team' | 'foe' | 'any'
+/** A cure list (docs/SRPG.md section 9 and "Ability conditions"): condition ids, every condition ("all"), or every one of a kind. */
+export type CureValue = string[] | 'all' | 'harmful' | 'helpful'
 export type StaffArea = 'single' | 'all' | { radius: number }
 /** One item of data/items.json (docs/ITEMS.md). Fields of another kind than `kind` are refused by the loader. */
 export interface Item extends Named {
@@ -297,8 +299,8 @@ export interface Item extends Named {
   /** docs/SRPG.md section 11: what the user earns when the staff missed everyone (needs `hit`). */
   xpMiss?: number | string
   if?: Extra[]
-  /** Usable items (docs/SRPG.md section 9): conditions it cures (a list of ids or "all") and the one it puts on the unit it is used on. */
-  cure?: string[] | 'all'
+  /** Usable items (docs/SRPG.md section 9): conditions it cures (a list of ids, "all", or "harmful" / "helpful") and the one it puts on the unit it is used on. */
+  cure?: CureValue
   inflict?: { condition: string; turns?: number } & Extra
   /** Keys (usable items only; docs/SRPG.md section 10): "door", "chest" and/or ids of structure kinds. */
   opens?: string[]

@@ -1,5 +1,5 @@
 // "Experience and conditions" card of an ability (docs/SRPG.md section 11): what the user earns per use, and a condition the target gets.
-import { abilityExtraProblems, abilityInflict, amountText, setAbilityInflict, setAbilityXp } from '../../model/fidelityAbility'
+import { abilityExtraProblems, abilityInflict, amountText, setAbilityInflict, setAbilityInflictChance, setAbilityXp } from '../../model/fidelityAbility'
 import type { Ability } from '../../model/srpgTypes'
 import { useDoc } from '../../store/context'
 import { Banner } from '../../ui/Banner'
@@ -37,6 +37,12 @@ export function AbilityExtras({ ability, change }: { ability: Ability; change: (
               <Field label={T.inflictTurns} help={T.inflictTurnsHelp}>
                 <NumberInput value={inflict.turns} allowEmpty min={1} max={99} placeholder={T.inflictOwn}
                   onChange={(v) => change((a) => setAbilityInflict(a, abilityInflict(a)?.condition ?? '', v), 'inflictTurns')} />
+              </Field>
+            )}
+            {inflict && (
+              <Field label={T.inflictChance} help={T.inflictChanceHelp}>
+                <TextInput value={amountText(inflict.chance)} mono placeholder="100" aria-label={T.inflictChance}
+                  onChange={(v) => change((a) => setAbilityInflictChance(a, v), 'inflictChance')} />
               </Field>
             )}
           </>

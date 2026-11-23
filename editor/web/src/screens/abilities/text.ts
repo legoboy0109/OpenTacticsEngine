@@ -59,7 +59,7 @@ export const T = {
     summon: 'A new unit appears on the chosen square, on the summoner’s side.',
     steal: 'Takes one item from an enemy next to the unit into the unit’s pack. A full pack needs a shared storage or room.',
     refresh: 'An ally that has already acted this turn may act again. A unit can be refreshed once a turn, and cannot refresh the unit that refreshed it.',
-    cure: 'Removes conditions from the target: only a unit that has one of them can be picked.',
+    cure: 'Removes conditions from the target (itself, an ally, or a foe to take its blessings away): only a unit that has one of them can be picked.',
     unlock: 'Opens a locked door or chest on a square within reach, without a key. This is the thief’s trick: give it to a unit type or a character.',
     strike: 'Attacks with a weapon of the Weapons screen, such as a spell or a breath. The weapon decides whom it can hit, how far it reaches and how much it hurts. The target never strikes back.',
     none: 'Only gives the target a condition (set under “Experience and conditions”), and perhaps pays experience. It does nothing else.',
@@ -96,6 +96,9 @@ export const T = {
   refreshHelp: 'Counted over everyone who refreshes it. 1 is the usual.',
   cureWhich: 'Which conditions',
   cureAll: 'All of them',
+  cureHarmful: 'Every harmful one',
+  cureHelpful: 'Every helpful one',
+  cureWhichHelp: 'Harmful and helpful follow each condition\'s kind (Conditions screen; harmful when it says nothing). "Every helpful one" used on a foe takes its blessings away.',
   curePick: 'Only these',
   cureNone: 'The game has no conditions yet. Turn them on and make some first.',
   unlockTarget: 'A square of a door or chest within reach',
@@ -208,6 +211,8 @@ export const T = {
   inflictTurns: 'Turns',
   inflictTurnsHelp: 'How long it lasts. Empty = the condition\'s own duration.',
   inflictOwn: 'its own',
+  inflictChance: 'Chance it takes hold',
+  inflictChanceHelp: 'A percent from 1 to 100, or a formula (a = the user, b = the target, e.g. a.mag + 40 - b.res). Rolled once for each target. Empty = always.',
   summaryTitle: 'In short',
 
   // The Abilities card on a unit type

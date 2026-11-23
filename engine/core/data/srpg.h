@@ -212,6 +212,7 @@ struct SkillEffect {
   // Damage, Avoid, CritAvoid, DamageTaken, DamagePercent, DamageTakenPercent; `statExprs[i]` >= 0 replaces `stats[i]` of Stats.
   std::vector<int> statExprs;
   bool cureAll = false;     // Cure: every condition
+  int cureKind = 0;         // Cure: "harmful" (1) / "helpful" (2): every condition of that kind (expanded into `conds` when the block is resolved)
   bool instead = false;     // Recoil: the strike's damage hits the wielder instead of the foe
   std::vector<int> skillIds;  // NullifySkills (mode 1): indices into Database::skills, resolved last
 };
@@ -300,10 +301,14 @@ struct AbilityDef {
   std::vector<std::string> cureIds;
   std::vector<int> cures;
   bool cureAll = false;
+  int cureKind = 0;  // "cure": "harmful" (1) / "helpful" (2): `cures` holds every condition of that kind (docs/SRPG.md "Ability conditions")
   // "xp": experience the user gets for each use (a number or a formula; expression -1 = the number). "inflict": a condition the
   // target gets after the effect (docs/SRPG.md "Abilities: experience and conditions").
   int xp = 0, xpExpr = -1;
   int inflictCond = -1, inflictTurns = 0;  // index into Database::conditions (conditions load first); turns 0 = the condition's own
+  // "inflict": { "chance": 60 | "formula" } (docs/SRPG.md "Ability conditions"): the percent it takes hold on each target, rolled once per target.
+  // inflictChance 0 and inflictChanceExpr -1 = no "chance" key: it always takes hold (no roll), as before.
+  int inflictChance = 0, inflictChanceExpr = -1;
   ChargeDef charge;         // "chargeSpeed" etc. (speed turn order only; docs/TURN_ORDER.md "Charged actions")
   bool spendsItem = false;  // "spendsItem": each use takes one use of the item that gives the ability (docs/SRPG.md "An ability that spends its item")
   // Strike (docs/SRPG.md "Abilities that strike"): the ability attacks with this weapon (index into Database::weapons, resolved last; -1 = not a strike).
@@ -414,6 +419,9 @@ struct ConditionDef {
   // carryBonus) are multiplied by the turns it has left. Counted conditions only.
   bool scale = false;
   bool endsWhenStruck = false;       // a strike that does damage to the unit ends it
+  // "kind": "harmful" (the default) or "helpful" (docs/SRPG.md "Ability conditions"): what a cure list "harmful" / "helpful" takes away,
+  // and which side the computer gives it to.
+  bool helpful = false;
   std::vector<std::string> replaceIds;
   std::vector<int> replaces;         // applying this removes these
   int skill = -1;                    // the hidden SkillDef (index into Database::skills) that holds its blocks

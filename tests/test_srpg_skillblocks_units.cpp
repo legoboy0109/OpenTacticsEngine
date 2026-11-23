@@ -47,7 +47,7 @@ TEST(skillblocks_cure_refusals) {
   c.skills(skill("x", "combat", "{ \"cure\": \"all\" }"));
   CHECK(saysIn(c.gameError(), "cannot be used in a \"combat\" block"));
   c.skills(skill("x", "turnStart", "{ \"cure\": [] }"));
-  CHECK(saysIn(c.gameError(), "\"cure\" must be \"all\" or a list of condition ids"));
+  CHECK(saysIn(c.gameError(), "\"cure\" must be \"all\", \"harmful\", \"helpful\" or a list of condition ids"));
 }
 
 TEST(skillblocks_map_units_and_addunit_take_skills_of_their_own) {

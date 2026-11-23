@@ -117,6 +117,7 @@ function inflictProblem(doc: ProjectDoc, v: unknown, at: string): string | undef
 
 function cureProblem(doc: ProjectDoc, v: unknown, at: string): string | undefined {
   if (v === 'all') return undefined
+  if (v === 'harmful' || v === 'helpful') return (doc.conditions ?? []).length ? undefined : `${at}: it cures every ${v} condition, but the game has no conditions yet.`
   if (!Array.isArray(v) || v.length === 0) return `${at}: curing needs a list of conditions, or every condition.`
   const seen = new Set<string>()
   for (const x of v) {

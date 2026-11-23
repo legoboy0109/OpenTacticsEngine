@@ -113,7 +113,7 @@ const Op probeUsable = {"data/items.json", "items[+]", R"({"id":"probe","name":"
   const Op probeCondition = {"data/conditions.json", "conditions[+]", R"({"id":"probe","name":"Probe","turns":3,"blocks":[{"when":"always","do":[{"stats":{"str":1}}]}]})"};
   c.push_back({"condition-rows", "srpg-conditions", {probeCondition},
                {"conditions:id", "conditions:name", "conditions:description", "conditions:tag", "conditions:turns", "conditions:until",
-                "conditions:wearOff", "conditions:endsWhenStruck", "conditions:replaces", "conditions:scale", "conditions:blocks"},
+                "conditions:wearOff", "conditions:endsWhenStruck", "conditions:replaces", "conditions:scale", "conditions:blocks", "conditions:kind"},
                {{"conditions:blocks", R"([{"when":"always","do":[{"stats":{"str":1}}]}])"}, {"conditions:blocks[].do", R"([{"stats":{"str":1}}])"}}});
   conditionBlockContext(c, "cond-cond", "strike", R"({"hit":5})", {"conditions:blocks[].if"});
   conditionBlockContext(c, "cond-chance", "strike", R"({"hit":5})", {"conditions:blocks[].chance"});

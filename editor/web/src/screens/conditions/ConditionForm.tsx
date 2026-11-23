@@ -5,7 +5,7 @@ import { conditionChecks } from '../../model/conditionChecks'
 import { ruleIndexes } from '../../model/conditionBehaviour'
 import { conditionSummary } from '../../model/conditionText'
 import {
-  CONDITION_TURNS_MAX, CONDITION_WEAROFF_MAX, TAG_MAX, addConditionBlock, blocksOfCondition, durationOf, hasScalableEffect, setScale, moveConditionBlock, removeConditionBlock, setDuration, setEndsWhenStruck,
+  CONDITION_TURNS_MAX, CONDITION_WEAROFF_MAX, TAG_MAX, addConditionBlock, blocksOfCondition, durationOf, hasScalableEffect, setScale, moveConditionBlock, removeConditionBlock, setConditionKind, setDuration, setEndsWhenStruck,
   setReplaces, setTag, setTurns, setWearOff, tagOf, updateCondition, updateConditionBlock, type Duration,
 } from '../../model/conditions'
 import { MAX_BLOCKS } from '../../model/skillRules'
@@ -81,6 +81,10 @@ export function ConditionForm({ id }: { id: string }) {
             </Field>
           )}
           <Check label={T.endsWhenStruck} help={T.endsWhenStruckHelp} checked={c.endsWhenStruck === true} onChange={(on) => edit((d) => setEndsWhenStruck(d, id, on))} />
+          <Field label={T.kind} help={T.kindHelp}>
+            <Select value={c.kind === 'helpful' ? 'helpful' : 'harmful'} options={[{ value: 'harmful', label: T.kinds.harmful }, { value: 'helpful', label: T.kinds.helpful }]}
+              onChange={(v) => edit((d) => setConditionKind(d, id, v as 'harmful' | 'helpful'))} />
+          </Field>
           <MultiSelect label={T.replaces} help={T.replacesHelp} options={others} value={c.replaces ?? []} emptyText={T.replacesNone} onChange={(v) => edit((d) => setReplaces(d, id, v))} />
         </div>
       </Card>

@@ -31,9 +31,14 @@ struct InflictSpec {
 };
 bool readInflictSpec(const LoadCtx& c, const Database& db, const Json& v, const std::string& where, const std::string& at,
                      bool allowChance, InflictSpec& out);
-// "cure": ["poison", "sleep"] or "all".
+// "cure": ["poison", "sleep"], "all", or "harmful" / "helpful" (every condition of that kind, as a list; docs/SRPG.md "Ability conditions").
 bool readCureList(const LoadCtx& c, const Database& db, const Json& v, const std::string& where, const std::string& at,
                   std::vector<int>& ids, bool& all);
+
+// Every condition of a kind ("kind": "harmful" / "helpful"), in file order. `kind` 1 = harmful, 2 = helpful.
+std::vector<int> conditionsOfKind(const Database& db, int kind);
+// "harmful" -> 1, "helpful" -> 2, anything else 0.
+int cureKindOf(const Json& v);
 
 // What a block names, as indices: the conditions of "immune" and "inflict" effects.
 bool resolveBlockConditions(const LoadCtx& c, const Database& db, const std::string& where, SkillBlock& block);

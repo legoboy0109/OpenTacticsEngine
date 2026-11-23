@@ -96,7 +96,9 @@ FightScript buildStaffScript(const Event& used, const std::vector<Event>& run, c
       }
       case EventType::ItemRepaired: st.notes.push_back({t, nameOf(info.itemNames, e.b, "Item") + " +" + std::to_string(e.c), 1}); break;
       case EventType::ConditionApplied: st.notes.push_back({t, nameOf(info.conditionNames, e.b, "Condition"), 0}); break;
-      case EventType::ConditionResisted: st.notes.push_back({t, nameOf(info.conditionNames, e.b, "Condition") + " resisted", 0}); break;
+      case EventType::ConditionResisted:
+        st.notes.push_back({t, nameOf(info.conditionNames, e.b, "Condition") + ((e.flags & kMissed) ? " missed" : " resisted"), 0});
+        break;
       case EventType::ConditionEnded:
         if (e.c == kConditionCured) st.notes.push_back({t, nameOf(info.conditionNames, e.b, "Condition") + " cured", 0});
         break;
@@ -160,7 +162,9 @@ FightScript buildFightScript(const std::vector<Event>& run, const FightInfo& inf
     switch (e.type) {
       case EventType::SkillActivated: pending.push_back({s, nameOf(info.skillNames, e.b, "Skill")}); break;
       case EventType::ConditionApplied: pending.push_back({s, nameOf(info.conditionNames, e.b, "Condition")}); break;
-      case EventType::ConditionResisted: pending.push_back({s, nameOf(info.conditionNames, e.b, "Condition") + " resisted"}); break;
+      case EventType::ConditionResisted:
+        pending.push_back({s, nameOf(info.conditionNames, e.b, "Condition") + ((e.flags & kMissed) ? " missed" : " resisted")});
+        break;
       case EventType::Attack: {
         FightStrike st;
         st.actor = out.sideOf(e.a);

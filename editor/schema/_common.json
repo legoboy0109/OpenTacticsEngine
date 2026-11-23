@@ -56,6 +56,15 @@
           { "name": "formula", "kind": "string", "node": { "type": "string" }, "sample": "50" } ] },
         "turns": { "type": "int", "min": 1, "max": 99, "help": "Turns it lasts (only for conditions that count turns)." } }
     },
+    "inflictAbility": {
+      "type": "object", "sample": { "condition": "poison" },
+      "fields": {
+        "condition": { "type": "ref", "ref": "data/conditions.json", "required": true, "help": "The condition put on the target." },
+        "chance": { "type": "variant", "help": "Percent it takes hold on each target (1 to 100; 100 = always) or a formula (a = the user, b = the target).", "variants": [
+          { "name": "percent", "kind": "number", "node": { "type": "int", "min": 1, "max": 100 } },
+          { "name": "formula", "kind": "string", "node": { "type": "string" }, "sample": "50" } ] },
+        "turns": { "type": "int", "min": 1, "max": 99, "help": "Turns it lasts (only for conditions that count turns)." } }
+    },
     "inflictPlain": {
       "type": "object", "sample": { "condition": "poison" },
       "fields": {
@@ -66,6 +75,8 @@
       "type": "variant",
       "variants": [
         { "name": "all conditions", "value": "all" },
+        { "name": "every harmful condition", "value": "harmful" },
+        { "name": "every helpful condition", "value": "helpful" },
         { "name": "these conditions", "kind": "array", "node": { "type": "list", "of": { "type": "ref", "ref": "data/conditions.json" } } } ]
     },
     "itemGrants": {
