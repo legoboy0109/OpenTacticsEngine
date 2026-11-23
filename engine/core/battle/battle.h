@@ -594,6 +594,13 @@ class Battle {
             uint32_t seed, std::string& err);
   // Begins the first side's turn (emits TurnStarted, income). Call once.
   void start(std::vector<Event>& events);
+  // The `{ "battle": "beforePrep" }` events (docs/EVENTS.md "Before the preparation screen"): run once, on the Battle as set up, before start().
+  // start() runs them itself (right before the battle-start events) unless a caller already did; a player that showed them before its
+  // preparation screen calls setBeforePrepSeen(true) on every Battle it builds afterwards, so start() runs them again without entries
+  // (the state they made is part of the battle, the dialogue was already seen). Both do nothing in a map without such an event.
+  void runBeforePrep(std::vector<Event>& events);
+  void setBeforePrepSeen(bool seen) { beforePrepSeen_ = seen; }
+  bool hasBeforePrep() const;
 
   // ---- queries ----
   const TerrainDef& terrainAt(Cell c) const { return db->terrains[cells[c].terrain]; }
@@ -1047,6 +1054,7 @@ class Battle {
 #include "core/battle/exits_internal.h"
 
   StoryRun storyRun_;  // transient: empty between actions
+  bool beforePrepDone_ = false, beforePrepSeen_ = false;  // transient, never saved: a started battle has run them (story_before_prep.cpp)
   StoryChoice choice_;  // dialogue choices (story_choice.cpp)
   // story_choice.cpp: apply / start when questions wait; the command; the pieces of apply / start without that.
   void applyAction(const Action& action, std::vector<Event>& events);

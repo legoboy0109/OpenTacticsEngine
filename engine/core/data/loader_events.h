@@ -48,6 +48,10 @@ class StoryLoader {
   bool teamIndex(const std::string& id, const std::string& where, const char* what, int& out) const;
   bool unitId(const Json& j, const std::string& where, const char* what, std::string& out) const;
   // { "unit": id } | { "side": id } | { "team": name } | { "type": id } | { "tag": text } | {} | "unit id"
+  // `{ "actor": true }` is a filter only inside the commands of an event that has an acting unit (loader_events.cpp sets this).
+  void allowActorFilter(bool on) { actorOk_ = on; }
+  // Reading the commands of a `{ "battle": "beforePrep" }` event: the ones that make no sense before deployment are refused.
+  void readingBeforePrep(bool on) { beforePrep_ = on; }
   bool filter(const Json& j, const std::string& where, const char* what, UnitFilter& out) const;
   bool rect(const Json& j, const std::string& where, Rect& out) const;
   bool conditions(const Json& list, const std::string& where, std::vector<Condition>& out) const;
@@ -95,6 +99,7 @@ class StoryLoader {
   const MapDef& map_;
   LoadCtx c_;
   StoryData& data_;
+  bool actorOk_ = false, beforePrep_ = false;
 };
 
 }  // namespace ote

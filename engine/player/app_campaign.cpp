@@ -208,6 +208,7 @@ void PlayerApp::doCampaignNext() {
         const ChapterDef* ch = currentChapter(db, pt);
         MapDef map;
         if (ch && loadMap(db, db.maps[(size_t)ch->map].id, map, err) && prepOn(map)) {
+          session_->prepResumed = pt.prep.open;  // already open = a save made on the screen: its beforePrep scene is not shown again
           prepOpen(db, pt, map, true);
           if (!prepareChapterBattle(db, pt, session_->formulas, args_.seed, session_->battle, err)) {
             showError("Cannot start the chapter", err, ToGame);
@@ -220,6 +221,7 @@ void PlayerApp::doCampaignNext() {
         }
         err.clear();
       }
+      session_->battle.setBeforePrepSeen(run.prepDone);  // after the screen: the beforePrep events ran before it, so they run silently now
       if (!startChapterBattle(db, pt, session_->formulas, run.nextSeed(args_.seed), session_->battle,
                               session_->startEvents, err)) {
         showError("Cannot start the chapter", err, ToGame);

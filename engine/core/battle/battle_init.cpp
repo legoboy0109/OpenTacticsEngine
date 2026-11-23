@@ -16,7 +16,9 @@ bool Battle::init(const Database& database, const MapDef& map, Formulas& formula
   const bool askChoices = choice_.ask;  // the caller's choice of asking survives a new battle
   const int keepDifficulty = difficulty;  // so does the difficulty it is to be built at (docs/DIFFICULTY.md)
   const int keepTestLevel = testLevel;  // and the test level (docs/DIFFICULTY.md "Test level")
+  const bool keepSeen = beforePrepSeen_;  // and whether the player already showed the beforePrep events (setBeforePrepSeen)
   *this = Battle();
+  beforePrepSeen_ = keepSeen;
   choice_.ask = askChoices;
   difficulty = keepDifficulty;
   testLevel = keepTestLevel;
@@ -273,6 +275,10 @@ void Battle::start(std::vector<Event>& events) {
 void Battle::startNow(std::vector<Event>& events) {
   EventScope scope(*this, events);
   sight_.valid = false;  // state may have been set up by hand since init (roster, research, tests)
+  if (!beforePrepDone_) {  // docs/EVENTS.md "Before the preparation screen": a player that already showed them wants no entries again
+    std::vector<Event> unseen;
+    runBeforePrep(beforePrepSeen_ ? unseen : events);
+  }
   poolsBattleStart();     // unit resources: every unit starts with its "start" share (docs/SRPG.md "Unit resources")
   activeSide = 0;
   round = 1;

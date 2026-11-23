@@ -55,7 +55,8 @@ static bool readTrigger(StoryLoader& L, const Json& w, const std::string& where,
     else if (s == "won") t.kind = K::BattleWon;
     else if (s == "lost") t.kind = K::BattleLost;
     else if (s == "end") t.kind = K::BattleEnd;
-    else return L.fail(at, "\"battle\" must be \"start\", \"won\", \"lost\" or \"end\"");
+    else if (s == "beforePrep") t.kind = K::BeforePrep;
+    else return L.fail(at, "\"battle\" must be \"start\", \"beforePrep\", \"won\", \"lost\" or \"end\"");
     return true;
   }
   if (k == "turn") {
@@ -115,7 +116,14 @@ static bool readEvents(StoryLoader& L, const Json& list, const std::string& mapN
     if (ev.when.kind == Trigger::Kind::Turn && ev.when.round == 0) ev.repeat = true;  // "every" round means every round
     if (!e.has("do")) return L.fail(where, "missing required \"do\" (the commands to run)");
     bool talk = ev.when.kind == Trigger::Kind::Talk;
-    if (!L.commands(e["do"], where + ": \"do\"", talk, ev.commands, ev.endsTurnOnTalk)) return false;
+    using TK = Trigger::Kind;
+    const TK tk = ev.when.kind;
+    L.allowActorFilter(tk == TK::Reach || tk == TK::Defeated || tk == TK::Fight || tk == TK::Talk || tk == TK::Promoted || tk == TK::Place);
+    L.readingBeforePrep(tk == TK::BeforePrep);
+    bool ok = L.commands(e["do"], where + ": \"do\"", talk, ev.commands, ev.endsTurnOnTalk);
+    L.allowActorFilter(false);
+    L.readingBeforePrep(false);
+    if (!ok) return false;
     data.events.push_back(ev);
   }
   return true;

@@ -95,6 +95,14 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
   if (!pickCommandKind(c_, e, where, kExtrasCommandKeys, kind)) return false;
   const auto isSceneFx = [&e](const char* k) { return SceneFxReader::isCommandIn(e, k); };
   if (!pickCommandKind(c_, where, kSceneCommandKeys, isSceneFx, kind)) return false;
+  if (beforePrep_ && kind) {  // docs/EVENTS.md "Before the preparation screen": no deployed party and no turns yet
+    static const char* const kNotBefore[] = {"win", "lose", "endTurn", "choice", "fight"};
+    for (const char* k : kNotBefore)
+      if (std::string(k) == kind)
+        return fail(where, std::string("\"") + kind + "\" makes no sense in a \"beforePrep\" event (it runs before the preparation screen: no "
+                           "party is deployed, no turn has started, the battle cannot be decided, and the screen's choices change the map it "
+                           "runs on again and again, so it must not ask or fight)");
+  }
   if (kind && std::string(kind) == "fight") return fightCommand(e, where + " (fight)", out);
   if (kind && std::string(kind) == "showUnit") return showUnitCommand(e, where + " (showUnit)", out);
   if (kind && std::string(kind) == "setPhaseMusic") {

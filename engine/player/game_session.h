@@ -51,6 +51,9 @@ class GameSession {
   MapDef map;
   Battle battle;
   std::vector<Event> startEvents;
+  // The preparation screen about to open was restored from a save (a save made on the screen): the `beforePrep` events that already played
+  // before it run again without being shown (docs/EVENTS.md "Before the preparation screen"). Set by the App before it builds the scene.
+  bool prepResumed = false;
   // Dialogue choices wait for a person (Battle::setAskChoices): on except in --autoplay, where the first answer is taken.
   bool askChoices = false;
   std::string dir;

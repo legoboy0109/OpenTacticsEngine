@@ -16,7 +16,8 @@ namespace ote {
 // "Which unit": one of a unit id, a side, a team, a unit type, a tag, or any.
 // A plain string where a filter is expected means { "unit": that }.
 struct UnitFilter {
-  enum class Kind { Any, Unit, Side, Team, Type, Tag };
+  // Actor: the unit that set the running event off (docs/EVENTS.md "The actor as a target"); matches nobody when there is none.
+  enum class Kind { Any, Unit, Side, Team, Type, Tag, Actor };
   Kind kind = Kind::Any;
   std::string unit;  // Kind::Unit; also the tag text for Kind::Tag
   int index = -1;    // Side / Team / Type
@@ -65,7 +66,10 @@ struct Trigger {
     // docs/SRPG.md: Promoted = a unit matching `who` promoted; Support = support pair `pair` gained `level`.
     Promoted, Support,
     // docs/SRPG.md section 10: a door, chest or visitable place (named by `place`) was opened / visited / destroyed (`placeIs`).
-    Place
+    Place,
+    // docs/EVENTS.md "Before the preparation screen": runs on the map between the chapter's `before` scene and the preparation
+    // screen (on a map without one, right before BattleStart).
+    BeforePrep
   };
   Kind kind = Kind::BattleStart;
   int pair = -1;       // Support: index into Database::supports.pairs

@@ -284,6 +284,7 @@ class BattleScene : public Scene {
   struct PrepUi;
   std::shared_ptr<PrepUi> prep_;  // null in an ordinary battle
   void prepStart();
+  void prepOpenScreen();          // opens the main menu (after the beforePrep scene, if the map has one)
   void prepRebuild();             // the not-yet-started Battle again from the choice made so far (also after a trade or a purchase)
   void prepChanged();             // after any change: rebuild, redraw the picture, write the Continue save
   void prepInput(const InputEvent& e);
