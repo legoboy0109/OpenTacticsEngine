@@ -2,6 +2,7 @@
 //   Idle -> Selected -> (move) -> ActionMenu -> Targeting -> (attack) -> Idle
 // Menus only react once the view has finished playing the last events (see
 // onInput), so state can change the moment apply() is called.
+#include "battle/battle_prep_ui.h"
 #include "battle/battle_scene.h"
 #include "battle/condition_text.h"
 #include "core/base/log.h"
@@ -75,6 +76,17 @@ bool BattleScene::turnInput(const InputEvent& e) {
   return true;
 }
 
+// A list or a menu has the input (not the map, a target pick or the preparation's map screens).
+bool BattleScene::listOpen() const {
+  switch (mode_) {
+    case Mode::ActionMenu: case Mode::BuildMenu: case Mode::EndMenu: case Mode::SlotList: case Mode::Items: case Mode::StructureMenu:
+    case Mode::UpgradeMenu: case Mode::Research: case Mode::Promotion: case Mode::DifficultyMenu: case Mode::WeaponPick:
+    case Mode::ResearchCancel: return true;
+    case Mode::Prep: return !prepOnMapView() && !(prep_ && prep_->screen == PrepUi::Screen::Positions);
+    default: return false;
+  }
+}
+
 void BattleScene::onInput(const InputEvent& e) {
   trackPointer(e);
   if (covered_) {  // the cover takes every input (no camera, no cursor) until the next player confirms
@@ -91,7 +103,11 @@ void BattleScene::onInput(const InputEvent& e) {
       fightScene_.skip();
     return;
   }
-  if (turnInput(e)) return;
+  // The mouse wheel arrives as ZoomIn / ZoomOut: while a list or menu is open it scrolls that list (ui/row_list.h), so the free
+  // 3D camera behind it does not zoom; with the map in charge it zooms as ever.
+  const bool wheel = (e.type == InputEvent::ButtonDown || e.type == InputEvent::ButtonUp) &&
+                     (e.button == Button::ZoomIn || e.button == Button::ZoomOut);
+  if (!(wheel && listOpen()) && turnInput(e)) return;
   bool confirmish = e.type == InputEvent::PointerDown ||
                     (e.type == InputEvent::ButtonDown && (e.button == Button::Confirm || e.button == Button::Cancel));
   if (mode_ == Mode::Result) {

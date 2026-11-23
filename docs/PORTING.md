@@ -93,9 +93,9 @@ handlers are additions that call the same actions. No screen has text entry. Ski
 that square, so resting on a square in the outer rows scrolls nothing. The map scrolls from the pointer only when the pointer is
 pushed against the **edge of the picture** (`battle/edge_scroll.h`, the one place for the numbers): inside a band along an edge a
 quarter of a tile wide (`kBandTiles`, at least 2 pixels; at the viewport's own edge and at the picture's edge, over the info panel
-or the hint line), for `kDwellSeconds` = 0.5 s, then at `kTilesPerSecond` = 5 tiles a second (frame-rate independent, so 120
-pixels a second at a 24-pixel tile; the owner's tuning: the first values, 0.25 s and 8 tiles, started too easily and moved too
-fast; an eighth-tile band was tried and was unusable in a browser, where the pointer slides out of the frame and must be rested
+or the hint line), for `kDwellSeconds` = 0.25 s, then at `kTilesPerSecond` = 8 tiles a second (frame-rate independent, so 192
+pixels a second at a 24-pixel tile; a "too fast" complaint once lowered these to 0.5 s and 5 tiles, but it was about the menu
+lists, not the map, so they went back; an eighth-tile band was tried and was unusable in a browser, where the pointer slides out of the frame and must be rested
 inside the band: `tools/webtest/suites/edgescroll.mjs`). It stops at once when the pointer leaves the band or the window; a corner scrolls both ways.
 It works with the cursor free (idle, a unit selected, choosing a facing, the preparation's Positions / View screens) and not while
 a menu or list is open, something is animating, a dialogue or fight scene plays, or in the full 3D view (its own camera). Only a
@@ -104,6 +104,18 @@ again; keys and pad keep their old behaviour (the cursor keeps two tiles of marg
 A backend reports the pointer leaving the window as a `PointerMove` at `kPointerGone` (`platform.h`; SDL3 `WINDOW_MOUSE_LEAVE`, SDL2
 `WINDOWEVENT_LEAVE`), a new port should do the same. The player logs `camera: X,Y` once the camera has been still for 20 frames after
 moving; the script words `move:X:Y` (hover without clicking) and `leave` drive it in tests (`tests/edge_scroll_player_test.py`).
+
+**Pointer scrolling (lists and menus).** Every list in the player (the launcher's lists, options, saves, shop / item / trade
+panels, jobs, promotion, and a popup menu too tall for the screen, which now shows the rows that fit) keeps a stored scroll
+position (`ui/row_list.h`, the one place for the numbers): it moves only when the selection would leave the visible rows (keys
+and pad step as before, the selection kept in the middle; wrapping works) or when the list is scrolled on purpose. Hovering a
+row selects it and never scrolls (the old rule centred the selected row, so a pointer resting near the bottom selected a row,
+the list re-centred, the next row slid under the pointer and the list raced to the end). The mouse scrolls a long list with
+the wheel, `ListFeel::kWheelRows` = 1 row a notch (the wheel arrives as ZoomIn / ZoomOut: an open list takes it, the map
+zooms only when no list is open), or by resting on the "^" / "v" marker for `kMarkerDwellSeconds` = 0.3 s, then
+`kMarkerRowsPerSecond` = 6 rows a second (frame time: the App advances the list clock); a click on a marker scrolls one row.
+A finger keeps its taps (the first selects, the second chooses) and can drag the rows. The player logs `list scrolled: first
+row N` when a list moves (`tests/list_scroll_player_test.py`).
 
 **Hints name the device in use.** Every hint / reminder line (`Z:select`, `Confirm: open`, `tap: ...`) is a template with
 `{tokens}` that `player/ui/input_hints.h` expands for the device of the most recent real press: keyboard, controller

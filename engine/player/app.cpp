@@ -15,6 +15,7 @@
 #include "scene_options.h"
 #include "scene_select.h"
 #include "ui/input_hints.h"
+#include "ui/row_list.h"
 
 #include <cstdlib>
 
@@ -188,6 +189,7 @@ void PlayerApp::update(double dt) {
     if (script_.finished() && args_.frames == 0) quit_ = true;
   }
   if (suspended_) return;  // the simulation clock stands still while the app is in the background
+  advanceListClock(dt);  // the lists' marker dwell (ui/row_list.h) runs on frame time
   if (scene_) scene_->update(dt);
   runPending();
   audio_.update(dt);  // after the scenes: what they asked for this frame is mixed at once

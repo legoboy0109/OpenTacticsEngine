@@ -166,6 +166,7 @@ void GameScene::onInput(const InputEvent& e) {
     return;
   }
   auto selectable = [&](int row) { return row >= 0 && !isCaption(rows_[(size_t)row].kind); };
+  if (list_.input(e)) return;  // the wheel, a "^" / "v" marker, a finger's drag (ui/row_list.h)
   if (e.type == InputEvent::PointerMove) {
     int row = list_.rowAt(e.x, e.y);
     if (selectable(row)) list_.sel = row;

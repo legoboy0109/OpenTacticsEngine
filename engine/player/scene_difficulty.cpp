@@ -59,6 +59,7 @@ void DifficultyScene::activate(int row) {
 
 void DifficultyScene::onInput(const InputEvent& e) {
   layout(host_.renderer());
+  if (list_.input(e)) return;  // the wheel, a "^" / "v" marker, a finger's drag (ui/row_list.h)
   if (e.type == InputEvent::PointerMove) {
     const int row = list_.rowAt(e.x, e.y);
     if (row >= 0) list_.sel = row;

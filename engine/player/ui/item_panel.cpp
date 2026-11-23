@@ -87,6 +87,9 @@ int panelRowWidth(const Renderer& r, const PanelRow& row, const IconColumn& icon
 
 void ItemPanel::open(const std::string& title, const std::string& head, const std::vector<PanelRow>& rows,
                      const std::string& emptyText, int sel) {
+  // The same list opened again over itself (its rows refreshed after a purchase, a job change ...): it keeps its scroll
+  // position (the selection is brought into view only if it left it), so a click does not make the rows jump.
+  const bool refresh = open_ && title == title_;
   open_ = true;
   title_ = title;
   head_ = head;
@@ -95,7 +98,7 @@ void ItemPanel::open(const std::string& title, const std::string& head, const st
   empty_ = emptyText;
   tabs_.clear();
   tab_ = 0;
-  list_ = RowList();
+  if (!refresh) list_ = RowList();
   list_.count = (int)rows_.size();
   list_.sel = std::max(0, std::min(sel, list_.count - 1));
   skipHeaders(Button::Down);
@@ -164,6 +167,7 @@ bool ItemPanel::tabCentre(const Renderer& r, int i, int& x, int& y) {
 ItemPanel::Result ItemPanel::onInput(const InputEvent& e, const Renderer& r) {
   if (!open_) return None;
   layout(r);
+  if (list_.input(e)) return None;  // the wheel, a "^" / "v" marker, a finger's drag (ui/row_list.h)
   if (e.type == InputEvent::PointerMove) {
     int row = list_.rowAt(e.x, e.y);
     if (row >= 0 && !rows_[(size_t)row].header) list_.sel = row;

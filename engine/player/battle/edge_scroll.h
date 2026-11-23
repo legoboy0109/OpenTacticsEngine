@@ -15,13 +15,14 @@ namespace ote {
 
 class EdgeScroll {
  public:
-  // The three numbers that make the feel (change them here only). Owner's tuning 2026-11-21: the first values (1/4 tile, 0.25 s,
-  // 8 tiles/s) started too easily and moved too fast, so the dwell and the speed went down. The band stays 1/4 tile: 1/8 was tried
-  // and could not be used in a browser, where the pointer slides out of the frame instead of stopping at the edge, so it has to be
-  // RESTED inside the band; 1/8 tile is ~9 screen pixels at 3x (tools/webtest/suites/edgescroll.mjs rests 12 px inside).
+  // The three numbers that make the feel (change them here only). The dwell and the speed are the first values (0.25 s, 8 tiles/s):
+  // a "too fast" complaint on 2026-11-21 lowered them to 0.5 s and 5 tiles/s, but it was about the menu LISTS, not the map
+  // (ui/row_list.h), so they went back. The band is 1/4 tile: 1/8 was tried and could not be used in a browser, where the pointer
+  // slides out of the frame instead of stopping at the edge, so it has to be RESTED inside the band; 1/8 tile is ~9 screen pixels
+  // at 3x (tools/webtest/suites/edgescroll.mjs rests 12 px inside).
   static constexpr float kBandTiles = 0.25f;       // the band along an edge is this fraction of a tile wide (at least 2 pixels)
-  static constexpr float kDwellSeconds = 0.5f;     // the pointer must rest in the band this long before the map starts to move
-  static constexpr float kTilesPerSecond = 5.0f;   // then it moves this many tiles a second, whatever the frame rate
+  static constexpr float kDwellSeconds = 0.25f;    // the pointer must rest in the band this long before the map starts to move
+  static constexpr float kTilesPerSecond = 8.0f;   // then it moves this many tiles a second, whatever the frame rate
 
   // A mouse is at (x, y) in logical pixels; kPointerGone (or any negative position) = it left the window.
   void point(int x, int y) {

@@ -32,7 +32,18 @@ void Menu::open(Renderer& r, const std::string& title, const std::vector<MenuIte
   arrowW_ = arrowW;
   titleH_ = title.empty() ? 0 : rowH_;
   w_ = std::min(widest + kPad * 2 + arrowW + 2, std::max(40, screenW - 4));
-  h_ = titleH_ + (int)items.size() * rowH_ + kPad * 2 - 2;
+  const int n = (int)items.size();
+  h_ = titleH_ + n * rowH_ + kPad * 2 - 2;
+  shown_ = n;
+  mark_ = 0;
+  if (h_ > screenH - 4 && n > 1) {  // too tall for the screen: the rows that fit, with room for the "^" and "v" markers
+    mark_ = r.lineHeight() + 1;
+    shown_ = std::max(1, std::min(n, (screenH - 4 - titleH_ - kPad * 2 + 2 - 2 * mark_) / rowH_));
+    h_ = titleH_ + 2 * mark_ + shown_ * rowH_ + kPad * 2 - 2;
+  }
+  list_ = RowList();
+  list_.count = n;
+  list_.rowH = rowH_;
   reanchor(anchorX, anchorY, anchorX, screenW, screenH);
 }
 
@@ -40,11 +51,21 @@ void Menu::reanchor(int anchorX, int anchorY, int altX, int screenW, int screenH
   int x = anchorX + w_ > screenW - 2 ? altX - w_ : anchorX;
   x_ = std::max(2, std::min(x, screenW - w_ - 2));
   y_ = std::max(2, std::min(anchorY, screenH - h_ - 2));
+  syncList();
 }
 
 void Menu::place(int x, int y, int screenW, int screenH) {
   x_ = std::max(2, std::min(x, screenW - w_ - 2));
   y_ = std::max(2, std::min(y, screenH - h_ - 2));
+  syncList();
+}
+
+void Menu::syncList() {
+  list_.x = x_;
+  list_.w = w_;
+  list_.y = y_ + kPad + titleH_ + mark_;
+  list_.h = shown_ * rowH_;
+  list_.sel = sel_;
 }
 
 void Menu::step(int dir) {
@@ -53,31 +74,39 @@ void Menu::step(int dir) {
   int start = sel_ < 0 ? (dir > 0 ? -1 : 0) : sel_;
   for (int i = 1; i <= n; ++i) {
     int idx = ((start + dir * i) % n + n) % n;
-    if (items_[idx].enabled) { sel_ = idx; return; }
+    if (items_[idx].enabled) {
+      sel_ = idx;
+      list_.sel = sel_;
+      list_.centre();  // a key step keeps the selection in the middle, as in every list
+      return;
+    }
   }
   sel_ = -1;  // nothing selectable
+  list_.sel = sel_;
 }
 
 int Menu::itemAt(int x, int y) const {
-  if (!inside(x, y)) return -1;
-  int row = (y - y_ - kPad - titleH_) / rowH_;
-  if (y - y_ - kPad - titleH_ < 0 || row < 0 || row >= (int)items_.size()) return -1;
-  return row;
+  if (!inside(x, y) || y < list_.y) return -1;
+  int row = (y - list_.y) / rowH_;
+  if (row >= shown_) return -1;
+  row += list_.first();
+  return row < (int)items_.size() ? row : -1;
 }
 
 Menu::Result Menu::onInput(const InputEvent& e) {
   if (!open_) return None;
+  if (list_.input(e)) return None;  // the wheel, a "^" / "v" marker, a finger's drag
   switch (e.type) {
     case InputEvent::PointerMove: {
       int i = itemAt(e.x, e.y);
-      if (i >= 0 && items_[i].enabled) sel_ = i;
+      if (i >= 0 && items_[i].enabled) sel_ = list_.sel = i;  // (a shown row: hovering never scrolls)
       return None;
     }
     case InputEvent::PointerDown: {
       if (!inside(e.x, e.y)) { uiCue(Cue::Cancel); return Cancelled; }  // tap outside closes
       int i = itemAt(e.x, e.y);
       if (i >= 0 && items_[i].enabled) {
-        sel_ = i;
+        sel_ = list_.sel = i;
         chosen_ = items_[i].id;
         uiCue(Cue::Confirm);
         return Chosen;
@@ -104,14 +133,11 @@ void Menu::draw(Renderer& r) const {
   r.fillRect(x_ + 2, y_ + 2, w_, h_, Color(0, 0, 0, 110));  // drop shadow
   r.fillRect(x_, y_, w_, h_, Color(24, 28, 44, 245));
   r.drawRect(x_, y_, w_, h_, Color(200, 205, 230));
-  int ty = y_ + kPad;
-  if (titleH_) {
-    r.drawText(x_ + kPad + 2, ty + 1, fitText(r, title_, w_ - 2 * kPad - 2).c_str(), Color(150, 160, 200));
-    ty += titleH_;
-  }
-  for (size_t i = 0; i < items_.size(); ++i) {
+  if (titleH_) r.drawText(x_ + kPad + 2, y_ + kPad + 1, fitText(r, title_, w_ - 2 * kPad - 2).c_str(), Color(150, 160, 200));
+  const int first = list_.first();
+  for (size_t i = (size_t)first; i < items_.size() && (int)i < first + shown_; ++i) {
     const MenuItem& it = items_[i];
-    int ry = ty + (int)i * rowH_;
+    int ry = list_.rowY((int)i);
     bool sel = (int)i == sel_;
     if (sel) r.fillRect(x_ + 2, ry - 1, w_ - 4, rowH_ - 1, Color(70, 90, 150));
     Color c = it.enabled ? Color(240, 240, 245) : Color(110, 112, 125);
@@ -133,6 +159,7 @@ void Menu::draw(Renderer& r) const {
     r.drawText(tx, ty0, fitText(r, it.label, w_ - kPad - (tx - x_) - (extraW ? extraW + 4 : 0)).c_str(), c);
     if (extraW) r.drawText(x_ + w_ - kPad - extraW, ty0, extra.c_str(), it.enabled ? Color(255, 220, 120) : c);
   }
+  if (mark_) list_.drawMore(r, Color(255, 220, 90));
 }
 
 }  // namespace ote

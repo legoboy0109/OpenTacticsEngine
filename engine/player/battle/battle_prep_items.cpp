@@ -38,7 +38,7 @@ void logPanel(ItemPanel& panel, Renderer& r, int vw, int vh, const char* what) {
   panel.selectedBox(r, x, y, w, h);
   std::string tabs;
   for (int i = 0; panel.tabCentre(r, i, tx, ty); ++i) tabs += " tab" + intStr(i) + "@" + intStr(tx) + "," + intStr(ty);
-  OTE_INFO("prep panel %s: row0@%d,%d step=%d%s", what, x + w / 2, y + h / 2 - panel.sel() * h, h, tabs.c_str());
+  OTE_INFO("prep panel %s: row0@%d,%d step=%d shown=%d%s", what, x + w / 2, y + h / 2 - panel.sel() * h, h, panel.shownRows(), tabs.c_str());
 }
 
 }  // namespace prepui

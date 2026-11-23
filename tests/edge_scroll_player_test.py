@@ -6,7 +6,7 @@
 A 40 x 30 square map is bigger than the 352 x 259 map view. The scripted pointer (`move:X:Y`, `leave`) stands where the test says
 and the player logs "camera: X,Y" whenever the camera has been still for 20 frames after moving. The rules under test
 (battle/edge_scroll.h): the map scrolls from the pointer only when the pointer is in the narrow band along the picture's edge,
-after 0.5 s, at 5 tiles (120 pixels) a second, and stops at once when the pointer leaves the band or the window; a square that
+after 0.25 s, at 8 tiles (192 pixels) a second, and stops at once when the pointer leaves the band or the window; a square that
 is merely in the outer rows scrolls nothing; keys scroll as before; a finger and an open menu never scroll the map.
 """
 import os
@@ -21,8 +21,8 @@ TMP = scratch_dir()
 DT = 0.016
 INTERVAL = 3
 TILE = 24
-SPEED = 5 * TILE  # pixels a second (battle/edge_scroll.h kTilesPerSecond)
-DWELL = 0.5       # kDwellSeconds
+SPEED = 8 * TILE  # pixels a second (battle/edge_scroll.h kTilesPerSecond)
+DWELL = 0.25      # kDwellSeconds
 
 
 def make_game():
@@ -60,18 +60,18 @@ def cameras(log):
 
 
 def main():
-    # 1. In the band at the right edge for 0.43 s only (under the dwell), then away: nothing moves.
-    log = run(inp(INTRO, 'move:350:100', 'wait:8', 'move:200:100', 'wait:20'))
+    # 1. In the band at the right edge for 0.19 s only (under the dwell), then away: nothing moves.
+    log = run(inp(INTRO, 'move:350:100', 'wait:3', 'move:200:100', 'wait:20'))
     check('right band for less than the dwell: no scroll', not cameras(log), str(cameras(log)))
 
-    # 2. In the band long enough: it moves at 120 px/s after the dwell, and stops the moment the pointer leaves the band.
+    # 2. In the band long enough: it moves at 192 px/s after the dwell, and stops the moment the pointer leaves the band.
     for count in (30, 60):
         frames = gap(count)
         want = (frames * DT - DWELL) * SPEED
         log = run(inp(INTRO, 'move:350:100', 'wait:%d' % count, 'move:200:100', 'wait:20'))
         cam = cameras(log)
         got = cam[-1][0] if cam else -1
-        check('right band %d frames: x = (time - 0.5 s) * 120 px/s (%.0f, got %d)' % (frames, want, got),
+        check('right band %d frames: x = (time - 0.25 s) * 192 px/s (%.0f, got %d)' % (frames, want, got),
               len(cam) == 1 and abs(got - want) <= 8 and cam[0][1] == 0, str(cam))
     # (the two runs differ by 30 intervals = 90 frames = 1.44 s: the speed is steady, whatever came before)
     # 3. The same by leaving the window (the mouse-leave event), and by the left band coming back.
