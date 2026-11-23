@@ -208,7 +208,9 @@ void BattleView::beginUnitAppears(const Battle& b) {
   const Event& e = cur_.ev;  // same layout for both entries: a=unit, b=cell
   UnitView& v = units[e.a];
   v = UnitView();
-  v.hp = b.units[e.a].hp;
+  // UnitAdded carries the hit points it appeared with: `b` is the end of the run, where a scene's unit may already be removed or hurt
+  // (a flashback's units are all gone by its end, so a fight there showed 0 HP bars). UnitBuilt has none: it is never undone in one run.
+  v.hp = e.type == EventType::UnitAdded && e.c >= 0 ? e.c : b.units[e.a].hp;
   v.scale = 0;
   cellPos(b, e.b, v.px, v.py);
   cur_.dur = 0.25f;

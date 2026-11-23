@@ -79,7 +79,9 @@ void Battle::storyAddUnit(const MapUnitDef& def, std::vector<Event>& events) {
   occupant[(size_t)cell] = u.id;
   sides[(size_t)u.side].everHadUnits = true;
   units.push_back(u);
-  events.push_back(makeEvent(EventType::UnitAdded, u.id, cell));
+  Event added = makeEvent(EventType::UnitAdded, u.id, cell);
+  added.c = u.hp;
+  events.push_back(added);
 }
 
 void Battle::storyRelocate(int unit, Cell to, std::vector<Event>& events, bool walk, bool noWait) {

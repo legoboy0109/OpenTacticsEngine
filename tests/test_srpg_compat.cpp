@@ -65,15 +65,17 @@ struct Golden {
 
 // The demo-srpg lines were re-taken by step D1 (docs/SRPG.md): the demo got characters, skills, promotions, abilities,
 // carrying and supports, so its battles and saves changed on purpose. The other games' lines are untouched.
+// Three demo-srpg event hashes (the middle column) re-taken 2026-11-23: UnitAdded now carries the unit's hit points in `c`
+// (a story addUnit); the random numbers and the save bytes (first and last columns) did not move.
 const Golden kGoldens[] = {
     {"tests/fixtures/plain-economy", "twin_rivers", 7, 60, "7bd8c1c0aa74081e 54e6cde857e7133a 3cbce4c25ee130dc"},
     {"tests/fixtures/plain-economy", "twin_rivers", 11, 200, "ae9930f575d28df2 c6c9ec072b46fec9 2323f84c5a8f2068"},
     {"tests/fixtures/plain-economy", "twin_rivers", 23, 2000, "de4a61837a815c28 dd223047f4e5d54d c1dc2797283923cc"},
     {"games/demo-srpg", "bridge", 7, 12, "e2aac7e2051bd3df b66a1627a49a8401 6da9c7684e0905be"},
-    {"games/demo-srpg", "bridge", 11, 40, "1f91277e5cb73d36 d5bbba7c42b6d31c 28397f7b4288c54b"},
+    {"games/demo-srpg", "bridge", 11, 40, "1f91277e5cb73d36 07001a2bada68d61 28397f7b4288c54b"},
     {"games/demo-srpg", "bridge", 23, 2000, "4bf106ae60c0dcb3 274d3e2c4369d4ad edebd6fa6591d66c"},
-    {"games/demo-srpg", "north_road", 7, 25, "f979a20e0ba33047 1acb654a62c4069d 1d5ec5791c2bd32f"},
-    {"games/demo-srpg", "north_road", 11, 2000, "7f6bbe8f4aae0a8a 528620809c9faec6 32f8851296a2f62f"},
+    {"games/demo-srpg", "north_road", 7, 25, "f979a20e0ba33047 116cb215996e0a66 1d5ec5791c2bd32f"},
+    {"games/demo-srpg", "north_road", 11, 2000, "7f6bbe8f4aae0a8a 3056ffdd38fa1c16 32f8851296a2f62f"},
     {"games/demo-economy", "twin_rivers", 7, 150, "0a96109ba014b641 5e26a207d7e93500 3cbce4c25ee130dc"},
     {"games/demo-economy", "misty_ford", 11, 150, "90bee29c0d453f9a 308853d97fefb07d 2323f84c5a8f2068"},
     {"games/demo-hex", "fortress_ford", 7, 150, "0ae9c4eef41c3b84 9c098ccf301b69d2 3cbce4c25ee130dc"},
