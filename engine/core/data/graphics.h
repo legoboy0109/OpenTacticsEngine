@@ -162,8 +162,24 @@ struct BadgeDef {
   int dx = 0, dy = 0;  // then moved by this, in pixels of one square of the game's tile size (it grows and shrinks with the map zoom)
 };
 
+// A small picture an event puts on the squares of its area to say "something here" (docs/GRAPHICS.md "Map markers"). The same in every style.
+struct MarkerDef {
+  std::string id;
+  int sheet = -1;
+  bool whole = true;  // true: the sheet's whole image; false: just `cell`
+  SpriteCell cell;
+  BadgeDef::Anchor anchor = BadgeDef::Anchor::Center;  // which point of the square the same point of the picture goes on
+  int dx = 0, dy = 0;  // then moved by this, in pixels of one square of the game's tile size
+};
+
 struct Graphics {
   std::vector<SheetDef> sheets;
+  std::vector<MarkerDef> markers;  // root key "markers"
+  int findMarker(const std::string& id) const {
+    for (size_t i = 0; i < markers.size(); ++i)
+      if (markers[i].id == id) return (int)i;
+    return -1;
+  }
   std::vector<BadgeDef> badges;  // root key "badges"
   // Backgrounds of story scenes (root key "backgrounds"; the same for every style). Not the battle scene's (`battle`).
   std::vector<SceneBackground> backgrounds;

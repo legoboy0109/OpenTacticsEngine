@@ -50,4 +50,26 @@ void drawUnitBadges(Renderer& r, const DrawCtx& c, const Unit& u, int left, int 
   }
 }
 
+void drawMapMarker(Renderer& r, const DrawCtx& c, int marker, int left, int top, int w, int h) {
+  const Graphics& g = c.battle.db->graphics;
+  if (marker < 0 || (size_t)marker >= g.markers.size() || !c.sprites) return;
+  const MarkerDef& m = g.markers[(size_t)marker];
+  const TextureId tex = c.sprites->texture(m.sheet);
+  if (!tex) return;
+  const float k = (float)w / (float)std::max(1, c.battle.db->view.tileSize);
+  const SheetDef& sh = g.sheets[(size_t)m.sheet];
+  const int sw = m.whole ? sh.width : sh.cellW, shh = m.whole ? sh.height : sh.cellH;
+  const int sx = m.whole ? 0 : m.cell.col * sh.cellW, sy = m.whole ? 0 : m.cell.row * sh.cellH;
+  const int dw = std::max(1, (int)std::lround(sw * k)), dh = std::max(1, (int)std::lround(shh * k));
+  int x = left, y = top;
+  switch (m.anchor) {
+    case BadgeDef::Anchor::TopLeft: break;
+    case BadgeDef::Anchor::TopRight: x = left + w - dw; break;
+    case BadgeDef::Anchor::BottomLeft: y = top + h - dh; break;
+    case BadgeDef::Anchor::BottomRight: x = left + w - dw; y = top + h - dh; break;
+    case BadgeDef::Anchor::Center: x = left + (w - dw) / 2; y = top + (h - dh) / 2; break;
+  }
+  r.drawTexture(tex, sx, sy, sw, shh, x + (int)std::lround(m.dx * k), y + (int)std::lround(m.dy * k), dw, dh);
+}
+
 }  // namespace ote

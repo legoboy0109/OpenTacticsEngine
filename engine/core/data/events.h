@@ -195,6 +195,7 @@ struct StoryEvent {
   bool repeat = false;
   std::vector<Command> commands;
   bool endsTurnOnTalk = false;  // contains an endTurn command somewhere (only allowed for Talk)
+  int marker = -1;              // "marker": index into Graphics::markers, drawn on the squares of a reach event's area while the event can still run (docs/GRAPHICS.md "Map markers")
 };
 
 struct ObjectiveRule {

@@ -245,7 +245,7 @@ def write_png(path, w, h, pixel):
 MAGENTA = (255, 0, 255)
 
 
-def badge_game(gid, badge=True, tag='boss', sides='computer', tile=16):
+def badge_game(gid, badge=True, tag='boss', sides='computer', tile=16, marker=None):
     g = os.path.join(TMP, gid)
     shutil.rmtree(g, ignore_errors=True)
     os.makedirs(g + '/data')
@@ -268,12 +268,24 @@ def badge_game(gid, badge=True, tag='boss', sides='computer', tile=16):
                   {'type': 'brute', 'side': 'blue', 'x': 1, 'y': 3}]})
     write_png(g + '/art/units.png', 3 * tile, tile, lambda x, y: (200, 200, 60, 255) if x < tile else (60, 200, 200, 255) if x < 2 * tile else (120, 120, 120, 255))
     write_png(g + '/art/marks.png', 8, 8, lambda x, y: MAGENTA + (255,))
-    gr = {'sheets': [{'id': 'units', 'file': 'art/units.png', 'cellWidth': tile, 'cellHeight': tile}, {'id': 'marks', 'file': 'art/marks.png', 'cellWidth': 8, 'cellHeight': 8}],
+    write_png(g + '/art/spot.png', 8, 8, lambda x, y: (0, 255, 0, 255))
+    gr = {'sheets': [{'id': 'units', 'file': 'art/units.png', 'cellWidth': tile, 'cellHeight': tile}, {'id': 'marks', 'file': 'art/marks.png', 'cellWidth': 8, 'cellHeight': 8}, {'id': 'spot', 'file': 'art/spot.png', 'cellWidth': 8, 'cellHeight': 8}],
           'unitMarker': False,
           'units': {'knight': {'sheet': 'units', 'cell': [0, 0]}, 'brute': {'sheet': 'units', 'cell': [1, 0]}, 'grunt': {'sheet': 'units', 'cell': [2, 0]}}}
     if badge:
         gr['badges'] = [{'id': 'boss', 'sheet': 'marks', 'tag': tag, 'sides': sides, 'anchor': 'bottomRight', 'offset': [1, -1]}]
+    gr['markers'] = [{'id': 'interest', 'sheet': 'spot'}]
     write_json(g + '/data/graphics.json', gr)
+    if marker:
+        game = read_json(g + '/game.json')
+        game['switches'] = [{'id': 'spent', 'name': 'Spent'}]
+        write_json(g + '/game.json', game)
+        m = read_json(g + '/maps/m.json')
+        m['events'] = [{'id': 'find', 'when': {'reach': {'x': 2, 'y': 2, 'w': 1, 'h': 1}}, 'marker': 'interest', 'do': [{'setSwitch': 'spent', 'to': True}]}] + \
+                      ([{'id': 'hide', 'when': {'battle': 'start'}, 'do': [{'setSwitch': 'spent', 'to': True}]}] if marker == 'spent' else [])
+        if marker == 'spent':
+            m['events'][0]['if'] = [{'switch': 'spent', 'is': False}]
+        write_json(g + '/maps/m.json', m)
     return g
 
 
@@ -328,6 +340,35 @@ def test_badges():
     check('badge: "all" shows both bosses (twice the pixels)', box5 is not None and box is not None and box5[4] == 2 * box[4], str((box5, box)))
 
 
+def green_box(bmp):
+    xs, ys = [], []
+    for y in range(bmp.h):
+        for x in range(bmp.w):
+            p = bmp.px[y][x]
+            if p[0] <= 8 and p[1] >= 247 and p[2] <= 8:
+                xs.append(x)
+                ys.append(y)
+    return (min(xs), min(ys), max(xs), max(ys), len(xs)) if xs else None
+
+
+def test_markers():
+    badge_game('mk1', marker='on')
+    bmp, log = shot_of('mk1', 'marker_on_a_reach_square')
+    box = green_box(bmp)
+    check('marker: drawn on the area of a reach event that can still run', box is not None, log[-300:])
+    if box:
+        w = box[2] - box[0] + 1
+        check('marker: a whole square picture, half the tile (8 of 16)', w == box[3] - box[1] + 1 and box[4] == w * w and w % 8 == 0, str(box))
+    badge_game('mk2', marker='spent')
+    check('marker: gone when the event\'s condition is spent', green_box(shot_of('mk2')[0]) is None)
+    badge_game('mk3')
+    check('marker: none without an event that names one', green_box(shot_of('mk3')[0]) is None)
+    g = badge_game('mk4', marker='on')
+    edit(g, 'maps/m.json', lambda m: m['events'][0].update({'when': {'turn': 1}}))
+    log = run_text(player_cmd(PLAYER, TMP, REPO) + ['--no-saving', '--frames', '5', '--game', 'mk4', '--map', 'm']).stdout
+    check('marker: refused on an event that is not a reach event', '"marker" is for an event whose "when" is a "reach" area' in log, log[-300:])
+
+
 def test_badge_loader_refusals():
     g = badge_game('b6', tag='ghost')
     log = run_text(player_cmd(PLAYER, TMP, REPO) + ['--no-saving', '--frames', '5', '--game', 'b6', '--map', 'm']).stdout
@@ -345,6 +386,7 @@ def main():
     test_one_quote_per_fight()
     test_skip_never_loses_a_quote()
     test_badges()
+    test_markers()
     test_badge_loader_refusals()
     summary()
     return 1 if failures else 0

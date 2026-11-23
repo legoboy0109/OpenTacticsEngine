@@ -599,6 +599,10 @@ class Battle {
   // preparation screen calls setBeforePrepSeen(true) on every Battle it builds afterwards, so start() runs them again without entries
   // (the state they made is part of the battle, the dialogue was already seen). Both do nothing in a map without such an event.
   void runBeforePrep(std::vector<Event>& events);
+  // Map markers (docs/GRAPHICS.md "Map markers"): the squares to draw a marker on right now, as (index into Graphics::markers, cell): every square of the area of a
+  // reach event that has a "marker", while the event can still run (not yet run, or repeating) and its `if` conditions hold. Derived from the saved state: nothing is saved.
+  struct MarkerSpot { int marker; Cell cell; };
+  void markerSpots(std::vector<MarkerSpot>& out) const;
   void setBeforePrepSeen(bool seen) { beforePrepSeen_ = seen; }
   bool hasBeforePrep() const;
 

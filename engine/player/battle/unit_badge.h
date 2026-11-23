@@ -13,4 +13,7 @@ bool badgeApplies(const DrawCtx& c, const BadgeDef& badge, const Unit& u);
 // Nothing in a game without badges. The caller draws only units the viewer sees (a unit hidden by fog of war is not drawn, so neither is its badge).
 void drawUnitBadges(Renderer& r, const DrawCtx& c, const Unit& u, int left, int top, int w, int h, float alpha);
 
+// Map markers (docs/GRAPHICS.md "Map markers"): draws marker `marker` on the square whose box is (left, top, w, h) on screen, scaled like a badge.
+void drawMapMarker(Renderer& r, const DrawCtx& c, int marker, int left, int top, int w, int h);
+
 }  // namespace ote

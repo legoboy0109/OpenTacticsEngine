@@ -22,4 +22,19 @@ void Battle::runBeforePrep(std::vector<Event>& events) {
   fireStory(o, events);
 }
 
+void Battle::markerSpots(std::vector<MarkerSpot>& out) const {
+  out.clear();
+  if (!story) return;
+  for (size_t i = 0; i < story->events.size(); ++i) {
+    const StoryEvent& ev = story->events[i];
+    if (ev.marker < 0 || ev.when.kind != Trigger::Kind::Reach) continue;
+    if (storyState.fired[i] && !ev.repeat) continue;
+    if (!conditionsHold(ev.cond, -1)) continue;  // a spent switch: nothing left to find
+    const Rect& r = ev.when.rect;
+    for (int y = r.y; y < r.y + r.h; ++y)
+      for (int x = r.x; x < r.x + r.w; ++x)
+        if (x >= 0 && y >= 0 && x < grid.width() && y < grid.height()) out.push_back({ev.marker, grid.at(x, y)});
+  }
+}
+
 }  // namespace ote

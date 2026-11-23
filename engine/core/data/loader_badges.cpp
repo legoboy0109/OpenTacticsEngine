@@ -104,4 +104,62 @@ bool readBadges(const LoadCtx& c, Database& db, const Json& root) {
   return true;
 }
 
+// "markers": [ { "id": "interest", "sheet": "marks", "cell": [0, 0], "anchor": "center", "offset": [0, 0] } ]
+bool readMarkers(const LoadCtx& c, Database& db, const Json& root) {
+  db.graphics.markers.clear();
+  if (!root.has("markers")) return true;
+  const Json& list = root["markers"];
+  if (!list.isArray()) return c.fail("", "\"markers\" must be a list of markers: [ { \"id\": \"interest\", \"sheet\": \"marks\" } ]");
+  for (size_t i = 0; i < list.size(); ++i) {
+    const Json& e = list[i];
+    std::string where = "marker " + std::to_string(i + 1);
+    if (!e.isObject()) return c.fail(where, "must be an object such as { \"id\": \"interest\", \"sheet\": \"marks\" }");
+    MarkerDef m;
+    if (!c.str(e, "id", where, m.id, true)) return false;
+    where = "marker \"" + m.id + "\"";
+    if (m.id.empty() || !isStoryId(m.id)) return c.fail(where, "the id must be letters, digits, \"_\" and \"-\" (and not empty)");
+    if (db.graphics.findMarker(m.id) >= 0) return c.fail(where, "duplicate id");
+    for (const Json::Member& k : e.members())
+      if (k.first != "id" && k.first != "sheet" && k.first != "cell" && k.first != "anchor" && k.first != "offset")
+        return c.fail(where, unknownKeyText(k.first, {"id", "sheet", "cell", "anchor", "offset"}));
+    std::string sheetId;
+    if (!c.str(e, "sheet", where, sheetId, true)) return false;
+    m.sheet = db.graphics.findSheet(sheetId);
+    if (m.sheet < 0) return c.fail(where, "unknown sheet \"" + sheetId + "\"");
+    const SheetDef& sh = db.graphics.sheets[(size_t)m.sheet];
+    if (e.has("cell")) {
+      const Json& j = e["cell"];
+      if (!j.isArray() || j.size() != 2 || !LoadCtx::isWhole(j[0]) || !LoadCtx::isWhole(j[1]) || j[0].asInt() < 0 || j[1].asInt() < 0 || j[0].asInt() > 30000 ||
+          j[1].asInt() > 30000)
+        return c.fail(where, "\"cell\" must be [column, row] (whole numbers, counted from 0)");
+      m.whole = false;
+      m.cell.col = (int16_t)j[0].asInt();
+      m.cell.row = (int16_t)j[1].asInt();
+      if (m.cell.col >= sh.cols || m.cell.row >= sh.rows)
+        return c.fail(where, "cell [" + std::to_string(m.cell.col) + ", " + std::to_string(m.cell.row) + "] is outside sheet \"" + sh.id + "\" (" +
+                                 std::to_string(sh.cols) + " x " + std::to_string(sh.rows) + " cells)");
+    }
+    if (e.has("anchor")) {
+      std::string a;
+      if (!c.str(e, "anchor", where, a)) return false;
+      static const char* const kNames[] = {"topLeft", "topRight", "bottomLeft", "bottomRight", "center"};
+      int found = -1;
+      for (int k = 0; k < 5; ++k)
+        if (a == kNames[k]) found = k;
+      if (found < 0) return c.fail(where, "\"anchor\" must be \"topLeft\", \"topRight\", \"bottomLeft\", \"bottomRight\" or \"center\", got \"" + a + "\"");
+      m.anchor = (BadgeDef::Anchor)found;
+    }
+    if (e.has("offset")) {
+      const Json& o = e["offset"];
+      if (!o.isArray() || o.size() != 2 || !LoadCtx::isWhole(o[0]) || !LoadCtx::isWhole(o[1]) || o[0].asInt() < -256 || o[0].asInt() > 256 || o[1].asInt() < -256 ||
+          o[1].asInt() > 256)
+        return c.fail(where, "\"offset\" must be [x, y]: whole numbers from -256 to 256, in the pixels of one square of the game's tile size");
+      m.dx = o[0].asInt();
+      m.dy = o[1].asInt();
+    }
+    db.graphics.markers.push_back(m);
+  }
+  return true;
+}
+
 }  // namespace ote

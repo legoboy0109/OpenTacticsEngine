@@ -9,6 +9,7 @@
 #include "core/base/json.h"
 #include "core/data/loader.h"
 #include "quotes_fixture.h"
+#include "story_fixture.h"
 #include "test.h"
 
 using namespace ote;
@@ -226,4 +227,58 @@ TEST(timeline_defeat_stop_delays_the_fall_to_after_the_bar_has_emptied) {
   const FightTimeline same = buildTimelineList(s2, t, {}, -1, -1, 533, 0, HitHold(), true);
   const FightTimeline base = buildTimelineList(s2, t, {});
   CHECK(same.defeatStopAt < 0 && same.total == base.total && same.beats.size() == base.beats.size() && same.poses[1].size() == base.poses[1].size());
+}
+
+// ---- map markers (docs/GRAPHICS.md "Map markers") ----
+
+TEST(markers_load_and_are_refused_when_wrong) {
+  Database db;
+  std::string err;
+  CHECK(loadGame(makeGame("mk1", ", \"markers\": [ { \"id\": \"interest\", \"sheet\": \"marks\" }, { \"id\": \"b\", \"sheet\": \"marks\", \"cell\": [1, 0], \"anchor\": \"topLeft\", \"offset\": [2, -3] } ]"), db, err));
+  CHECK_EQ(db.graphics.markers.size(), (size_t)2);
+  if (db.graphics.markers.size() == 2) {
+    CHECK(db.graphics.markers[0].anchor == BadgeDef::Anchor::Center && db.graphics.markers[0].whole && db.graphics.findMarker("b") == 1);
+    CHECK(!db.graphics.markers[1].whole && db.graphics.markers[1].dx == 2 && db.graphics.markers[1].dy == -3);
+  }
+  CHECK(has(loadError("mk2", ", \"markers\": 5"), "\"markers\" must be a list"));
+  CHECK(has(loadError("mk3", ", \"markers\": [ { \"id\": \"a\", \"sheet\": \"nope\" } ]"), "unknown sheet"));
+  CHECK(has(loadError("mk4", ", \"markers\": [ { \"id\": \"a\", \"sheet\": \"marks\" }, { \"id\": \"a\", \"sheet\": \"marks\" } ]"), "duplicate id"));
+  CHECK(has(loadError("mk5", ", \"markers\": [ { \"id\": \"a\", \"sheet\": \"marks\", \"image\": 1 } ]"), "unknown key \"image\""));
+  CHECK(has(loadError("mk6", ", \"markers\": [ { \"id\": \"a\", \"sheet\": \"marks\", \"anchor\": \"mid\" } ]"), "\"anchor\" must be"));
+  CHECK(has(loadError("mk7", ", \"markers\": [ { \"id\": \"a\", \"sheet\": \"marks\", \"offset\": [999, 0] } ]"), "-256 to 256"));
+}
+
+TEST(marker_spots_follow_the_event_while_it_can_still_run) {
+  using namespace story;
+  StoryWorld w({"........", "........", "........"}, {{"soldier", 0, 0, 1, false}, {"soldier", 1, 7, 2, false}}, {"eirik", "gorm"});
+  MarkerDef m;
+  m.id = "interest";
+  w.db.graphics.markers.push_back(m);
+  CHECK(w.play(R"([
+    {"id":"a","when":{"reach":{"x":3,"y":1,"w":2,"h":1}},"marker":"interest","do":[{"setSwitch":"saved","to":true}]},
+    {"id":"b","when":{"reach":{"x":6,"y":2}},"if":[{"switch":"alarm","is":false}],"marker":"interest","repeat":true,"do":[{"setSwitch":"alarm","to":true}]}])"));
+  std::vector<Battle::MarkerSpot> spots;
+  w.battle.markerSpots(spots);
+  CHECK_EQ(spots.size(), (size_t)3);  // two squares of a, one of b
+  CHECK(w.act(Action::move(0, w.at(3, 1))));  // a runs: its markers go
+  w.battle.markerSpots(spots);
+  CHECK_EQ(spots.size(), (size_t)1);
+  w.battle.storyState.switches[(size_t)w.db.findSwitch("alarm")] = 1;  // b's condition is spent: nothing left to find, though it repeats
+  w.battle.markerSpots(spots);
+  CHECK(spots.empty());
+}
+
+TEST(event_marker_loader_refusals) {
+  using namespace story;
+  auto err = [&](const char* when, const char* marker) {
+    StoryWorld v({"........"}, {{"soldier", 0, 0, 0, false}}, {"eirik"});
+    MarkerDef m;
+    m.id = "interest";
+    v.db.graphics.markers.push_back(m);
+    return v.load(std::string(R"([{"id":"e","when":)") + when + R"(,"marker":)" + marker + R"(,"do":[{"say":"x"}]}])");
+  };
+  CHECK(err(R"({"reach":{"x":1,"y":0}})", "\"interest\"").empty());
+  CHECK(has(err(R"({"reach":{"x":1,"y":0}})", "\"ghost\""), "unknown marker \"ghost\""));
+  CHECK(has(err(R"({"battle":"start"})", "\"interest\""), "\"marker\" is for an event whose \"when\" is a \"reach\" area"));
+  CHECK(has(err(R"({"reach":{"x":1,"y":0}})", "5"), "marker"));
 }

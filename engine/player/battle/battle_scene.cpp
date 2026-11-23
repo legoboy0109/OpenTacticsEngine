@@ -1,5 +1,6 @@
 #include "battle/battle_scene.h"
 #include "battle/art_preload.h"
+#include "battle/unit_badge.h"
 #include "battle/battle_prep_ui.h"
 
 #include <algorithm>
@@ -362,6 +363,15 @@ void BattleScene::draw(Renderer& r) {
   addChargeTint(shownOverlay);  // speed turn order: the squares of charged actions on their way
   addPrepTint(shownOverlay);  // preparation: the deployment squares, as a ground tint under the units
   drawMap(r, ctx, shownOverlay, cursor_, human);
+  if (!session_.db.graphics.markers.empty()) {  // map markers of reach events (docs/GRAPHICS.md "Map markers"): over the map, in every kind of view
+    std::vector<Battle::MarkerSpot> spots;
+    battle_.markerSpots(spots);
+    for (const Battle::MarkerSpot& s : spots) {
+      int mx, my, mw, mh;
+      cellScreenBox(s.cell, mx, my, mw, mh);
+      drawMapMarker(r, ctx, s.marker, mx, my, mw, mh);
+    }
+  }
   if (prep_ && !prep_->intro) prepDrawSlots(r);  // the numbers of the deployment squares
   drawFloats(r, ctx, false);
   drawStory(r);
