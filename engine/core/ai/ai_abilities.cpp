@@ -130,9 +130,23 @@ bool tryCureFrom(const Battle& b, const Unit& u, Cell from, Order& order) {
     std::vector<int> targets;
     std::vector<Cell> cells;
     b.abilityTargets(u.id, o.ability, from, targets, cells);
+    // Worth curing: its own team of a HARMFUL condition the ability takes off, a foe of a HELPFUL one (docs/AI.md "Status abilities"). A game
+    // whose conditions say no "kind" has only harmful ones, so this is the old rule there: the unit itself, else an ally, never a foe.
+    auto worth = [&](const Unit& t) {
+      if (!t.alive) return false;
+      const bool foe = b.isEnemy(u, t);
+      for (const ConditionState& cs : t.conditions)
+        if ((d.cureAll || std::find(d.cures.begin(), d.cures.end(), cs.condition) != d.cures.end()) &&
+            b.db->conditions[(size_t)cs.condition].helpful == foe)
+          return true;
+      return false;
+    };
     int pick = -1;
     for (int id : targets)
-      if (b.units[(size_t)id].alive && !b.isEnemy(u, b.units[(size_t)id]) && (pick < 0 || id == u.id)) pick = id;
+      if (!b.isEnemy(u, b.units[(size_t)id]) && worth(b.units[(size_t)id]) && (pick < 0 || id == u.id)) pick = id;
+    if (pick < 0)  // no ally to free: a foe to strip of a blessing (the first in unit-id order)
+      for (int id : targets)
+        if (pick < 0 && b.isEnemy(u, b.units[(size_t)id]) && worth(b.units[(size_t)id])) pick = id;
     if (pick < 0) continue;
     Order n;
     n.score = order.score;

@@ -212,6 +212,8 @@ Order bestOrder(Context& cx, const Unit& u) {
     }
     // Abilities that attack with a weapon of their own (ai_strike.cpp), after its own attacks from this square: on an equal score the attack stays.
     considerStrikes(b, u, s, travel, st, best);
+    // Abilities that only put a condition on (ai_conditions.cpp): a blessing on its own team, a curse on a foe, by the condition's worth.
+    considerStatusAbilities(b, u, s, travel, best);
   }
 
   if (weights && !noAttack) {
