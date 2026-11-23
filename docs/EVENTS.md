@@ -1062,7 +1062,8 @@ populated.
 ## Showing another map
 
 A map event can show **another map of the game** for a while (a flashback, a far-away place, what happens at the enemy's camp) and then come back to the battle. `showMap` switches the
-picture to that map, the commands after it act on that map's own units, and `returnMap` (or the end of the event) brings the battle's map back. The battle itself is never touched.
+picture to that map, the commands after it act on that map's own units, and `returnMap` (or the end of the event) brings the battle's map back. The battle itself is never touched. While another map is shown the side
+panel is left empty (the battle's turn, side and funds do not belong to that scene).
 
 ```json
 { "id": "memory", "when": { "battle": "start" }, "do": [
