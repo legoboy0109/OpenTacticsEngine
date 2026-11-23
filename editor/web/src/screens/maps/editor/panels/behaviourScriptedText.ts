@@ -52,6 +52,10 @@ export const S = {
   inflictOnlyOnHelp: 'Any foe: as usual. Only foes that use staves or magic: for a staff that stops staves (a silence), a foe counts only when it carries something that condition would stop, a staff it can use now or a weapon of a kind the condition forbids (a tome). Other afflicting staves (sleep and the like) are not narrowed.',
   inflictOnlyOnChoices: { anyone: 'Any foe', casters: 'Only foes that use staves or magic' },
 
+  lootBlockedBy: 'Loot behind a blockade',
+  lootBlockedByHelp: 'Only walls and closed doors: units standing in the way never count, so it keeps heading for its loot. Enemy units too: when every way to the remaining loot is shut by enemy units right now, it runs for an exit instead, and it goes back to looting on the turn a way opens.',
+  lootBlockedByChoices: { nothing: 'Only walls and closed doors', units: 'Enemy units too' },
+
   retreat: 'Falls back to heal when hurt',
   retreatHelp: 'When its hit points fall under a limit it stops attacking, uses a healing item or walks to safety, and comes back when it has healed.',
   retreatBelow: 'Falls back below (% of its hit points)',
