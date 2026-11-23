@@ -78,6 +78,7 @@ bool Battle::summonUnit(int summoner, int ability, Cell cell, std::vector<Event>
   e.type = EventType::UnitAdded;
   e.a = s.id;
   e.b = cell;
+  e.c = s.hp;
   events.push_back(e);
   return true;
 }

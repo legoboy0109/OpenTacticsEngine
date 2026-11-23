@@ -235,6 +235,15 @@ TEST(show_map_plays_the_scene_on_the_other_map_and_leaves_the_battle_as_it_was) 
   CHECK(sm.end->sceneOnly());
   CHECK_EQ((int)sm.start->units.size(), 2);
   CHECK_EQ((int)sm.end->units.size(), 3);  // + the brute
+  // UnitAdded carries the hit points the brute appeared with (the player's bars read them, not the end state, where a scene's unit
+  // may already be gone: a flashback's fight showed 0 HP bars before).
+  const int added = p.index(EventType::UnitAdded, (size_t)shown);
+  const int brute = sm.end->unitByStoryId("brute");
+  CHECK(added > shown && brute >= 0);
+  if (added > shown && brute >= 0) {
+    CHECK_EQ(p.events[(size_t)added].a, brute);
+    CHECK_EQ(p.events[(size_t)added].c, sm.end->maxHp(sm.end->units[(size_t)brute]));
+  }
   const int elder = sm.end->unitByStoryId("elder"), bandit = sm.end->unitByStoryId("bandit");
   CHECK(sm.end->units[(size_t)bandit].alive == false);
   CHECK_EQ(sm.end->units[(size_t)elder].cell, sm.end->grid.at(4, 1));

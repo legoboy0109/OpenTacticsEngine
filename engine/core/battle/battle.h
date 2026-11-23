@@ -57,7 +57,7 @@ enum class EventType {
   // Story events (docs/EVENTS.md). "text" is an index for Battle::storyText().
   Dialogue,         // a=speaker unit (-1 = none), b=text, c=free speaker name text (-1 = none), d=portrait id text (-1 = none)
   Focus,            // a=cell the view moves to, b=unit it follows (-1 = just the square)
-  UnitAdded,        // a=unit, b=cell
+  UnitAdded,        // a=unit, b=cell, c=its hit points as it appears (the end state may differ: removed or hurt later in the run)
   UnitRemoved,      // a=unit, b=cell it stood on (it is gone: not a defeat)
   UnitRelocated,    // a=unit, b=cell it left, c=cell it now stands on (moved by an event)
   SideChanged,      // a=unit, b=old side, c=new side

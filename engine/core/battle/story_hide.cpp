@@ -50,7 +50,9 @@ bool Battle::storyShowUnit(int i, Cell want, std::vector<Event>& events) {
   u.cell = cell;
   occupant[(size_t)cell] = i;
   sides[(size_t)u.side].everHadUnits = true;
-  events.push_back(unitEvent(EventType::UnitAdded, i, cell));
+  Event added = unitEvent(EventType::UnitAdded, i, cell);
+  added.c = u.hp;
+  events.push_back(added);
   // It has stopped on a square: events waiting for a unit to arrive there may run (as after a `moveUnit`).
   StoryOccurrence o;
   o.kind = Trigger::Kind::Reach;
