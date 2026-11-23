@@ -53,6 +53,12 @@ bool sceneFxCommand(StoryLoader& L, const Json& e, const std::string& key, const
 constexpr const char* kMusicCommandKeys[] = {"setPhaseMusic"};
 // Small extras (docs/EVENTS.md "Sending a unit's items to storage"), read in loader_story_extras.cpp.
 constexpr const char* kExtrasCommandKeys[] = {"storeItems", "showUnit", "fight"};
+// Another map shown by a scene (docs/EVENTS.md "Showing another map"), read in loader_story_show_map.cpp.
+constexpr const char* kShowMapCommandKeys[] = {"showMap", "returnMap"};
+// The commands that act on the battle itself (its sides, items, turns, objectives, the computer's units): refused while another map is shown.
+constexpr const char* kNotOnShownMap[] = {"win", "lose", "endTurn", "choice", "objective", "giveItem", "takeItem", "storeItems", "giveResource",
+                                          "grantResearch", "promote", "teachSkill", "forgetSkill", "addSupport", "setBehaviour", "wakeGroup",
+                                          "setFog", "setVision", "showUnit"};
 
 }  // namespace
 
@@ -63,7 +69,7 @@ bool StoryLoader::addUnitCommand(const Json& e, const std::string& where, Comman
       !onlyKeys(u, {"id", "character", "type", "side", "x", "y", "name", "level", "xp", "merit", "leader", "stats", "items", "ranks", "goesFor", "skills", "behaviour", "difficulty", "difficultyShift", "job", "jobs", "equipped", "learned"}, where + ": \"addUnit\""))
     return false;
   std::string at = where;
-  if (!readUnitHead(c_, db_, map_, u, at, out.newUnit)) return false;
+  if (!readUnitHead(c_, db_, *map_, u, at, out.newUnit)) return false;
   if (!readUnitBody(c_, db_, u, at, out.newUnit)) return false;
   // A character already placed (map or an earlier addUnit) is not an error: the second add does nothing at run time.
   if (!checkBehaviourUnits(c_, db_, unitIds, at, out.newUnit.behaviour)) return false;  // docs/AI.md
@@ -85,7 +91,9 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
   // All the "two commands in one entry" checks run here, before ANY command is dispatched (pinned: the first error
   // for a bad entry must not depend on what the commands themselves would say).
   const char* kind = nullptr;
-  if (!pickCommandKind(c_, e, where, kCommandKeys, kind)) return false;
+  // showMap's own "focus" (its camera start) is not the focus command.
+  const auto named = [&e](const char* k) { return e.has(k) && !(e.has("showMap") && std::string(k) == "focus"); };
+  if (!pickCommandKind(c_, where, kCommandKeys, named, kind)) return false;
   if (!pickCommandKind(c_, e, where, kSrpgCommandKeys, kind)) return false;
   if (!pickCommandKind(c_, e, where, kPlaceCommandKeys, kind)) return false;
   if (!pickCommandKind(c_, e, where, kConditionCommandKeys, kind)) return false;
@@ -93,9 +101,16 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
   if (!pickCommandKind(c_, e, where, kMapCommandKeys, kind)) return false;
   if (!pickCommandKind(c_, e, where, kMusicCommandKeys, kind)) return false;
   if (!pickCommandKind(c_, e, where, kExtrasCommandKeys, kind)) return false;
+  if (!pickCommandKind(c_, e, where, kShowMapCommandKeys, kind)) return false;
   const auto isSceneFx = [&e](const char* k) { return SceneFxReader::isCommandIn(e, k); };
   if (!pickCommandKind(c_, where, kSceneCommandKeys, isSceneFx, kind)) return false;
-  if (beforePrep_ && kind) {  // docs/EVENTS.md "Before the preparation screen": no deployed party and no turns yet
+  if (shown_ && kind)  // docs/EVENTS.md "Showing another map": the shown map's units are temporary; the battle's own state waits for the return
+    for (const char* k : kNotOnShownMap)
+      if (std::string(k) == kind)
+        return fail(where, std::string("\"") + kind + "\" acts on the battle itself and cannot run while another map is shown (showMap " +
+                               quoted(shown_->id) + "): put it after the { \"returnMap\": true }");
+  // A staged fight on a shown map is only a scene (its units are thrown away at the return), so beforePrep allows it there.
+  if (beforePrep_ && kind && !(shown_ && std::string(kind) == "fight")) {  // docs/EVENTS.md "Before the preparation screen": no deployed party and no turns yet
     static const char* const kNotBefore[] = {"win", "lose", "endTurn", "choice", "fight"};
     for (const char* k : kNotBefore)
       if (std::string(k) == kind)
@@ -103,11 +118,13 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
                            "party is deployed, no turn has started, the battle cannot be decided, and the screen's choices change the map it "
                            "runs on again and again, so it must not ask or fight)");
   }
+  if (kind && std::string(kind) == "showMap") return showMapCommand(e, where + " (showMap)", out);
+  if (kind && std::string(kind) == "returnMap") return returnMapCommand(e, where + " (returnMap)", out);
   if (kind && std::string(kind) == "fight") return fightCommand(e, where + " (fight)", out);
   if (kind && std::string(kind) == "showUnit") return showUnitCommand(e, where + " (showUnit)", out);
   if (kind && std::string(kind) == "setPhaseMusic") {
     out.kind = Command::Kind::SetPhaseMusic;
-    return phaseMusicCommand(e, where + " (setPhaseMusic)", out);
+    return onRealMap([&] { return phaseMusicCommand(e, where + " (setPhaseMusic)", out); });  // the battle's own sides
   }
   if (kind && std::string(kind) == "storeItems") {
     out.kind = Command::Kind::StoreItems;
@@ -177,14 +194,16 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
   if (k == "removeUnit") {
     out.kind = K::RemoveUnit;
     if (!onlyKeys(e, {"removeUnit", "hide"}, at) || !filter(v, at, "\"removeUnit\"", out.filter)) return false;
-    return c_.boolean(e, "hide", at, out.hide);  // "hide": true keeps the unit in the story (docs/EVENTS.md)
+    if (!c_.boolean(e, "hide", at, out.hide)) return false;  // "hide": true keeps the unit in the story (docs/EVENTS.md)
+    if (out.hide && shown_) return fail(at, "\"hide\" keeps a unit of the battle for later; the shown map's units are thrown away at the return");
+    return true;
   }
   if (k == "moveUnit") {
     out.kind = K::MoveUnit;
     if (!onlyKeys(e, {"moveUnit", "x", "y", "walk", "wait"}, at) || !unitId(v, at, "\"moveUnit\"", out.unit)) return false;
     if (!readerFor(*this).moveExtras(e, at, out.fx)) return false;
     if (!c_.integer(e, "x", at, out.x, true) || !c_.integer(e, "y", at, out.y, true)) return false;
-    if (out.x < 0 || out.y < 0 || out.x >= map_.width || out.y >= map_.height)
+    if (out.x < 0 || out.y < 0 || out.x >= map_->width || out.y >= map_->height)
       return fail(at, "the square " + std::to_string(out.x) + "," + std::to_string(out.y) + " is outside the map");
     return true;
   }
@@ -269,10 +288,11 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
     bool reads = false;
     if (!readUnitReading(c_, db_, e, at, extra, true, out.reading, reads)) return false;
     if (reads) {
-      // The unit must be one the map names (like moveUnit); the number is read when the command runs.
+      // The unit must be one the map names (like moveUnit); the number is read when the command runs. Always the battle's own map: a
+      // variable is game state, and it is read on the real battle even while another map is shown (docs/EVENTS.md "Showing another map").
       const Json& idj = e[out.reading.kind == UnitReading::Kind::Stat ? "of" : out.reading.kind == UnitReading::Kind::Level ? "level" : out.reading.kind == UnitReading::Kind::Hp ? "hp" : "maxHp"];
       std::string unit;
-      return unitId(idj, at, "the unit to read from", unit);
+      return onRealMap([&] { return unitId(idj, at, "the unit to read from", unit); });
     }
     if (!c_.integer(e, extra, at, out.value, true)) return false;
     if (out.value < -kMaxStoryNumber || out.value > kMaxStoryNumber) return fail(at, "the number is unreasonably large");
@@ -295,7 +315,8 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
   }
   if (k == "if") {
     out.kind = K::If;
-    if (!onlyKeys(e, {"if", "then", "else"}, at) || !conditions(v, at, out.cond)) return false;
+    // The conditions are judged on the battle itself (its switches, variables and units), also while another map is shown.
+    if (!onlyKeys(e, {"if", "then", "else"}, at) || !onRealMap([&] { return conditions(v, at, out.cond); })) return false;
     if (!e.has("then")) return fail(at, "missing required \"then\" (the commands to run)");
     return commands(e["then"], at + ": \"then\"", talk, out.thenDo, usesEndTurn) &&
            (!e.has("else") || commands(e["else"], at + ": \"else\"", talk, out.elseDo, usesEndTurn));
@@ -315,7 +336,7 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
   if (!v.isObject()) return fail(at, "\"focus\" must be a unit id or a square { \"x\": 3, \"y\": 4 }");
   if (!onlyKeys(v, {"x", "y"}, at + ": \"focus\"") || !c_.integer(v, "x", at, out.x, true) || !c_.integer(v, "y", at, out.y, true))
     return false;
-  if (out.x < 0 || out.y < 0 || out.x >= map_.width || out.y >= map_.height)
+  if (out.x < 0 || out.y < 0 || out.x >= map_->width || out.y >= map_->height)
     return fail(at, "the square " + std::to_string(out.x) + "," + std::to_string(out.y) + " is outside the map");
   return true;
 }
@@ -323,11 +344,20 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
 bool StoryLoader::commands(const Json& list, const std::string& where, bool talk, std::vector<Command>& out,
                            bool& usesEndTurn) {
   if (!list.isArray()) return fail(where, "must be a list of commands");
+  // depth_ 1 = the event's own list: the only one where a showMap section may start and end (loader_story_show_map.cpp).
+  struct Depth {
+    StoryLoader& L;
+    const Json* list;
+    explicit Depth(StoryLoader& l, const Json* own) : L(l), list(l.list_) { if (++L.depth_ == 1) L.list_ = own; }
+    ~Depth() { if (--L.depth_ == 0) L.list_ = list; }
+  } depth(*this, &list);
   for (size_t i = 0; i < list.size(); ++i) {
     Command cmd;
+    if (depth_ == 1) at_ = i;
     if (!command(list[i], where + ": command " + std::to_string(i + 1), talk, cmd, usesEndTurn)) return false;
     out.push_back(cmd);
   }
+  if (depth_ == 1) endShownMap();  // the event ended with the map still shown: the return is implied (the battle does the same)
   return true;
 }
 

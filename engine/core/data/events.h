@@ -4,6 +4,7 @@
 // index here (side, team, unit type, item, resource, switch, variable);
 // units are named by their story id (a string) because they come and go.
 #pragma once
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -152,7 +153,10 @@ struct Command {
     // docs/EVENTS.md "Taking a unit off the map and bringing it back": ShowUnit brings the hidden unit `unit` back at square (x, y).
     ShowUnit,
     SetPhaseMusic,  // docs/SOUND.md "Music by situation": `side` = the side, `text` = the music id (-1 = clear the override; "" = no phase music)
-    Fight           // docs/EVENTS.md "A staged fight": `fight`
+    Fight,          // docs/EVENTS.md "A staged fight": `fight`
+    // docs/EVENTS.md "Showing another map": ShowMap shows map `index` (MapDef in `shownMap`) with its own temporary units; the camera starts at
+    // unit `unit` or square (x, y) when `on`. ReturnMap goes back to the battle's own map (also implied at the end of the event).
+    ShowMap, ReturnMap
   };
   Kind kind = Kind::Say;
   // Say, Choice
@@ -179,6 +183,7 @@ struct Command {
   std::vector<int> keep;                      // StoreItems: item indices that stay with the unit
   std::vector<Rect> rects;                    // SetTerrain: the squares (an "area" is one rect, "cells" one 1 x 1 rect each)
   StoryFight fight;      // Fight
+  std::shared_ptr<const MapDef> shownMap;  // ShowMap: the map shown (loaded without its events; shared by copies)
   SceneFx fx;            // Scene; also the presentation keys of Say (position, auto, narrate), Focus (ms, wait), MoveUnit (walk, wait)
 };
 

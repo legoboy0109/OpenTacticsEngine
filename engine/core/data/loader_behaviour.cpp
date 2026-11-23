@@ -110,11 +110,11 @@ bool StoryLoader::behaviourCommand(const Json& e, const std::string& at, Command
   if (!onlyKeys(e, {"setBehaviour", "units"}, at)) return false;
   std::string err;
   if (!parseBehaviour(e["setBehaviour"], db_, out.behaviour, err)) return fail(at, err);
-  if (!checkBehaviourPlace(c_, map_, at, out.behaviour) || !checkBehaviourUnits(c_, db_, unitIds, at, out.behaviour)) return false;
+  if (!checkBehaviourPlace(c_, *map_, at, out.behaviour) || !checkBehaviourUnits(c_, db_, unitIds, at, out.behaviour)) return false;
   if (!e.has("units")) return fail(at, "needs \"units\": which units get the behaviour (a unit filter, {} for every unit)");
   if (!filter(e["units"], at, "\"units\"", out.filter)) return false;
-  if (out.filter.kind == UnitFilter::Kind::Side && out.filter.index >= 0 && out.filter.index < (int)map_.sides.size() &&
-      !map_.sides[(size_t)out.filter.index].ai)
+  if (out.filter.kind == UnitFilter::Kind::Side && out.filter.index >= 0 && out.filter.index < (int)map_->sides.size() &&
+      !map_->sides[(size_t)out.filter.index].ai)
     return fail(at, "\"units\" names a side a person plays; only the computer's units have a behaviour");
   return true;
 }

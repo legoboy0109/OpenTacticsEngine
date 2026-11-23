@@ -22,8 +22,8 @@ bool StoryLoader::mapChangeCommand(const Json& e, const std::string& kind, const
       out.on = e["keepTile"].asBool();
     }
     if (e.has("tile")) {
-      if (map_.tileset < 0) return fail(at, "\"tile\" needs a tile layer: the map has no \"tileLayer\"");
-      const int count = db_.graphics.tilesets[(size_t)map_.tileset].count();
+      if (map_->tileset < 0) return fail(at, "\"tile\" needs a tile layer: the map has no \"tileLayer\"");
+      const int count = db_.graphics.tilesets[(size_t)map_->tileset].count();
       const Json& t = e["tile"];
       if (t.isNull()) out.value = -1;
       else if (!LoadCtx::isWhole(t) || t.asInt() < -1 || t.asInt() >= count)
@@ -51,7 +51,7 @@ bool StoryLoader::mapChangeCommand(const Json& e, const std::string& kind, const
       r.x = p[0].asInt();
       r.y = p[1].asInt();
       r.w = r.h = 1;
-      if (r.x < 0 || r.y < 0 || r.x >= map_.width || r.y >= map_.height)
+      if (r.x < 0 || r.y < 0 || r.x >= map_->width || r.y >= map_->height)
         return fail(at, "the square " + std::to_string(r.x) + "," + std::to_string(r.y) + " is outside the map");
       out.rects.push_back(r);
     }
@@ -62,11 +62,11 @@ bool StoryLoader::mapChangeCommand(const Json& e, const std::string& kind, const
     if (!onlyKeys(e, {kind.c_str()}, at)) return false;
     if (!v.isString()) return fail(at, q(kind) + " must be the id of one of the map's \"changes\"");
     out.index = -1;
-    for (size_t i = 0; i < map_.changes.size(); ++i)
-      if (map_.changes[i].id == v.asString()) out.index = (int)i;
+    for (size_t i = 0; i < map_->changes.size(); ++i)
+      if (map_->changes[i].id == v.asString()) out.index = (int)i;
     if (out.index < 0)
       return fail(at, q(kind) + " names " + q(v.asString()) + ", which is not one of this map's \"changes\"" +
-                          (map_.changes.empty() ? " (the map has none)" : ""));
+                          (map_->changes.empty() ? " (the map has none)" : ""));
     return true;
   }
   if (kind == "setFog") {

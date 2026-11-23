@@ -20,9 +20,9 @@ bool StoryLoader::placeTrigger(const Json& w, const std::string& at, Trigger& t)
   if (!onlyKeys(w, {"place", "is", "by"}, at)) return false;
   if (!w["place"].isString() || w["place"].asString().empty()) return fail(at, "\"place\" must be the id of a door, chest or place of the map");
   t.place = w["place"].asString();
-  const int i = placeIndex(map_, t.place);
+  const int i = placeIndex(*map_, t.place);
   if (i < 0) return fail(at, "\"place\" names " + q(t.place) + ", which is not the \"id\" of a structure of this map");
-  const PlaceDef& p = db_.structures[(size_t)map_.structures[(size_t)i].type].place;
+  const PlaceDef& p = db_.structures[(size_t)map_->structures[(size_t)i].type].place;
   if (!w.has("is") || !w["is"].isString()) return fail(at, "a place trigger needs \"is\": \"opened\", \"visited\" or \"destroyed\"");
   const std::string is = w["is"].asString();
   if (is == "opened") {
@@ -48,9 +48,9 @@ bool StoryLoader::placeCommand(const Json& e, const std::string& kind, const std
   const Json& v = e[kind.c_str()];
   if (!v.isString() || v.asString().empty()) return fail(at, q(kind) + " must be the id of a " + (chest ? "chest" : "door") + " of the map");
   out.place = v.asString();
-  const int i = placeIndex(map_, out.place);
+  const int i = placeIndex(*map_, out.place);
   if (i < 0) return fail(at, q(kind) + " names " + q(out.place) + ", which is not the \"id\" of a structure of this map");
-  const PlaceDef& p = db_.structures[(size_t)map_.structures[(size_t)i].type].place;
+  const PlaceDef& p = db_.structures[(size_t)map_->structures[(size_t)i].type].place;
   if (chest && !p.isChest()) return fail(at, q(out.place) + " is not a chest");
   if (!chest && !p.isDoor() && !(kind == "unlockDoor" && p.isChest()))
     return fail(at, q(out.place) + " is not a door" + (kind == "unlockDoor" ? " or chest" : ""));
