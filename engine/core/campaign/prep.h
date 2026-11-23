@@ -80,6 +80,10 @@ bool prepBegin(const Database& db, Playthrough& pt, const MapDef& map, std::stri
 // An item from one character's inventory (position `slot`) to another's.
 bool prepGive(const Database& db, Playthrough& pt, const MapDef& map, const std::string& from, int slot, const std::string& to,
               std::string& why);
+// Two items trade places: `id`'s item at `slot` and `with`'s at `withSlot` (the same character: a reorder). Needs no room, so it works
+// between two full packs; the weapon in hand is whatever comes first, as ever.
+bool prepSwap(const Database& db, Playthrough& pt, const MapDef& map, const std::string& id, int slot, const std::string& with, int withSlot,
+              std::string& why);
 // Into the shared storage / out of it (index into the list the screen shows = prepStorage).
 bool prepStore(const Database& db, Playthrough& pt, const MapDef& map, const std::string& id, int slot, std::string& why);
 bool prepFetch(const Database& db, Playthrough& pt, const MapDef& map, const std::string& id, int storageIndex, std::string& why);

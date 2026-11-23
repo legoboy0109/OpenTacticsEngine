@@ -872,9 +872,11 @@ under the units in every kind of view, like the move range, so a unit stands in 
 whose items, trade with another character or the storage (the battle's trade panel; the storage column and the Sell list for the storage show
 identical copies as one row with a count, `Potion  x3`, and a choice moves or sells one copy: docs/ITEMS.md "Stacked storage lists"). In a game with carried weapons the weapon in hand
 is marked, a weapon the character cannot wield is greyed with the reason in the detail line, and choosing a weapon of the character
-on the left that is not in hand opens a small menu under the row: **Hand over** (**Put in storage** when the other side is the storage)
-or **Equip** (greyed, with the reason, when it cannot be wielded; the whole reason also shows in the message line). Choosing the weapon in
-hand, or any other item, hands it over at once as before, so a game with fixed weapons sees no change. Shop: tabs **Buy | Sell** in the
+on the left that is not in hand opens a small menu under the row: **Pick up** (**Put in storage** when the other side is the storage)
+or **Equip** (greyed, with the reason, when it cannot be wielded; the whole reason also shows in the message line). Between two
+characters an item is picked up first and then put in a slot of either one (swap with an item, move into a free slot: docs/ITEMS.md
+"The trade screen"); choosing the weapon in hand, or any other item, picks it up without the menu. With the storage on the right
+choosing an item still hands it over at once, so a game with fixed weapons sees no change there. Shop: tabs **Buy | Sell** in the
 panel's title row (Left/Right or a tap on a name; shown only when the shop buys). Buy is the battle's shop list, then who gets it.
 Sell asks whose items first (every character, then the Storage; counts shown), then lists that pack with what each item fetches
 ("10 Gold"; a greyed "-" and the reason where the item cannot be sold); choosing a row sells it at once (buying has no confirmation

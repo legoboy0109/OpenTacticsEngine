@@ -530,6 +530,17 @@ void BattleScene::prepDraw(Renderer& r) {
   }
 }
 
+// The trade screen's line says what Confirm does here: with the storage it hands over; between two characters it picks up, then swaps
+// (an item under the cursor), moves (a free slot) or puts the item back.
+std::string BattleScene::prepTradeHint() const {
+  const bool equip = session_.db.rules.items.carriedWeapons;
+  if (prep_->with.empty()) return equip ? PrepWords::kHintTradeEquip : PrepWords::kHintTrade;
+  if (!tradePanel_.holding()) return equip ? PrepWords::kHintTradePickEquip : PrepWords::kHintTradePick;
+  if (tradePanel_.col() == tradePanel_.heldCol() && tradePanel_.row() == tradePanel_.heldRow()) return PrepWords::kHintTradePut;
+  const RosterUnit* r = prep_->pt->findUnit(tradePanel_.col() == 0 ? prep_->who : prep_->with);
+  return r && tradePanel_.row() < (int)r->items.size() ? PrepWords::kHintTradeSwap : PrepWords::kHintTradeMove;
+}
+
 std::string BattleScene::prepHint() const {
   using S = PrepUi::Screen;
   switch (prep_->screen) {
@@ -537,7 +548,7 @@ std::string BattleScene::prepHint() const {
     case S::Units: return PrepWords::kHintUnits;
     case S::Positions: return prep_->carrySlot >= 0 ? PrepWords::kHintPlace : PrepWords::kHintPick;
     case S::View: return PrepWords::kHintView;
-    case S::Trade: return session_.db.rules.items.carriedWeapons ? PrepWords::kHintTradeEquip : PrepWords::kHintTrade;
+    case S::Trade: return prepTradeHint();
     case S::Shop: return prep_->map.prep->shops[(size_t)prep_->shopIx].buys ? PrepWords::kHintBuyTabs : PrepWords::kHintBuy;
     case S::SellWho: return PrepWords::kHintSellWho;
     case S::SellItems: return PrepWords::kHintSell;

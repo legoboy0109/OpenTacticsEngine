@@ -51,6 +51,7 @@ struct PrepWords {
   static constexpr const char* kNothingToSell = "Nothing to sell.";
   // Equip, on a character's item list
   static constexpr const char* kHandOver = "Hand over";
+  static constexpr const char* kPickUp = "Pick up";  // the small menu of a weapon when trading with another character: then pick a slot
   static constexpr const char* kPutAway = "Put in storage";
   static constexpr const char* kEquip = "Equip";
   static constexpr const char* kEquipped = "Equipped ";   // "Equipped Axe"
@@ -68,12 +69,17 @@ struct PrepWords {
   static constexpr const char* kHintPlace = "{dpad}  {ok}:put here  {cancel}:keep in place";
   static constexpr const char* kHintView = "{dpad}:look  {ok}:unit info  {cancel}:back";
   static constexpr const char* kHintList = "{udok}:choose  {cancel}:back";
-  static constexpr const char* kHintTrade = "{leftright}:unit  {updown}  {ok}:hand over  {cancel}:back";
+  static constexpr const char* kHintTrade = "{leftright}:unit  {updown}  {ok}:hand over  {cancel}:back";  // the storage on the right
+  static constexpr const char* kHintTradePick = "{leftright}:unit  {updown}  {ok}:pick up  {cancel}:back";
+  static constexpr const char* kHintTradeSwap = "{leftright}:unit  {updown}  {ok}:swap  {cancel}:put back";
+  static constexpr const char* kHintTradeMove = "{leftright}:unit  {updown}  {ok}:move here  {cancel}:put back";
+  static constexpr const char* kHintTradePut = "{leftright}:unit  {updown}  {ok}:put back  {cancel}:put back";
   static constexpr const char* kHintBuy = "{udok}:buy  {cancel}:back";
   static constexpr const char* kHintBuyTabs = "{ok}:buy  {right}:Sell  {cancel}:back";
   static constexpr const char* kHintSellWho = "{ok}:choose  {left}:Buy  {cancel}:back";
   static constexpr const char* kHintSell = "{udok}:sell  {cancel}:back";
   static constexpr const char* kHintTradeEquip = "{leftright}:unit  {ok}:hand/equip  {cancel}:back";
+  static constexpr const char* kHintTradePickEquip = "{leftright}:unit  {ok}:pick up/equip  {cancel}:back";
   static constexpr const char* kHintAsk = "{lrok}:answer  {cancel}:back";
 };
 

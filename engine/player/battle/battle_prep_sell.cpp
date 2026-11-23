@@ -167,7 +167,7 @@ void BattleScene::prepTradeChoiceOpen(int row) {
   std::string why;
   const bool can = prepEquipReason(session_.db, *p.pt, p.who, row, why);
   std::vector<MenuItem> items;
-  items.push_back({p.with.empty() ? PrepWords::kPutAway : PrepWords::kHandOver, "", true, kcHandOver});
+  items.push_back({p.with.empty() ? PrepWords::kPutAway : PrepWords::kPickUp, "", true, kcHandOver});
   items.push_back({PrepWords::kEquip, can ? "" : why, can, kcEquip});  // greyed, with the reason
   if (!can) say(why);  // the menu's own line is short: the whole reason here
   const RosterUnit* a = p.pt->findUnit(p.who);

@@ -211,6 +211,16 @@ bool Battle::validateItemAction(const Action& a, std::string* why) const {
         return fail(why, "the other unit does not carry that item");
       if (!hasRoom(u)) return fail(why, "the unit cannot carry more");
       return true;
+    case ActionType::SwapItems: {
+      const bool own = a.target == a.unit;  // two slots of one pack: a reorder
+      if (!ownSlot()) return fail(why, "the unit does not carry that item");
+      if (!own && !partner()) return fail(why, "there is nobody of your side next to the unit to trade with");
+      if (a.target < 0 || a.target >= (int)units.size()) return fail(why, "there is nobody to trade with");
+      const Unit& o = units[(size_t)a.target];
+      if (a.itemSlot < 0 || a.itemSlot >= (int)o.items.size()) return fail(why, own ? "the unit does not carry that item" : "the other unit does not carry that item");
+      if (own && a.itemSlot == a.slot) return fail(why, "that is the same item");
+      return true;  // both packs keep their size, so there is no room to ask for
+    }
     case ActionType::StoreItem:
       if (!storageOpen(u)) return fail(why, "the storage cannot be reached from here");
       if (!ownSlot()) return fail(why, "the unit does not carry that item");
@@ -316,6 +326,16 @@ void Battle::applyItemAction(const Action& a, std::vector<Event>& events) {
       to.items.push_back(s);
       clampHp(from);
       events.push_back(event(EventType::ItemMoved, from.id, to.id, s.item, u.side));
+      break;
+    }
+    case ActionType::SwapItems: {
+      Unit& o = units[(size_t)a.target];
+      const int mine = u.items[(size_t)a.slot].item, theirs = o.items[(size_t)a.itemSlot].item;
+      std::swap(u.items[(size_t)a.slot], o.items[(size_t)a.itemSlot]);  // (the same pack for a reorder: two slots trade places)
+      clampHp(u);
+      if (o.id != u.id) clampHp(o);  // an accessory changing hands can lower either maximum
+      events.push_back(event(EventType::ItemMoved, u.id, o.id, mine, u.side));
+      if (o.id != u.id) events.push_back(event(EventType::ItemMoved, o.id, u.id, theirs, u.side));
       break;
     }
     case ActionType::StoreItem: {

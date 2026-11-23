@@ -57,7 +57,7 @@ bool Battle::chargeAllowed(const Action& action, std::string* why) const {
   if (charging(action.unit)) {
     switch (action.type) {
       case ActionType::Move: case ActionType::Wait: case ActionType::Equip: case ActionType::GiveItem: case ActionType::TakeItem:
-      case ActionType::StoreItem: case ActionType::FetchItem: case ActionType::BuyItem: case ActionType::DiscardItem:
+      case ActionType::StoreItem: case ActionType::FetchItem: case ActionType::BuyItem: case ActionType::DiscardItem: case ActionType::SwapItems:
       case ActionType::SwitchPair: case ActionType::GiveUnit: case ActionType::TakeUnit: case ActionType::Support:
         break;
       default: return refuse("that unit is charging an action: it may only move, or give the charge up");

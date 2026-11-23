@@ -388,7 +388,10 @@ enum class ActionType {
   // Commanders (docs/COMMANDERS.md): the active side spends its meter on power `power` of its commander; free of any unit.
   UsePower,
   // Map exits (docs/AI.md "Looting and escaping"): a computer unit on one of the map's exits leaves the map with what it carries. Appended last.
-  LeaveMap
+  LeaveMap,
+  // Trade (docs/ITEMS.md): `unit` swaps its item `slot` with item `itemSlot` of the neighbour `target` (or of its own pack when
+  // `target` is the unit itself: a reorder). No room needed, so it works between two full packs. Free. Appended last.
+  SwapItems
 };
 
 struct Action {
@@ -404,7 +407,7 @@ struct Action {
   int to = -1;          // UpgradeStructure: the kind it becomes (index into db->structures)
   int tech = -1;        // StartResearch: index into db->research
   int ability = -1;     // Ability: index into db->abilities
-  int itemSlot = -1;    // UseStaff "repair": the slot in the TARGET's inventory of the item to repair (-1 = none)
+  int itemSlot = -1;    // UseStaff "repair": the slot in the TARGET's inventory of the item to repair (-1 = none); SwapItems: the slot in the TARGET's pack
   int power = -1;       // UsePower: index into the side's commander's "powers"
   int facing = -1;      // Wait (rules.facing only): the direction the unit looks in when it ends its turn; -1 = it keeps the one it has
 
@@ -423,6 +426,11 @@ struct Action {
   static Action giveItem(int unit, int slot, int to) { return itemAction(ActionType::GiveItem, unit, slot, to); }
   // `slot` is the position in the OTHER unit's inventory.
   static Action takeItem(int unit, int from, int slot) { return itemAction(ActionType::TakeItem, unit, slot, from); }
+  static Action swapItems(int unit, int slot, int with, int withSlot) {
+    Action a = itemAction(ActionType::SwapItems, unit, slot, with);
+    a.itemSlot = withSlot;
+    return a;
+  }
   static Action storeItem(int unit, int slot) { return itemAction(ActionType::StoreItem, unit, slot); }
   static Action fetchItem(int unit, int index) { return itemAction(ActionType::FetchItem, unit, index); }
   static Action discardItem(int unit, int slot) { return itemAction(ActionType::DiscardItem, unit, slot); }

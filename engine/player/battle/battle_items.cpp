@@ -121,7 +121,7 @@ void BattleScene::openTrade() {
   menu_.place(layout_.vw / 2 - menu_.w() / 2, layout_.vh / 2 - menu_.h() / 2, layout_.vw, layout_.vh);
 }
 
-void BattleScene::openTradeWith(int partner) {
+void BattleScene::openTradeWith(int partner, int col, int row) {
   mode_ = Mode::Items;
   itemScreen_ = ItemScreen::Trade;
   partner_ = partner;
@@ -129,7 +129,23 @@ void BattleScene::openTradeWith(int partner) {
   const Unit& u = battle_.units[sel_];
   const Unit& p = battle_.units[(size_t)partner];
   int size = session_.db.rules.items.inventorySize;
-  tradePanel_.open(u.name, inventoryRows(battle_, u, size), p.name, inventoryRows(battle_, p, size));
+  tradePanel_.open(u.name, inventoryRows(battle_, u, size), p.name, inventoryRows(battle_, p, size), col, row);
+  // The screen tests read these: both packs in slot order, and where each slot is on screen (to tap it).
+  std::string packs, spots;
+  for (const Unit* w : {&u, &p}) {
+    packs += (packs.empty() ? "" : " | ") + w->name + " [";
+    for (size_t i = 0; i < w->items.size(); ++i) packs += (i ? ", " : "") + battle_.itemOf(w->items[i]).name;
+    packs += "]";
+  }
+  tradePanel_.setArea(0, 0, layout_.vw, layout_.vh);
+  for (int c = 0; c < 2; ++c)
+    for (int i = 0; i < size; ++i) {
+      int x, y;
+      tradePanel_.rowCentre(host_.renderer(), c, i, x, y);
+      spots += " " + intStr(c) + "." + intStr(i) + "@" + intStr(x) + "," + intStr(y);
+    }
+  OTE_INFO("trade: %s", packs.c_str());
+  OTE_INFO("trade rows:%s", spots.c_str());
 }
 
 void BattleScene::openStorage() {
@@ -219,19 +235,40 @@ void BattleScene::itemChoice(int id) {
   }
 }
 
+// Confirm on the trade screen. First an item is picked up (framed); then a slot of either unit: an item there swaps places with it,
+// a free slot takes the item. Each change is made for good at once (the core applies it), so Back afterwards keeps what was done and the
+// screen stays open for the next one. Confirm on the picked-up item puts it back; Back while holding only puts it back.
 void BattleScene::tradePicked() {
   const Unit& u = battle_.units[sel_];
   const Unit& p = battle_.units[(size_t)partner_];
-  int row = tradePanel_.row();
-  if (tradePanel_.col() == 0) {
-    if (row >= (int)u.items.size()) { say("Nothing to hand over"); return; }
-    if (!battle_.hasRoom(p)) { say(p.name + " cannot carry more"); return; }
-    submitItem(Action::giveItem(sel_, row, partner_));
-  } else {
-    if (row >= (int)p.items.size()) { say("Nothing to take"); return; }
-    if (!battle_.hasRoom(u)) { say(u.name + " cannot carry more"); return; }
-    submitItem(Action::takeItem(sel_, partner_, row));
+  const int col = tradePanel_.col(), row = tradePanel_.row();
+  const Unit& here = col == 0 ? u : p;
+  const bool item = row < (int)here.items.size();
+  if (!tradePanel_.holding()) {
+    if (!item) { say("Nothing to pick up"); return; }
+    tradePanel_.hold(col, row);
+    OTE_INFO("trade: picked up %s from %s", battle_.itemOf(here.items[(size_t)row]).name.c_str(), here.name.c_str());
+    return;
   }
+  const int hc = tradePanel_.heldCol(), hr = tradePanel_.heldRow();
+  if (hc == col && hr == row) { tradePanel_.release(); return; }
+  Action act;
+  if (!item) {
+    if (hc == col) return;  // a free slot of the same unit: nothing to do
+    if (!battle_.hasRoom(here)) { say(here.name + " cannot carry more"); return; }
+    act = hc == 0 ? Action::giveItem(sel_, hr, partner_) : Action::takeItem(sel_, partner_, hr);
+  } else if (hc == col) {
+    if (col == 1) { say("Only " + u.name + "'s own items can be put in order"); return; }  // the other unit is not the one acting
+    act = Action::swapItems(sel_, hr, sel_, row);
+  } else {
+    act = hc == 0 ? Action::swapItems(sel_, hr, partner_, row) : Action::swapItems(sel_, row, partner_, hr);
+  }
+  const std::string what = (!item ? "move " : "swap ") + battle_.itemOf((hc == 0 ? u : p).items[(size_t)hr]).name;
+  if (!submit(act)) return;
+  OTE_INFO("trade: %s (%s with %s)", what.c_str(), u.name.c_str(), p.name.c_str());
+  itemsUsed_ = true;
+  hasUndo_ = false;
+  openTradeWith(partner_, col, row);  // the new packs, cursor where it was, nothing picked up
 }
 
 void BattleScene::itemsInput(const InputEvent& e) {
@@ -279,8 +316,10 @@ void BattleScene::itemsInput(const InputEvent& e) {
     }
     case ItemScreen::Trade: {
       TradePanel::Result res = tradePanel_.onInput(e, r);
-      if (res == TradePanel::Back) { closeItems(); openActionMenu(); }
-      else if (res == TradePanel::Picked) tradePicked();
+      if (res == TradePanel::Back) {
+        if (tradePanel_.holding()) tradePanel_.release();  // Back puts the picked-up item down first
+        else { closeItems(); openActionMenu(); }
+      } else if (res == TradePanel::Picked) tradePicked();
       break;
     }
     case ItemScreen::Storage: {
@@ -319,6 +358,18 @@ void BattleScene::drawItems(Renderer& r) {
   confirm_.draw(r);
 }
 
+// What Confirm does on the trade screen right now: pick up, or put down (swap with an item, move into a free slot).
+std::string BattleScene::tradeHint() const {
+  if (!tradePanel_.holding()) return "{leftright}:unit  {updown}  {ok}:pick up  {cancel}:back";
+  const Unit& u = battle_.units[sel_];
+  const Unit& p = battle_.units[(size_t)partner_];
+  const Unit& here = tradePanel_.col() == 0 ? u : p;
+  const bool item = tradePanel_.row() < (int)here.items.size();
+  const bool same = tradePanel_.col() == tradePanel_.heldCol() && tradePanel_.row() == tradePanel_.heldRow();
+  if (same) return "{leftright}:unit  {updown}  {ok}:put back  {cancel}:put back";
+  return item ? "{leftright}:unit  {updown}  {ok}:swap  {cancel}:put back" : "{leftright}:unit  {updown}  {ok}:move here  {cancel}:put back";
+}
+
 std::string BattleScene::itemsHint() const {
   switch (itemScreen_) {
     case ItemScreen::List: return "{udok}:choose  {cancel}:back";
@@ -326,7 +377,7 @@ std::string BattleScene::itemsHint() const {
     case ItemScreen::Target:
     case ItemScreen::Partner: return "{udok}:choose  {cancel}:back";
     case ItemScreen::Discard: return "{lrok}:answer  {cancel}:keep it";
-    case ItemScreen::Trade: return "{leftright}:unit  {updown}  {ok}:hand over  {cancel}:back";
+    case ItemScreen::Trade: return tradeHint();
     case ItemScreen::Storage: return "{udok}:take  {cancel}:back";
     case ItemScreen::Shop: return "{udok}:buy  {cancel}:back";
   }
