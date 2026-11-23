@@ -131,6 +131,9 @@ or writing anything: `ote-editor --validate <game folder>` (docs/EDITOR_API.md).
 }
 ```
 
+A `maps` entry may say `"cutScene": true`: the map is only shown by story scenes (`showMap`, docs/EVENTS.md "Showing another map"). It is never played: not in the map list, not a
+free battle or a chapter map (loader errors), refused by `--map` and `ote-sim`, and its file has no `events`, `objectives` or `prep`.
+
 `saving` says how much saving the player offers (docs/SAVES.md): `"any"` (the
 default) = an automatic Continue save plus five manual slots; `"continue"` =
 only the automatic Continue save (no Save/Load in the menus, so a bad dice
