@@ -108,7 +108,8 @@ class BattleScene : public Scene {
   void targetingButton(Button b);
   void menuInput(const InputEvent& e);
   void moveCursor(int dx, int dy);
-  bool turnInput(const InputEvent& e);  // moving the camera (the 3D kinds of view); true = the event was used
+  bool turnInput(const InputEvent& e);
+  bool listOpen() const;  // a list or menu has the input: the mouse wheel scrolls it instead of zooming (battle_input.cpp)  // moving the camera (the 3D kinds of view); true = the event was used
   void turnButtonBox(int which, int& x, int& y, int& w, int& h) const;  // the on-screen camera buttons
   int cameraButtons() const { return proj_.free3d() ? 6 : 2; }  // turn left/right; full 3D adds tilt and zoom
   // Whole quarter turns of the camera, which way the arrow keys go; a hexagon map's sixths count as the nearest quarter.

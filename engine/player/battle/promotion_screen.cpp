@@ -88,6 +88,7 @@ void PromotionScreen::layout(const Renderer& r) {
 PromotionScreen::Result PromotionScreen::onInput(const InputEvent& e, const Renderer& r) {
   if (!open_ || options_.empty()) return None;
   layout(r);
+  if (list_.input(e)) return None;  // the wheel, a "^" / "v" marker, a finger's drag (ui/row_list.h)
   if (e.type == InputEvent::PointerMove) {
     int row = list_.rowAt(e.x, e.y);
     if (row >= 0) list_.sel = row;

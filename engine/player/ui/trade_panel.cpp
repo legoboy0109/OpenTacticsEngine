@@ -80,6 +80,7 @@ void TradePanel::selectedBox(const Renderer& r, int& x, int& y, int& w, int& h) 
 TradePanel::Result TradePanel::onInput(const InputEvent& e, const Renderer& r) {
   if (!open_) return None;
   layout(r);
+  if (list_[col_].input(e)) return None;  // the wheel, a "^" / "v" marker, a finger's drag (ui/row_list.h)
   if (e.type == InputEvent::PointerMove) {
     for (int c = 0; c < 2; ++c) {
       int row = list_[c].rowAt(e.x, e.y);

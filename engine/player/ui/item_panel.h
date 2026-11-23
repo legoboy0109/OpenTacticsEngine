@@ -68,6 +68,7 @@ class ItemPanel {
   void draw(Renderer& r);
 
   int sel() const { return list_.sel; }
+  int shownRows() const { return list_.visible(); }  // rows that fit (as last laid out)
   // The selected row on screen (to put a small menu beside it).
   void selectedBox(const Renderer& r, int& x, int& y, int& w, int& h);
   // The middle of tab `i` on screen (for tests that tap it); false when there is no such tab.
