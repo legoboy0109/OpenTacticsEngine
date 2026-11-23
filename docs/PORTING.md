@@ -105,6 +105,18 @@ A backend reports the pointer leaving the window as a `PointerMove` at `kPointer
 `WINDOWEVENT_LEAVE`), a new port should do the same. The player logs `camera: X,Y` once the camera has been still for 20 frames after
 moving; the script words `move:X:Y` (hover without clicking) and `leave` drive it in tests (`tests/edge_scroll_player_test.py`).
 
+**Pointer scrolling (lists and menus).** Every list in the player (the launcher's lists, options, saves, shop / item / trade
+panels, jobs, promotion, and a popup menu too tall for the screen, which now shows the rows that fit) keeps a stored scroll
+position (`ui/row_list.h`, the one place for the numbers): it moves only when the selection would leave the visible rows (keys
+and pad step as before, the selection kept in the middle; wrapping works) or when the list is scrolled on purpose. Hovering a
+row selects it and never scrolls (the old rule centred the selected row, so a pointer resting near the bottom selected a row,
+the list re-centred, the next row slid under the pointer and the list raced to the end). The mouse scrolls a long list with
+the wheel, `ListFeel::kWheelRows` = 1 row a notch (the wheel arrives as ZoomIn / ZoomOut: an open list takes it, the map
+zooms only when no list is open), or by resting on the "^" / "v" marker for `kMarkerDwellSeconds` = 0.3 s, then
+`kMarkerRowsPerSecond` = 6 rows a second (frame time: the App advances the list clock); a click on a marker scrolls one row.
+A finger keeps its taps (the first selects, the second chooses) and can drag the rows. The player logs `list scrolled: first
+row N` when a list moves (`tests/list_scroll_player_test.py`).
+
 **Hints name the device in use.** Every hint / reminder line (`Z:select`, `Confirm: open`, `tap: ...`) is a template with
 `{tokens}` that `player/ui/input_hints.h` expands for the device of the most recent real press: keyboard, controller
 (Xbox layout names: A confirm, B cancel, Start menu, LB/RB, X/Y turn the camera, D-pad; the original Xbox build says
