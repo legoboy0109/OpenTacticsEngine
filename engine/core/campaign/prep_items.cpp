@@ -102,6 +102,25 @@ bool prepGive(const Database& db, Playthrough& pt, const MapDef& map, const std:
   return true;
 }
 
+bool prepSwap(const Database& db, Playthrough& pt, const MapDef& map, const std::string& id, int slot, const std::string& with, int withSlot,
+              std::string& why) {
+  (void)db;
+  if (!needItems(map, why)) return false;
+  RosterUnit* a = unitOf(pt, id, why);
+  if (!a) return false;
+  RosterUnit* b = unitOf(pt, with, why);
+  if (!b) return false;
+  if (slot < 0 || slot >= (int)a->items.size()) return refuse(why, a->name + " does not carry that item.");
+  if (withSlot < 0 || withSlot >= (int)b->items.size()) return refuse(why, b->name + " does not carry that item.");
+  if (a == b && slot == withSlot) return refuse(why, "That is the same item.");
+  std::swap(a->items[(size_t)slot], b->items[(size_t)withSlot]);  // (one pack: two places trade; the packs keep their size)
+  if (a != b) {
+    a->items[(size_t)slot].drop = false;  // like a hand over: nothing carries a "drops it" mark across
+    b->items[(size_t)withSlot].drop = false;
+  }
+  return true;
+}
+
 bool prepStore(const Database& db, Playthrough& pt, const MapDef& map, const std::string& id, int slot, std::string& why) {
   if (!needItems(map, why)) return false;
   if (db.rules.items.storage == ItemStorage::Off) return refuse(why, "This game has no shared storage.");

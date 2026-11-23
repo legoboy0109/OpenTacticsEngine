@@ -267,6 +267,28 @@ TEST(prep_trade_between_roster_characters_and_the_storage) {
   CHECK_EQ((int)r.b.sides[0].storage.size(), 1);
 }
 
+TEST(prep_swap_trades_two_items_between_characters_and_reorders_one_pack) {
+  Run r;
+  CHECK(r.begin("prep_trade") && r.toChapter2() && r.openChapter2());
+  const Database& db = r.g.db;
+  std::string why;
+  // sera carries potion + ring; bram (benched) a tonic; tomas nothing.
+  const int potion = r.roster("sera")->items[0].item, ring = r.roster("sera")->items[1].item, tonic = r.roster("bram")->items[0].item;
+  CHECK(prepSwap(db, r.pt, r.mapDef, "sera", 0, "bram", 0, why));
+  CHECK(r.roster("sera")->items[0].item == tonic && r.roster("bram")->items[0].item == potion);
+  CHECK_EQ((int)r.roster("sera")->items.size(), 2);                  // both packs keep their size
+  CHECK_EQ((int)r.roster("bram")->items.size(), 1);
+  CHECK(prepSwap(db, r.pt, r.mapDef, "sera", 0, "sera", 1, why));    // a reorder
+  CHECK(r.roster("sera")->items[0].item == ring && r.roster("sera")->items[1].item == tonic);
+  CHECK(!prepSwap(db, r.pt, r.mapDef, "sera", 0, "sera", 0, why) && has(why, "same item"));
+  CHECK(!prepSwap(db, r.pt, r.mapDef, "sera", 0, "tomas", 0, why) && has(why, "does not carry"));
+  CHECK(!prepSwap(db, r.pt, r.mapDef, "sera", 5, "bram", 0, why) && has(why, "does not carry"));
+  CHECK(!prepSwap(db, r.pt, r.mapDef, "sera", 0, "nobody", 0, why));
+  CHECK(!prepSwap(db, r.pt, r.mapDef, "sera", -1, "bram", 0, why));
+  CHECK(prepBegin(db, r.pt, r.mapDef, why) && r.start());            // what was swapped is what the battle starts with
+  CHECK_EQ(r.b.units[(size_t)r.unit("sera")].items[0].item, ring);
+}
+
 TEST(prep_shop_buys_with_the_campaigns_resources) {
   Run r;
   CHECK(r.begin("prep_shop") && r.toChapter2() && r.openChapter2());
