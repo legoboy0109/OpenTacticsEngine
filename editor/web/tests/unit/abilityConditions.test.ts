@@ -19,8 +19,8 @@ import { loadConditionsFixture } from './fixtures'
 
 const fx = (): ProjectDoc => switchOnFeature(loadConditionsFixture(), 'abilities')
 const cond = (d: ProjectDoc, id: string): Condition => d.conditions!.find((c) => c.id === id)!
-const withAbility = (d: ProjectDoc, a: Ability): ProjectDoc => ({ ...d, abilities: [...(d.abilities ?? []), a], units: d.units?.map((u, i) => (i === 0 ? { ...u, abilities: [...(u.abilities ?? []), a.id] } : u)) })
-const texts = (d: ProjectDoc, id: string) => abilityChecks(d).filter((c) => c.ids?.includes(id)).map((c) => c.text)
+const withAbility = (d: ProjectDoc, a: Ability): ProjectDoc => ({ ...d, abilities: [...(d.abilities ?? []), a] })
+const texts = (d: ProjectDoc, id: string) => abilityChecks(d).filter((c) => c.ids?.includes(id) && !/nobody has this ability/.test(c.text)).map((c) => c.text)  // (not given to a unit: beside the point)
 
 describe('a condition’s kind', () => {
   it('is harmful unless it says helpful, and only helpful is written', () => {
