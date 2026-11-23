@@ -187,7 +187,7 @@ static bool loadGameFile(const std::string& path, Database& db, std::string& err
   // "editor": the web editor keeps its own bookkeeping there (which formula preset a text came from; editor/web model/formulas.ts);
   // nothing in the game reads it. Quiet: accepted, never listed in a message.
   if (!c.onlyKeys(root, {"formatVersion", "name", "description", "author", "saving", "battleScene", "battleBackgroundFrom", "battlePlatformFrom",
-                         "battleSceneSides", "battleSceneStaves", "menuUnavailable", "attackWeaponChoice", "grid", "view", "font", "stats",
+                         "battleSceneSides", "battleSceneStaves", "quotesPerFight", "menuUnavailable", "attackWeaponChoice", "grid", "view", "font", "stats",
                          "resources", "unitResources", "moveTypes", "switches", "variables", "roles", "rules", "formulas", "damageTypes", "resistRange",
                          "difficulties", "styles", "scripts", "maps"},
                   "", {"editor"}))
@@ -224,6 +224,11 @@ static bool loadGameFile(const std::string& path, Database& db, std::string& err
   db.battleSceneSides = sides == "playerRight" ? 1 : sides == "playerLeft" ? 2 : 0;
   db.battleSceneStaves = false;  // docs/BATTLE_SCENE.md "Staves in the scene"
   if (!c.boolean(root, "battleSceneStaves", "", db.battleSceneStaves)) return false;
+  std::string perFight = "both";  // docs/EVENTS.md "Battle and defeat quotes"
+  if (!c.str(root, "quotesPerFight", "", perFight)) return false;
+  if (perFight != "both" && perFight != "one")
+    return c.fail("", "\"quotesPerFight\" must be \"both\" (each fighter may say its battle quote, the default) or \"one\" (at most one battle quote per fight), got \"" + perFight + "\"");
+  db.quotesOnePerFight = perFight == "one";
   // Menu options of the player (docs/SRPG.md "Menu options"): presentation of the action menu and the attack flow; no rule changes.
   std::string unavailable = "grey";
   if (!c.str(root, "menuUnavailable", "", unavailable)) return false;

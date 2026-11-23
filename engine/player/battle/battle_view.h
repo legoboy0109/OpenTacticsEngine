@@ -125,8 +125,19 @@ class BattleView {
     // The rules have already applied the experience that follows the fight; the scene shows the fighters as they were when it
     // began. Per fighter: the levels it gains after the fight and the maximum hit points those levels add.
     std::map<int, int> levelsGained, hpGained;
+    // Quote lines the scene says itself (docs/BATTLE_SCENE.md "Quotes in the scene"): the battle quote that came right before the first strike and the
+    // defeat quote that came right after the fall, taken out of the stream. `quoteShown[defeat]`: the scene has played that set; a set it never
+    // played goes back to the queue (to play on the map) when the fight is over. `talking`: the lines of one set are being said (the dialogue box).
+    std::vector<Event> quoteBefore, quoteDefeat;
+    bool quoteShown[2] = {false, false};
+    bool talking = false;
+    std::vector<Event> talk;
+    size_t talkAt = 0;
+    float talkTimer = 0;  // autoplay: how long the line has been up
   };
   FightRun fight;
+  // The scene has stopped for a quote: say its lines (the dialogue box shows them; `fight.talking` is false again when the last one is dismissed).
+  void startQuote(const Battle& b, bool defeat);
   bool sceneMode = false;  // the player wants fights shown as the scene (set by the battle screen every frame)
   void fightFinished(const Battle& b);
   // A battle that starts with fights in its first events (a staged `fight` of a battle-start event): the view is made after the rules have run
@@ -183,6 +194,8 @@ class BattleView {
   void finish(const Battle& b);    // final state of cur_
   void impact(const Battle& b);    // attack: spawn numbers
   bool takeFightRun(const Battle& b);  // battle_view_fight.cpp: cur_.ev starts a fight the scene shows: hold the run
+  bool takeQuoteRun(const Battle& b);  // battle_view_fight.cpp: cur_.ev is a battle quote line that comes right before such a fight: the scene says it
+  void talkNext(const Battle& b);      // battle_view_story.cpp: the next line of the quote being said inside the scene, or the end of it
   bool quiet_ = false;             // fightFinished is replaying a run: no sounds
   // Story entries (docs/EVENTS.md): battle_view_story.cpp. Each returns false for other entries.
   struct Walker {  // a walked moveUnit with "wait": false: it goes on while the next commands play

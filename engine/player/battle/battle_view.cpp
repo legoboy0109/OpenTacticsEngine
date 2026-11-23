@@ -519,6 +519,7 @@ void BattleView::startNext(const Battle& b) {
       applyUnseen(b, cur_.ev);
       continue;
     }
+    if (sceneMode && takeQuoteRun(b)) continue;  // a battle quote right before a fight the scene shows: the scene says it
     if (sceneMode && takeFightRun(b)) continue;  // the scene shows this fight; the view waits for it
     cur_.active = true;
     begin(b);
@@ -528,7 +529,10 @@ void BattleView::startNext(const Battle& b) {
 }
 
 void BattleView::skip(const Battle& b) {
-  if (fight.active) return;  // the scene has its own skip
+  if (fight.active) {  // the scene has its own skip, except for the lines of a quote it is waiting for
+    if (fight.talking) talkNext(b);
+    return;
+  }
   if (cur_.active) finish(b);
   startNext(b);
 }
@@ -542,6 +546,7 @@ void BattleView::update(double dt, const Battle& b) {
                floats.end());
   if (fight.active) {  // the scene is on screen: nothing else plays until it is done
     wasBusy_ = true;
+    if (fight.talking && dialogue.active && autoplay_ && (fight.talkTimer += (float)dt) >= 1.0f) talkNext(b);  // (autoplay: a line goes by itself)
     return;
   }
 

@@ -35,6 +35,9 @@ class FightScene {
     const std::map<std::pair<int, int>, Forecast>* forecasts = nullptr;  // by (attacker, defender), taken before the fight
     // Per unit: levels (and maximum hit points) the fight's experience adds after it (BattleView::FightRun).
     std::map<int, int> levelsGained, hpGained;
+    // Quotes the scene plays inside itself (docs/BATTLE_SCENE.md "Quotes in the scene"): a battle quote before the first strike, a defeat quote when
+    // the killing blow's bar has emptied (the fall waits for it). The lines themselves are the view's; the scene only stops, hides and slides.
+    bool quoteBefore = false, quoteDefeat = false;
   };
 
   // Prepares the fight of `run` (events for which belongsToFight held). False (and nothing active) when the run holds no strike.
@@ -44,7 +47,11 @@ class FightScene {
   void update(double dt);
   // Skip: the rest of the fight is over at once (its log lines are still written, in order).
   void skip();
-  void close() { active_ = false; floats_.clear(); }
+  void close() { active_ = false; floats_.clear(); phase_ = Phase::None; }
+  // Quotes: the scene has stopped (fighters hidden, backdrop gone) and waits for the lines to be said; quoteDone() says they were.
+  enum class QuoteWait { None, Battle, Defeat };
+  QuoteWait quoteWaiting() const { return phase_ == Phase::Hold ? (stops_[nextStop_ - 1].defeat ? QuoteWait::Defeat : QuoteWait::Battle) : QuoteWait::None; }
+  void quoteDone();
   void draw(Renderer& r) const;
 
   // For tests of the drawing and the layout.
@@ -76,6 +83,8 @@ class FightScene {
   };
 
   void fire(const FightBeat& b, bool quiet);
+  void beginQuote(bool skippedTo);
+  void updateQuote(double dt);
   // What the handlers of one beat share (fight_scene.cpp); `audio` is null in a skipped scene.
   struct BeatCtx {
     const FightBeat& beat;
@@ -111,7 +120,7 @@ class FightScene {
   void stageLayout(Geo& g) const;                      // fight_scene_stage.cpp: the fixed stage's layout
   void drawStageBackground(Renderer& r, const Geo& g) const;
   void drawStagePlatform(Renderer& r, const Geo& g, int side) const;
-  void drawBackground(Renderer& r, const Geo& g, unsigned hidden, uint32_t hideRgb) const;
+  void drawBackground(Renderer& r, const Geo& g, unsigned hidden, uint32_t hideRgb, int slide = 0) const;  // slide: pixels the backdrop is shifted up (a quote)
   void drawFades(Renderer& r, const Geo& g, bool backdropOnly) const;  // the effects' "fade" windows
   void drawPlatform(Renderer& r, const Geo& g, int side) const;
   void drawFighter(Renderer& r, const Geo& g, int side) const;
@@ -138,6 +147,15 @@ class FightScene {
   int platform_[2] = {-1, -1};       // the picture under each fighter (index into Graphics::battle.platforms) or -1; the same for both unless "battlePlatformFrom": "own"
   bool platformFar_ = false;         // the fight is at range 2+: the platform's `far` picture when it has one
   double flash_ = -10;               // when the last critical hit landed (white flash)
+  // Quote stops (the clock stands still while one is on): when each begins on the scene's clock, and where the current one is.
+  struct Stop {
+    double at = 0;
+    bool defeat = false;
+  };
+  std::vector<Stop> stops_;
+  size_t nextStop_ = 0;
+  enum class Phase { None, Out, Hold, In } phase_ = Phase::None;  // Out: the fighters are gone and the backdrop slides away; Hold: the lines; In: it slides back
+  double phaseT_ = 0;
   bool skipped_ = false;
 };
 

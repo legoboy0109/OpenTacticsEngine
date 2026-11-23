@@ -253,7 +253,15 @@ struct HitHold {
   }
 };
 
+// "quote" (docs/BATTLE_SCENE.md "Quotes in the scene"): a battle or defeat quote played inside the scene. The scene opens, `leadMs` later (a battle
+// quote) the fighters vanish and the backdrop slides away over `slideOutMs`, the lines play over the cleared screen, then the backdrop slides back
+// over `slideInMs` with the fighters and the fight goes on.
+struct QuoteTiming {
+  int leadMs = 150, slideOutMs = 300, slideInMs = 300;
+};
+
 struct BattleSceneTiming {
+  QuoteTiming quote;           // "quote": the hiding and sliding of a quote played in the scene
   int resultHoldMs = 533;      // "resultHoldMs" 0..5000: the result is "over" this long after the hit / miss moment (or when the striker's effect ends, if later)
   int resultHoldAgainMs = 0;   // "resultHoldAgainMs" 0..5000: added when the same fighter strikes again next
   HitHold hitHold;             // "hitHold": a hit's (and a landing staff's) wait instead of resultHoldMs; a miss keeps resultHoldMs

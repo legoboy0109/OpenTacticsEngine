@@ -534,6 +534,8 @@ struct Database {
   int battleSceneSides = 0;
   // game.json "battleSceneStaves": a staff used on one other unit plays in the battle scene (docs/BATTLE_SCENE.md "Staves in the scene").
   bool battleSceneStaves = false;
+  // game.json "quotesPerFight": "one" = at most one battle quote per fight (the first in speaking order); "both" (default) = each fighter may speak (docs/EVENTS.md).
+  bool quotesOnePerFight = false;
   // game.json "menuUnavailable": "hide" = the action menu leaves out entries that have nothing to act on (default "grey": today's menu,
   // where a few stay greyed); "attackWeaponChoice": "pick" = Attack asks which weapon first. Presentation only (docs/SRPG.md "Menu options").
   bool menuHideUnavailable = false;

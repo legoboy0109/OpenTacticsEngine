@@ -424,10 +424,11 @@ void BattleScene::draw(Renderer& r) {
   }
   if (!view_.banner.empty()) drawBanner(r, layout_, view_.banner, view_.bannerColor, 2, view_.bannerSub);
   if (mode_ == Mode::UnitInfo && idleView && human) drawUnitInfoOverlay(r);
-  if (view_.dialogue.active) dialogue_.draw(r);
+  if (view_.dialogue.active && !view_.fight.talking) dialogue_.draw(r);
   drawLevelUp(r, layout_, view_.levelUp);
   if (mode_ == Mode::Result) drawBanner(r, layout_, resultText_, resultColor_, 3, resultSub_);
   fightScene_.draw(r);  // the battle scene covers everything while a fight plays
+  if (view_.dialogue.active && view_.fight.talking) dialogue_.draw(r);  // ... except the lines of a quote it is waiting for
   drawStageFade(r, stage);  // a fade covers the whole screen, the dialogue and the fights included
 }
 
