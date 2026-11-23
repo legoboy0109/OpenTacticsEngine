@@ -43,6 +43,10 @@ std::string conditionDurationShort(const Database& db, const ConditionState& cs)
 // The floating texts of the events: "Poison!", "Cured Poison", "Poison ended", "Sleep" (the turn is skipped), "Berserk!" (it acts by itself).
 std::string conditionAppliedText(const Database& db, int condition);
 std::string conditionCuredText(const Database& db, int condition);
+// "Sleep missed": an ability's chance to put the condition on failed (docs/SRPG.md "Ability conditions").
+std::string conditionMissedText(const Database& db, int condition);
+// "Sleep 60%": the chance an ability's condition takes hold on the unit under the cursor ("" for -1 = it inflicts nothing).
+std::string conditionChanceText(const Database& db, int condition, int chance);
 std::string conditionEndedText(const Database& db, int condition, int why);
 std::string conditionTickText(const Database& db, int condition, int what);
 

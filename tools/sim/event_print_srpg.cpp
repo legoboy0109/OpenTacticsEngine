@@ -122,7 +122,7 @@ bool describeSrpgEvent(const Battle& b, const Event& e, std::string& out) {
     }
     case EventType::ConditionResisted: {
       const std::string name = e.b >= 0 && (size_t)e.b < b.db->conditions.size() ? b.db->conditions[(size_t)e.b].name : "?";
-      out = unit(b, e.a) + " is immune to " + name;
+      out = (e.flags & kMissed) ? name + " missed " + unit(b, e.a) + " (" + std::to_string(e.d) + "%)" : unit(b, e.a) + " is immune to " + name;
       return true;
     }
     case EventType::ConditionTick: {
