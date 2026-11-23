@@ -1,4 +1,6 @@
-// Small popup menu: keyboard/pad/pointer navigable list of items.
+// Small popup menu: keyboard/pad/pointer navigable list of items. A menu taller than the screen it opens on shows the rows
+// that fit and scrolls like every list (ui/row_list.h: keys keep the selection in view, the wheel and the "^" / "v" markers
+// scroll, hovering never does).
 #pragma once
 #include <string>
 #include <utility>
@@ -6,6 +8,7 @@
 
 #include "platform/platform.h"
 #include "ui/item_icon.h"
+#include "ui/row_list.h"
 
 namespace ote {
 
@@ -39,8 +42,10 @@ class Menu {
   int y() const { return y_; }
   int w() const { return w_; }
   int h() const { return h_; }
-  // The middle of entry `index` on screen (for tests that tap it; the player logs them).
-  void rowCentre(int index, int& x, int& y) const { x = x_ + w_ / 2; y = y_ + 4 + titleH_ + index * rowH_ + rowH_ / 2; }
+  // The middle of entry `index` on screen (for tests that tap it; the player logs them). A scrolled-away entry is off the rows.
+  void rowCentre(int index, int& x, int& y) const { x = x_ + w_ / 2; y = list_.rowY(index) + rowH_ / 2; }
+  // The first entry shown (0 unless the menu is too tall for the screen and has scrolled).
+  int firstShown() const { return list_.first(); }
   void close() { open_ = false; }
   bool isOpen() const { return open_; }
 
@@ -51,6 +56,7 @@ class Menu {
 
  private:
   void step(int dir);
+  void syncList();  // the scrolling rows follow the menu's place and selection
   int itemAt(int x, int y) const;  // -1 = none
   bool inside(int x, int y) const { return x >= x_ && y >= y_ && x < x_ + w_ && y < y_ + h_; }
 
@@ -61,6 +67,8 @@ class Menu {
   int x_ = 0, y_ = 0, w_ = 0, h_ = 0;
   int titleH_ = 0, rowH_ = 12, arrowW_ = 12;
   IconColumn icons_;  // the widest and tallest icon of the entries: every label moves right by its indent
+  int shown_ = 0, mark_ = 0;  // entries that fit on screen; height of the "^" / "v" strip (0 = everything fits)
+  RowList list_;              // scroll position of the entries (geometry follows x_, y_)
 };
 
 }  // namespace ote
