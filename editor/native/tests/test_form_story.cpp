@@ -122,7 +122,7 @@ void FormStoryTest::everyCommandTheLoaderKnowsHasAShape() {
                                  "playSound", "takeItem", "promote", "teachSkill", "forgetSkill", "addSupport", "choice", "openDoor", "closeDoor",
                                  "lockDoor", "unlockDoor", "openChest", "addCondition", "removeCondition", "setBehaviour", "wakeGroup",
                                  "setTerrain", "applyChange", "revertChange", "setFog", "setVision", "background", "fade", "wait", "shake", "leave",
-                                 "clearStage", "weather", "narrate", "enter", "move", "setPhaseMusic", "storeItems", "showUnit", "fight"};
+                                 "clearStage", "weather", "narrate", "enter", "move", "setPhaseMusic", "storeItems", "showUnit", "fight", "showMap", "returnMap"};
   QStringList missing;
   for (const char* k : kLoader) {
     bool found = false;

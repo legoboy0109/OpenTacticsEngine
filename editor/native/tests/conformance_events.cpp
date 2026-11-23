@@ -75,6 +75,10 @@ void addEventContexts(std::vector<Context>& c) {
   add(c, {"cmd-choice", "srpg-rename", "field", {}, {DO "{choice}"},
           {{DO "{choice}.answers", R"([{"text":"Yes"},{"text":"No"}])"}}});
   add(c, {"cmd-fight", "srpg-rename", "field", {}, {DO "{fight}"}, {{DO "{fight}", R"({"fight":{"attacker":"hero","defender":"rival"}})"}, {DO "{fight}.fight.defender", "\"rival\""}}});
+  // A scene on another map (docs/EVENTS.md "Showing another map"). The harness writes a map's keys into the first map by file name ("ai"),
+  // so the event sits there and the second map "field" is made the cut-scene map; its units have ids.
+  add(c, {"cmd-showmap", "area-fire", "ai", {{"game.json", "maps[0].cutScene", "true"}}, {DO "{showMap}", DO "{returnMap}", "game:maps[].cutScene"},
+          {{DO "{showMap}", R"({"showMap":"field"})"}, {DO "{showMap}.showMap", "\"field\""}, {DO "{showMap}.focus{unit}", "\"rifle\""}, {DO "{showMap}.focus{square}", R"({"x":1,"y":1})"}}});
   add(c, {"cmd-chest", "srpg-rename", "field", {}, {DO "{openChest}"}, {{DO "{openChest}", R"({"openChest":"c1"})"}, {DO "{openChest}.openChest", "\"c1\""}}});
   add(c, {"cmd-end-turn", "srpg-rename", "field", {}, {DO "{endTurn}"}, {}, R"({"talk":"hero","to":"ally"})"});
   add(c, {"cmd-scene", "srpg-rename", "field", {}, {DO "{clearStage}", DO "{leave}", DO "{enter}", DO "{move}", DO "{shake}", DO "{weather}", DO "{wait}"}, {}});

@@ -93,7 +93,8 @@
         "of": { "type": "object", "fields": {
           "id": { "type": "string", "required": true, "help": "Unique id; campaigns and events name it." },
           "name": { "type": "string", "help": "Display name (defaults to the id)." },
-          "file": { "type": "string", "required": true, "help": "The map file, e.g. maps/first.json." } } }
+          "file": { "type": "string", "required": true, "help": "The map file, e.g. maps/first.json." },
+          "cutScene": { "type": "bool", "help": "A map only story scenes show (showMap), never played: no events, objectives or prep on it, no chapter or free battle uses it." } } }
       },
       "formulas": {
         "type": "object", "required": true, "help": "The damage formulas (a = attacker, b = defender, w = weapon; docs/GAME_FORMAT.md).",

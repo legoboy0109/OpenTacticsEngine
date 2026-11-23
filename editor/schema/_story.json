@@ -741,7 +741,8 @@
               "speed": {"type": "number", "min": 0.1, "max": 100, "help": "Squares per second (instead of ms).", "excludes": ["ms"]},
               "wait": {"type": "bool", "help": "The story waits for the scroll to end."}
             }
-          }
+          },
+          "unless": ["showMap"]
         },
         {
           "name": "playMusic",
@@ -1083,6 +1084,33 @@
               }
             }
           }
+        },
+        {
+          "name": "showMap",
+          "key": "showMap",
+          "help": "Shows another map of the game for the commands that follow, until returnMap (only in the event's own command list).",
+          "summary": "show {showMap}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "showMap": {"type": "ref", "ref": "game.json#maps", "help": "The map to show (not this one; a map marked cutScene in game.json is made for this).", "required": true},
+              "focus": {
+                "type": "variant",
+                "help": "Where the view starts: a unit of the shown map, or a square of it.",
+                "variants": [
+                  {"name": "unit", "kind": "string", "node": {"type": "string", "help": "The id of a unit of the shown map (or one the commands after the showMap add)."}},
+                  {"name": "square", "kind": "object", "sample": {"x": 0, "y": 0}, "node": {"use": "_map#square", "help": "The square of the shown map."}}
+                ]
+              }
+            }
+          }
+        },
+        {
+          "name": "returnMap",
+          "key": "returnMap",
+          "help": "Back to the battle's map (the end of the event does it too).",
+          "summary": "back to the battle's map",
+          "node": {"type": "object", "fields": {"returnMap": {"type": "bool", "help": "Must be true.", "required": true}}}
         },
         {
           "name": "storeItems",
