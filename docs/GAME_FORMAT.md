@@ -547,7 +547,9 @@ blocks of a fight; a condition's `"scale": "turnsLeft"` (a counted condition) ma
 
 **Status conditions** (docs/SRPG.md section 9, optional): `data/conditions.json` (poison, sleep, silence, berserk and the like, built from skill blocks
 plus `cannotAct`, `cannotMove`, `forbid` and `berserk`), `"inflict"` on a weapon, `"cure"` / `"inflict"` on a usable item, `inflict` and `cure` effects of a
-staff, and the skill effect `immune`. Map events can give and take conditions (`addCondition`, `removeCondition`) and ask (`hasCondition`, docs/EVENTS.md
+staff, and the skill effect `immune`. A condition may say `"kind": "harmful"` (the default) or `"helpful"`; every `cure` list may also be `"harmful"` /
+`"helpful"` (every condition of that kind); an ability's `"inflict"` takes a `"chance"` (a percent or a formula), and a cure ability may target an enemy or any
+unit; formulas read `a.conditions.<id>` (docs/SRPG.md "Ability conditions"). Map events can give and take conditions (`addCondition`, `removeCondition`) and ask (`hasCondition`, docs/EVENTS.md
 "Status conditions"); campaign scenes cannot. A game without the file loads, plays, saves and hashes exactly as before.
 
 **Jobs** (docs/JOBS.md, optional): `data/jobs.json` lists the jobs (`id`, `name`, `unitType` the unit type a unit plays as (optional: a job without it is an **overlay** that keeps the unit's own class), `bonus` stats added while it is current, `requires` job levels needed, `jpLevels`, `learn`: the skills and

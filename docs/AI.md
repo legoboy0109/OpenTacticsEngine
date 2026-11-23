@@ -528,6 +528,27 @@ considered. In a speed game a strike ability with `chargeSpeed` is judged with t
 
 The computer earns no ability points (docs/JOBS.md "Learning from equipment") and never chooses equipment for what it teaches.
 
+### Status abilities
+
+Abilities that put a condition on or take conditions off (docs/SRPG.md "Ability conditions") are weighed like staves (docs/SRPG.md section 8 "AI"): a condition is
+worth a quarter of the receiver's value (as an attack scores a unit: production cost, default 1000; a leader whose defeat ends the game counts double) times the
+chance it takes hold (the ability's `chance`, its formula worked out for that target, 100 without one).
+
+- **Which side.** A condition's `kind` decides: a **harmful** one (the default) is worth something only on a foe, a **helpful** one only on its own team (the user
+  included). A unit that is immune, or has it for as long already, is worth nothing, so nothing still on is put on again.
+- **Status abilities** (an ability with only `inflict`) and **cure abilities** are scored at every square the unit can stand on, after its attacks and strikes:
+  the best beats the order found so far only by its own worth, minus the danger of the square, plus the base an attack gets; on an equal score the earlier order
+  stays. A priced one (`spend`) is worth 10 % less. A cure is worth the same share once per unit it would free of a **harmful** condition of its own team or strip of a
+  **helpful** one of a foe; it never cures a blessing off an ally or a curse off a foe (the older rule "cure itself, else an ally next to it, instead of a plain Wait"
+  follows the same test).
+- **A strike's own `inflict`** adds its worth, times the strike's hit chance, to the strike's score for each unit it would hit and not defeat.
+- Charged abilities, and abilities whose effect is something else with an `inflict` on top (a push that poisons), are not used for the condition (as before).
+- A game whose conditions say no `kind` has only harmful ones, so the computer cures as before; a game without status abilities plays move for move as before.
+
+**Tests.** `tests/test_ability_conditions.cpp` (`abcond_ai_puts_a_curse_on_a_foe_not_twice`, `abcond_ai_gives_a_blessing_to_its_own_side_only`,
+`abcond_ai_cures_harmful_on_allies_and_strips_helpful_from_foes`, `abcond_ai_play_is_the_same_twice`). Code: `ai/ai_conditions.cpp`, `ai/ai_abilities.cpp` (the cure pick),
+`ai/ai_strike.cpp`.
+
 ### Tests
 
 `tests/test_ai_behaviour.cpp` (rules, square and hex), `tests/test_ai_behaviour_data.cpp` (loader, commands, saves; fixture `tests/ai_behaviour_fixture.h`),

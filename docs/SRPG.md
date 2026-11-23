@@ -1167,7 +1167,8 @@ far side of the target (the same direction), if it can stand there (on the map, 
 both hexagon layouts), the same fog rules (an unseen unit on the square makes the use blocked: paid for, nothing moves, `kBlocked`), `UnitRelocated`, a released
 capture, and the story's `reach` events for the square it ends on. Player: the pick marks the end square red.
 
-**Cure as an ability** (ability effect). `{ "cure": ["poison"] }` or `{ "cure": "all" }` with `"target": "self"` or `"ally"`. A valid target has at least one of the
+**Cure as an ability** (ability effect). `{ "cure": ["poison"] }`, `{ "cure": "all" }` or `{ "cure": "harmful" }` / `"helpful"` (docs/SRPG.md "Ability
+conditions") with `"target": "self"`, `"ally"`, `"enemy"` or `"unit"` (an enemy: a dispel). A valid target has at least one of the
 listed conditions (`that unit has nothing to cure`, `nothing to cure`). It works like a staff's or item's cure: no immunity or inflict rules, `ConditionEnded`
 with the "cured" reason. A game without `data/conditions.json` refuses it.
 
@@ -2892,9 +2893,58 @@ conditions" below); **possible** = already expressible, with how; **not built** 
 | Reflect (a spell bounces back to its caster) | not built | needs a rule for the new target, range and area, and "no bounce twice". Design decision |
 | The computer weighing status and cure abilities | **built** | status abilities are scored by the condition's worth times the chance; helpful ones go to allies, harmful ones to foes; it never cures what is not there, never re-applies what is still on, and does not cure an ally of a helpful condition |
 
+### Ability conditions
+
+What was added for the needs marked **built** above. Every key is optional; a game that writes none of them loads, rolls, plays, saves and hashes exactly as
+before (an ability without `chance` never rolls; a condition without `kind` is harmful, which is how every rule treated conditions already).
+
+**A condition's kind** (`data/conditions.json`): `"kind": "harmful"` (the default, never needed) or `"helpful"`. It decides what a cure list `"harmful"` /
+`"helpful"` takes off and which side the computer gives the condition to; nothing else (a helpful condition can still be inflicted on a foe by the maker's
+abilities). Refused: `"kind" must be "harmful" (the default: a curse to cure) or "helpful" (a blessing)`. Hashed (a rule, not cosmetic).
+
+**Cure lists by kind.** Wherever a `cure` list is read, an ability's `"effect": { "cure": ... }`, a usable item's `"cure"`, a staff's `cure` effect and a skill
+block's `{ "cure": ... }`, it may also be `"harmful"` or `"helpful"`: every condition of that kind, in file order (worked out when the game loads, so the rules,
+forecasts and AI see a plain list). Refused in a game without conditions (`"cure": "harmful" needs conditions, but the game has none`), and anything else:
+`"cure" must be "all", "harmful", "helpful" or a list of condition ids`.
+
+**A cure ability on a foe.** A cure ability may now have `"target": "enemy"` or `"unit"` as well as `"self"` / `"ally"` (only `"cell"` is refused: `"cure" needs a
+target unit`). With `"cure": "helpful"` on an enemy it is a dispel. A target must still have something the ability cures (`that unit has nothing to cure`).
+
+**The chance of an ability's condition**: `"inflict": { "condition": "sleep", "chance": 60 }` or `"chance": "a.mag * 5 + 40 - b.res * 5"`, on any ability with an
+`inflict` (a status ability with no effect of its own, a strike, a heal that also curses ...).
+
+- A number from 1 to 100 (100 = always, no roll) or a formula (a = the user, b = the target, `dist` = the distance, judged from where the user stands; rounded
+  down, kept within 0..100). Refused: `"inflict": "chance" must be a percent from 1 to 100 or a formula such as "a.mag + 40 - b.res"`; a formula that does not
+  compile, with the Lua message.
+- **When it rolls**: once per target, after the ability's effect (a strike: for each unit it hit that still stands, in the order struck), with `Battle::rng`, and
+  **only where the condition could take hold**: an immune target gets `ConditionResisted` as before and no roll; a target that has it for as long already is
+  left alone with no roll; a chance of 0 is a miss and 100 a hit without a roll. So the hit roll and the condition roll are separate, as in a strike's own
+  numbers then the condition.
+- **A miss** is the event `ConditionResisted` with the new flag `kMissed` (= 1048576; `c` = the user, `d` = the chance). The player floats "Sleep missed"; the log
+  says `Sleep missed Rook (50%)`. A miss still uses the ability (its price, uses, cooldown, experience and the turn).
+- **Forecast**: `Battle::abilityInflictChance(user, ability, target, from)` (100 without a chance, -1 when it inflicts nothing) and `abilityInflictRolls(ability)`.
+  The player's pick hint adds `Sleep 60%` for the unit under the cursor (after the strike numbers for a strike), and the ability's line in the unit details
+  reads `Inflicts Sleep for 3 turns (60%)` (`(a chance)` for a formula; `...; inflicts Burn (50%)` after another effect).
+- Saves: nothing new (conditions were saved already).
+
+**Formulas read conditions.** In a game with conditions every unit table of a formula (`a`, `b`) has `conditions`: one entry per condition the unit has, by id,
+the turns it has left as the info shows them (0 on its last turn) or -1 for one that lasts until cured / the map ends, nil when it does not have it. So
+`b.conditions.sleep and 100 or 60` is "always against a sleeper", and a counted condition can test its own count (the doom recipe in the table). It is set
+before the stats, so a stat named `conditions` wins. Code: `script/formulas.cpp`.
+
+**Computer opponent**: docs/AI.md "Status abilities". **Editor**: Conditions, "Kind"; Abilities, "Which conditions" (every harmful / helpful one) and "Chance it
+takes hold" under "Experience and conditions"; items, staves and skill blocks offer every harmful / helpful condition; the checks mirror the refusals above
+(`model/fidelityAbility.ts`, `abilityChecks.ts`, `conditionChecks.ts`, `staffChecks.ts`, `skillChecks.ts`). Code: `battle/ability_conditions.cpp` (the chance and the
+roll), `data/loader_conditions.cpp` (`kind`, `conditionsOfKind`), `data/loader_fidelity.cpp` (`chance`). Tests: `tests/test_ability_conditions.cpp` (every rule, refusal,
+the roll count, determinism by seed, the doom and protect recipes, the AI), editor `tests/unit/abilityConditions.test.ts`.
+
+**Owner decisions (placeholders; any may change):** the key names `kind` / `harmful` / `helpful` and `chance` (as on a weapon's `inflict`); a condition with no
+kind is harmful; the chance is rolled after the effect and only where it could take hold; a missed condition is a `ConditionResisted` with a flag rather than a
+new event; the float "Sleep missed"; the value in formulas is the turns left (-1 uncounted).
+
 ### Not built (follow-ups)
 
-Carrying a condition over to the next campaign map; condition sounds; a picture instead of the text tag; the AI inflicting beneficial conditions, seeking
+Carrying a condition over to the next campaign map; condition sounds; a picture instead of the text tag; the AI using a staff's beneficial conditions (abilities do: docs/AI.md "Status abilities"), seeking
 cure items, or using the area-all staves' value beyond the simple rule; a berserk or sleeping unit's own portrait pose.
 
 ### Tests
@@ -3208,8 +3258,8 @@ the "who controls it" dimension without a second copy of every class.) Core: `Da
 unit gets the condition, by the same route as a staff's or an item's: immunity is respected (`ConditionResisted`), `replaces` runs,
 a target that has it for as long already is left alone. The ability keeps its own effect (a refresh that curses its target is "a dance
 with a price"; a push that poisons). It needs a target unit (`self`, `ally`, `enemy` or `unit`), so not with `summon` or `unlock`, and
-a game with conditions. The target may be an ally or a foe, whichever the ability's `target` says. **The computer opponent** uses abilities
-as before (it does not weigh the condition); the inflict simply happens when it uses one. Core: `AbilityDef::inflictCond`,
+a game with conditions. The target may be an ally or a foe, whichever the ability's `target` says. A `"chance"` makes it roll (see "Ability
+conditions" in section 9). **The computer opponent** weighs status abilities by the condition (docs/AI.md "Status abilities"). Core: `AbilityDef::inflictCond`,
 `Battle::abilityInflict`. Saves: nothing new (conditions are saved already).
 
 ### Editor
@@ -3266,7 +3316,7 @@ The only thing it does is give the target the condition (immunity, `replaces` an
 cannot take it is refused with `that unit is immune` / `that unit already has it`), and pay `xp` to the user if the ability has one. Without an
 effect and without an inflict the loader still refuses: `missing required "effect" (an ability may leave it out only when it has an "inflict")`;
 `xp` alone is not enough. The target must be a unit (`self`, `ally`, `enemy`, `unit`), no `cell`. Core: `AbilityEffect::None`. **Computer
-opponent:** it never uses these (it does not use push, pull or swap either; its abilities are heal, summon, steal, cure and refresh). Player:
+opponent:** it weighs these by the condition (docs/AI.md "Status abilities"; it does not use push, pull or swap). Player:
 the ability's line reads `Inflicts Boost for 4 turns`. Editor: Abilities, "What it does" > "No other effect" (offered when the game has conditions).
 Saves: nothing new. Tests: `tests/test_fidelity2_rules.cpp`.
 
