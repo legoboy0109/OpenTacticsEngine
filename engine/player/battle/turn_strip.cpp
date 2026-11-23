@@ -46,7 +46,7 @@ void BattleScene::addChargeTint(Overlay& ov) const {
 }
 
 void BattleScene::drawTurnStrip(Renderer& r) const {
-  if (!battle_.speedGame() || battle_.over || prep_ || covered_ || mode_ == Mode::Result) return;
+  if (!battle_.speedGame() || battle_.over || prep_ || covered_ || mode_ == Mode::Result || other_) return;
   const SpeedRules& sp = battle_.db->rules.speed;
   // While a charged action is being aimed: where it would land in the order.
   int aimedSpeed = 0;

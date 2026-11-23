@@ -10,6 +10,7 @@ namespace ote {
 // resumed battle plays it again), and whose turn it is (a resumed battle may be mid-way through the AI's turn).
 SceneAudio BattleScene::audioContext() const {
   SceneAudio a;
+  const Battle& battle_ = ownBattle();  // (the battle's own, also while a scene shows another map)
   a.kind = SceneAudio::Battle;
   // A chapter battle is not started through session_.map: its map is the chapter's.
   const ChapterDef* chapter = chapterBattle() ? currentChapter(session_.db, session_.campaign->pt) : nullptr;

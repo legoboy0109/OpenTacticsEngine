@@ -4,9 +4,18 @@ namespace ote {
 
 std::string lastMapKey(const std::string& gameId) { return "lastMap." + gameId; }
 
+// The playable maps (a cut-scene map is only shown by story scenes: docs/EVENTS.md "Showing another map"), as indices into db.maps.
+static std::vector<int> playableMaps(const GameSession* s) {
+  std::vector<int> out;
+  for (size_t i = 0; i < s->db.maps.size(); ++i)
+    if (!s->db.maps[i].cutScene) out.push_back((int)i);
+  return out;
+}
+
 static std::vector<ListEntry> mapEntries(GameSession* s) {
   std::vector<ListEntry> out;
-  for (const MapRef& m : s->db.maps) {
+  for (int i : playableMaps(s)) {
+    const MapRef& m = s->db.maps[(size_t)i];
     ListEntry e;
     e.label = m.name.empty() ? m.id : m.name;
     e.detail = m.id;
@@ -18,11 +27,12 @@ static std::vector<ListEntry> mapEntries(GameSession* s) {
 MapSelectScene::MapSelectScene(SceneHost& host)
     : ListScene(host, host.session()->db.name, mapEntries(host.session()),
                 "Select a map   {cancelWord}: back"),
-      session_(host.session()) {
+      session_(host.session()), maps_(playableMaps(host.session())) {
   // Start the cursor where the player left off.
   std::string last = host.settings().state(lastMapKey(host.currentGameId()), "");
-  int idx = last.empty() ? -1 : session_->db.findMap(last);
-  if (idx >= 0) select(idx);
+  const int at = last.empty() ? -1 : session_->db.findMap(last);
+  for (size_t row = 0; row < maps_.size(); ++row)
+    if (maps_[row] == at) select((int)row);
 }
 
 // Starting a new battle ends the Continue save's life (the first turn writes a new
@@ -52,7 +62,8 @@ void MapSelectScene::draw(Renderer& r) {
 }
 
 void MapSelectScene::startMap(int index) {
-  const std::string& id = session_->db.maps[index].id;
+  if (index < 0 || index >= (int)maps_.size()) return;
+  const std::string& id = session_->db.maps[(size_t)maps_[(size_t)index]].id;
   host_.settings().setState(lastMapKey(host_.currentGameId()), id);
   host_.startBattle(id);
 }

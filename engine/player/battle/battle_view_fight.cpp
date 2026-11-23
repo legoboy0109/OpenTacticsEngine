@@ -107,8 +107,12 @@ bool BattleView::takeQuoteRun(const Battle& b) {
 // back, drain and recoil likewise, a fallen unit stands again on the square its UnitDied entry names. The entries themselves then play as ever.
 void BattleView::rewindStartFights(const Battle& b, const std::vector<Event>& startEvents) {
   auto unit = [&](int id) -> UnitView* { return id >= 0 && (size_t)id < units.size() && (size_t)id < b.units.size() ? &units[(size_t)id] : nullptr; };
+  int shown = 0;  // inside a shown map's entries (docs/EVENTS.md "Showing another map"): its units, not this battle's
   for (size_t i = startEvents.size(); i-- > 0;) {  // newest first: each entry is undone from the state it left
     const Event& e = startEvents[i];
+    if (e.type == EventType::MapReturned) ++shown;
+    if (e.type == EventType::MapShown && shown > 0) --shown;
+    if (shown > 0) continue;
     switch (e.type) {
       case EventType::Attack:
         if (UnitView* d = unit(e.b)) d->hp += (e.flags & kHit) ? e.d : 0;

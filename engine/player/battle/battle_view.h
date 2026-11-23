@@ -114,6 +114,20 @@ class BattleView {
   // so a run of unseen AI steps costs no frames. Does nothing while something is playing.
   void flushUnseen(const Battle& b);
 
+  // ---- another map shown by a story scene (battle_view_other_map.cpp; docs/EVENTS.md "Showing another map") ----
+  // The view stops at a MapShown (1) or MapReturned (-1) entry until the battle screen has swapped the maps; 0 = nothing waits.
+  int mapRequest() const;
+  int mapIndex() const { return cur_.ev.a; }  // the waiting entry's index into Battle::shownMaps
+  // At a MapShown: the shown map's entries, up to and including its MapReturned, taken out of the queue (they play on another view).
+  std::vector<Event> takeShownMapRun();
+  // The battle screen has swapped the maps: the waiting entry is over and the next ones play.
+  void mapSwapped();
+  // A view made for a shown map: the camera starts on `cell` (kNoCell = the middle of the map) at once.
+  void startOnMap(const Battle& b, Cell cell);
+  // The player's skip carries over between the two views (a skipped scene stays skipped on the other map and after the return).
+  bool skippingRun() const { return skipping_; }
+  void setSkipping(bool on) { skipping_ = on; }
+
   // ---- the side-view battle scene (battle_view_fight.cpp; docs/BATTLE_SCENE.md) ----
   // While `sceneMode` is on, the run of events of one fight (its skills, strikes, drain, deaths) is not played on the map: the
   // view holds it in `fight` and waits (busy) until the scene has shown it and called fightFinished(), which applies the run to
@@ -209,6 +223,8 @@ class BattleView {
   void walkStep(const Battle& b, UnitView& v, const std::vector<Cell>& path, float p, bool sound);
   bool beginSceneEffect(const Battle& b);
   bool beginStory(const Battle& b);
+  bool beginOtherMap();  // battle_view_other_map.cpp: MapShown / MapReturned wait for the battle screen
+  int pushShown_ = 0;    // push(): inside a shown map's entries (their unit numbers are not this view's)
   bool progressStory(const Battle& b);
   bool finishStory(const Battle& b);
   // Upgrades, research, repair and supply: battle_view_economy.cpp. Same contract as the story hooks.

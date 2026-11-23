@@ -187,6 +187,10 @@ int main(int argc, char** argv) {
     std::fprintf(stderr, "load error: %s\n", err.c_str());
     return 1;
   }
+  if (db.cutSceneMap(opt.mapId)) {  // docs/EVENTS.md "Showing another map"
+    std::fprintf(stderr, "map '%s' is a cut-scene map (game.json \"cutScene\": true): story scenes show it, it is never played\n", opt.mapId.c_str());
+    return 1;
+  }
 
   if (!opt.difficulty.empty() && !checkDifficulty(db, opt.difficulty)) return 1;
   const int difficulty = db.difficulties.find(opt.difficulty);  // -1 = the game's default (or none)

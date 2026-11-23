@@ -21,6 +21,7 @@ class MapSelectScene : public ListScene {
   GameSession* session_;
   ConfirmBox confirm_;  // "This replaces your Continue save."
   int pendingMap_ = -1;
+  std::vector<int> maps_;  // the list's rows as indices into db.maps (cut-scene maps are not listed)
 };
 
 // Settings key of the remembered map cursor of a game.
