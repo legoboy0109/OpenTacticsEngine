@@ -96,7 +96,7 @@ test('@smoke abilities: steal, refresh, move past and cure; an item that cannot 
   await saved(page)
   expect(abilities(id).find((a) => a.id === 'encore')).toEqual({ id: 'encore', name: 'Encore', target: 'ally', effect: { refresh: { perTurn: 2 } } })
   expect(abilities(id).find((a) => a.id === 'leap_past')).toEqual({ id: 'leap_past', name: 'Leap Past', target: 'unit', effect: { movePast: true } })
-  expect(abilities(id).find((a) => a.id === 'cleanse')).toEqual({ id: 'cleanse', name: 'Cleanse', target: 'self', effect: { cure: 'all' } })
+  expect(abilities(id).find((a) => a.id === 'cleanse')).toEqual({ id: 'cleanse', name: 'Cleanse', target: 'unit', effect: { cure: 'all' } })  // a cure may target any unit now (docs/SRPG.md "Ability conditions")
 
   // Now that the game has a steal ability the Items screen offers the switch.
   const first = ((await (await page.request.get(`/api/projects/${id}`)).json()).items[0].id) as string  // (the file starts with a comment line)
