@@ -35,6 +35,8 @@ function whatText(doc: ProjectDoc, a: Ability): string {
     case 'cure': {
       const ids = Array.isArray(e.cure) ? e.cure : []
       const names = ids.map((id) => doc.conditions?.find((c) => c.id === id)?.name ?? id)
+      if (e.cure === 'harmful') return `cures every harmful condition of ${whom(a)}`
+      if (e.cure === 'helpful') return `takes every helpful condition away from ${whom(a)}`
       return `cures ${e.cure === 'all' ? 'every condition of' : names.length ? `${names.join(' and ')} on` : 'nothing on'} ${whom(a)}`
     }
     case 'unlock': {

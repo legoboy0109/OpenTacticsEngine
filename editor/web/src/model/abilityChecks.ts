@@ -29,7 +29,7 @@ function shapeChecks(doc: ProjectDoc, a: Ability): string[] {
     else if (kind === 'heal') out.push(`${a.name}: healing cannot be used on an enemy or a square.`)
     else if (kind === 'steal') out.push(`${a.name}: stealing works on an enemy next to the unit.`)
     else if (kind === 'refresh') out.push(`${a.name}: refreshing works on an ally.`)
-    else if (kind === 'cure') out.push(`${a.name}: curing works on the unit itself or an ally.`)
+    else if (kind === 'cure') out.push(`${a.name}: curing works on a unit, not a square.`)
     else if (kind === 'unlock') out.push(`${a.name}: unlocking works on a square of a door or chest.`)
     else out.push(`${a.name}: “${EFFECT_WORDS[kind]}” needs a unit next to it as its target.`)
   }
@@ -56,7 +56,8 @@ function shapeChecks(doc: ProjectDoc, a: Ability): string[] {
   }
   if (kind === 'cure') {
     const c = a.effect?.cure
-    if (c !== 'all') {
+    if ((c === 'harmful' || c === 'helpful') && !(doc.conditions ?? []).length) out.push(`${a.name}: it cures every ${c} condition, but the game has no conditions yet.`)
+    else if (c !== 'all' && c !== 'harmful' && c !== 'helpful') {
       const ids = Array.isArray(c) ? c : []
       if (ids.length === 0) out.push(`${a.name}: it cures nothing yet. Pick at least one condition, or all of them.`)
       for (const id of ids) if (!doc.conditions?.some((x) => x.id === id)) out.push(`${a.name}: the condition “${id}” does not exist.`)

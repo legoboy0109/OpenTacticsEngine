@@ -2,7 +2,7 @@
 // signature, so keys a screen does not know yet survive load -> edit -> save. E1 (characters), E2 (skills), E3
 // (abilities, promotion, carrying) and E4 (supports) add the fields of their own list here, each in their own block.
 import type { Command } from './storyTypes'
-import type { Extra, ItemEntry, Named, NumMap } from './types'
+import type { CureValue, Extra, ItemEntry, Named, NumMap } from './types'
 
 /** "learns" entry on a unit type or a character: the skill is learned at that level. */
 export interface Learn extends Extra { level: number; skill: string }
@@ -57,6 +57,8 @@ export interface Condition extends Named {
   /** Percent chance (1 to 99) each own turn that it ends early. */
   wearOff?: number
   endsWhenStruck?: boolean
+  /** docs/SRPG.md "Ability conditions": "harmful" (the default) or "helpful"; cure lists "harmful" / "helpful" follow it. */
+  kind?: 'harmful' | 'helpful'
   /** "turnsLeft": the numbers of its always rules (stats, growths, sight, staff reach, carrying) count as many times as it has turns left (docs/SRPG.md "Effects that fade"). */
   scale?: 'turnsLeft'
   replaces?: string[]
@@ -70,13 +72,13 @@ export interface Summon extends Extra {
   items?: Array<{ item: string | null; minLevel?: number; maxLevel?: number; weight?: number }>; pick?: 'highest' | 'random'; replace?: boolean
 }
 /** An ability's one effect: exactly one of these keys. */
-/** `steal` (docs/SRPG.md "Steal"): true, or the options; `refresh`: true or `{ perTurn }`; `movePast`; `cure`: condition ids or "all". */
+/** `steal` (docs/SRPG.md "Steal"): true, or the options; `refresh`: true or `{ perTurn }`; `movePast`; `cure`: condition ids, "all", "harmful" or "helpful". */
 export interface StealOptions extends Extra { if?: string; reason?: string; weapons?: boolean; equipped?: boolean }
 export interface AbilityEffect extends Extra {
   push?: number; pull?: boolean; swap?: boolean; moveBehind?: boolean; heal?: number | 'full' | { percent: number } | string; summon?: Summon
   /** The id of a weapon of weapons.json: the ability attacks with it (docs/SRPG.md "Abilities that strike"). */
   strike?: string
-  steal?: true | StealOptions; refresh?: true | { perTurn: number }; movePast?: boolean; cure?: string[] | 'all'
+  steal?: true | StealOptions; refresh?: true | { perTurn: number }; movePast?: boolean; cure?: CureValue
   /** Doors and chests (docs/SRPG.md section 10): true, ["door"], ["chest"] or { kinds, needs }. */
   unlock?: true | Array<'door' | 'chest'> | { kinds?: Array<'door' | 'chest'>; needs?: string }
 }

@@ -30,7 +30,7 @@ export function ItemConditionFields({ id }: { id: string }) {
     <div className="stack" data-testid="item-conditions">
       <Field label={C.itemCures} help={C.itemCureHelp}>
         <Select value={cure.mode} options={(Object.keys(C.itemCureKinds) as CureMode[]).map((m) => ({ value: m, label: C.itemCureKinds[m], disabled: m === 'list' && !has && cure.mode !== 'list' }))}
-          onChange={(m) => { if (m === 'list') { if (stored.mode !== 'list') setPicking(true) } else { setPicking(false); edit((d) => setItemCureMode(d, id, m as 'none' | 'all')) } }} />
+          onChange={(m) => { if (m === 'list') { if (stored.mode !== 'list') setPicking(true) } else { setPicking(false); edit((d) => setItemCureMode(d, id, m as Exclude<CureMode, 'list'>)) } }} />
       </Field>
       {cure.mode === 'list' && <MultiSelect label={C.itemCureList} options={options} value={cure.ids} onChange={(v) => { if (v.length) setPicking(false); edit((d) => setItemCureIds(d, id, v)) }} />}
       {picking && <p className="help" data-testid="item-cure-pick">{C.cureNeedsOne}</p>}

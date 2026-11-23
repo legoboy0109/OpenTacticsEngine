@@ -84,6 +84,9 @@ export const setWearOff = (doc: ProjectDoc, id: string, n: number | undefined): 
   updateCondition(doc, id, { wearOff: n === undefined ? undefined : clampInt(n, 1, CONDITION_WEAROFF_MAX) })
 
 export const setEndsWhenStruck = (doc: ProjectDoc, id: string, on: boolean): ProjectDoc => updateCondition(doc, id, { endsWhenStruck: on ? true : undefined })
+/** "harmful" (the default, never written) or "helpful" (docs/SRPG.md "Ability conditions"). */
+export const setConditionKind = (doc: ProjectDoc, id: string, kind: 'harmful' | 'helpful'): ProjectDoc =>
+  updateCondition(doc, id, { kind: kind === 'helpful' ? 'helpful' : undefined })
 
 /** The map tag: 1 to 4 characters; empty removes the key (the loader then uses the first two letters of the name). */
 export const setTag = (doc: ProjectDoc, id: string, text: string): ProjectDoc => updateCondition(doc, id, { tag: text === '' ? undefined : firstChars(text, TAG_MAX) })

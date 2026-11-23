@@ -17,7 +17,7 @@ export const C = {
   staffCureOn: 'It cures',
   staffCureHelp: 'Takes these conditions off the unit it is used on. A unit that has none of them is not a target.',
   staffCureWhich: 'It cures',
-  staffCureKinds: { list: 'The conditions I pick', all: 'Every condition' },
+  staffCureKinds: { list: 'The conditions I pick', all: 'Every condition', harmful: 'Every harmful condition', helpful: 'Every helpful condition' },
   staffCureList: 'Conditions it cures',
   cureNeedsOne: 'It cures nothing yet. Pick at least one condition, or choose every condition. Until then this part is not saved.',
   staffCureOther: 'This is written in a way the editor cannot show. It is kept as it is.',
@@ -28,7 +28,7 @@ export const C = {
   // a usable item
   itemTitle: 'Conditions',
   itemCures: 'Cures',
-  itemCureKinds: { none: 'No condition', list: 'The conditions I pick', all: 'Every condition' } satisfies Record<CureMode, string>,
+  itemCureKinds: { none: 'No condition', list: 'The conditions I pick', all: 'Every condition', harmful: 'Every harmful condition', helpful: 'Every helpful condition' } satisfies Record<CureMode, string>,
   itemCureHelp: 'Taken off the unit the item is used on. An item that would change nothing (nothing to cure) is not offered.',
   itemCureList: 'Conditions it cures',
   itemInflict: 'It puts a condition on the unit it is used on',

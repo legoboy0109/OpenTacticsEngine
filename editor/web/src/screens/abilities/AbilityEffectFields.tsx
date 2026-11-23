@@ -57,16 +57,18 @@ export function AbilityEffectFields({ ability, change }: FormProps) {
     )
   }
   if (kind === 'cure') {
-    const all = ability.effect?.cure === 'all'
-    const list = (Array.isArray(ability.effect?.cure) ? ability.effect?.cure : []) as string[]
+    const cure = ability.effect?.cure
+    const whole = cure === 'all' || cure === 'harmful' || cure === 'helpful' ? cure : null  // a whole group, not a list
+    const list = (Array.isArray(cure) ? cure : []) as string[]
     const options = (doc.conditions ?? []).map((c) => ({ value: c.id, label: c.name }))
     return (
       <div className="stack tight">
-        <Field label={T.cureWhich}>
-          <Select value={all ? 'all' : 'some'} options={[{ value: 'all', label: T.cureAll }, { value: 'some', label: T.curePick }]}
-            onChange={(m) => change((a) => setCure(a, m === 'all' ? 'all' : options[0] ? [options[0].value] : 'all'))} />
+        <Field label={T.cureWhich} help={T.cureWhichHelp}>
+          <Select value={whole ?? 'some'} options={[{ value: 'all', label: T.cureAll }, { value: 'harmful', label: T.cureHarmful },
+            { value: 'helpful', label: T.cureHelpful }, { value: 'some', label: T.curePick }]}
+            onChange={(m) => change((a) => setCure(a, m === 'some' ? (options[0] ? [options[0].value] : 'all') : (m as 'all' | 'harmful' | 'helpful')))} />
         </Field>
-        {!all && (options.length === 0 && list.length === 0
+        {!whole && (options.length === 0 && list.length === 0
           ? <p className="help">{T.cureNone}</p>
           : <MultiSelect label={T.curePick} options={options} value={list} onChange={(v) => change((a) => setCure(a, v))} />)}
       </div>

@@ -8,7 +8,7 @@ import { CONDITION_TURNS_MAX } from './conditions'
 import { STAFF_EFFECTS_MAX } from './staff'
 import { putFx, room } from './staffEffects'
 import { fxIndex, fxList, isSquareStaff } from './staffFx'
-import type { Extra, Item, ProjectDoc } from './types'
+import type { CureValue, Extra, Item, ProjectDoc } from './types'
 
 const itemOf = (doc: ProjectDoc, id: string): Item | undefined => doc.items?.find((x) => x.id === id)
 const clampInt = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, Math.round(n)))
@@ -61,12 +61,13 @@ export function setInflictTurns(doc: ProjectDoc, id: string, turns: number | und
 
 // --- It cures ---------------------------------------------------------------------------------------------------------------
 
-export interface StaffCure { on: boolean; all: boolean; ids: string[]; editable: boolean }
+export interface StaffCure { on: boolean; all: boolean; ids: string[]; editable: boolean; kind?: 'harmful' | 'helpful' }
 export function cureOf(item: Item): StaffCure {
   const at = fxIndex(item, ['cure'])
   if (at < 0) return { on: false, all: false, ids: [], editable: true }
   const v = (fxList(item)[at] as Extra).cure
   if (v === 'all') return { on: true, all: true, ids: [], editable: true }
+  if (v === 'harmful' || v === 'helpful') return { on: true, all: false, ids: [], editable: true, kind: v }  // every condition of the kind
   if (Array.isArray(v) && v.every((x) => typeof x === 'string')) return { on: true, all: false, ids: v as string[], editable: true }
   return { on: true, all: false, ids: [], editable: false }
 }
@@ -79,9 +80,9 @@ export function dropCure(doc: ProjectDoc, id: string): ProjectDoc {
 }
 /** Sets what it cures: `'all'` or at least one condition (the loader refuses an empty list, so an empty pick changes nothing: the form keeps
  *  the part unsaved until one is picked). Adds the part when it is not there yet (refused when a light staff, four effects, or no conditions). */
-export function setCure(doc: ProjectDoc, id: string, what: string[] | 'all'): ProjectDoc {
+export function setCure(doc: ProjectDoc, id: string, what: CureValue): ProjectDoc {
   const item = itemOf(doc, id)
-  if (!item || (what !== 'all' && what.length === 0)) return doc
+  if (!item || (Array.isArray(what) && what.length === 0)) return doc
   const cur = cureOf(item)
   if (!cur.on && conditionPartBlock(doc, item, 'cure')) return doc
   if (cur.on && !cur.editable) return doc

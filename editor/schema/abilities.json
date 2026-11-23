@@ -64,7 +64,7 @@
       "xp": { "type": "variant", "help": "Experience for using it: a number (0 to 1000) or a formula (a = the user, b = the target).", "variants": [
         { "name": "number", "kind": "number", "node": { "type": "int", "min": 0, "max": 1000 } },
         { "name": "formula", "kind": "string", "node": { "type": "string" }, "sample": "1" } ] },
-      "inflict": { "use": "_common#inflictPlain", "help": "A condition it puts on the target." },
+      "inflict": { "use": "_common#inflictAbility", "help": "A condition it puts on the target, with an optional chance." },
       "if": { "type": "list", "of": { "use": "_skills#condition" }, "help": "Conditions the target must meet (at most 8)." },
       "chargeSpeed": { "type": "int", "min": 1, "max": 1000, "help": "Makes it a charged action (needs turnOrder speed and cost action)." },
       "chargeTargets": { "type": "enum", "values": ["unit", "cell"], "help": "unit: follows the unit; cell: hits the square (needs chargeSpeed)." },

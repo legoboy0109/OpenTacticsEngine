@@ -196,7 +196,8 @@ function ownEffectIssues(doc: ProjectDoc, e: Extra, k: EffectKind, when: When): 
   }
   if (k === 'followUp' && v !== 'force' && v !== 'forbid') out.push('A follow-up strike is either forced or forbidden.')
   if (k === 'cure') {
-    if (v !== 'all') {
+    if ((v === 'harmful' || v === 'helpful') && !(doc.conditions ?? []).length) out.push(`It cures every ${v} condition, but the game has no conditions yet.`)
+    else if (v !== 'all' && v !== 'harmful' && v !== 'helpful') {
       const ids = Array.isArray(v) ? (v as unknown[]) : []
       if (ids.length === 0) out.push('It cures nothing yet. Pick at least one condition, or all of them.')
       for (const id of ids) if (!knownCondition(doc, id)) out.push(`The condition “${String(id)}” does not exist.`)

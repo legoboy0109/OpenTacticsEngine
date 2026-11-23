@@ -6,7 +6,7 @@ import { withAbilities } from './doc'
 import { newAbilityId } from './srpgRefs'
 import { moveItem, patchObj, updateById } from './util'
 import type { Ability, AbilityEffect, AbilityTarget, StealOptions, Summon } from './srpgTypes'
-import type { Extra, ProjectDoc } from './types'
+import type { CureValue, Extra, ProjectDoc } from './types'
 
 export type EffectKind = 'push' | 'pull' | 'swap' | 'moveBehind' | 'movePast' | 'heal' | 'summon' | 'steal' | 'refresh' | 'cure' | 'unlock' | 'strike' | 'none'
 export const EFFECT_KINDS: EffectKind[] = ['push', 'pull', 'swap', 'moveBehind', 'movePast', 'heal', 'summon', 'steal', 'refresh', 'cure', 'unlock', 'strike']
@@ -27,7 +27,7 @@ export const LIFETIME_MAX = 99
 /** Which targets each effect accepts (the loader's "target against effect" rules). */
 export const TARGETS_FOR: Record<Exclude<EffectKind, 'none'>, AbilityTarget[]> = {
   push: ['ally', 'enemy', 'unit'], pull: ['ally', 'enemy', 'unit'], swap: ['ally', 'enemy', 'unit'], moveBehind: ['ally', 'enemy', 'unit'], movePast: ['ally', 'enemy', 'unit'],
-  heal: ['self', 'ally', 'unit'], summon: ['cell'], steal: ['enemy'], refresh: ['ally'], cure: ['self', 'ally'], unlock: ['cell'],
+  heal: ['self', 'ally', 'unit'], summon: ['cell'], steal: ['enemy'], refresh: ['ally'], cure: ['self', 'ally', 'enemy', 'unit'], unlock: ['cell'],
   /** A strike has no target of its own: the weapon decides whom it hits and how far (the loader refuses "target" and "range"). */
   strike: [],
 }
@@ -193,8 +193,8 @@ export function setRefreshPerTurn(a: Ability, n: number): Ability {
 }
 export const REFRESH_MAX = 9
 
-/** Cure: "all", or the ids of the conditions it cures (the first one when the maker leaves "all"). */
-export const setCure = (a: Ability, cure: string[] | 'all'): Ability => (effectKind(a) === 'cure' ? patchObj(a, { effect: { cure } }) : a)
+/** Cure: "all", "harmful" / "helpful" (every condition of that kind), or the ids of the conditions it cures (the first one when the maker leaves "all"). */
+export const setCure = (a: Ability, cure: CureValue): Ability => (effectKind(a) === 'cure' ? patchObj(a, { effect: { cure } }) : a)
 
 export const setCost = (a: Ability, free: boolean): Ability => patchObj(a, { cost: free ? 'free' : undefined })
 export const setUses = (a: Ability, n: number | undefined): Ability => patchObj(a, { uses: n === undefined ? undefined : clamp(n, 1, USES_MAX) })

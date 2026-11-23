@@ -95,16 +95,17 @@ function FormulaNumber({ effect, kind, change, percent }: { effect: Extra; kind:
 
 /** Cures the unit of every condition, or of the ones picked. */
 function CureFields({ doc, effect, change }: { doc: ProjectDoc; effect: Extra; change: (e: Extra, key?: string) => void }) {
-  const all = effect.cure === 'all'
+  const whole = effect.cure === 'all' || effect.cure === 'harmful' || effect.cure === 'helpful' ? effect.cure : null  // a whole group, not a list
   const list = (Array.isArray(effect.cure) ? effect.cure : []) as string[]
   const options = (doc.conditions ?? []).map((c) => ({ value: c.id, label: c.name }))
   return (
     <>
       <Field label={T.cureWhich}>
-        <Select value={all ? 'all' : 'some'} options={[{ value: 'all', label: T.cureAll }, { value: 'some', label: T.curePick }]}
-          onChange={(m) => change({ ...effect, cure: m === 'all' ? 'all' : options[0] ? [options[0].value] : 'all' })} />
+        <Select value={whole ?? 'some'} options={[{ value: 'all', label: T.cureAll }, { value: 'harmful', label: T.cureHarmful }, { value: 'helpful', label: T.cureHelpful },
+          { value: 'some', label: T.curePick }]}
+          onChange={(m) => change({ ...effect, cure: m === 'some' ? (options[0] ? [options[0].value] : 'all') : m })} />
       </Field>
-      {!all && (options.length === 0 && list.length === 0
+      {!whole && (options.length === 0 && list.length === 0
         ? <p className="help">{T.conditionNone}</p>
         : <MultiSelect label={T.curePick} options={options} value={list} onChange={(v) => change({ ...effect, cure: v })} />)}
     </>
