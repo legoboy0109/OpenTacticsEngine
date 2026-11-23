@@ -437,7 +437,7 @@ pick). A map side names one with `"commander": "<id>"` or `"commander": "choose"
       "id": "gilda",                     // optional story id, unique in the map (docs/EVENTS.md); placements for disjoint difficulties may share it (and a square)
       "goesFor": ["chests"],             // optional, computer sides only: chests / villages / doors / steal (docs/SRPG.md section 10)
       "behaviour": "hold",               // optional, computer sides only: how it moves (docs/AI.md): "advance" (default) / "hold" / "guard" / "patrol" / an object; the object may also carry
-                                         //   the scripted-style keys order, weights, caution, retreat, idleTurns, ignores, route, measure, heals, attacks, staffFirst, staffPick, inflictOnlyOn (docs/AI.md "Scripted-style computer players")
+                                         //   the scripted-style keys order, weights, caution, retreat, idleTurns, ignores, route, measure, heals, attacks, staffFirst, staffPick, inflictOnlyOn, lootBlockedBy (mode loot only) (docs/AI.md "Scripted-style computer players")
       "difficulty": ["hard"],            // optional, computer sides only: appears only on these difficulties (docs/DIFFICULTY.md)
       "difficultyShift": false,          // optional: the difficulty's enemy numbers never change this unit (a boss)
       "facing": "north",                 // optional, needs game.json "rules.facing": the direction it starts looking in (squares north / east / south / west; hexagons docs/SRPG.md "Facing"); default: toward the nearest foe

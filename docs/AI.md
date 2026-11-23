@@ -51,6 +51,7 @@ default above. Unknown keys, bad values and keys that do not belong to the mode 
 | `prefer` | any mode: `"weakest"`, `"nearest"`, `{ "unit": id }`, `{ "type": id }`, `{ "tag": text }` |
 | `attacks` | any mode: `false` = the unit never starts a fight (section "Never attacking"); `true` (default) |
 | `order`, `weights`, `caution`, `retreat`, `idleTurns`, `ignores`, `heals`, `staffFirst`, `staffPick`, `inflictOnlyOn` | any mode: the scripted-style options (section "Scripted-style computer players" below); all opt-in |
+| `lootBlockedBy` | mode `loot`: `"nothing"` (default) or `"units"` (section "Looting and escaping"); opt-in |
 
 ### The modes
 
@@ -116,6 +117,16 @@ count, closed doors it cannot open do); once nothing is, the unit **escapes for 
 appears later does not bring it back). Without `"exits"` it then keeps away from the enemy. Whether it attacks while it still loots is the
 `attacks` key: with `"attacks": false` it never fights; without it, an attack outscores opening (as for every marked unit), so it fights when
 it can and loots otherwise. Typical thief: `"goesFor": ["chests", "villages", "steal"], "behaviour": { "mode": "loot", "attacks": false }`.
+
+**`"lootBlockedBy": "units"`** (mode `loot` only; opt-in; owner decision, name and behaviour open to change). By default units in the way never count (above), so a thief
+walled off from every chest by enemy units keeps pressing toward its loot. With `"units"` a square an **enemy** unit (hostile to the looter) stands on counts as a wall
+for the question "is anything left it can walk to?", and an approach square an enemy stands on is not one. Friendly units never block. Closed doors it cannot open still
+block, as before. The question is asked at the start of each of the unit's side's turns and, for this option, **the answer is not kept**: a looter with every way blocked
+right now escapes (as above); on a later turn when a way is open again (a guard moved, died or was pushed) it stops escaping and loots again; a chest that appears
+later does too. Saves: nothing new beyond the saved `"escaping"` flag, which this option sets and clears each turn (the key is written in the block as `"lootBlockedBy": "units"`).
+The default (key missing or `"nothing"`) is the old, permanent escape, so games without the key play exactly as before. The walk is plain reachability (terrain and doors,
+movement type); height limits are not looked at. Loader: `"lootBlockedBy" must be "nothing" ... or "units"`, and `"lootBlockedBy" goes with mode "loot"`. Tests:
+`tests/test_ai_loot.cpp` (`ai_loot_blocked_by_units_*`).
 
 ### Never attacking
 
@@ -210,6 +221,7 @@ Game-wide settings are `rules.ai` in `game.json`; the per-unit keys are in the u
 | `staffFirst` | behaviour | whole number 0 to 100: the chance, before its usual choice, of using a staff (section 10) |
 | `staffPick` | behaviour | `"best"` (default) or `"lastPlaced"` (section 10) |
 | `inflictOnlyOn` | behaviour | `"anyone"` (default) or `"casters"` (section 10) |
+| `lootBlockedBy` | behaviour, `loot` | `"nothing"` (default) or `"units"` (section "Looting and escaping") |
 
 #### 1. Acting order (`turnOrder` and `order`)
 
