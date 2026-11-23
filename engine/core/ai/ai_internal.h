@@ -176,7 +176,7 @@ void updateLooters(Battle& b);
 bool escapesNow(const Unit& u);
 // The order of an escaping unit: leave by the exit it stands on, else walk (or step onto) the nearest exit, else keep away from the enemy.
 Order escapeOrder(Context& cx, const Unit& u, const std::vector<Cell>& stops);
-// ai_places.cpp: could the unit still open or visit something it goes for anywhere it can walk to (units in the way do not count)?
+// ai_places.cpp: could the unit still open or visit something it goes for anywhere it can walk to (units in the way do not count; with "lootBlockedBy": "units" hostile units do)?
 bool lootLeft(const Battle& b, const Unit& u);
 
 // ---- ai_order.cpp ----

@@ -76,7 +76,7 @@ bool readRoute(const Json& v, AiBehaviour& b, std::string& err) {
 }  // namespace
 
 bool scriptedKey(const std::string& key) {
-  static const char* const kKeys[] = {"order", "weights", "caution", "retreat", "idleTurns", "route", "ignores", "measure", "heals", "staffFirst", "staffPick", "inflictOnlyOn"};
+  static const char* const kKeys[] = {"order", "weights", "caution", "retreat", "idleTurns", "route", "ignores", "measure", "heals", "staffFirst", "staffPick", "inflictOnlyOn", "lootBlockedBy"};
   for (const char* k : kKeys)
     if (key == k) return true;
   return false;
@@ -84,7 +84,7 @@ bool scriptedKey(const std::string& key) {
 
 bool scriptedIsDefault(const AiBehaviour& b) {
   return b.order == 0 && b.weightSet < 0 && !b.cautionNone && !b.retreat.on && b.idleTurns == 0 && b.route.empty() && b.ignores.empty() && !b.areaMoveCost && !b.healsRetreating &&
-         b.staffFirst < 0 && !b.staffLastPlaced && !b.inflictCasters;
+         b.staffFirst < 0 && !b.staffLastPlaced && !b.inflictCasters && !b.lootBlockedByUnits;
 }
 
 bool readScripted(const Json& v, const Database& db, AiBehaviour& b, std::string& err) {
@@ -155,6 +155,13 @@ bool readScripted(const Json& v, const Database& db, AiBehaviour& b, std::string
       return no(err, "\"inflictOnlyOn\" must be \"anyone\" (the default) or \"casters\" (a staff whose condition stops staves is used only on a unit that carries a staff or a weapon that condition would stop)");
     b.inflictCasters = h == "casters";
   }
+  if (v.has("lootBlockedBy")) {
+    if (b.mode != AiMode::Loot) return no(err, "\"lootBlockedBy\" goes with mode \"loot\"");
+    const std::string h = v["lootBlockedBy"].asString();
+    if (!v["lootBlockedBy"].isString() || (h != "nothing" && h != "units"))
+      return no(err, "\"lootBlockedBy\" must be \"nothing\" (the default: only walls and closed doors block the way to loot) or \"units\" (hostile units standing in the way block it too; the unit escapes while every way is blocked and goes back to looting when one opens)");
+    b.lootBlockedByUnits = h == "units";
+  }
   return true;
 }
 
@@ -197,6 +204,7 @@ void writeScripted(const AiBehaviour& b, Json& o) {
   if (b.staffFirst >= 0) o.set("staffFirst", Json::makeNumber(b.staffFirst));
   if (b.staffLastPlaced) o.set("staffPick", Json::makeString("lastPlaced"));
   if (b.inflictCasters) o.set("inflictOnlyOn", Json::makeString("casters"));
+  if (b.lootBlockedByUnits) o.set("lootBlockedBy", Json::makeString("units"));
 }
 
 }  // namespace ote

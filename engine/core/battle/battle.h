@@ -817,6 +817,7 @@ class Battle {
   // Computer opponent (docs/AI.md; battle/ai_wake.cpp): wakes a guard (and its group) / every guard of a group.
   void wakeUnit(int unit);
   void startEscaping(int unit);  // docs/AI.md "Looting and escaping": a looter with nothing left escapes from now on, for good (exits.cpp)
+  void stopEscaping(int unit);    // "lootBlockedBy": "units": a looter that was escaping because every way to loot was blocked goes back to looting (exits.cpp)
   void wakeGroup(const std::string& group);
   void aiTurnStart();  // docs/AI.md "Scripted-style computer players" (battle/ai_state.cpp): idle counters, retreat state, patrol squares at the start of a turn
   bool unitMatches(const UnitFilter& filter, const Unit& u) const;

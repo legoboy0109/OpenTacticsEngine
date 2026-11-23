@@ -1,7 +1,7 @@
 // Computer opponent: looting and escaping (docs/AI.md "Looting and escaping").
 //
 //   updateLooters  at the start of every AI step: a unit in mode "loot" that has nothing left it could take anywhere it can walk to
-//                  (lootLeft, ai_places.cpp) starts escaping, for good (Unit::escaping, saved). Taking things is the ordinary goesFor
+//                  (lootLeft, ai_places.cpp) starts escaping, for good (Unit::escaping, saved; with "lootBlockedBy": "units" it is worked out again every turn). Taking things is the ordinary goesFor
 //                  play of ai_places.cpp / ai_abilities.cpp; the mode only adds this end, and that it never walks toward the enemy.
 //   escapeOrder    an escaping unit (mode "escape", or a looter that is done) never attacks: it leaves by the exit it stands on, else walks
 //                  to the nearest of the map's exits (and leaves at once when it can stop on one this turn), else, with no exit it can
@@ -15,9 +15,12 @@ namespace ai {
 
 void updateLooters(Battle& b) {
   for (const Unit& u : b.units) {
-    if (!u.alive || u.side != b.activeSide || u.done || u.behaviour.mode != AiMode::Loot || u.escaping) continue;
+    if (!u.alive || u.side != b.activeSide || u.done || u.behaviour.mode != AiMode::Loot) continue;
+    if (u.escaping && !u.behaviour.lootBlockedByUnits) continue;
     if (b.round < u.behaviour.fromTurn) continue;  // not started yet: it has not looked for anything
+    // "lootBlockedBy": "units" is worked out again every turn: a blockade that opens brings the looter back to its loot (the state is the saved flag).
     if (!lootLeft(b, u)) b.startEscaping(u.id);
+    else if (u.escaping) b.stopEscaping(u.id);
   }
 }
 

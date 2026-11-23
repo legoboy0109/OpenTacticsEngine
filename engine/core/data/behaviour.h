@@ -68,6 +68,7 @@ struct AiBehaviour {
   int staffFirst = -1;           // "staffFirst": 0..100, the chance (roll 0..99 <= n) that it uses a staff before its usual choice; -1 = never (docs/AI.md section 10)
   bool staffLastPlaced = false;  // "staffPick": "lastPlaced": its staves go to the unit placed last among their legal targets
   bool inflictCasters = false;   // "inflictOnlyOn": "casters": a staff whose condition stops staves goes only to a unit that carries something it would stop
+  bool lootBlockedByUnits = false;  // "lootBlockedBy": "units": a looter counts hostile units in the way as blocking, and re-checks every turn (Loot only)
   bool noAttack = false;         // "attacks": false: it never starts a fight (counterattacks are rules and still happen); any mode
 
   bool isDefault() const;
