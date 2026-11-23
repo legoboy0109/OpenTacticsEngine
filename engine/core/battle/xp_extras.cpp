@@ -38,12 +38,4 @@ void Battle::abilityExperience(const AbilityDef& d, int user, int target, std::v
   if (xp > 0) awardXp(user, std::min(xp, kMaxStaffXp), events, false);
 }
 
-void Battle::abilityInflict(const AbilityDef& d, int user, int target, std::vector<Event>& events) {
-  if (d.inflictCond < 0 || target < 0 || !units[(size_t)target].alive) return;
-  // The same test the staves and items use: a target that already has it for as long is left alone (immunity is
-  // reported by inflictCondition itself, as ConditionResisted).
-  if (inflictWhy(units[(size_t)target], d.inflictCond, d.inflictTurns) == 2) return;
-  inflictCondition(target, d.inflictCond, d.inflictTurns, user, events);
-}
-
 }  // namespace ote

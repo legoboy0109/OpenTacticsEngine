@@ -88,7 +88,7 @@ bool loadConditions(const std::string& path, Database& db, std::string& err) {
     where = "condition " + q(d.id);
     for (const ConditionDef& o : db.conditions)
       if (o.id == d.id) return c.fail(where, "duplicate id");
-    if (!onlyKeys(c, e, {"id", "name", "description", "tag", "turns", "until", "wearOff", "endsWhenStruck", "replaces", "blocks", "scale"}, where))
+    if (!onlyKeys(c, e, {"id", "name", "description", "tag", "turns", "until", "wearOff", "endsWhenStruck", "replaces", "blocks", "scale", "kind"}, where))
       return false;
     d.name = d.id;
     if (!c.str(e, "name", where, d.name) || !c.str(e, "description", where, d.description) || !c.str(e, "tag", where, d.tag)) return false;
@@ -120,6 +120,11 @@ bool loadConditions(const std::string& path, Database& db, std::string& err) {
     for (const std::string& r : d.replaceIds)
       if (r == d.id) return c.fail(where, "\"replaces\" lists the condition itself");
 
+    if (e.has("kind")) {  // docs/SRPG.md "Ability conditions": what "cure": "harmful" / "helpful" takes, and whom the computer gives it to
+      if (!e["kind"].isString() || (e["kind"].asString() != "harmful" && e["kind"].asString() != "helpful"))
+        return c.fail(where, "\"kind\" must be \"harmful\" (the default: a curse to cure) or \"helpful\" (a blessing)");
+      d.helpful = e["kind"].asString() == "helpful";
+    }
     if (e.has("scale")) {
       if (!e["scale"].isString() || e["scale"].asString() != "turnsLeft")
         return c.fail(where, "\"scale\" must be \"turnsLeft\" (the numbers of its always blocks count as many times as it has turns left)");
@@ -177,11 +182,28 @@ bool readInflictSpec(const LoadCtx& c, const Database& db, const Json& v, const 
   return true;
 }
 
+std::vector<int> conditionsOfKind(const Database& db, int kind) {
+  std::vector<int> out;
+  for (size_t i = 0; i < db.conditions.size(); ++i)
+    if (db.conditions[i].helpful == (kind == 2)) out.push_back((int)i);
+  return out;
+}
+
+int cureKindOf(const Json& v) {
+  if (!v.isString()) return 0;
+  return v.asString() == "harmful" ? 1 : v.asString() == "helpful" ? 2 : 0;
+}
+
 bool readCureList(const LoadCtx& c, const Database& db, const Json& v, const std::string& where, const std::string& at,
                   std::vector<int>& ids, bool& all) {
   const std::string head = at.empty() ? "\"cure\"" : at + ": \"cure\"";
   if (v.isString()) {
-    if (v.asString() != "all") return c.fail(where, head + " must be a list of condition ids or \"all\"");
+    if (const int kind = cureKindOf(v)) {  // every condition of that kind (docs/SRPG.md "Ability conditions")
+      ids = conditionsOfKind(db, kind);
+      if (db.conditions.empty()) return c.fail(where, head + ": " + q(v.asString()) + " needs conditions, but the game has none (data/conditions.json)");
+      return true;
+    }
+    if (v.asString() != "all") return c.fail(where, head + " must be a list of condition ids, \"all\", \"harmful\" or \"helpful\"");
     all = true;
     return true;
   }
@@ -262,6 +284,12 @@ bool resolveBlockConditions(const LoadCtx& c, const Database& db, const std::str
     SkillEffect& e = block.effects[i];
     if (e.kind != SkillEffect::Kind::Immune && e.kind != SkillEffect::Kind::Inflict && e.kind != SkillEffect::Kind::Cure) continue;
     e.conds.clear();
+    if (e.kind == SkillEffect::Kind::Cure && e.cureKind) {  // "cure": "harmful" / "helpful": every condition of that kind
+      if (db.conditions.empty())
+        return c.fail(where + ": effect " + std::to_string(i + 1), "\"cure\" needs conditions, but the game has none (data/conditions.json)");
+      e.conds = conditionsOfKind(db, e.cureKind);
+      continue;
+    }
     const char* key = e.kind == SkillEffect::Kind::Immune ? "immune" : e.kind == SkillEffect::Kind::Cure ? "cure" : "inflict";
     for (const std::string& id : e.names) {
       const int k = db.findCondition(id);

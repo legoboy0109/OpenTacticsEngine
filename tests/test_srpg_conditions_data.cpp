@@ -100,7 +100,7 @@ TEST(conditions_the_loader_refuses_conditions_named_wrongly_elsewhere) {
   CHECK(saysIn(fileError("c_n5", "data/weapons.json", "\"chance\": 100, \"turns\": 2", "\"chance\": 100, \"rounds\": 2"), "unknown key \"rounds\""));
   const std::string i = "data/items.json: item \"";
   CHECK(saysIn(fileError("c_n6", "data/items.json", "\"cure\": [\"poison\"] },\n  { \"id\": \"tonic\"", "\"cure\": [\"plague\"] },\n  { \"id\": \"tonic\""), i + "antidote\": \"cure\" names unknown condition \"plague\""));
-  CHECK(saysIn(fileError("c_n7", "data/items.json", "\"cure\": [\"poison\"] },\n  { \"id\": \"tonic\"", "\"cure\": \"everything\" },\n  { \"id\": \"tonic\""), "\"cure\" must be a list of condition ids or \"all\""));
+  CHECK(saysIn(fileError("c_n7", "data/items.json", "\"cure\": [\"poison\"] },\n  { \"id\": \"tonic\"", "\"cure\": \"everything\" },\n  { \"id\": \"tonic\""), "\"cure\" must be a list of condition ids, \"all\", \"harmful\" or \"helpful\""));
   CHECK(saysIn(fileError("c_n8", "data/items.json", "\"cure\": [\"poison\"] },\n  { \"id\": \"tonic\"", "\"cure\": [] },\n  { \"id\": \"tonic\""), "\"cure\" must be a list of condition ids"));
   CHECK(saysIn(fileError("c_n9", "data/items.json", "\"inflict\": { \"condition\": \"curse\", \"turns\": 2 }", "\"inflict\": { \"turns\": 2 }"), "\"inflict\" must be { \"condition\": \"poison\" }"));
   CHECK(saysIn(fileError("c_n10", "data/items.json", "{ \"id\": \"short_sword\", \"name\": \"Short Sword\", \"kind\": \"weapon\"", "{ \"id\": \"short_sword\", \"name\": \"Short Sword\", \"cure\": \"all\", \"kind\": \"weapon\""), "\"cure\" belongs to items of kind \"usable\""));

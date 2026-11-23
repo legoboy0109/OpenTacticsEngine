@@ -3,6 +3,7 @@
 // Messages read `data/skills.json: skill "x": block 2: condition 1: ...` (LoadCtx adds the file name).
 #include <algorithm>
 
+#include "core/data/loader_conditions.h"
 #include "core/data/loader_srpg.h"
 #include "core/data/loader_util.h"
 
@@ -562,10 +563,11 @@ bool readEffect(const LoadCtx& c, Database& db, const Json& e, const std::string
     if (out.names.empty()) return c.fail(where, "\"immune\" must name at least one condition");
     return true;
   }
-  if (spec->kind == K::Cure) {  // "all", or a list of condition ids
+  if (spec->kind == K::Cure) {  // "all", "harmful" / "helpful" (resolved with the conditions), or a list of condition ids
     if (v.isString() && v.asString() == "all") { out.cureAll = true; return true; }
+    if ((out.cureKind = cureKindOf(v)) != 0) return true;
     if (!readNameList(c, v, where, "\"cure\"", out.names) || out.names.empty())
-      return c.fail(where, "\"cure\" must be \"all\" or a list of condition ids");
+      return c.fail(where, "\"cure\" must be \"all\", \"harmful\", \"helpful\" or a list of condition ids");
     return true;
   }
   if (spec->kind == K::Inflict) {
