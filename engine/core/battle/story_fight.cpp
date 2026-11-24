@@ -87,7 +87,7 @@ void Battle::stagedStrike(const CombatSetup& setup, bool counter, const StoryFig
   if (e.flags & kKill) {  // the usual defeat: drops to the victor, last words, the story's "defeated" events
     std::vector<ItemStack> drops;
     dropsOf(units[(size_t)def], drops);  // docs/ITEMS.md "Drops"
-    killUnit(def, events, atk);
+    if (!killUnit(def, events, atk)) return;  // caught by an "autoRevive" condition: no defeat
     for (const ItemStack& s : drops) giveTo(atk, s, kDropped, events);
     defeatQuote(def, events);
     unitDefeated(def, atk, events);  // may run story events: nothing after it may hold a reference into `units`

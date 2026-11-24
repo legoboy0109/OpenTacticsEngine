@@ -120,10 +120,8 @@ void Battle::runTimedBlock(int owner, int foe, int skill, const SkillBlock& bloc
   events.insert(events.end(), fx.begin(), fx.end());
   // Defeated by the effect itself: a normal death (UnitDied, summons, rescue). The story and the win checks wait until the
   // blocks of the whole turn start have run (conditionsSettleDeaths), because they may add units or end the battle.
-  for (int id : deaths) {
-    killUnit(id, events);
-    condDeaths_.push_back(id);
-  }
+  for (int id : deaths)
+    if (killUnit(id, events)) condDeaths_.push_back(id);  // (false: an "autoRevive" condition caught the fall)
 }
 
 // After the unit used a staff (docs/SRPG.md "A staff used"): its "staffUse" blocks, in skill-list order, judged with the staff's group

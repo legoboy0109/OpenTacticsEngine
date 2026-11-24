@@ -11,7 +11,7 @@
 //              decides for itself what to draw from `seenSteps`.
 //   MoveBlocked: both units' teams and the teams that see either unit.
 //   Attack: both fighters' teams and the teams that see either fighter.
-//   UnitDied, UnitRemoved: the unit's team and the teams that saw it on its square (b).
+//   UnitDied, UnitRemoved: the unit's team and the teams that saw it on its square (b). UnitRevived: the same, for the square it lies on.
 //   UnitBuilt, UnitAdded, UnitFaced, UnitHealed, CaptureProgress: the unit's team and the teams that see the unit.
 //   ItemUsed: the teams that see the user or the target.
 //   UnitRelocated: the unit's team and the teams that see either square (b, c).
@@ -104,6 +104,8 @@ uint32_t Battle::eventSeenBy(const Event& e) const {
     case EventType::UnitDied:
     case EventType::UnitRemoved:
       return unitTeam(e.a) | cellSeenBy(e.b);
+    case EventType::UnitRevived:  // like a fall: the unit's team and the teams that see its square (docs/SRPG.md "Downed units and revive")
+      return unitTeam(e.a) | cellSeenBy(units[(size_t)e.a].cell);
     case EventType::UnitRelocated:
       return unitTeam(e.a) | cellSeenBy(e.b) | cellSeenBy(e.c);
     case EventType::UnitBuilt:

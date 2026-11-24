@@ -76,7 +76,8 @@ void Battle::reachFor(int unit, int viewTeam, Reach& out, bool limitByAp, bool i
       // Enemies block (unless the unit may pass through them, and then they are never a stop either: see below);
       // with fog only the ones the unit's team sees (an unseen one is planned around as if absent, and may stop
       // the move when it is carried out: fog_rules.cpp).
-      if (seen && occ != -1 && !unitVisibleTo(viewTeam, units[occ])) occ = -1;  // (no sight line to it: not part of the picture)
+      if (seen && occ != -1 && !occupantSeen(viewTeam, occ)) occ = -1;  // (no sight line to it: not part of the picture)
+      // (A downed unit never blocks the way, being no enemy that stands: docs/SRPG.md "Downed units and revive". It is never a stop either, below.)
       if (!pass && occ != -1 && isEnemy(u, units[occ]) && unitVisibleTo(team, units[occ])) continue;
       int total = node.first + step;
       if (total > budget) continue;
@@ -91,10 +92,10 @@ void Battle::reachFor(int unit, int viewTeam, Reach& out, bool limitByAp, bool i
   for (Cell c = 0; c < n; ++c) {
     if (out.cost[c] < 0) continue;
     // A square held by an enemy the team does not see looks free to it.
-    if (seen && occupant[c] != -1 && !unitVisibleTo(viewTeam, units[occupant[c]])) {
+    if (seen && occupant[c] != -1 && !occupantSeen(viewTeam, occupant[c])) {
       out.stop[c] = 1;
       out.stops.push_back(c);
-    } else if (occupant[c] == -1 || occupant[c] == unit || (isEnemy(u, units[occupant[c]]) && !unitVisibleTo(team, units[occupant[c]]))) {
+    } else if (occupant[c] == -1 || occupant[c] == unit || (isEnemy(u, units[occupant[c]]) && !occupantSeen(team, occupant[c]))) {
       out.stop[c] = 1;
       out.stops.push_back(c);
     }

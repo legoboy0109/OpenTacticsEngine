@@ -293,6 +293,8 @@ void lightsTurnStart();
 double staffEval(int expr, const Unit& user, const Unit* target, const StaffDef& d, Cell from, double def) const;
 // What one effect would restore to `t` before the unit's maximum caps it (0 = nothing).
 int staffHealAmount(const Unit& user, const StaffDef& d, const StaffEffect& fx, const Unit& t, Cell from) const;
+// Is `t` a unit this staff can act on at all: downed for a revive staff (docs/SRPG.md "Downed units and revive"), on the board for any other.
+bool staffActsOn(const StaffDef& d, const Unit& t) const;
 // Adds weapon experience in `group` (never above the top rank's); the rank before and after.
 void addRankXp(Unit& u, int group, int amount, int& before, int& after) const;
 

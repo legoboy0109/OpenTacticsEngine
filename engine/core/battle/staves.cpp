@@ -92,6 +92,11 @@ int Battle::staffRangeBonus(const Unit& u, const std::string& group) const {
   return sum;
 }
 
+bool Battle::staffActsOn(const StaffDef& d, const Unit& t) const {
+  // A revive staff acts on downed units only; every other staff on units standing on the board (docs/SRPG.md "Downed units and revive").
+  return d.has(StaffEffect::Kind::Revive) ? revivable(t) : t.alive && t.cell != kNoCell;
+}
+
 int Battle::staffHealAmount(const Unit& user, const StaffDef& d, const StaffEffect& fx, const Unit& t, Cell from) const {
   switch (fx.amount) {
     case StaffEffect::Amount::Fixed: return fx.value;
@@ -116,15 +121,15 @@ void Battle::staffAffected(const Unit& user, int item, int slot, int center, Cel
   const Cell centerCell = center >= 0 && center < (int)units.size() ? cellOf(units[(size_t)center]) : kNoCell;
 
   for (const Unit& t : units) {  // ascending id
-    if (!t.alive || t.cell == kNoCell) continue;
+    if (!staffActsOn(d, t)) continue;
     const bool mine = teamOf(t) == team;
     bool kind = false;
     switch (d.target) {
       case StaffTarget::Ally: kind = mine && t.id != user.id; break;
       case StaffTarget::Self: kind = t.id == user.id; break;
       case StaffTarget::Team: kind = mine; break;
-      case StaffTarget::Foe: kind = !mine && unitVisibleTo(team, t); break;
-      case StaffTarget::Any: kind = t.id != user.id && unitVisibleTo(team, t); break;
+      case StaffTarget::Foe: kind = !mine && occupantSeen(team, t.id); break;
+      case StaffTarget::Any: kind = t.id != user.id && occupantSeen(team, t.id); break;
     }
     if (!kind) continue;
     switch (d.area) {
@@ -177,11 +182,11 @@ void Battle::staffTargets(int unit, int slot, Cell from, std::vector<int>& out) 
   staffRange(u, item, minR, maxR);
   const int team = teamOf(u);
   for (const Unit& t : units) {
-    if (!t.alive || t.cell == kNoCell) continue;
+    if (!staffActsOn(d, t)) continue;
     const bool mine = teamOf(t) == team;
     if ((d.target == StaffTarget::Ally && (!mine || t.id == unit)) || (d.target == StaffTarget::Team && !mine) ||
-        (d.target == StaffTarget::Foe && (mine || !unitVisibleTo(team, t))) ||
-        (d.target == StaffTarget::Any && (t.id == unit || !unitVisibleTo(team, t))))
+        (d.target == StaffTarget::Foe && (mine || !occupantSeen(team, t.id))) ||
+        (d.target == StaffTarget::Any && (t.id == unit || !occupantSeen(team, t.id))))
       continue;
     const int dist = grid.distance(from, t.id == unit ? from : t.cell);
     if (dist < minR || dist > maxR) continue;
@@ -281,6 +286,11 @@ bool Battle::staffForecast(int unit, int slot, int target, Cell from, StaffForec
     h.hpBefore = t.hp;
     h.hpAfter = t.hp;
     for (const StaffEffect& fx : d.effects) {
+      if (fx.kind == StaffEffect::Kind::Revive) {  // stands up with at least 1, at most its maximum
+        h.nominal = staffHealAmount(u, d, fx, t, from);
+        h.hpAfter = std::max(1, std::min(maxHp(t), h.nominal));
+        h.revives = true;
+      }
       if (fx.kind != StaffEffect::Kind::Heal) continue;
       const int give = staffHealAmount(u, d, fx, t, from);
       h.nominal += give;

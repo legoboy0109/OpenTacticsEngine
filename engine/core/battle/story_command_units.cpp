@@ -123,6 +123,11 @@ void Battle::cmdRemoveUnit(const Command& c, std::vector<Event>& events) {
       units[(size_t)i].conditions.clear();
       continue;
     }
+    if (units[(size_t)i].downed && unitMatches(c.filter, units[(size_t)i])) {  // a downed unit's body (docs/SRPG.md "Downed units and revive")
+      if (c.hide) OTE_INFO("story: removeUnit hide: '%s' is downed; it cannot be hidden", units[(size_t)i].storyId.c_str());
+      else removeDownedBody(i, events);
+      continue;
+    }
     if (!exists(units[(size_t)i]) || !unitMatches(c.filter, units[(size_t)i])) continue;  // R1: a carried unit matches
     if (c.hide) {  // docs/EVENTS.md "Taking a unit off the map and bringing it back"
       if (units[(size_t)i].carriedBy >= 0) OTE_INFO("story: removeUnit hide: '%s' is carried; it cannot be hidden", units[(size_t)i].storyId.c_str());

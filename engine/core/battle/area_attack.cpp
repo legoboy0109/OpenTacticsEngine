@@ -92,7 +92,7 @@ void Battle::applyAreaAttack(const Action& action, std::vector<Event>& events) {
   for (const PendingKill& k : kills) {
     if (!units[(size_t)k.unit].alive) continue;
     if (k.wielder) {
-      killUnit(k.unit, events);
+      if (!killUnit(k.unit, events)) continue;  // caught by an "autoRevive" condition
       defeatQuote(k.unit, events);
       unitDefeated(k.unit, -1, events);
     } else {

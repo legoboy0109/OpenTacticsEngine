@@ -158,6 +158,10 @@ enum class EventType {
   // MapShown and its MapReturned belong to the shown map (their units and squares are those of Battle::shownMaps[a].end, not of this battle).
   MapShown,         // a=index into Battle::shownMaps, b=the map (index into db->maps), c=the square the camera starts on (-1 = the middle)
   MapReturned,      // a=the same index: back to the battle's own map
+  // Downed units (docs/SRPG.md "Downed units and revive"); only in a game with rules.downed. After MapReturned so the numbers above stay.
+  // a=unit, b=its HP now, c=the unit that revived it (-1 = none: an "autoRevive" condition, flags kAuto), d=the ability / item it used (-1 = none),
+  // flags kAuto | kByItem | kByStaff (d is then an index into db->items).
+  UnitRevived,
 };
 
 enum : int {
@@ -173,11 +177,18 @@ enum : int {
   kJobLevelUp = 131072,    // JpGained: the job level rose (docs/JOBS.md)
   kJobShared = 262144,     // JpGained: a share of an ally's JP (docs/JOBS.md "Sharing JP with allies")
   kMastered = 524288,      // PointsGained: the entry is mastered now (docs/JOBS.md "Learning from equipment")
-  kMissed = 1048576        // ConditionResisted: not immune, an ability's "chance" roll failed (d = the chance; docs/SRPG.md "Ability conditions")
+  kMissed = 1048576,       // ConditionResisted: not immune, an ability's "chance" roll failed (d = the chance; docs/SRPG.md "Ability conditions")
+  // docs/SRPG.md "Downed units and revive": UnitDied with kDowned = the unit stays on its square, downed; UnitRemoved with kDowned = a downed
+  // unit's body left the board (gone for good). UnitRevived: kAuto = by its own "autoRevive" condition, kByItem / kByStaff = d names an item.
+  kDowned = 2097152,
+  kAuto = 4194304,
+  kByItem = 8388608,
+  kByStaff = 16777216
 };
 // How a door or chest was opened (the `c` of DoorOpened / ChestOpened).
 enum : int { kOpenKey = 0, kOpenTrait = 1, kOpenBreak = 2, kOpenStory = 3, kOpenStaff = 4, kOpenFree = 5 /* it was not locked */ };
-enum : int { kConditionRanOut = 0, kConditionWoreOff = 1, kConditionCured = 2, kConditionReplaced = 3, kConditionStruck = 4 };
+// kConditionRevived: an "autoRevive" condition was used up standing its unit up (docs/SRPG.md "Downed units and revive").
+enum : int { kConditionRanOut = 0, kConditionWoreOff = 1, kConditionCured = 2, kConditionReplaced = 3, kConditionStruck = 4, kConditionRevived = 5 };
 enum : int { kTickActsAlone = 1, kTickCannotAct = 2 };
 // Why a charged action did not go off (ChargeCancelled::d).
 enum : int { kChargeDefeated = 0, kChargeInterrupted = 1, kChargeByCaster = 2, kChargeFizzled = 3, kChargeGone = 4 };
@@ -278,6 +289,11 @@ struct Unit {
   std::vector<MasteryPoints> mastery;
   // Unit resources (docs/SRPG.md "Unit resources"): what it has of each, per Database::unitResources index; empty in a game without them.
   std::vector<int> pools;
+  // Downed (docs/SRPG.md "Downed units and revive"; only with rules.downed): alive == false and hp 0 like a defeated unit, but it KEEPS its square
+  // (and holds it in Battle::occupant) until a revive stands it up or its body is removed. downedTurns: the starts of its side's turn since it
+  // went down (for rules.downed.removeAfter). Both saved only when downed.
+  bool downed = false;
+  int downedTurns = 0;
 };
 
 struct CellState {
@@ -949,6 +965,7 @@ class Battle {
 #include "core/battle/ability_conditions_api.h"
 #include "core/battle/ability_area_api.h"
 #include "core/battle/commander_api.h"
+#include "core/battle/downed_api.h"
 
  private:
   // combat.cpp
@@ -956,8 +973,10 @@ class Battle {
   int counterWeapon(const Unit& def, Cell defCell, const Unit& atk, Cell atkCell) const;
   bool weaponInRange(int weapon, int dist) const;
   void applyAttack(const Action& action, std::vector<Event>& events);
-  // `killer` = the unit that struck it down (-1 = nobody): handed to srpgUnitGone.
-  void killUnit(int unit, std::vector<Event>& events, int killer = -1);
+  // `killer` = the unit that struck it down (-1 = nobody): handed to srpgUnitGone. With rules.downed a unit standing on its square is downed
+  // there instead of leaving (downed.cpp), unless `mayDown` is false (its side was defeated). Returns false only when the unit did NOT fall:
+  // an "autoRevive" condition caught it (it stands with new HP); the caller then skips drops, last words and the "defeated" events.
+  bool killUnit(int unit, std::vector<Event>& events, int killer = -1, bool mayDown = true);
   // After a unit fell (killUnit already ran): story events waiting for it. killer -1 = nobody.
   void unitDefeated(int unit, int killer, std::vector<Event>& events);
   // turn.cpp
@@ -1087,6 +1106,7 @@ class Battle {
 #include "core/battle/ability_area_internal.h"
 #include "core/battle/commander_internal.h"
 #include "core/battle/exits_internal.h"
+#include "core/battle/downed_internal.h"
 
   StoryRun storyRun_;  // transient: empty between actions
   // story_show_map.cpp: the map a running event shows (null = the battle's own), and whether this Battle is such a map.

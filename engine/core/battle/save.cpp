@@ -6,6 +6,7 @@
 // in a copy of the battle and only assigned when everything checked out.
 #include "core/battle/save.h"
 #include "core/battle/save_difficulty.h"
+#include "core/battle/save_downed.h"
 #include "core/battle/save_behaviour.h"
 
 #include "core/battle/save_fog.h"
@@ -94,10 +95,11 @@ bool readUnit(Reader& rd, const Battle& b, const Json& j, int index, Unit& u) {
   if (!rd.boolean(j, "alive", where, u.alive)) return false;
   if (!rd.integer(j, "cell", where, -1, b.grid.cellCount() - 1, u.cell)) return false;
   if (u.alive && u.cell == kNoCell) return rd.fail(where + ".cell", "a living unit has no cell");
-  if (!u.alive && u.cell != kNoCell) return rd.fail(where + ".cell", "a dead unit still has a cell");
+  if (!savejson::readUnitDowned(rd, b, j, where, u)) return false;  // docs/SRPG.md "Downed units and revive": a downed unit keeps its cell
+  if (!u.alive && !u.downed && u.cell != kNoCell) return rd.fail(where + ".cell", "a dead unit still has a cell");
   if (j.has("hidden")) {  // docs/EVENTS.md: a hidden unit is off the map, alive in the story
     if (!rd.boolean(j, "hidden", where, u.hidden)) return false;
-    if (u.hidden && u.alive) return rd.fail(where + ".hidden", "a unit on the map is not hidden");
+    if (u.hidden && (u.alive || u.downed)) return rd.fail(where + ".hidden", "a unit on the map is not hidden");
   }
   if (!j["name"].isString()) return rd.fail(where + ".name", "missing or not text");
   u.name = j["name"].asString();
@@ -126,6 +128,7 @@ bool readUnit(Reader& rd, const Battle& b, const Json& j, int index, Unit& u) {
   if (!rd.integer(j, "hp", where, 0, maxHp > 0 ? maxHp : 0, u.hp)) return false;
   if (u.alive && u.hp < 1) return rd.fail(where + ".hp", "a living unit has no hit points");
   if (u.hidden && u.hp < 1) return rd.fail(where + ".hp", "a hidden unit keeps its hit points");
+  if (u.downed && u.hp != 0) return rd.fail(where + ".hp", "a downed unit has no hit points");
   return rd.boolean(j, "moved", where, u.moved) && rd.boolean(j, "done", where, u.done) &&
          rd.boolean(j, "leader", where, u.leader);
 }
@@ -205,6 +208,7 @@ void saveBattleState(const Battle& b, Json& out) {
     j.set("done", boolean(u.done));
     j.set("alive", boolean(u.alive));
     if (u.hidden) j.set("hidden", boolean(true));  // docs/SAVES.md: only a hidden unit has the key
+    savejson::writeUnitDowned(u, j);  // docs/SRPG.md "Downed units and revive": only a downed unit has the keys
     j.set("leader", boolean(u.leader));
     if (!u.items.empty()) j.set("items", itemsJson(u.items));
     savejson::writeUnitSupply(*b.db, u, j);
@@ -280,7 +284,7 @@ bool restoreBattleState(Battle& battle, const Json& saved, std::string& err) {
       if (!ids.insert(u.storyId).second)
         return rd.fail("units[" + std::to_string(i) + "].id", "\"" + u.storyId + "\" belongs to another unit too");
     }
-    if (u.alive) {
+    if (u.alive || u.downed) {  // a downed unit still holds its square
       if (b.occupant[(size_t)u.cell] != -1)
         return rd.fail("units[" + std::to_string(i) + "].cell",
                        "unit " + std::to_string(b.occupant[(size_t)u.cell]) + " is already on cell " + std::to_string(u.cell));

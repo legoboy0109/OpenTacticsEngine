@@ -207,6 +207,11 @@ void Battle::applyStaff(const Action& action, std::vector<Event>& events) {
         continue;
       }
     }
+    if (const StaffEffect* fx = d.find(StaffEffect::Kind::Revive)) {  // its only effect (docs/SRPG.md "Downed units and revive")
+      reviveUnit(id, staffHealAmount(units[(size_t)uid], d, *fx, t, kNoCell), uid, item, kByStaff, events);
+      moves = true;  // (not missed: the user's "missed every unit" experience does not apply)
+      continue;
+    }
     int total = 0;
     for (const StaffEffect& fx : d.effects) {
       if (fx.kind != StaffEffect::Kind::Heal) continue;

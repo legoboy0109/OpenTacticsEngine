@@ -136,6 +136,11 @@ void Battle::useTargets(int unit, int slot, std::vector<int>& targets) const {
     return !fits.empty();
   };
   if (conditionForbidsKind(u, ItemKind::Usable) >= 0) return;  // e.g. a condition that stops items (docs/SRPG.md section 9)
+  if (d.revive.on()) {  // a downed neighbour of its team, and nobody else (docs/SRPG.md "Downed units and revive"; the loader made it "ally")
+    for (const Unit& t : units)
+      if (t.id != unit && revivable(t) && teamOf(t) == teamOf(u) && grid.distance(t.cell, u.cell) == 1) targets.push_back(t.id);
+    return;
+  }
   if (!d.targetAlly) {
     if (helps(u)) targets.push_back(unit);
     return;
@@ -278,6 +283,13 @@ void Battle::applyItemAction(const Action& a, std::vector<Event>& events) {
       const ItemDef d = itemOf(u.items[(size_t)a.slot]);  // a copy: the stack may go away below
       Unit& t = units[(size_t)a.target];
       events.push_back(event(EventType::ItemUsed, a.unit, u.items[(size_t)a.slot].item, a.target));
+      if (d.revive.on()) {  // only that (docs/SRPG.md "Downed units and revive")
+        const int item = u.items[(size_t)a.slot].item;
+        reviveUnit(a.target, reviveHp(t, d.revive, a.unit), a.unit, item, kByItem, events);
+        spendUse(a.unit, a.slot, events);
+        endOrder(a.unit);
+        break;
+      }
       if (!d.raise.empty()) {
         Event e = event(EventType::StatsRaised, a.target, -1);
         int before = maxHp(t);
