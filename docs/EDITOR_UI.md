@@ -1641,3 +1641,21 @@ Wording is placeholder. Model checks mirror the loader (docs/EVENTS.md "Showing 
 - **Server / API**: nothing new (the keys pass through); `tests/editor_api_ability_area_checks.py`. **Native editor**: schema-driven (`editor/schema/abilities.json`: `area`, a range
   from 0, the "heal and cure" effect, `inflict` one object or a list); conformance contexts `ability-area*`, `ability-heal-cure` in `editor/native/tests/conformance_data.cpp`.
 - **Tests**: unit `tests/unit/abilityAreas.test.ts`.
+
+## Downed units and revive (docs/SRPG.md "Downed units and revive"; placeholder wording)
+
+- **Rules screen**: a **Downed units** card (`screens/rules/DownedRulesCard.tsx`, `model/downed.ts`): **Units are downed first** writes `rules.downed` (`{}` with the defaults; off
+  removes the block), **A unit still downed when the battle ends** (Comes back for the next battle = `"return"`, left out / Counts as fallen = `"fallen"`), **Turns it lies there before
+  it is gone for good** (0 to 99; 0 = never, left out). The card lists the rule's own problems.
+- **Abilities**: the effect **Revive a downed unit** (offered only when the rule is on or the ability already has it) with the shared amount editor (`screens/downed/ReviveAmount.tsx`:
+  a number of HP, all its HP, a share of its maximum, a formula); target only ally or unit; an area is allowed. Sentence: "revives a downed ally within reach with 50% of its HP".
+- **Usable items**: **Revives a downed unit** (with the amount editor, no formula); turning it on removes heal, raise, cure, inflict, promotes, opens and light and sets the target to
+  ally; off puts back a heal of 10. **Staves**: **Revives a downed unit instead** makes revive the only effect (a foe or self target goes back to the default); off goes back to a heal.
+  **Conditions**: **Stands the unit up when it would be downed** (`autoRevive`, no formula); with it the condition may have no rules (blocks). These toggles appear only when the rule
+  is on or the thing already has the key.
+- **Checks** (`model/downedChecks.ts`): every loader refusal in plain words (the rule's keys, revive without the rule, the targets, revive with inflict or a charge, revive with another
+  effect, item and staff "only effect", the amount forms).
+- **Server / API**: nothing new (the keys pass through); `tests/editor_api_downed_checks.py`. **Native editor**: schema-driven (`rules.downed`, the ability effect `revive`, item `revive`,
+  staff effect `revive`, condition `autoRevive`); conformance contexts `downed-rules`, `item-revive`, `item-staff-revive`, `ability-revive`, `condition-auto-revive` in
+  `editor/native/tests/conformance_data.cpp`.
+- **Tests**: unit `tests/unit/downed.test.ts`.

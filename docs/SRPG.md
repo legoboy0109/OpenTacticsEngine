@@ -2881,7 +2881,7 @@ conditions" below); **possible** = already expressible, with how; **not built** 
 | Heal and cure in one ability (first-aid style) | **built** | `"effect": { "heal": 10, "cure": ["poison"] }`: heal first, then cure; usable when either part would act (section 11 "Areas and several effects for abilities") |
 | Two conditions in one ability (Protect + Shell) | **built** | `"inflict": [ { "condition": "protect" }, { "condition": "shell" } ]`: each entry with its own turns and chance, rolled in list order |
 | Status / heal / cure abilities with an area | **built** | `"area": { "shape": "radius", "radius": 1 }` on a heal, cure or inflict-only ability: every unit the `target` accepts in the area, in unit-id order; range may start at 0 (section 11 "Areas and several effects for abilities"). Harmful status spells may also stay strike abilities with a weapon area |
-| Revive a defeated unit | not built | a defeated unit leaves the board at once; there is no "down but on the map" state. Needs a design (a downed state: occupancy, win checks, saves, AI, a `revive` effect) |
+| Revive a defeated unit | **built** | `rules.downed`: a unit at 0 HP lies downed on its square; `"effect": { "revive": ... }` (abilities, areas too), item and staff `revive`, condition `autoRevive` (Reraise); `removeAfter` turns (section 11 "Downed units and revive") |
 | Drain (damage that heals the user) | possible | the strike weapon's `strike` block `{ "drain": 100 }` |
 | Protect / shell (less damage from physical / magic) | possible | a condition with a `combat` block `"if": [ { "weaponKind": "physical", "who": "foe" } ], "do": [ { "damageTakenPercent": 66 } ]` (the weapon's `damageKind`) |
 | Haste / slow | possible | `"stats": { "spd": 3 }` in an `always` block: the speed turn order reads the stat as the rules see it (a flat change, not a percent) |
@@ -3445,6 +3445,92 @@ full-HP unit is left out of a Cura); order = unit id, then heal, cure, condition
 `Cura: 3 units (...)`, `(area: radius 1)`, `a square (allies in the area)`, `Heals 10 HP and cures ...`, `Inflicts A and B`, `that unit needs neither healing nor a
 cure`, `that unit already has them`, `nobody there would be affected`.
 
+### Downed units and revive
+
+An optional rule for games whose fallen units lie on the field until someone raises them (a port of a game with Phoenix Down, Raise and Reraise).
+Off by default: a game without `rules.downed` loads, plays, rolls, saves and hashes exactly as before.
+
+```jsonc
+// game.json
+"rules": { "downed": { "afterBattle": "return", "removeAfter": 0 } }      // {} = on, with these defaults
+// data/abilities.json
+{ "id": "raise", "name": "Raise", "target": "ally", "range": [1, 4], "effect": { "revive": { "percent": 50 } } },
+{ "id": "arise", "name": "Arise", "target": "unit", "range": [0, 3], "effect": { "revive": "full" }, "area": { "shape": "radius", "radius": 1 } },
+// data/items.json
+{ "id": "phoenix_down", "name": "Phoenix Down", "kind": "usable", "target": "ally", "revive": 1 },
+{ "id": "life_staff", "name": "Life Staff", "kind": "staff", "group": "staff", "target": "ally", "effects": [ { "revive": "w.power + a.mag" } ] },
+// data/conditions.json
+{ "id": "reraise", "name": "Reraise", "kind": "helpful", "until": "cured", "autoRevive": { "percent": 10 } }
+```
+
+**The rule (`rules.downed`).** A unit brought to 0 HP is **downed** where it stands instead of leaving the board. Keys: `afterBattle` (`"return"`, the default,
+or `"fallen"`) and `removeAfter` (0 to 99, default 0 = never). A downed unit:
+
+- **Counts as defeated** for every rule that asks whether a unit is alive: it has no turns, cannot be attacked, does not counter, gives no zone of control,
+  aura or support, is never a leader that stands, and story conditions that test `alive` / `dead` / `defeated` see it as defeated. **A side whose units are
+  all downed is defeated** (`noUnits`), and a downed leader or boss is a defeated leader or boss (`leaderDead`, `defeatLeader`, `bossDefeated`).
+- **Keeps its square.** Nobody can stop on it; any unit (friend or foe) may walk past it. Its body is always known, fog or not (it never blocks a walk as a
+  hidden unit would). Squares chosen by warps, swaps and areas treat it as taken.
+- **Loses its conditions** when it falls (they end silently: no `ConditionEnded`), still lets go of a captured structure, puts down a unit it carried, ends a
+  charge it was building, and sends its summons away, exactly as a defeat does.
+- **Its fall is a defeat** for everything else: the `UnitDied` event (with the new flag `kDowned`), item drops, its last words, the story's `defeated`
+  events, the killer's experience for a defeat, job points and merit.
+- **Is targeted only by a revive.** Every other ability, staff, item and attack refuses it (`that unit is downed`). Rescue and pair up do not carry it.
+- **`removeAfter`**: at the start of each of its side's turns (in a speed game, once per round) a downed unit counts a turn; after that many it is gone for good
+  (`UnitRemoved` with `kDowned`; not a second defeat). 0 = it lies there until the battle ends.
+- **When its side is defeated** every downed unit of that side is removed (`UnitRemoved` with `kDowned`); there is nobody left to revive them.
+
+**Revive.** Stands a downed unit up with an amount of HP: at least 1, at most its maximum. It is refused on a unit that is not downed (`that unit is not
+downed`), and a revived unit does not get back the turn it lost (revived during its own side's turn it has finished that turn; in a speed game its charge
+starts over). Event `UnitRevived` (a = unit, b = its HP, c = who revived it or -1, d = the ability / item / condition, flags `kByItem`, `kByStaff` or `kAuto`).
+
+- **Ability** `"effect": { "revive": <amount> }`: a whole number 1 to 999, `"full"`, `{ "percent": 1 to 100 }` (of the maximum) or a formula (a = the user,
+  b = the downed unit, read at 0 HP). `target` `"ally"` (downed units of the user's team) or `"unit"` (any downed unit). It is the only effect; it takes no
+  `inflict` and no `chargeSpeed`. With an `area` it acts on every downed unit the target accepts in the area (unit-id order) and on nobody else; a square
+  is legal when at least one is there.
+- **Usable item** `"revive": <amount>` (no formula), `"target": "ally"`: used on a downed unit next to the user; it is the item's only effect.
+- **Staff effect** `{ "revive": <amount> }` (the forms of a staff's `heal`, formula included): the staff's only effect, target `ally`, `team` or `any`.
+- **Condition** `"autoRevive": <amount>` (no formula): when the unit would be downed it stands up at once with that HP instead and the condition ends
+  (`ConditionEnded` with the new reason 5, "revived"). It never lies down: no `UnitDied`, no drops, no defeat events, its other conditions stay, the attacker
+  gets the experience of a hit. Such a condition may have no `blocks`.
+
+**After the battle (campaign).** `afterBattle: "return"`: a unit still downed when the battle ends goes back to the roster as a survivor. `"fallen"`: it
+counts as fallen, and the campaign's own `fallen` rule (gone for good, or back) decides. A body that was removed (`removeAfter`, its side defeated) is an
+ordinary fallen unit either way.
+
+**Player.** A downed unit's fall stops half way: it stays on its square drawn see-through, with the marker `Down` where the condition marker goes; in the 3D
+views a unit model lies in the last frame of its fall clip. The side panel shows `HP  Downed`. A revive floats `Revived +N` (an auto-revive: `<condition>! +N`)
+and fades the unit back in; it sounds like a heal. A removed body fades out. Ability, item and staff lines read `Revives a downed unit with 50% of its HP` /
+`with 10 HP` / `with all its HP`; the area pick hint lists `Mia revived +12 HP`.
+
+**Computer opponent**: docs/AI.md "Reviving downed units".
+
+**Loader refusals.** `rules.downed`: `"afterBattle" must be "return" ... or "fallen" ...`; `"removeAfter" must be a whole number from 0 to 99 ...`; an unknown key.
+Abilities, items, staves and conditions: `"revive" needs "rules": { "downed": {} } in game.json ...` (also `"autoRevive"`); `"revive" must be a whole number of HP
+from 1 to 999, "full", { "percent": 1 to 100 } or a formula` (a bare word is named: `"most" is not one`); `"revive" needs "target" "ally" (downed units of the
+user's team) or "unit" (any downed unit)`; `"revive" cannot go with "inflict" ...`; `"revive" cannot be charged ("chargeSpeed") ...`; `"effect" needs exactly
+one of ...`; items: `"revive" belongs to items of kind "usable" ...`, `"revive" cannot go with "heal"` (also raise, cure, inflict, promotes, opens, light),
+`"revive" needs "target": "ally" ...`; staves: `"revive" needs "target" "ally", "team" or "any" ...` and the usual "only effect" message; the area message now
+reads `"area" goes with "heal", "cure" (or both), "revive" or an ability with only "inflict"; ...`.
+
+**Saves and hash.** A downed unit is saved with `"downed": true` (and `"downedTurns"` when above 0), its cell and 0 HP; nothing new is written for a game
+without downed units. A restore refuses `downed` in a game without the rule, on a living unit, without a cell, or with HP. `game.json` and the data files are
+hashed whole, so only a game that writes the keys changes its data hash. **Editor**: docs/EDITOR_UI.md "Downed units and revive".
+
+Code: `data/loader_downed.cpp`, `battle/downed.cpp` (revive, auto-revive, removal), `battle/combat.cpp` (`killUnit`), `battle/save_downed.cpp`,
+`ai/ai_revive.cpp`, player `battle/battle_view_downed.cpp`. Tests: `tests/test_downed.cpp` (the rule, occupancy, targets, win checks, removal, refusals),
+`tests/test_downed_revive.cpp` (abilities, areas, items, auto-revive, saves, determinism, the computer), `tests/test_downed_staves.cpp`,
+`tests/downed_player_test.py` (the fall, the body on its square, Raise), `tests/editor_api_downed_checks.py`.
+
+**Not built:** carrying a downed unit (rescue), undead units that a revive hurts, a revive that also cures, an XP reward for reviving beyond the ability's
+own `xp`.
+
+**Owner decisions (placeholders):** the key names `rules.downed`, `afterBattle` (`return` / `fallen`, default `return`), `removeAfter`, `effect.revive`, item
+`revive`, staff `revive`, condition `autoRevive`; a body is always seen and may be walked past by anyone; conditions end when a unit falls; drops, last words
+and defeat events happen at the fall; a unit revived in its own turn has finished it and a speed game's charge starts over; an auto-revive keeps the other
+conditions and is no defeat (the attacker gets hit experience); revive takes no `inflict` and no charge; a defeated side's bodies are removed; the player's
+words `Down`, `Downed`, `Revived +N`, `Revives a downed unit with ...`, `that unit is downed`, `that unit is not downed`, `nobody in reach is downed`.
+
 ### Unit resources (MP and the like)
 
 A pool each unit has for itself (unlike `resources`, which belong to a side): what abilities spend.
@@ -3555,6 +3641,10 @@ existing code, so events are stamped with the sight of the moment.
 
 A facing game adds one entry before `Choice`: `UnitFaced` (a = the unit, b = the direction it now looks in, c = the one it looked in before), after the `UnitMoved` of a move, before the first
 `Attack` of a fight and with a `Wait` that chose another direction (docs/SRPG.md "Facing"); seen by the unit's team and the teams that see the unit.
+
+A downed game (section 11 "Downed units and revive") adds one entry at the very end, after `MapReturned` (so no existing number moves): `UnitRevived`
+(a = the unit, b = its HP, c = who revived it or -1, d = the ability / item / condition, flags `kByItem` = 8388608, `kByStaff` = 16777216 or `kAuto` =
+4194304), seen by the unit's team and the teams that see its square. `UnitDied` and `UnitRemoved` of a downed unit carry `kDowned` = 2097152.
 
 ## Save format summary and versioning
 
