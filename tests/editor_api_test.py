@@ -64,6 +64,7 @@ from editor_api_factions_checks import run_factions_checks
 from editor_api_commanders_checks import run_commanders_checks
 from editor_api_area_checks import run_area_checks
 from editor_api_ability_area_checks import run_ability_area_checks
+from editor_api_downed_checks import run_downed_checks
 from editor_api_actionpoints_checks import run_actionpoints_checks
 from editor_api_speed_checks import run_speed_checks
 from editor_api_height_checks import run_height_checks
@@ -235,6 +236,7 @@ def main():
         run_commanders_checks(api, tmp, games, templates, check, get_project, put_project)
         run_area_checks(api, tmp, games, templates, check, get_project, put_project)
         run_ability_area_checks(api, tmp, games, templates, check, get_project, put_project)
+        run_downed_checks(api, tmp, games, templates, check, get_project, put_project)
         run_actionpoints_checks(api, tmp, games, templates, check, get_project, put_project)
         run_speed_checks(api, tmp, games, templates, check, get_project, put_project)
         run_height_checks(api, tmp, games, templates, check, get_project, put_project)
