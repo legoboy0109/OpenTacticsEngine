@@ -23,7 +23,9 @@ enum class StaffArea { Single, Radius, All };
 // One entry of "effects". Stage 1: Heal. Stage 2 (docs/SRPG.md section 8): the three that move the picked unit, the one
 // that repairs an item it carries, and the one that lights a square. Later stages add kinds at the end.
 struct StaffEffect {
-  enum class Kind { Heal, Warp, Pull, Swap, Repair, Light, Inflict, Cure, Unlock };  // Inflict, Cure: stage 3 (conditions); Unlock: doors (docs/SRPG.md section 10)
+  // Inflict, Cure: stage 3 (conditions); Unlock: doors (docs/SRPG.md section 10); Revive: stands downed units up (docs/SRPG.md "Downed units and revive"),
+  // its HP in amount / value / expr as a heal's.
+  enum class Kind { Heal, Warp, Pull, Swap, Repair, Light, Inflict, Cure, Unlock, Revive };
   enum class Amount { Fixed, Full, Percent, Formula };
   Kind kind = Kind::Heal;
   Amount amount = Amount::Fixed;  // Heal: any; Repair: Fixed or Full
@@ -80,6 +82,7 @@ struct StaffDef {
 // The plain reason a staff finds nobody in reach (a light has its own reasons, see Battle::staffOptions).
 inline const char* staffNobodyWhy(const StaffDef& d) {
   if (d.has(StaffEffect::Kind::Heal)) return "nobody in reach needs that";
+  if (d.has(StaffEffect::Kind::Revive)) return "nobody in reach is downed";
   if (d.movesUnit()) return "nobody in reach can be moved";
   if (d.has(StaffEffect::Kind::Cure)) return "nobody in reach has anything it cures";
   if (d.has(StaffEffect::Kind::Inflict)) return "nobody in reach can be affected";

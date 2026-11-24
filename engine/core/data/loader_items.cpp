@@ -2,6 +2,7 @@
 #include "core/data/loader_teaching.h"
 #include "core/data/loader_content.h"
 #include "core/data/loader_conditions.h"
+#include "core/data/loader_downed.h"
 #include "core/data/loader_places.h"
 #include "core/data/loader_srpg.h"
 #include "core/data/loader_staves.h"
@@ -109,7 +110,7 @@ bool loadItems(const std::string& path, Database& db, std::string& err) {
     // A staff checks its own keys (readStaffItem, which has a longer list). "sounds": read by the player's audio loader (docs/SOUND.md).
     if (it.kind != ItemKind::Staff &&
         !c.onlyKeys(e, {"id", "name", "description", "kind", "uses", "repairable", "stealable", "sellable", "price", "props", "target", "heal", "raise",
-                        "weapon", "bonus", "promotes", "skills", "cure", "inflict", "opens", "light", "sounds", "teaches"},
+                        "weapon", "bonus", "promotes", "skills", "cure", "inflict", "opens", "light", "sounds", "teaches", "revive"},
                     where))
       return false;
     // Each kind has its own fields; one of another kind is a mistake worth pointing out.
@@ -129,6 +130,7 @@ bool loadItems(const std::string& path, Database& db, std::string& err) {
         !readItemOpens(c, e, where, it))  // a key (docs/SRPG.md section 10) is valid without heal / raise
       return false;
     if (!readItemTeaches(c, db, e, where, it)) return false;  // docs/JOBS.md "Learning from equipment"
+    if (it.kind != ItemKind::Staff && !readItemRevive(c, db, e, where, it)) return false;  // docs/SRPG.md "Downed units and revive"
 
     if (it.kind == ItemKind::Usable) {
       std::string target = "self";
@@ -146,7 +148,7 @@ bool loadItems(const std::string& path, Database& db, std::string& err) {
       bool raises = false;
       for (int v : it.raise) raises = raises || v != 0;
       if (!raises) it.raise.clear();
-      if (it.heal == 0 && !raises && !it.promotes && it.cures.empty() && !it.cureAll && it.inflict < 0 && !it.isKey() && it.lightRadius == 0)
+      if (it.heal == 0 && !raises && !it.revive.on() && !it.promotes && it.cures.empty() && !it.cureAll && it.inflict < 0 && !it.isKey() && it.lightRadius == 0)
         return c.fail(where, std::string("a usable item needs \"heal\" and/or \"raise\"") +
                                  (db.conditions.empty() ? " (or \"light\")" : " (or \"cure\" / \"inflict\" / \"opens\" / \"light\")"));
       if (it.lightRadius > 0 && it.targetAlly) return c.fail(where, "a \"light\" item lights the square of whoever uses it: its \"target\" must be \"self\"");

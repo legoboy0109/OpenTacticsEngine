@@ -10,6 +10,7 @@
 #include "core/data/ai_rules.h"
 #include "core/data/behaviour.h"
 #include "core/data/difficulty.h"
+#include "core/data/downed_rules.h"
 #include "core/data/facing_rules.h"
 #include "core/data/unit_ranks.h"
 #include "core/data/height_rules.h"
@@ -217,6 +218,8 @@ struct ItemDef {
   int lightRadius = 0, lightTurns = 1, lightShrink = 0;
   // "teaches" (weapon / accessory; docs/JOBS.md "Learning from equipment"): indices into Database::teachEntries, in the order written.
   std::vector<int> teaches;
+  // "revive" (usable, "target": "ally"; docs/SRPG.md "Downed units and revive"): stands a downed neighbour up with this many HP. Off when !on().
+  ReviveAmount revive;
 };
 const int kHealFull = 1000000000;
 
@@ -448,6 +451,7 @@ struct RulesConfig {
   AbilityPointRules abilityPoints;  // "rules.abilityPoints" (docs/JOBS.md "Learning from equipment")
   SpeedRules speed;          // "rules.turnOrder": "speed" (docs/TURN_ORDER.md); `on` is false in the usual side-by-side game
   FacingRules facing;        // "rules.facing" (docs/SRPG.md "Facing"); `on` is false when the block is missing
+  DownedRules downed;        // "rules.downed" (docs/SRPG.md "Downed units and revive"); `on` is false when the block is missing
 
   // Lua expressions; empty = feature off / engine default. See
   // docs/GAME_FORMAT.md "Formulas" for the variables available.

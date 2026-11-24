@@ -104,24 +104,27 @@ bool readWarpRange(const LoadCtx& c, Database& db, const Json& v, const std::str
   return true;
 }
 
-bool readHeal(const LoadCtx& c, Database& db, const Json& h, const std::string& where, const std::string& at, StaffEffect& out) {
+// "heal" (and "revive", whose HP take the same forms: `key` names it in the messages).
+bool readHeal(const LoadCtx& c, Database& db, const Json& h, const std::string& where, const std::string& at, StaffEffect& out,
+              const std::string& key = "heal") {
+  const std::string k = q(key);
   if (h.isString() && h.asString() == "full") {
     out.amount = StaffEffect::Amount::Full;
   } else if (h.isString()) {
     out.amount = StaffEffect::Amount::Formula;
-    out.expr = db.addExpr(h.asString(), "data/items.json: " + where + ": " + at + ": \"heal\"");
+    out.expr = db.addExpr(h.asString(), "data/items.json: " + where + ": " + at + ": " + k);
   } else if (LoadCtx::isWhole(h)) {
-    if (h.asInt() < 1 || h.asInt() > 1000000) return c.fail(where, at + ": \"heal\" must be from 1 to 1000000");
+    if (h.asInt() < 1 || h.asInt() > 1000000) return c.fail(where, at + ": " + k + " must be from 1 to 1000000");
     out.value = h.asInt();
   } else if (h.isObject()) {
     for (const Json::Member& m : h.members())
-      if (m.first != "percent") return c.fail(where, at + ": \"heal\": unknown key " + q(m.first) + " (expected \"percent\")" + didYouMean(m.first, {"percent"}));
+      if (m.first != "percent") return c.fail(where, at + ": " + k + ": unknown key " + q(m.first) + " (expected \"percent\")" + didYouMean(m.first, {"percent"}));
     if (!h.has("percent") || !LoadCtx::isWhole(h["percent"]) || h["percent"].asInt() < 1 || h["percent"].asInt() > 100)
-      return c.fail(where, at + ": \"heal\": \"percent\" must be a whole number from 1 to 100");
+      return c.fail(where, at + ": " + k + ": \"percent\" must be a whole number from 1 to 100");
     out.amount = StaffEffect::Amount::Percent;
     out.value = h["percent"].asInt();
   } else {
-    return c.fail(where, at + ": \"heal\" must be a whole number, \"full\", { \"percent\": n } or a formula (text)");
+    return c.fail(where, at + ": " + k + " must be a whole number, \"full\", { \"percent\": n } or a formula (text)");
   }
   return true;
 }
@@ -175,6 +178,8 @@ bool checkCombination(const LoadCtx& c, const Json& e, const std::string& where,
     lights += fx.kind == StaffEffect::Kind::Light;
     unlocks += fx.kind == StaffEffect::Kind::Unlock;
   }
+  if (d.has(StaffEffect::Kind::Revive) && d.effects.size() != 1)
+    return c.fail(where, "\"revive\" acts on downed units only, so it cannot be put together with another effect");
   if (unlocks > 1) return c.fail(where, "a staff can have only one \"unlock\"");
   if (unlocks) {
     if (d.effects.size() != 1) return c.fail(where, "\"unlock\" picks a door or chest, not a unit, so it cannot be put together with another effect");
@@ -225,6 +230,13 @@ bool readEffects(const LoadCtx& c, Database& db, const Json& e, const std::strin
     if (kind == "heal") {
       if (d.target == StaffTarget::Foe) return c.fail(where, "\"heal\" cannot target \"foe\"");
       if (!readHeal(c, db, v, where, at, out)) return false;
+    } else if (kind == "revive") {  // docs/SRPG.md "Downed units and revive": acts only on downed units
+      if (!db.rules.downed.on)
+        return c.fail(where, at + ": \"revive\" needs \"rules\": { \"downed\": {} } in game.json (without it a defeated unit leaves the board)");
+      if (d.target == StaffTarget::Foe || d.target == StaffTarget::Self)
+        return c.fail(where, "\"revive\" needs \"target\" \"ally\", \"team\" or \"any\" (a downed unit cannot use a staff on itself)");
+      if (!readHeal(c, db, v, where, at, out, "revive")) return false;
+      out.kind = StaffEffect::Kind::Revive;
     } else if (kind == "warp") {
       if (!readWarpRange(c, db, v, where, at, out)) return false;
     } else if (kind == "pull" || kind == "swap") {
@@ -248,7 +260,7 @@ bool readEffects(const LoadCtx& c, Database& db, const Json& e, const std::strin
       out.kind = StaffEffect::Kind::Cure;
       if (!readCureList(c, db, v, where, at, out.conds, out.cureAll)) return false;
     } else {
-      return c.fail(where, at + ": unknown effect " + q(kind) + " (a staff can: heal, warp, pull, swap, repair, light, inflict, cure, unlock)");
+      return c.fail(where, at + ": unknown effect " + q(kind) + " (a staff can: heal, warp, pull, swap, repair, light, inflict, cure, unlock, revive)");
     }
     d.effects.push_back(out);
   }

@@ -248,7 +248,8 @@ struct SkillDef {
 enum class AbilityTarget { Self, Ally, Enemy, Unit, Cell };
 // Steal, Refresh, MovePast, Cure: docs/SRPG.md "Skill and ability blocks, second set".
 enum class AbilityEffect { Push, Pull, Swap, MoveBehind, Heal, Summon, Unlock /* docs/SRPG.md section 10 */, Steal, Refresh, MovePast, Cure, None /* only "inflict" */,
-                           Strike /* attacks with a weapon (docs/SRPG.md "Abilities that strike") */ };
+                           Strike /* attacks with a weapon (docs/SRPG.md "Abilities that strike") */,
+                           Revive /* stands a downed unit up (docs/SRPG.md "Downed units and revive"); HP in amount / healPercent / healExpr as a heal */ };
 
 // One candidate of a summon's "items" (docs/SRPG.md "Summoning"): the item is carried when the summoner's level is at least `minLevel`.
 struct SummonItem {
@@ -448,6 +449,9 @@ struct ConditionDef {
   std::vector<std::string> replaceIds;
   std::vector<int> replaces;         // applying this removes these
   int skill = -1;                    // the hidden SkillDef (index into Database::skills) that holds its blocks
+  // "autoRevive" (docs/SRPG.md "Downed units and revive"): when the unit would be downed it stands up at once with this many HP and the
+  // condition ends. Off when !on(). Needs rules.downed.
+  ReviveAmount autoRevive;
 };
 
 }  // namespace ote
