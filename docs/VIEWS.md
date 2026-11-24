@@ -115,6 +115,55 @@ enough to cover the middle of a square. Both are unit-tested
 - Arrow keys move the cursor along the grid as before: up = up-right on
   screen, right = down-right, down = down-left, left = up-left.
 
+## Backdrop (a prerendered map picture)
+
+Games converted from (or drawn like) classic isometric tactics games have each map as one painted picture, with the things that stand
+up (trees, roofs, fences, the front of a tall cliff) on a second layer drawn over the units. A map file may give the 2D isometric view
+exactly that. Presentation only: the map's terrain and heights still decide movement, sight and everything else; nothing is saved or
+hashed, and a map without the key draws exactly as before.
+
+```jsonc
+// maps/snowball.json
+"backdrop": {
+  "sheet": "snow_ground",          // required: a sheet of data/graphics.json; its WHOLE image is the picture (cell size does not matter)
+  "origin": [256, 256],            // the pixel of the picture where the top corner of square 0,0 is at height 0; default [0, 0]
+  "over": "snow_props",            // optional: a picture drawn over the units, placed the same way (usually the same size)
+  "pieces": [ { "rect": [96, 180, 32, 40], "square": [3, 1] } ],   // optional: cut "over" into pieces, each sorted with one square
+  "styles": ["iso"]                // optional: the 2D isometric styles that draw it; default every style of that kind
+}
+```
+
+- **Placement.** The picture is drawn at one picture pixel per logical pixel of the view, so it must be made for the style's own
+  `isometric` measures (`tileWidth`, `tileHeight`, `heightStep`: FFTA's 32, 16, 8). `origin` ties it to the grid: the square (x, y) at the
+  map file's height h has its top corner at picture pixel `origin + ((x - y) * tileWidth / 2, (x + y) * tileHeight / 2 - h * heightStep)`.
+  Heights are the map file's own numbers (not counted from the lowest square). Everything outside the squares (sky, the walls under the
+  map, scenery) shows; the style's background colour fills what the picture does not cover.
+- **What is drawn.** The picture replaces the generated squares (blocks, terrain pictures and tiles of a tile layer). Move and attack
+  highlights, the cursor, the owner frames, markers, structures and units are drawn over it as before, at the squares' heights. A
+  square the viewer cannot see (fog of war) is darkened by a dark diamond over its top.
+- **The over picture.** Without `pieces` it is drawn whole over every unit and structure (fine for a frame or for clouds). With
+  `pieces`, only those rectangles of it are drawn, each **in the depth order of its square**, the way structures are: after the
+  squares and units of the diagonals behind it (smaller x + y), before those in front; on the same diagonal before the unit (a unit
+  standing on the piece's square is in front of it). So a tree hides a unit behind it and not one in front. A piece in fog is darkened
+  like its square. A unit with any part of its figure under a piece drawn after it is **shown through** (drawn again faintly on top,
+  as behind raised ground); so is the cursor. Raised ground itself never hides anything any more (the picture is drawn first), so the
+  front faces of tall cliffs that must hide units belong in the over picture.
+- **Strict** (`maps/<map>.json: backdrop: ...`): unknown keys; `"sheet"` / `"over"` naming an unknown sheet; `"origin" must be [x,
+  y]` (whole numbers -8192 to 8192); a `styles` entry that is unknown or not of the 2D isometric kind; a game with no 2D isometric style
+  at all; `"pieces"` without `"over"`, empty or over 4096; a piece's `"rect" must be [x, y, width, height]` (width and height at least
+  1), a rect reaching outside the over picture, a `"square"` outside the map, unknown piece keys. **Hexagon games: refused** (as tile
+  layers: a hexagon map is drawn from its terrain's looks).
+- Not built: animated backdrops, a backdrop in the other kinds of view (the top-down style of the same game draws its squares as
+  always; the 3D kinds are real blocks), map changes changing the picture (a changed square keeps the painted look), pieces cut by a
+  pixel mask (a piece is a rectangle; leave its unused pixels transparent).
+- Code: `MapDef::backdrop` (`core/data/map_backdrop.h`), `loader_map_backdrop.cpp`; player `battle/iso_backdrop.{h,cpp}` and
+  `drawMapIso` (`iso_draw.cpp`). Tests: `tests/test_iso_map_art.cpp`, `tests/iso_map_art_player_test.py` (screenshots).
+
+**Owner decisions (placeholders; any may change):** the key names `backdrop`, `origin`, `over`, `pieces`, `rect`, `square`; the
+backdrop lives in the map file (not in graphics.json); the picture is never scaled; a piece sorts like a structure on its square
+(a unit on the same square is in front); units hidden by a piece are shown through faintly (FFTA itself does not); fogged squares
+are darkened with a diamond over the picture.
+
 ## What the player offers
 
 `viewSupported()` (engine/player/views.h) lists the kinds this build draws:
