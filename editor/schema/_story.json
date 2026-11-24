@@ -465,6 +465,18 @@
           }
         },
         {
+          "name": "guestJoins",
+          "key": "guestJoins",
+          "help": "Matching guests become the player's own units: the person moves them and they join the party after the battle.",
+          "summary": "{guestJoins} join the party",
+          "node": {
+            "type": "object",
+            "fields": {
+              "guestJoins": {"use": "_map#filter", "help": "Which guests.", "required": true}
+            }
+          }
+        },
+        {
           "name": "giveItem",
           "key": "giveItem",
           "help": "Gives an item to matching units.",

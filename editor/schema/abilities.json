@@ -7,7 +7,7 @@
       "name": { "type": "string", "help": "Display name (defaults to the id)." },
       "description": { "type": "string", "help": "Text shown in the menu." },
       "target": { "type": "enum", "values": ["self", "ally", "enemy", "unit", "cell"], "help": "Whom or what it is used on (required, except for a strike: it comes from the weapon)." },
-      "range": { "type": "list", "length": 2, "of": { "type": "int", "min": 0, "max": 20, "sample": 1 }, "sample": [1, 2], "help": "[min, max] distance (1 to 20; 0 = the user's own square, only with an area); not for self or a strike (the weapon has it)." },
+      "range": { "type": "list", "length": 2, "of": { "type": "int", "min": 0, "max": 20, "sample": 1 }, "sample": [1, 2], "help": "[min, max] distance (1 to 20; 0 = the user's own square: with an area, or on a heal / cure / condition ability aimed at ally or unit, which may then be used on the user itself); not for self or a strike (the weapon has it)." },
       "effect": { "type": "variant", "help": "What it does (exactly one of these). May be left out only when there is an inflict.", "variants": [
         { "name": "push", "key": "push", "node": { "type": "object", "fields": { "push": { "type": "int", "required": true, "min": 1, "max": 5, "help": "Squares the target is pushed away." } } } },
         { "name": "pull", "key": "pull", "node": { "type": "object", "fields": { "pull": { "use": "_skills#flag", "help": "Pulls the target next to the user." } } } },
@@ -23,7 +23,8 @@
           { "name": "amount", "kind": "number", "node": { "type": "int", "min": 1, "max": 999 } }, { "name": "full", "value": "full" },
           { "name": "formula", "kind": "string", "node": { "type": "string" }, "sample": "a.mag * 3" },
           { "name": "percent", "key": "percent", "node": { "type": "object", "fields": { "percent": { "type": "int", "required": true, "min": 1, "max": 100, "help": "Percent of the maximum (at least 1 point)." } } } } ] } } } },
-        { "name": "strike", "key": "strike", "node": { "type": "object", "fields": { "strike": { "type": "ref", "ref": "data/weapons.json", "required": true, "help": "Attacks with this weapon (a spell, a breath ...). Leave out target and range; cost must be action; the weapon must not charge." } } } },
+        { "name": "strike", "key": "strike", "node": { "type": "object", "fields": { "strike": { "type": "ref", "ref": "data/weapons.json", "required": true, "help": "Attacks with this weapon (a spell, a breath ...). Leave out target and range; cost must be action; the weapon must not charge." },
+          "reach": { "type": "enum", "values": ["equipped"], "help": "equipped: reaches as far as the weapon in the user's hand (the strike weapon's own range for a unit with none); leave out for the strike weapon's range." } } } },
         { "name": "summon", "key": "summon", "node": { "type": "object", "fields": { "summon": { "type": "object", "required": true, "help": "Calls a unit onto an empty square.", "fields": {
           "type": { "type": "ref", "ref": "data/units.json", "required": true, "help": "The unit type that appears." },
           "level": { "type": "variant", "help": "The summoner's level, or a fixed level.", "variants": [
@@ -75,8 +76,8 @@
       "area": {
         "type": "object", "block": true, "help": "Acts on every unit in an area around the square it is aimed at; target says who (ally, enemy or unit). Heal, cure or inflict only.",
         "fields": {
-          "shape": { "type": "enum", "required": true, "values": ["burst", "line", "radius", "cross"], "help": "burst = radius 1; line needs length; radius and cross need radius." },
-          "radius": { "type": "int", "min": 1, "max": 8, "help": "For radius and cross." },
+          "shape": { "type": "enum", "required": true, "values": ["burst", "line", "radius", "cross", "ring", "field"], "help": "burst = radius 1; line needs length; radius, cross and ring need radius (a ring leaves the aimed square out); field = the whole map (no radius, length or vertical)." },
+          "radius": { "type": "int", "min": 1, "max": 8, "help": "For radius, cross and ring." },
           "length": { "type": "int", "min": 1, "max": 8, "help": "For line." },
           "vertical": { "type": "int", "min": 0, "max": 999, "help": "Levels of height the area reaches (needs rules.height)." } }
       },
