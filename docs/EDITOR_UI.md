@@ -1641,3 +1641,36 @@ Wording is placeholder. Model checks mirror the loader (docs/EVENTS.md "Showing 
 - **Server / API**: nothing new (the keys pass through); `tests/editor_api_ability_area_checks.py`. **Native editor**: schema-driven (`editor/schema/abilities.json`: `area`, a range
   from 0, the "heal and cure" effect, `inflict` one object or a list); conformance contexts `ability-area*`, `ability-heal-cure` in `editor/native/tests/conformance_data.cpp`.
 - **Tests**: unit `tests/unit/abilityAreas.test.ts`.
+
+## Poses, character pictures, unit offset, portrait size, map backdrop (web editor; docs/GRAPHICS.md, docs/VIEWS.md "Backdrop")
+
+Built for the iso-map-art engine keys. Nothing new in the server or API (the keys pass through the graphics and map models, which keep keys they do not know).
+
+- **Poses card** (`screens/art/walking/PosesCard.tsx`, wording `posesText.ts`) on a unit's or character's Picture card, right after the Walking card (not for a 3D model; only when the picture
+  exists). One block each for **Standing, facing** (`facing`), **Striking** (`attack`), **Hurt** (`hurt`) and **Defeated** (`ko`): *Add "..." pictures*, then *Image* (default the
+  picture's own), *Frames*, *Milliseconds per frame*, **Front row (down-left)** and **Back row (up-left)** (counted from 1), *Remove*. A *For* choice appears when the picture has per-side
+  pictures (each side has its own poses). Other rows a file has (down, up, side, the right-hand diagonals ...) are kept and named in a note; hand-written frames are said to be replaced
+  by a row edit. Problems the loader would refuse show in red in the block. Edits go through `model/walking.ts` with a `key` (`WalkTarget.key`: walk, facing, attack, hurt, ko).
+- **Walking card**: a new group **Diagonal rows (2D isometric view)** with the down-left, down-right, up-left and up-right rows (the walk's `downLeft` ... `upRight`).
+- **Characters card** (Art screen, after Portraits; `screens/art/CharactersCard.tsx`): pick a character, then the usual Picture card (`kind="characters"`, so *Choose picture*, a picture per
+  look, a picture per side, Walking and Poses) edits `characters.<id>` of `data/graphics.json` (general and per style). The preview shows the character as its unit type with its own
+  picture (`previewAs` in `model/graphicsLooks.ts`). Renaming a character renames its picture, deleting it removes it, removing an image removes pictures, walking frames and poses that draw
+  from it (`model/graphics.ts` `FRAME_KEYS`); the image's "Used by" list names characters.
+- **Unit offset**: on an image's page, in the card with *Smooth*, two boxes *Offset across / down (pixels)* (whole numbers -256 to 256; 0, 0 removes the key; `setSheetUnitOffset`).
+- **Portrait size**: in the Portraits card, *Portrait width* and *Portrait height* (24 to 160, empty = the standard 48 x 48). Equal numbers are written as one number, else as `[w, h]`
+  (`setPortraitSize`). Empty width or height removes the key.
+- **Backdrop panel** (Map tab of a map, after Exits; `screens/maps/editor/panels/BackdropSettings.tsx`, `model/backdrop.ts`): only for a square game with a 2D isometric style (a map that
+  already has a backdrop always shows it): *Add a backdrop* (first image), *Backdrop image*, *Origin across / down (pixels)* (-8192 to 8192), *Over image* (none = no pieces), a read-only
+  count of pieces with a note that converters and tools write them (kept as they are by every edit), tick boxes for the 2D isometric styles (none ticked = every one), *Remove the backdrop*.
+- **Checks** (the loader's refusals in plain words): `model/backdropChecks.ts` joins the map's warnings (unknown image or over image, pieces without an over image, a rect outside the over
+  image when its size is known, a square outside the map, a malformed rect / square / origin, a list of styles that is empty, unknown or not isometric, no isometric style in the game,
+  hexagon game); `model/artChecks.ts` shows in a banner on the Art screen (`ArtChecks.tsx`): a character the game does not have, poses and walking frames with an unknown image, a cell
+  outside the image, no direction or a bad time, poses on terrain or structures, a unit offset or portrait size out of range.
+- **Not done**: no live preview of poses (the Walking card has one), no editing of backdrop pieces, no Poses / picture form on the Characters screen itself (only on the Art screen), the
+  native editor is separate.
+- **Tests**: unit `tests/unit/backdrop.test.ts`, `tests/unit/artPoses.test.ts`.
+
+**Owner decisions (placeholders):** all wording is placeholder: the card and field names *Poses*, *Standing, facing*, *Striking*, *Hurt*, *Defeated*, *Front row (down-left)*, *Back row (up-left)*,
+*Diagonal rows (2D isometric view)*; *Characters* (Art screen) and "own picture"; *Unit offset* ("Offset across / down (pixels)"); *Portrait size* ("Portrait width / height"); *Backdrop*,
+*Backdrop image*, *Origin*, *Over image*, *Drawn in these styles* and the read-only pieces note; where each lives (Poses under Walking, characters as a card on the Art screen rather than on the
+Characters screen, the backdrop in the Map tab's settings); that the front / back rows are the only pose rows with boxes.
