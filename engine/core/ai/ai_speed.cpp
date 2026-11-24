@@ -77,7 +77,7 @@ bool chargedOrder(ai::Context& cx, const Unit& u, double beat, ai::Order& out) {
         return false;
       };
       double sc;
-      Battle::StrikeScope scope(b, ability < 0 ? -1 : o.weapon);  // a strike ability's forecasts are those of its weapon
+      Battle::StrikeScope scope(b, u.id, ability);  // a strike ability's forecasts are those of its weapon (ability -1: none)
       if (o.area) {
         AreaForecast f;
         if (!b.areaForecast(u.id, o.weapon, s, o.cell, f) || f.victims.empty()) continue;

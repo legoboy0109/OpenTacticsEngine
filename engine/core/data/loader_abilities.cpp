@@ -119,6 +119,13 @@ bool readEffect(const LoadCtx& c, Database& db, const Json& e, const std::string
   static const char* const keys[] = {"push", "pull", "swap", "moveBehind", "heal", "summon", "unlock", "steal", "refresh", "movePast", "cure", "strike"};
   int count = 0;
   for (const Json::Member& m : e.members()) {
+    if (m.first == "reach") {  // an option of "strike", not an effect of its own
+      if (!e.has("strike")) return c.fail(where, "\"effect\": \"reach\" goes with \"strike\" (how far the strike reaches)");
+      if (!m.second.isString() || m.second.asString() != "equipped")
+        return c.fail(where, "\"effect\": \"reach\" must be \"equipped\" (the range of the weapon in the user's hand) or left out (the strike weapon's own range)");
+      a.strikeReachEquipped = true;
+      continue;
+    }
     bool known = false;
     for (const char* k : keys) known = known || m.first == k;
     if (!known) return c.fail(where, "\"effect\": unknown key " + q(m.first) + " (expected push, pull, swap, moveBehind, heal, summon, unlock, steal, refresh, movePast, cure, strike)");

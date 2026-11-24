@@ -77,7 +77,10 @@ void Battle::abilityTargets(int unit, int ability, Cell from, std::vector<int>& 
   } else if (d.aimsSquare()) {  // a summon or unlock square, an area weapon's aim, or the square an area ability is aimed at
     std::vector<Cell> near;
     // A strike: the squares its weapon can be aimed at (the height rules may add reach), as abilityStrikeOptions offers them; else the range.
-    if (d.effect == AbilityEffect::Strike) aimCells(d.strike, from, unit, near);
+    if (d.effect == AbilityEffect::Strike) {
+      StrikeScope scope(*this, unit, ability);  // ("reach": "equipped": the range of the weapon in hand)
+      aimCells(d.strike, from, unit, near);
+    }
     else grid.within(from, d.maxRange, near);  // ascending cell index
     for (Cell c : near)
       if (abilityTargetOk(u, ability, from, -1, c, nullptr)) cells_.push_back(c);

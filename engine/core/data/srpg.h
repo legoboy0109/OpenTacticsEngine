@@ -324,6 +324,9 @@ struct AbilityDef {
   // Strike (docs/SRPG.md "Abilities that strike"): the ability attacks with this weapon (index into Database::weapons, resolved last; -1 = not a strike).
   std::string strikeId;
   int strike = -1;
+  // "effect": { "strike": ..., "reach": "equipped" }: the strike reaches as far as the weapon in the user's hand (its min and max range) instead of the
+  // strike weapon's own range; a unit with no weapon in hand keeps the strike weapon's (docs/SRPG.md "Abilities that strike").
+  bool strikeReachEquipped = false;
   // Heal by a share of the target's maximum (1..100) or by a formula (index into Database::exprs); both 0 / -1 = `amount` (docs/SRPG.md "Healing by formula").
   int healPercent = 0;
   int healExpr = -1;

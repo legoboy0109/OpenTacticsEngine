@@ -23,18 +23,28 @@ int Battle::abilityStrikeWeapon(int ability) const {
   return d.effect == AbilityEffect::Strike ? d.strike : -1;
 }
 
+void Battle::strikeReachOf(int unit, int ability, int& minRange, int& maxRange) const {
+  minRange = maxRange = -1;
+  if (ability < 0 || ability >= (int)db->abilities.size() || !db->abilities[(size_t)ability].strikeReachEquipped) return;
+  if (unit < 0 || unit >= (int)units.size()) return;
+  const int hand = restingWeapon(units[(size_t)unit]);  // the weapon it would attack with: the equipped item, or the type's first fixed weapon
+  if (hand < 0) return;
+  minRange = db->weapons[(size_t)hand].minRange;
+  maxRange = db->weapons[(size_t)hand].maxRange;
+}
+
 void Battle::abilityStrikeOptions(int unit, int ability, Cell from, std::vector<AttackOption>& out) const {
   out.clear();
   const int w = abilityStrikeWeapon(ability);
   if (w < 0) return;
-  StrikeScope scope(*this, w);
+  StrikeScope scope(*this, unit, ability);
   attackOptions(unit, from, out);
 }
 
 bool Battle::abilityStrikeForecast(int unit, int ability, int target, Cell from, Forecast& out) const {
   const int w = abilityStrikeWeapon(ability);
   if (w < 0 || isAreaWeapon(w)) return false;
-  StrikeScope scope(*this, w);
+  StrikeScope scope(*this, unit, ability);
   CombatSetup setup;
   return forecastFight(unit, target, w, from, out, setup);
 }
@@ -42,7 +52,7 @@ bool Battle::abilityStrikeForecast(int unit, int ability, int target, Cell from,
 bool Battle::abilityStrikeArea(int unit, int ability, Cell from, Cell target, AreaForecast& out) const {
   const int w = abilityStrikeWeapon(ability);
   if (w < 0 || !isAreaWeapon(w)) return false;
-  StrikeScope scope(*this, w);
+  StrikeScope scope(*this, unit, ability);
   return areaForecast(unit, w, from, target, out);
 }
 
@@ -81,7 +91,7 @@ void Battle::applyStrikeAbility(const Action& action, std::vector<Event>& events
   if (area) atk.cell = action.cell;
   const size_t from = events.size();
   {
-    StrikeScope scope(*this, w);
+    StrikeScope scope(*this, uid, ability);
     applyAttack(atk, events);
   }
   // The ability's own "inflict": on every unit one of its strikes hit (not a counter: there is none), if it still stands. In the order struck.

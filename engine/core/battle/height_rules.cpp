@@ -19,7 +19,7 @@ void Battle::jumpOf(const Unit& u, int& up, int& down) const {
 
 int Battle::rangeBonusMost(int weapon) const {
   const HeightRules& h = db->rules.height;
-  return h.on && h.rangeEvery > 0 && db->weapons[(size_t)weapon].maxRange > 1 ? h.rangeMax : 0;
+  return h.on && h.rangeEvery > 0 && weaponMaxRange(weapon) > 1 ? h.rangeMax : 0;
 }
 
 int Battle::rangeBonusAt(int weapon, Cell from, Cell to) const {
@@ -33,7 +33,7 @@ int Battle::rangeBonusAt(int weapon, Cell from, Cell to) const {
 bool Battle::weaponReaches(int weapon, Cell from, Cell to) const {
   const WeaponDef& w = db->weapons[(size_t)weapon];
   const int dist = grid.distance(from, to);
-  if (dist < w.minRange || dist > w.maxRange + rangeBonusAt(weapon, from, to)) return false;
+  if (dist < weaponMinRange(weapon) || dist > weaponMaxRange(weapon) + rangeBonusAt(weapon, from, to)) return false;
   if (!w.heightRange.any()) return true;
   const int up = heightAt(to) - heightAt(from);  // > 0: the target stands higher
   if (w.heightRange.up >= 0 && up > w.heightRange.up) return false;
@@ -47,11 +47,12 @@ const char* Battle::heightAimRefusal(int weapon, Cell from, Cell to) const {
   const int dist = grid.distance(from, to);
   const int up = heightAt(to) - heightAt(from);
   // Only when the distance alone would have been fine (or the height bonus is what makes it fine): then height is the reason.
-  if (dist >= w.minRange && dist <= w.maxRange + rangeBonusAt(weapon, from, to)) {
+  const int lo = weaponMinRange(weapon), hi = weaponMaxRange(weapon);
+  if (dist >= lo && dist <= hi + rangeBonusAt(weapon, from, to)) {
     if (w.heightRange.up >= 0 && up > w.heightRange.up) return "too high to reach";
     if (w.heightRange.down >= 0 && -up > w.heightRange.down) return "too low to hit";
     if (w.fire == FireMode::Line && db->rules.height.lineOfSight && highGroundBetween(from, to)) return "the high ground is in the way";
-  } else if (dist > w.maxRange && dist <= w.maxRange + rangeBonusMost(weapon)) {
+  } else if (dist > hi && dist <= hi + rangeBonusMost(weapon)) {
     return "out of range from this height";
   }
   return nullptr;
