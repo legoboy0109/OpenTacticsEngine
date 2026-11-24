@@ -27,6 +27,10 @@ bool aiGuestStep(Battle& battle, std::vector<Event>& events) {
   }
   if (bestUnit < 0) return false;
   ai::playOrder(battle, bestUnit, best, events, false);  // never EndTurn: the turn is the person's
+  // playOrder ends with a Wait; should even that be refused, the guest is set done here so the person always gets the turn (the side's own units
+  // would fall back on EndTurn, which a guest must not do). No event: nothing about the unit changed but that it is through for this turn.
+  Unit& g = battle.units[(size_t)bestUnit];
+  if (!battle.over && battle.activeSide == side && g.alive && !g.done) g.done = true;
   return battle.guestToAct() >= 0;
 }
 
