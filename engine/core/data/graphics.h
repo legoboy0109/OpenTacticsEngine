@@ -7,6 +7,7 @@
 // which means "draw the placeholder (colour + letter)".
 #pragma once
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -28,11 +29,17 @@ struct SheetDef {
   int width = 0, height = 0;  // image size in pixels (read from the PNG header)
   int cols = 0, rows = 0;     // whole cells that fit
   bool smooth = false;        // detailed art: the 3D views blend texels (bilinear, mipmaps) instead of hard pixels
+  // "unitOffset": a unit picture cut from this sheet is drawn moved by this many of its own pixels (y down), in the 2D views
+  // (docs/GRAPHICS.md "Unit offset"). The marker, the HP bar and the badges stay where they are. 0, 0 = as before.
+  int unitOffX = 0, unitOffY = 0;
 };
 
 // Walking frames of a unit picture (docs/GRAPHICS.md "Walking"): used while the unit moves along its path in the views that
 // draw pictures. The frames come from their own sheet (its cell size may differ from the standing picture's).
-enum WalkDir { WalkDown, WalkUp, WalkRight, WalkLeft, kWalkDirs };  // (the order breaks ties, see WalkLook::pick)
+// The same shape (frames per direction on the screen) serves the poses of docs/GRAPHICS.md "Poses and facing": the standing
+// picture per facing, attack, hurt and KO. The four diagonals are the facings of the 2D isometric view (a step along the grid's
+// x goes down-right on the screen, along y down-left).
+enum WalkDir { WalkDown, WalkUp, WalkRight, WalkLeft, WalkDownLeft, WalkDownRight, WalkUpLeft, WalkUpRight, kWalkDirs };  // (the order breaks ties, see WalkLook::pick)
 struct WalkLook {
   int sheet = -1;                       // index into Graphics::sheets; -1 = no walking frames
   std::vector<SpriteCell> frames[kWalkDirs];  // empty = this direction is not given
@@ -47,6 +54,34 @@ struct WalkLook {
   SpriteCell cell(int dir, uint32_t timeMs) const {
     const std::vector<SpriteCell>& f = frames[dir];
     return f[(timeMs / (uint32_t)(frameMs < 1 ? 1 : frameMs)) % f.size()];
+  }
+  // The cell of direction `dir` `timeMs` after the pose began, played once: the last frame is held.
+  SpriteCell cellOnce(int dir, uint32_t timeMs) const {
+    const std::vector<SpriteCell>& f = frames[dir];
+    const size_t i = timeMs / (uint32_t)(frameMs < 1 ? 1 : frameMs);
+    return f[i < f.size() ? i : f.size() - 1];
+  }
+  bool anyMirrored() const {
+    for (int d = 0; d < kWalkDirs; ++d)
+      if (mirrored[d]) return true;
+    return false;
+  }
+};
+
+// The poses of a unit picture besides standing and walking (docs/GRAPHICS.md "Poses and facing"), each frames per direction on the
+// screen like "walk". A pose that is not given (sheet -1) falls back: "ko" to "hurt", then to the standing picture.
+enum UnitPose { PoseNone, PoseAttack, PoseHurt, PoseKo };
+struct UnitPoses {
+  WalkLook facing;  // standing, per facing (looped on the running time); none = the look's own cell / frames whatever the facing
+  WalkLook attack;  // while it strikes (played once, the last frame held)
+  WalkLook hurt;    // while a hit it took plays
+  WalkLook ko;      // while it falls
+  // The frames of `pose` (after the fallbacks), or null when the pose has none.
+  const WalkLook* of(int pose) const {
+    if (pose == PoseAttack) return attack.any() ? &attack : nullptr;
+    if (pose == PoseKo && ko.any()) return &ko;
+    if (pose == PoseKo || pose == PoseHurt) return hurt.any() ? &hurt : nullptr;
+    return nullptr;
   }
 };
 
@@ -76,8 +111,19 @@ struct Look {
   // Portraits only: other cells of the same sheet, "talk" (cycled while the speaker's line is being typed) and "blink" (shown for a
   // moment now and then). Empty = the portrait never changes.
   std::vector<SpriteCell> talk, blink;
+  // Units only: standing per facing, attack, hurt and KO frames (docs/GRAPHICS.md "Poses and facing"); null = none (every existing
+  // game). Shared, so copying the look into each style is cheap.
+  std::shared_ptr<const UnitPoses> poses;
 
   bool any() const { return kind != None; }
+  // Every set of frames per direction this look has (walk and the poses), for code that must make the sheets they need.
+  template <class F>
+  void forEachDirLook(const F& f) const {
+    if (walk.any()) f(walk);
+    if (!poses) return;
+    for (const WalkLook* w : {&poses->facing, &poses->attack, &poses->hurt, &poses->ko})
+      if (w->any()) f(*w);
+  }
 };
 
 // A 3D model in place of a picture (docs/GRAPHICS.md "Models"; only in styles
@@ -126,10 +172,23 @@ struct GraphicsSet {
   std::vector<StandLook> stands;    // per terrain index: what stands on the ground (3D styles only; else none)
   std::vector<UnitLook> units;      // per unit type index
   std::vector<UnitLook> structures; // per structure type index (same shape as a unit's look)
+  // Per character index (docs/GRAPHICS.md "Character looks"): a character's own look, drawn instead of its unit type's whatever
+  // its class. An entry with no art (the default) means "the unit type's look".
+  std::vector<UnitLook> characters;
   // Portraits of the dialogue box (docs/EVENTS.md): id -> one cell (Look::Still). The id is the
   // line's own `portrait` or the speaking unit's story id. A portrait is a face, not a view-kind
   // dependent picture, so every style starts from the general ones (unlike terrain and units).
   std::vector<std::pair<std::string, Look>> portraits;
+
+  // The look of a unit of type `type` that is character `character` (-1 = none): the character's own when it has one, else the type's.
+  // Null when the type is out of range and the character has no look.
+  const UnitLook* unitLook(int type, int character) const {
+    if (character >= 0 && (size_t)character < characters.size()) {
+      const UnitLook& cl = characters[(size_t)character];
+      if (cl.base.any() || cl.model.any() || !cl.sides.empty()) return &cl;
+    }
+    return type >= 0 && (size_t)type < units.size() ? &units[(size_t)type] : nullptr;
+  }
 
   // The portrait with this id, or null.
   const Look* portrait(const std::string& id) const {
@@ -198,6 +257,8 @@ struct Graphics {
   // Draw a small base in the side's colour under units that have art, so
   // sides can be told apart whatever the art looks like.
   bool unitMarker = true;
+  // The plate the dialogue box draws a portrait on, in logical pixels at the 8 px font ("portraitSize"; docs/GRAPHICS.md "Portraits").
+  int portraitW = 48, portraitH = 48;
   // The side-view battle scene's art (docs/BATTLE_SCENE.md); empty when the game gives none.
   BattleArt battle;
   // Icons (docs/GRAPHICS.md "Icons"): the small picture the player draws before a weapon's or an item's name in a list. One

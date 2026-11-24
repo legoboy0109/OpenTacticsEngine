@@ -26,7 +26,10 @@ static uint32_t cellHash(int x, int y) {
 }
 
 int WalkLook::pick(float dx, float dy) const {
-  static const float vx[kWalkDirs] = {0, 0, 1, -1}, vy[kWalkDirs] = {1, -1, 0, 0};
+  // Unit vectors on the screen (y down); the diagonals are at 45 degrees, so a step of the 2D isometric view (2:1 on the screen)
+  // is nearer its diagonal than the side when both are given.
+  constexpr float k = 0.70710678f;
+  static const float vx[kWalkDirs] = {0, 0, 1, -1, -k, k, -k, k}, vy[kWalkDirs] = {1, -1, 0, 0, k, k, -k, -k};
   int best = -1;
   float bestDot = 0;
   for (int d = 0; d < kWalkDirs; ++d) {

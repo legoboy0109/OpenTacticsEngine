@@ -8,77 +8,6 @@ namespace {
 
 std::string q(const std::string& s) { return "\"" + s + "\""; }
 
-// [col, row] with whole numbers >= 0.
-bool readCell(const LoadCtx& c, const Json& j, const std::string& where, const char* key, SpriteCell& out) {
-  if (!j.isArray() || j.size() != 2 || !LoadCtx::isWhole(j[0]) || !LoadCtx::isWhole(j[1]) || j[0].asInt() < 0 ||
-      j[1].asInt() < 0 || j[0].asInt() > 30000 || j[1].asInt() > 30000)
-    return c.fail(where, q(key) + " must be [column, row] (whole numbers, counted from 0)");
-  out.col = (int16_t)j[0].asInt();
-  out.row = (int16_t)j[1].asInt();
-  return true;
-}
-
-// The w x h block of cells starting at `at` must lie inside the sheet.
-bool checkInside(const LoadCtx& c, const SheetDef& sh, SpriteCell at, int w, int h, const std::string& where) {
-  if (at.col + w <= sh.cols && at.row + h <= sh.rows) return true;
-  std::string what = (w == 1 && h == 1) ? "cell [" + std::to_string(at.col) + ", " + std::to_string(at.row) + "]"
-                                        : "the " + std::to_string(w) + " x " + std::to_string(h) +
-                                              " block at [" + std::to_string(at.col) + ", " +
-                                              std::to_string(at.row) + "]";
-  return c.fail(where, what + " is outside sheet " + q(sh.id) + " (" + std::to_string(sh.cols) + " x " +
-                           std::to_string(sh.rows) + " cells)");
-}
-
-// A unit picture's "walk": frames while it moves (docs/GRAPHICS.md "Walking"). Keys: "sheet" (default: the picture's own), "down", "up",
-// "side" (faces right; the left is it turned round), "left" / "right" (own frames instead), "frameMs". Each direction is a list of
-// [column, row] cells of the walk sheet. At least one direction is needed; one that is not given is not drawn (the nearest given
-// direction is used instead).
-bool readWalk(const LoadCtx& c, const Database& db, const Json& j, const std::string& where, int standSheet, WalkLook& out) {
-  out = WalkLook();
-  const std::string w = where + " walk";
-  if (!j.isObject()) return c.fail(w, "must be an object with \"down\", \"up\", \"side\" (or \"left\" / \"right\") and \"frameMs\"");
-  static const char* const kKnown[] = {"sheet", "down", "up", "side", "left", "right", "frameMs"};
-  for (const Json::Member& m : j.members()) {
-    bool known = false;
-    for (const char* k : kKnown) known |= m.first == k;
-    if (!known) return c.fail(w, "has an unknown key " + q(m.first) + " (use sheet, down, up, side, left, right and frameMs)" + didYouMean(m.first, {"sheet", "down", "up", "side", "left", "right", "frameMs"}));
-  }
-  std::string sheetId;
-  if (!c.str(j, "sheet", w, sheetId)) return false;
-  out.sheet = sheetId.empty() ? standSheet : db.graphics.findSheet(sheetId);
-  if (out.sheet < 0) return c.fail(w, "unknown sheet " + q(sheetId));
-  const SheetDef& sh = db.graphics.sheets[(size_t)out.sheet];
-  std::vector<SpriteCell> given[kWalkDirs];
-  bool side = false;
-  static const struct { const char* key; int dir; } kDirs[] = {{"down", WalkDown}, {"up", WalkUp}, {"right", WalkRight}, {"left", WalkLeft}, {"side", -1}};
-  std::vector<SpriteCell> sideFrames;
-  for (const auto& d : kDirs) {
-    if (!j.has(d.key)) continue;
-    const Json* list;
-    if (!c.array(j, d.key, w, list, true)) return false;
-    if (list->size() < 1 || list->size() > 64) return c.fail(w, q(d.key) + " must list between 1 and 64 cells");
-    std::vector<SpriteCell>& cells = d.dir >= 0 ? given[d.dir] : sideFrames;
-    for (size_t i = 0; i < list->size(); ++i) {
-      SpriteCell cell;
-      if (!readCell(c, (*list)[i], w, d.key, cell) || !checkInside(c, sh, cell, 1, 1, w)) return false;
-      cells.push_back(cell);
-    }
-    side |= d.dir < 0;
-  }
-  if (given[WalkDown].empty() && given[WalkUp].empty() && given[WalkLeft].empty() && given[WalkRight].empty() && !side)
-    return c.fail(w, "needs at least one of \"down\", \"up\", \"side\", \"left\" or \"right\"");
-  out.frames[WalkDown] = given[WalkDown];
-  out.frames[WalkUp] = given[WalkUp];
-  // "side" faces right; the left is the same turned round unless "left" is given. "right" / "left" given alone mirror each other.
-  out.frames[WalkRight] = !given[WalkRight].empty() ? given[WalkRight] : side ? sideFrames : given[WalkLeft];
-  out.mirrored[WalkRight] = given[WalkRight].empty() && !side && !given[WalkLeft].empty();
-  out.frames[WalkLeft] = !given[WalkLeft].empty() ? given[WalkLeft] : out.frames[WalkRight];
-  out.mirrored[WalkLeft] = given[WalkLeft].empty() && !out.frames[WalkRight].empty();
-  if (!c.integer(j, "frameMs", w, out.frameMs)) return false;
-  if (out.frameMs < 20 || out.frameMs > 60000) return c.fail(w, "\"frameMs\" must be between 20 and 60000");
-  return true;
-}
-
 // One look object. `terrainLook` allows "variants" and "join".
 bool readLook(const LoadCtx& c, const Database& db, const Json& j, const std::string& where, bool terrainLook,
               int selfTerrain, Look& out, const char* subject = "units") {
@@ -99,7 +28,7 @@ bool readLook(const LoadCtx& c, const Database& db, const Json& j, const std::st
 
   if (j.has("cell")) {
     SpriteCell cell;
-    if (!readCell(c, j["cell"], where, "cell", cell) || !checkInside(c, sh, cell, 1, 1, where)) return false;
+    if (!readArtCell(c, j["cell"], where, "cell", cell) || !checkCellsInside(c, sh, cell, 1, 1, where)) return false;
     out.kind = Look::Still;
     out.cells.push_back(cell);
   } else if (j.has("join")) {
@@ -112,7 +41,7 @@ bool readLook(const LoadCtx& c, const Database& db, const Json& j, const std::st
     if (blocks > 16) return c.fail(where, "\"join\" can list at most 16 animation frames");
     for (size_t i = 0; i < blocks; ++i) {
       SpriteCell cell;
-      if (!readCell(c, list ? jj[i] : jj, where, "join", cell) || !checkInside(c, sh, cell, side, side, where)) return false;
+      if (!readArtCell(c, list ? jj[i] : jj, where, "join", cell) || !checkCellsInside(c, sh, cell, side, side, where)) return false;
       out.cells.push_back(cell);
     }
     out.kind = Look::Join;
@@ -148,7 +77,7 @@ bool readLook(const LoadCtx& c, const Database& db, const Json& j, const std::st
       return c.fail(where, q(key) + " must list between 1 and 64 cells");
     for (size_t i = 0; i < list->size(); ++i) {
       SpriteCell cell;
-      if (!readCell(c, (*list)[i], where, key, cell) || !checkInside(c, sh, cell, 1, 1, where)) return false;
+      if (!readArtCell(c, (*list)[i], where, key, cell) || !checkCellsInside(c, sh, cell, 1, 1, where)) return false;
       out.cells.push_back(cell);
     }
     out.kind = j.has("variants") ? Look::Variants : Look::Animated;
@@ -160,7 +89,10 @@ bool readLook(const LoadCtx& c, const Database& db, const Json& j, const std::st
     if (terrainLook || std::string(subject) != "units") return c.fail(where, "only a unit picture can have \"walk\" frames");
     if (!readWalk(c, db, j["walk"], where, out.sheet, out.walk)) return false;
   }
-  return true;
+  for (const char* pose : {"facing", "attack", "hurt", "ko"})  // docs/GRAPHICS.md "Poses and facing"
+    if (j.has(pose) && (terrainLook || std::string(subject) != "units"))
+      return c.fail(where, std::string("only a unit picture can have \"") + pose + "\" frames");
+  return readUnitPoses(c, db, j, where, out.sheet, out);
 }
 
 // Model file names: inside the game folder, forward slashes, ".glb" or ".gltf".
@@ -182,7 +114,7 @@ bool readModelLook(const LoadCtx& c, const Database& db, const Json& j, const st
   if (!view3d)
     return c.fail(where, "a \"model\" can only be used in a style whose kind of view is 3D "
                          "(\"isometric-3d\" or \"3d\"); give other styles a picture");
-  for (const char* key : {"sheet", "cell", "frames", "frameMs", "sides", "walk"})
+  for (const char* key : {"sheet", "cell", "frames", "frameMs", "sides", "walk", "facing", "attack", "hurt", "ko"})
     if (j.has(key)) return c.fail(where, std::string("has a \"model\", so it cannot also have ") + q(key));
   if (!c.onlyKeys(j, {"model", "height", "turn", "sideMaterial", "animations"}, where)) return false;
   if (!c.str(j, "model", where, out.file, true)) return false;
@@ -295,7 +227,8 @@ bool readThingLooks(const LoadCtx& c, const Database& db, const Json& o, const s
                     const char* key, const char* word, const Find& find, bool view3d, std::vector<UnitLook>& out) {
   const Json* m;
   if (!c.object(o, key, prefix, m)) return false;
-  const std::string subject = std::string(word) + "s";
+  // (a character's look is a unit's: the same keys, the same messages)
+  const std::string subject = std::string(word) == "character" ? std::string("units") : std::string(word) + "s";
   for (const Json::Member& e : m->members()) {
     int u = find(e.first);
     std::string where = prefix + (prefix.empty() ? "" : ": ") + word + " " + q(e.first);
@@ -308,14 +241,14 @@ bool readThingLooks(const LoadCtx& c, const Database& db, const Json& o, const s
       continue;
     }
     if (!readLook(c, db, e.second, where, false, -1, ul.base, subject.c_str())) return false;
-    if (!c.onlyKeys(e.second, {"sheet", "cell", "frames", "frameMs", "sides", "walk"}, where)) return false;  // (after readLook: its message about a "join" wins)
+    if (!c.onlyKeys(e.second, {"sheet", "cell", "frames", "frameMs", "sides", "walk", "facing", "attack", "hurt", "ko"}, where)) return false;  // (after readLook: its message about a "join" wins)
     const Json* sides;
     if (!c.object(e.second, "sides", where, sides)) return false;
     for (const Json::Member& s : sides->members()) {
       if (s.first.empty()) return c.fail(where, "\"sides\" has an empty side id");
       Look l;
       if (!readLook(c, db, s.second, where + " side " + q(s.first), false, -1, l, subject.c_str())) return false;
-      if (!c.onlyKeys(s.second, {"sheet", "cell", "frames", "frameMs", "walk"}, where + " side " + q(s.first))) return false;
+      if (!c.onlyKeys(s.second, {"sheet", "cell", "frames", "frameMs", "walk", "facing", "attack", "hurt", "ko"}, where + " side " + q(s.first))) return false;
       ul.sides.push_back(std::make_pair(s.first, l));
     }
   }
@@ -357,7 +290,7 @@ bool readPortraits(const LoadCtx& c, const Database& db, const Json& o, const st
       const SheetDef& sh = db.graphics.sheets[(size_t)look.sheet];
       for (size_t i = 0; i < frames->size(); ++i) {
         SpriteCell cell;
-        if (!readCell(c, (*frames)[i], where, key, cell) || !checkInside(c, sh, cell, 1, 1, where)) return false;
+        if (!readArtCell(c, (*frames)[i], where, key, cell) || !checkCellsInside(c, sh, cell, 1, 1, where)) return false;
         (std::string(key) == "talk" ? look.talk : look.blink).push_back(cell);
       }
     }
@@ -420,9 +353,42 @@ bool readSet(const LoadCtx& c, const Database& db, const Json& o, const std::str
   if (!readThingLooks(c, db, o, prefix, "units", "unit", [&](const std::string& id) { return db.findUnitType(id); },
                       view3d, set.units))
     return false;
+  // A character's own look (docs/GRAPHICS.md "Character looks"): a unit look, drawn instead of its unit type's.
+  if (!readThingLooks(c, db, o, prefix, "characters", "character", [&](const std::string& id) { return db.findCharacter(id); },
+                      view3d, set.characters))
+    return false;
   // Structures look like units: one cell drawn across the footprint, optional own art per side.
   return readThingLooks(c, db, o, prefix, "structures", "structure",
                         [&](const std::string& id) { return db.findStructure(id); }, view3d, set.structures);
+}
+
+// A sheet's "unitOffset": [x, y], whole numbers -256..256 (docs/GRAPHICS.md "Unit offset").
+bool readUnitOffset(const LoadCtx& c, const Json& j, const std::string& where, SheetDef& sh) {
+  if (!j.has("unitOffset")) return true;
+  const Json& o = j["unitOffset"];
+  if (!o.isArray() || o.size() != 2 || !LoadCtx::isWhole(o[0]) || !LoadCtx::isWhole(o[1]) || o[0].asInt() < -256 || o[0].asInt() > 256 ||
+      o[1].asInt() < -256 || o[1].asInt() > 256)
+    return c.fail(where, "\"unitOffset\" must be [x, y]: whole numbers from -256 to 256 (pixels of the sheet's art; y grows downwards)");
+  sh.unitOffX = o[0].asInt();
+  sh.unitOffY = o[1].asInt();
+  return true;
+}
+
+// The root "portraitSize": the dialogue box's portrait plate, a number (square) or [width, height], 24..160 logical pixels at the
+// 8 px font (docs/GRAPHICS.md "Portraits").
+bool readPortraitSize(const LoadCtx& c, const Json& root, Graphics& g) {
+  if (!root.has("portraitSize")) return true;
+  const Json& j = root["portraitSize"];
+  const char* msg = "\"portraitSize\" must be a whole number or [width, height], each from 24 to 160 (logical pixels at the 8 px font)";
+  auto ok = [](const Json& v) { return LoadCtx::isWhole(v) && v.asInt() >= 24 && v.asInt() <= 160; };
+  if (ok(j)) {
+    g.portraitW = g.portraitH = j.asInt();
+    return true;
+  }
+  if (!j.isArray() || j.size() != 2 || !ok(j[0]) || !ok(j[1])) return c.fail("", msg);
+  g.portraitW = j[0].asInt();
+  g.portraitH = j[1].asInt();
+  return true;
 }
 
 // Art file names: inside the game folder, forward slashes, ".png".
@@ -445,7 +411,8 @@ bool loadGraphics(const std::string& path, Database& db, std::string& err) {
   if (!loadObjectFile(path, root, err)) return false;
   LoadCtx c(err, path);
 
-  if (!c.onlyKeys(root, {"sheets", "unitMarker", "backgrounds", "tilesets", "terrain", "units", "structures", "portraits", "icons", "badges", "markers", "styles", "battle"}, ""))
+  if (!c.onlyKeys(root, {"sheets", "unitMarker", "portraitSize", "backgrounds", "tilesets", "terrain", "units", "characters", "structures", "portraits", "icons",
+                         "badges", "markers", "styles", "battle"}, ""))
     return false;
   const Json* sheets;
   if (!c.array(root, "sheets", "", sheets)) return false;
@@ -458,7 +425,7 @@ bool loadGraphics(const std::string& path, Database& db, std::string& err) {
     if (sh.id.empty()) return c.fail(where, "\"id\" must not be empty");
     where = "sheet " + q(sh.id);
     // "name": the display name the editors keep for an image (the web editor writes it on upload); nothing in the engine reads it.
-    if (!c.onlyKeys(j, {"id", "file", "name", "cellWidth", "cellHeight", "smooth"}, where)) return false;
+    if (!c.onlyKeys(j, {"id", "file", "name", "cellWidth", "cellHeight", "smooth", "unitOffset"}, where)) return false;
     if (db.graphics.findSheet(sh.id) >= 0) return c.fail(where, "duplicate id");
     if (!c.str(j, "file", where, sh.file, true)) return false;
     if (!goodArtPath(sh.file))
@@ -467,6 +434,7 @@ bool loadGraphics(const std::string& path, Database& db, std::string& err) {
     if (!c.integer(j, "cellHeight", where, sh.cellH, true)) return false;
     if (sh.cellW < 1 || sh.cellH < 1) return c.fail(where, "\"cellWidth\" and \"cellHeight\" must be at least 1");
     if (!c.boolean(j, "smooth", where, sh.smooth)) return false;
+    if (!readUnitOffset(c, j, where, sh)) return false;
     std::string why;
     if (!readPngSize(db.rootPath + "/" + sh.file, sh.width, sh.height, why))
       return c.fail(where, "image " + q(sh.file) + ": " + why);
@@ -484,6 +452,7 @@ bool loadGraphics(const std::string& path, Database& db, std::string& err) {
   }
 
   if (!c.boolean(root, "unitMarker", "", db.graphics.unitMarker)) return false;
+  if (!readPortraitSize(c, root, db.graphics)) return false;
   if (!readSceneBackgrounds(c, db, root)) return false;
   if (!readTilesets(c, db, root)) return false;  // loader_tilesets.cpp
   if (!readIcons(c, db, root)) return false;
@@ -495,6 +464,7 @@ bool loadGraphics(const std::string& path, Database& db, std::string& err) {
   base.stands.assign(db.terrains.size(), StandLook());
   base.units.assign(db.unitTypes.size(), UnitLook());
   base.structures.assign(db.structures.size(), UnitLook());
+  base.characters.assign(db.characters.size(), UnitLook());
   if (!readSet(c, db, root, "", false, base)) return false;
 
   // A top-down style starts from the general art and replaces parts of it. A
@@ -505,6 +475,7 @@ bool loadGraphics(const std::string& path, Database& db, std::string& err) {
   none.stands.assign(db.terrains.size(), StandLook());
   none.units.assign(db.unitTypes.size(), UnitLook());
   none.structures.assign(db.structures.size(), UnitLook());
+  none.characters.assign(db.characters.size(), UnitLook());
   std::vector<GraphicsSet> sets;
   for (const StyleDef& st : db.styles) sets.push_back(st.view == StyleView::TopDown ? base : none);
   const Json* styles;
@@ -514,7 +485,7 @@ bool loadGraphics(const std::string& path, Database& db, std::string& err) {
     std::string where = "style " + q(e.first);
     if (s < 0) return c.fail(where, "there is no visual style with this id");
     if (!e.second.isObject()) return c.fail(where, "must be an object");
-    if (!c.onlyKeys(e.second, {"terrain", "units", "structures", "portraits"}, where)) return false;
+    if (!c.onlyKeys(e.second, {"terrain", "units", "characters", "structures", "portraits"}, where)) return false;
     StyleView view = db.styles[(size_t)s].view;
     if (!readSet(c, db, e.second, where, view == StyleView::Isometric3D || view == StyleView::Full3D, sets[(size_t)s])) return false;
   }
@@ -522,6 +493,7 @@ bool loadGraphics(const std::string& path, Database& db, std::string& err) {
   for (const GraphicsSet& set : sets) {
     for (const UnitLook& u : set.units) models |= u.model.any();
     for (const UnitLook& u : set.structures) models |= u.model.any();
+    for (const UnitLook& u : set.characters) models |= u.model.any();
     for (const StandLook& s : set.stands) models |= s.isModel();
   }
   // A file with no sheets and no models cannot draw anything; keep "no art" cheap to test.
