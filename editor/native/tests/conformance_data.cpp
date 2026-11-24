@@ -152,7 +152,22 @@ const Op probeUsable = {"data/items.json", "items[+]", R"({"id":"probe","name":"
                {"abilities:id", "abilities:name", "abilities:description", "abilities:target", "abilities:range", "abilities:cost",
                 "abilities:uses", "abilities:cooldown", "abilities:afterMove", "abilities:xp", "abilities:if"},
                {{"abilities:target", "\"unit\""}}});
-  c.push_back({"ability-inflict", "speed-order", {ability("unit", "[1,2]", R"({"heal":5})")}, {"abilities:inflict"}, {{"abilities:inflict.condition", "\"poison\""}}});
+  c.push_back({"ability-inflict", "speed-order", {ability("unit", "[1,2]", R"({"heal":5})")}, {"abilities:inflict"},
+               {{"abilities:inflict{one condition}.condition", "\"poison\""}, {"abilities:inflict{several conditions}[].condition", "\"poison\""}}});
+  // Areas and several effects (docs/SRPG.md "Areas and several effects for abilities"): an area needs a heal / cure / inflict-only ability aimed at
+  // ally, enemy or unit; "length" belongs to a line and "vertical" to a game with height rules, so each has its own context.
+  const auto areaAbility = [](const char* area) {
+    return Op{"data/abilities.json", "abilities[+]",
+              QString(R"({"id":"probe","name":"Probe","target":"unit","range":[0,2],"effect":{"heal":5},"area":%1})").arg(area)};
+  };
+  c.push_back({"ability-area-line", "srpg-abilities", {areaAbility(R"({"shape":"line","length":2})")}, {"abilities:area.length"}, {}});
+  c.push_back({"ability-area-vertical", "speed-order",
+               {{"game.json", "rules.height", R"({"jump":{"default":1}})"}, areaAbility(R"({"shape":"radius","radius":1})")},
+               {"abilities:area.vertical"}, {}});
+  c.push_back({"ability-area", "srpg-abilities", {areaAbility(R"({"shape":"radius","radius":1})")}, {"abilities:area"},
+               {{"abilities:area", R"({"shape":"radius","radius":1})"}, {"abilities:area.shape", "\"radius\""}}});
+  c.push_back({"ability-heal-cure", "speed-order", {ability("unit", "[1,2]", R"({"heal":5,"cure":["poison"]})")}, {"abilities:effect{heal and cure}"},
+               {{"abilities:effect{heal and cure}.cure", R"(["poison"])"}}});
   c.push_back({"ability-adjacent", "srpg-abilities", {ability("unit", "[1,1]", R"({"push":1})")},
                {"abilities:effect{push}", "abilities:effect{pull}", "abilities:effect{swap}", "abilities:effect{moveBehind}",
                 "abilities:effect{movePast}", "abilities:effect{heal}"},
@@ -276,6 +291,8 @@ void addDataExtraSkips(std::map<QString, QString>& s) {
   });
   const char* kEffect = "the blocks are the same shared definition as skills; every shape is tried there (a status condition is read by the same code)";
   s.insert({
+      {"abilities:area.shape = \"burst\"", "the probe's area has a radius, which belongs to radius and cross only (cross-key rule); burst is tried by the area samples"},
+      {"abilities:area.shape = \"line\"", "a line takes a length, not the probe's radius (cross-key rule); tried in the ability-area-line context"},
       {"abilities:target = \"self\"", "which targets an ability may have depends on its effect (cross-key rule); heal is tried with the others"},
       {"abilities:target = \"ally\"", "which targets an ability may have depends on its effect (cross-key rule)"},
       {"abilities:target = \"enemy\"", "which targets an ability may have depends on its effect (cross-key rule)"},
