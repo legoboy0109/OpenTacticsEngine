@@ -331,8 +331,8 @@ void BattleView::walkStep(const Battle& b, UnitView& v, const std::vector<Cell>&
   cellPos(b, path[i], x0, y0);
   cellPos(b, path[j], x1, y1);
   if (j > i) {
-    v.walkDx = x1 - x0;
-    v.walkDy = y1 - y0;
+    v.walkDx = v.faceDx = x1 - x0;
+    v.walkDy = v.faceDy = y1 - y0;
   }
   v.walking = path.size() > 1;
   const float t = f - (float)i;

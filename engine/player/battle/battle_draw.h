@@ -28,6 +28,7 @@ struct DrawCtx {
   const MapProj* proj = nullptr;     // where squares are on screen (null = plain top-down)
   IsoTiles* tiles = nullptr;         // pictures the isometric view makes for itself
   Map3D* map3d = nullptr;            // the drawer of the 3D kinds of view (null in the others)
+  const MapDef* map = nullptr;       // the map on screen (its 2D isometric backdrop, docs/VIEWS.md "Backdrop"); null = none
 
   // A spot in flat map pixels (what BattleView animates) -> screen pixels.
   void toScreen(float fx, float fy, int& sx, int& sy) const {

@@ -18,6 +18,8 @@ PortraitArt portraitArt(const Database& db, const Sprites* sprites, int styleIdx
   art.sw = sh.cellW;
   art.sh = sh.cellH;
   art.faces = look->faces;
+  art.plateW = db.graphics.portraitW;  // "portraitSize" (docs/GRAPHICS.md "Portraits")
+  art.plateH = db.graphics.portraitH;
   for (const SpriteCell& c : look->talk) art.talk.push_back(std::make_pair(c.col * sh.cellW, c.row * sh.cellH));
   for (const SpriteCell& c : look->blink) art.blink.push_back(std::make_pair(c.col * sh.cellW, c.row * sh.cellH));
   return art;  // (the sheet's "smooth" flag is not honoured: the 2D renderer samples every texture the same way)

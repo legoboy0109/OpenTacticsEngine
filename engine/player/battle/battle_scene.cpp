@@ -33,7 +33,7 @@ BattleScene::BattleScene(SceneHost& host, bool preparing)
   view_.init(battle_, layout_.tile, autoplay_);
   view_.setAudio(&host_.gameAudio());
   // (A 3D view draws from its own sheet textures, Sheets3D; the flat sheets are then only asked for by the panels and icons.)
-  if (host.sprites() && !proj_.view3d()) preloadMapArt(*host.sprites(), battle_, styleIdx_);  // decode the map's sheets now, while the scene opens
+  if (host.sprites() && !proj_.view3d()) preloadMapArt(*host.sprites(), battle_, styleIdx_, &shownMapDef());  // decode the map's sheets now, while the scene opens
   initFog();  // fog of war: who the screen is drawn for (battle_fog.cpp)
   fogSeenOn_ = battle_.fogOn();
   view_.rewindStartFights(battle_, session_.startEvents);  // a staged fight in a battle-start event shows from before its first blow
@@ -339,7 +339,7 @@ void BattleScene::draw(Renderer& r) {
   }
   ensureLayout(r);
   DrawCtx ctx{battle_, view_, layout_, cam_, time_, &session_.db.styles[styleIdx_], host_.sprites(), styleIdx_,
-              &proj_, host_.isoTiles(), map3d_.get()};
+              &proj_, host_.isoTiles(), map3d_.get(), &shownMapDef()};
   bool human = humanTurn() && mode_ != Mode::Result;
   bool idleView = !view_.busy();
   r.clear(Color(0, 0, 0));

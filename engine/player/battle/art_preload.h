@@ -8,6 +8,7 @@ namespace ote {
 
 // The sheets a battle map shows at its start: its units (standing and walking pictures), its terrain, the structures on it
 // and the tileset of a hand-painted map, in the visual style `styleIndex`.
-void preloadMapArt(const Sprites& sprites, const Battle& battle, int styleIndex);
+// `map` (optional) adds the 2D isometric backdrop of that map (docs/VIEWS.md "Backdrop").
+void preloadMapArt(const Sprites& sprites, const Battle& battle, int styleIndex, const MapDef* map = nullptr);
 
 }  // namespace ote

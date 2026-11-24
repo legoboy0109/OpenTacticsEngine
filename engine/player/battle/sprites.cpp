@@ -1,8 +1,10 @@
 #include "battle/sprites.h"
 
 #include <algorithm>
+#include <cmath>
 
 #include "battle/battle_draw.h"
+#include "battle/facing_marker.h"
 #include "core/base/log.h"
 #include "platform/common/image.h"
 #include "ui/text.h"
@@ -38,9 +40,10 @@ const Look* unitArt(const DrawCtx& c, const Unit& u) {
   const GraphicsSet* set = c.battle.db->graphics.set(c.styleIndex);
   int side = shownSide(c, u);
   const int type = shownType(c, u);
-  if (!set || type < 0 || (size_t)type >= set->units.size() || side < 0 || (size_t)side >= c.battle.sides.size())
-    return nullptr;
-  const Look& look = set->units[(size_t)type].forSide(c.battle.sides[(size_t)side].id);
+  if (!set || side < 0 || (size_t)side >= c.battle.sides.size()) return nullptr;
+  const UnitLook* ul = set->unitLook(type, u.character);  // a character's own look wins (docs/GRAPHICS.md "Character looks")
+  if (!ul) return nullptr;
+  const Look& look = ul->forSide(c.battle.sides[(size_t)side].id);
   return c.sprites->has(look) ? &look : nullptr;
 }
 
@@ -97,38 +100,38 @@ void drawTerrainArt(Renderer& r, const DrawCtx& c, const Look& look, Cell cell, 
        Color(255, 255, 255));
 }
 
-UnitPic unitPic(const DrawCtx& c, const Look& look, const Unit& u) {
-  UnitPic p;
-  p.src = lookSrc(c, look);
-  p.sheet = look.sheet;
-  const WalkLook& w = look.walk;
-  if ((size_t)u.id >= c.view.units.size()) return p;
-  const UnitView& v = c.view.units[(size_t)u.id];
-  if (!w.any() || !v.walking) {
-    v.walkLogged = -1;
-    return p;
+namespace {
+const char* const kDirNames[kWalkDirs] = {"down", "up", "right", "left", "downLeft", "downRight", "upLeft", "upRight"};
+
+// A way in flat map pixels as it shows ON THE SCREEN (the isometric and 3D views turn it), from the unit's spot.
+void screenWay(const DrawCtx& c, const UnitView& v, float fdx, float fdy, float& dx, float& dy) {
+  dx = fdx;
+  dy = fdy;
+  if (!c.proj || !c.proj->raised()) return;
+  float ax, ay, bx, by;
+  c.proj->toWorld(v.px, v.py, ax, ay);
+  c.proj->toWorld(v.px + fdx, v.py + fdy, bx, by);
+  dx = bx - ax;
+  dy = by - ay;
+}
+
+// The way the unit looks, in flat map pixels: the rules' facing when the game has it (docs/SRPG.md "Facing"), else the view's own
+// (its last step, the target it struck). False when nothing is known yet.
+bool facingWay(const DrawCtx& c, const Unit& u, const UnitView& v, float& fdx, float& fdy) {
+  const int dir = shownFacing(c, u);
+  if (dir >= 0) {
+    facingEdgeVector(c.battle.grid, dir, c.proj ? c.proj->tile() : c.layout.tile, fdx, fdy);
+    return fdx != 0 || fdy != 0;
   }
-  const TextureId tex = c.sprites->texture(w.sheet);
-  if (!tex) return p;
-  // Which way it goes ON THE SCREEN: the step in flat map pixels, through the view's projection (isometric and 3D views turn it).
-  float dx = v.walkDx, dy = v.walkDy;
-  if (c.proj && c.proj->raised()) {
-    float ax, ay, bx, by;
-    c.proj->toWorld(v.px, v.py, ax, ay);
-    c.proj->toWorld(v.px + v.walkDx, v.py + v.walkDy, bx, by);
-    dx = bx - ax;
-    dy = by - ay;
-  }
-  const int dir = w.pick(dx, dy);
-  if (dir < 0) return p;
-  if (v.walkLogged != dir) {  // one debug line per change of direction (tests read it; nothing at the normal log level)
-    static const char* const kNames[kWalkDirs] = {"down", "up", "right", "left"};
-    OTE_DEBUG("walk: %s %s", u.name.c_str(), kNames[dir]);
-    v.walkLogged = dir;
-  }
+  fdx = v.faceDx;
+  fdy = v.faceDy;
+  return fdx != 0 || fdy != 0;
+}
+
+// Fills `p` with frame `cell` of direction `dir` of `w` (the picture's width relative to the standing cell: k).
+void takeFrame(const DrawCtx& c, const Look& look, const WalkLook& w, int dir, SpriteCell cell, TextureId tex, UnitPic& p) {
   const SheetDef& ws = c.battle.db->graphics.sheets[(size_t)w.sheet];
   const SheetDef& ss = c.battle.db->graphics.sheets[(size_t)look.sheet];
-  const SpriteCell cell = w.cell(dir, timeMs(c));
   p.src.tex = tex;
   p.src.x = cell.col * ws.cellW;
   p.src.y = cell.row * ws.cellH;
@@ -137,7 +140,75 @@ UnitPic unitPic(const DrawCtx& c, const Look& look, const Unit& u) {
   p.sheet = w.sheet;
   p.flip = w.mirrored[dir];
   p.k = (float)ws.cellW / (float)std::max(1, ss.cellW);
+}
+
+// A pose or the standing picture per facing (docs/GRAPHICS.md "Poses and facing"); false = it has none for now (the caller keeps
+// the standing / walking picture).
+bool posePic(const DrawCtx& c, const Look& look, const Unit& u, const UnitView& v, UnitPic& p) {
+  if (!look.poses) return false;
+  const WalkLook* w = v.pose != PoseNone ? look.poses->of(v.pose) : nullptr;
+  const bool once = w != nullptr;  // a pose plays once from its start; standing per facing loops on the running time
+  if (!w) {
+    if (v.walking && look.walk.any()) return false;  // walking: the walk frames
+    if (!look.poses->facing.any()) return false;
+    w = &look.poses->facing;
+  }
+  float fdx, fdy;
+  const bool known = facingWay(c, u, v, fdx, fdy);
+  if (!known && !once) return false;  // nothing known yet: the look's own cell / frames
+  const TextureId tex = c.sprites->texture(w->sheet);
+  if (!tex) return false;
+  float dx = 0, dy = 1;  // (a pose before any facing is known: as it is drawn looking down)
+  if (known) screenWay(c, v, fdx, fdy, dx, dy);
+  const int dir = w->pick(dx, dy);
+  if (dir < 0) return false;
+  const int logKey = v.pose * kWalkDirs + dir;
+  if (v.poseLogged != logKey) {  // one debug line per change (tests read it; nothing at the normal log level)
+    static const char* const kPose[] = {"stand", "attack", "hurt", "ko"};
+    OTE_DEBUG("pose: %s %s %s", u.name.c_str(), kPose[v.pose >= 0 && v.pose <= PoseKo ? v.pose : 0], kDirNames[dir]);
+    v.poseLogged = logKey;
+  }
+  const SpriteCell cell = once ? w->cellOnce(dir, (uint32_t)(v.poseT * 1000.0f)) : w->cell(dir, timeMs(c));
+  takeFrame(c, look, *w, dir, cell, tex, p);
+  return true;
+}
+}  // namespace
+
+UnitPic unitPic(const DrawCtx& c, const Look& look, const Unit& u) {
+  UnitPic p;
+  p.src = lookSrc(c, look);
+  p.sheet = look.sheet;
+  const WalkLook& w = look.walk;
+  if ((size_t)u.id >= c.view.units.size()) return p;
+  const UnitView& v = c.view.units[(size_t)u.id];
+  if (posePic(c, look, u, v, p)) return p;
+  if (!w.any() || !v.walking) {
+    v.walkLogged = -1;
+    return p;
+  }
+  const TextureId tex = c.sprites->texture(w.sheet);
+  if (!tex) return p;
+  // Which way it goes ON THE SCREEN: the step in flat map pixels, through the view's projection (isometric and 3D views turn it).
+  float dx, dy;
+  screenWay(c, v, v.walkDx, v.walkDy, dx, dy);
+  const int dir = w.pick(dx, dy);
+  if (dir < 0) return p;
+  if (v.walkLogged != dir) {  // one debug line per change of direction (tests read it; nothing at the normal log level)
+    OTE_DEBUG("walk: %s %s", u.name.c_str(), kDirNames[dir]);
+    v.walkLogged = dir;
+  }
+  takeFrame(c, look, w, dir, w.cell(dir, timeMs(c)), tex, p);
   return p;
+}
+
+void unitPicOffset(const DrawCtx& c, const UnitPic& pic, int drawnW, int& ox, int& oy) {
+  ox = oy = 0;
+  if (pic.sheet < 0 || pic.src.w <= 0) return;
+  const SheetDef& sh = c.battle.db->graphics.sheets[(size_t)pic.sheet];
+  if (sh.unitOffX == 0 && sh.unitOffY == 0) return;
+  // In the picture's own pixels, scaled as the picture is drawn (rounded to the nearest screen pixel).
+  ox = (int)std::lround((double)sh.unitOffX * drawnW / pic.src.w);
+  oy = (int)std::lround((double)sh.unitOffY * drawnW / pic.src.w);
 }
 
 SpriteSrc drawSrc(const DrawCtx& c, const UnitPic& pic) {
@@ -186,7 +257,9 @@ void drawUnitArt(Renderer& r, const DrawCtx& c, const Look& look, const Unit& u,
   Color mod = darker(Color(255, 255, 255), k);
   mod.a = (uint8_t)a;
   const SpriteSrc src = drawSrc(c, pic);
-  r.drawTexture(src.tex, src.x, src.y, src.w, src.h, x, y, w, h, mod);
+  int ox, oy;
+  unitPicOffset(c, pic, w, ox, oy);  // the sheet's "unitOffset" (docs/GRAPHICS.md "Unit offset")
+  r.drawTexture(src.tex, src.x, src.y, src.w, src.h, x + ox, y + oy, w, h, mod);
 }
 
 }  // namespace ote

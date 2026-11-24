@@ -36,6 +36,13 @@ struct UnitView {
   bool walking = false;
   float walkDx = 0, walkDy = 0;
   mutable int walkLogged = -1;  // the walk direction the drawing last logged for this move (-1 = none yet); only for the debug log
+  // Poses (docs/GRAPHICS.md "Poses and facing"): what it is doing (UnitPose: attack, hurt, KO; PoseNone = standing or walking) and
+  // for how long (seconds), and the way it looks in flat map pixels when the rules keep no facing: its last step or the target it
+  // struck (0, 0 = not known yet: the look's own picture). Presentation only.
+  int pose = 0;
+  float poseT = 0;
+  float faceDx = 0, faceDy = 0;
+  mutable int poseLogged = -1;  // the pose / direction the drawing last logged (debug log only; -1 = none yet)
   int rank = kRankOwn;    // the rank its map badge shows (docs/SRPG.md "Unit ranks"), as the events have played so far; kRankOwn = the unit's own
   int facing = -1;         // the direction its facing marker shows (docs/SRPG.md "Facing"), as the events have played so far; -1 = the unit's own
   std::vector<int> conds;  // the conditions its map marker shows, as the events have played so far (docs/SRPG.md section 9)

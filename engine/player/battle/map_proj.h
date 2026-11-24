@@ -98,6 +98,8 @@ class MapProj {
   // one (units walk from one hexagon to the next at different heights).
   float hexElevationAt(float fx, float fy) const;
   const std::vector<int>& elevations() const { return elev_; }
+  // The map file's height of the lowest square (elevation 0), in the raised views; 0 otherwise.
+  int lowest() const { return lowest_; }
 
   // A spot in flat map pixels -> world pixels. In the isometric view the spot
   // is lifted to the ground's elevation there.
@@ -120,6 +122,7 @@ class MapProj {
   Iso3DGeometry geo3_;
   Free3DGeometry free_;
   std::vector<int> elev_;
+  int lowest_ = 0;
 };
 
 }  // namespace ote
