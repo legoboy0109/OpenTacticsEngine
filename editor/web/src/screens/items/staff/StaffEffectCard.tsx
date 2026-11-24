@@ -11,6 +11,9 @@ import { NumberInput } from '../../../ui/NumberInput'
 import { Select } from '../../../ui/Select'
 import { TextInput } from '../../../ui/TextInput'
 import { Check } from '../../../ui/Toggle'
+import { gameHasDowned, isReviveStaff, setStaffReviveOn, setStaffReviveValue, staffRevive } from '../../../model/downed'
+import { D } from '../../downed/text'
+import { ReviveAmount } from '../../downed/ReviveAmount'
 import { StaffConditionParts } from './StaffConditionParts'
 import { StaffLightPart, StaffMovePart, StaffRepairPart } from './StaffOtherParts'
 import { StaffUnlockPart } from './StaffUnlockPart'
@@ -28,11 +31,14 @@ export function StaffEffectCard({ id }: { id: string }) {
   const canMiss = item.hit !== undefined
   const kept = keptEffectCount(item)
   const block = healBlock(item)
+  const reviving = isReviveStaff(item)
+  const showRevive = reviving || (gameHasDowned(doc) && !light && !unlock)
 
   return (
     <Card title={S.healTitle} help={S.effectsHelp} id="staff-effect">
       <div className="stack" data-testid="staff-effect">
-        {light ? <StaffLightPart id={id} /> : unlock ? <StaffUnlockPart id={id} /> : (
+        {showRevive && <Check label={D.staffOn} help={D.staffOnHelp} checked={reviving} onChange={(v) => edit((d) => setStaffReviveOn(d, id, v))} />}
+        {reviving ? <ReviveAmount formula value={staffRevive(item)} testId="staff-revive" onChange={(v, k) => edit((d) => setStaffReviveValue(d, id, v), k && `${key}:revive:${k}`)} /> : light ? <StaffLightPart id={id} /> : unlock ? <StaffUnlockPart id={id} /> : (
           <>
             <Check label={S.healOn} checked={heal.on} disabled={heal.on ? !canDropEffect(item) : block !== ''}
               help={!heal.on && block === 'foe' ? S.healNoFoe : !heal.on && block === 'full' ? S.fourMax : undefined}

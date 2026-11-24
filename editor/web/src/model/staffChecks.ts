@@ -8,6 +8,7 @@ import { mapHasFog } from './fog'
 import { CONDITION_TURNS_MAX } from './conditions'
 import { STAFF_EFFECTS_MAX, STAFF_HEAL_MAX, STAFF_RADIUS_MAX, STAFF_RANGE_MAX, STAFF_XP_MAX } from './staff'
 import { STAFF_LIGHT_TURNS_MAX, STAFF_REPAIR_MAX, repairableItems } from './staffEffects'
+import { staffReviveProblems } from './downedChecks'
 import { MOVE_KINDS, fxKind, hasFx } from './staffFx'
 import type { Extra, Item, ProjectDoc } from './types'
 
@@ -91,10 +92,11 @@ function effectProblem(doc: ProjectDoc, i: Item, e: unknown, n: number): string 
       const ok = v === true || (Array.isArray(v) && v.length > 0 && v.every((x) => x === 'door' || x === 'chest'))
       return ok ? undefined : 'unlocking must be for doors, chests or both.'
     }
+    case 'revive': return staffReviveProblems(doc, i, v, (i.effects as unknown[] | undefined)?.length === 1)[0]
     case 'inflict': return inflictProblem(doc, v, at)
     case 'cure': return cureProblem(doc, v, at)
     default:
-      return `${at} is “${kind}”, which a staff cannot do (a staff can heal, warp, pull, swap, repair, light, inflict a condition, cure or unlock).`
+      return `${at} is “${kind}”, which a staff cannot do (a staff can heal, revive, warp, pull, swap, repair, light, inflict a condition, cure or unlock).`
   }
 }
 

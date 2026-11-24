@@ -19,6 +19,9 @@ import { NumberInput } from '../../ui/NumberInput'
 import { Select } from '../../ui/Select'
 import { TextInput } from '../../ui/TextInput'
 import { Check } from '../../ui/Toggle'
+import { gameHasDowned, setAutoRevive } from '../../model/downed'
+import { D } from '../downed/text'
+import { ReviveAmount } from '../downed/ReviveAmount'
 import { BlockCard } from '../skills/BlockCard'
 import '../skills/skills.css'
 import { BehaviourCard } from './BehaviourCard'
@@ -91,10 +94,19 @@ export function ConditionForm({ id }: { id: string }) {
 
       <BehaviourCard id={id} />
 
+      {(c.autoRevive !== undefined || gameHasDowned(doc)) && (
+        <Card title={D.title}>
+          <div className="stack" data-testid="condition-auto-revive">
+            <Check label={D.conditionOn} help={D.conditionOnHelp} checked={c.autoRevive !== undefined} onChange={(on) => edit((d) => setAutoRevive(d, id, on ? { percent: 50 } : undefined))} />
+            {c.autoRevive !== undefined && <ReviveAmount formula={false} value={c.autoRevive} onChange={(v, k) => edit((d) => setAutoRevive(d, id, v as never), k && `${key}:autoRevive:${k}`)} />}
+          </div>
+        </Card>
+      )}
+
       <h2 className="skill-rules-title">{T.rulesTitle}</h2>
       <p className="help">{T.rulesHelp}</p>
       {shown.map((i, n) => (
-        <BlockCard key={i} doc={doc} block={blocks[i]} index={i} count={shown.length} forCondition canDelete={blocks.length > 1} shownNumber={n + 1}
+        <BlockCard key={i} doc={doc} block={blocks[i]} index={i} count={shown.length} forCondition canDelete={blocks.length > 1 || c.autoRevive !== undefined} shownNumber={n + 1}
           learn={n === 0 && !STARTER_IDS.has(id) ? 'condition-rule' : undefined}
           edit={(fn, k) => edit((d) => updateConditionBlock(d, id, i, fn), k && `${key}:${i}:${k}`)}
           onMove={(delta) => { const to = shown[n + delta]; if (to !== undefined) edit((d) => moveConditionBlock(d, id, i, to)) }}

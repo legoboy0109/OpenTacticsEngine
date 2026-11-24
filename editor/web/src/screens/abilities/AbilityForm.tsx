@@ -13,6 +13,7 @@ import { Select } from '../../ui/Select'
 import { TextInput } from '../../ui/TextInput'
 import { Banner } from '../../ui/Banner'
 import { Check } from '../../ui/Toggle'
+import { gameHasDowned } from '../../model/downed'
 import { hasArea, kindAllowsArea } from '../../model/abilityArea'
 import { AbilityArea } from './AbilityArea'
 import { AbilityConditions } from './AbilityConditions'
@@ -61,7 +62,7 @@ export function AbilityForm({ id }: { id: string }) {
         <div className="stack">
           <FormGrid>
             <Field label={T.effect} help={kind ? T.effectHelp[kind] : undefined}>
-              <Select value={kind ?? ''} placeholder={kind ? undefined : '—'} options={[...EFFECT_KINDS, ...(kind === NO_EFFECT || (doc.conditions?.length ?? 0) > 0 ? [NO_EFFECT] : [])].map((k) => ({ value: k, label: T.effects[k] }))}
+              <Select value={kind ?? ''} placeholder={kind ? undefined : '—'} options={[...EFFECT_KINDS.filter((k) => k !== 'revive' || kind === 'revive' || gameHasDowned(doc)), ...(kind === NO_EFFECT || (doc.conditions?.length ?? 0) > 0 ? [NO_EFFECT] : [])].map((k) => ({ value: k, label: T.effects[k] }))}
                 onChange={(v) => change((a) => setEffectKind(doc, a, v as (typeof EFFECT_KINDS)[number]))} />
             </Field>
             {!strike && (

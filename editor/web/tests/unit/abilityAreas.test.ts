@@ -239,7 +239,7 @@ describe('the area checks (each says what the loader refuses)', () => {
   it('the effect and the target', () => {
     expect(one({ id: 's', name: 'S', target: 'unit', effect: { strike: 'x' }, area: { shape: 'burst' } })).toEqual(['S: a strike takes its area from the weapon. Leave out the area.'])
     for (const e of [{ push: 1 }, { pull: true }, { swap: true }, { summon: { type: 'a' } }, { unlock: true as const }, { steal: true as const }, { refresh: true as const }] as Ability['effect'][])
-      expect(one({ id: 'p', name: 'P', target: 'ally', effect: e, area: { shape: 'burst' } })).toEqual(['P: an area goes with healing, curing (or both) or an ability that only gives a condition. It cannot push, pull, swap, summon, unlock, steal or refresh.'])
+      expect(one({ id: 'p', name: 'P', target: 'ally', effect: e, area: { shape: 'burst' } })).toEqual(['P: an area goes with healing, curing (or both), reviving or an ability that only gives a condition. It cannot push, pull, swap, summon, unlock, steal or refresh.'])
     const needsUnit = 'Mend: an area needs the target to be an ally, an enemy or any unit (who in the area is affected). A reach of 0 to 0 centres it on the unit.'
     expect(one(area({ shape: 'burst' }, { target: 'self' }))).toEqual([needsUnit])
     expect(one({ id: 'c', name: 'C', target: 'cell', effect: { cure: 'all' }, area: { shape: 'burst' } })).toContain(needsUnit.replace('Mend', 'C'))

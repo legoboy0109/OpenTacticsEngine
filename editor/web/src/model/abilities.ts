@@ -9,8 +9,8 @@ import { moveItem, patchObj, updateById } from './util'
 import type { Ability, AbilityEffect, AbilityTarget, StealOptions, Summon } from './srpgTypes'
 import type { CureValue, Extra, ProjectDoc } from './types'
 
-export type EffectKind = 'push' | 'pull' | 'swap' | 'moveBehind' | 'movePast' | 'heal' | 'summon' | 'steal' | 'refresh' | 'cure' | 'unlock' | 'strike' | 'none'
-export const EFFECT_KINDS: EffectKind[] = ['push', 'pull', 'swap', 'moveBehind', 'movePast', 'heal', 'summon', 'steal', 'refresh', 'cure', 'unlock', 'strike']
+export type EffectKind = 'push' | 'pull' | 'swap' | 'moveBehind' | 'movePast' | 'heal' | 'summon' | 'steal' | 'refresh' | 'cure' | 'unlock' | 'strike' | 'revive' | 'none'
+export const EFFECT_KINDS: EffectKind[] = ['push', 'pull', 'swap', 'moveBehind', 'movePast', 'heal', 'summon', 'steal', 'refresh', 'cure', 'unlock', 'strike', 'revive']
 /** 'none' = no "effect" key at all: the ability only gives a condition ("inflict"). Not in EFFECT_KINDS (those are the kinds with a key of their own). */
 export const NO_EFFECT: EffectKind = 'none'
 /** The five that move units next to the user: the loader needs a unit target and the range [1, 1]. */
@@ -31,6 +31,8 @@ export const TARGETS_FOR: Record<Exclude<EffectKind, 'none'>, AbilityTarget[]> =
   heal: ['self', 'ally', 'unit'], summon: ['cell'], steal: ['enemy'], refresh: ['ally'], cure: ['self', 'ally', 'enemy', 'unit'], unlock: ['cell'],
   /** A strike has no target of its own: the weapon decides whom it hits and how far (the loader refuses "target" and "range"). */
   strike: [],
+  /** Stands a downed unit up (model/downed.ts): an ally or any unit, never itself, an enemy or a square. */
+  revive: ['ally', 'unit'],
 }
 
 /** What an ability with only an inflict may be aimed at: any unit (not a square). */
@@ -106,6 +108,7 @@ const defaultEffect = (k: EffectKind): AbilityEffect => {
     case 'cure': return { cure: 'all' }
     case 'unlock': return { unlock: true }
     case 'strike': return { strike: '' }
+    case 'revive': return { revive: { percent: 50 } }
     case 'none': return {}
   }
 }

@@ -3,6 +3,7 @@
 import { conditionsText } from './abilityConditions'
 import { areaOf } from './abilityArea'
 import { inflictEntries } from './abilityInflicts'
+import { reviveWithText } from './downed'
 import { effectKind, healKind, refreshPerTurn, rangeOf, stealOf, summonOf, targetOf, unlockOf } from './abilities'
 import type { Ability } from './srpgTypes'
 import type { ProjectDoc } from './types'
@@ -79,6 +80,10 @@ function whatText(doc: ProjectDoc, a: Ability): string {
       const h = e.heal
       const how = healKind(a) === 'full' ? 'fully' : healKind(a) === 'percent' ? `by ${(h as { percent: number }).percent}% of its maximum` : healKind(a) === 'formula' ? `by a formula (${String(h)})` : `by ${h ?? 0}`
       return `heals ${whom(a)} ${how}${'cure' in e ? `, then ${cureText(doc, a, 'them')}` : ''}`
+    }
+    case 'revive': {  // only downed units are affected, so the words say so
+      const who = whom(a).replace(/^an? (ally|unit)\b/, 'a downed $1').replace(/^every (ally|unit|enemy)\b/, 'every downed $1')
+      return `revives ${who}${reviveWithText(e.revive) ? ` ${reviveWithText(e.revive)}` : ''}`
     }
     case 'strike': {
       const w = typeof e.strike === 'string' ? (doc.weapons?.find((x) => x.id === e.strike)?.name ?? e.strike) : ''

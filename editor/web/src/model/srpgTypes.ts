@@ -61,6 +61,8 @@ export interface Condition extends Named {
   kind?: 'harmful' | 'helpful'
   /** "turnsLeft": the numbers of its always rules (stats, growths, sight, staff reach, carrying) count as many times as it has turns left (docs/SRPG.md "Effects that fade"). */
   scale?: 'turnsLeft'
+  /** Needs rules.downed: a unit that would be downed stands up at once with this much HP and the condition ends (1 to 999, "full" or { percent }). */
+  autoRevive?: number | 'full' | { percent: number }
   replaces?: string[]
   blocks?: Extra[]
 }
@@ -76,6 +78,8 @@ export interface Summon extends Extra {
 export interface StealOptions extends Extra { if?: string; reason?: string; weapons?: boolean; equipped?: boolean }
 export interface AbilityEffect extends Extra {
   push?: number; pull?: boolean; swap?: boolean; moveBehind?: boolean; heal?: number | 'full' | { percent: number } | string; summon?: Summon
+  /** Needs rules.downed; the only key of the effect (model/downed.ts). */
+  revive?: number | 'full' | { percent: number } | string
   /** The id of a weapon of weapons.json: the ability attacks with it (docs/SRPG.md "Abilities that strike"). */
   strike?: string
   steal?: true | StealOptions; refresh?: true | { perTurn: number }; movePast?: boolean; cure?: CureValue

@@ -6,6 +6,9 @@ import { KeyNumberTable } from '../../ui/KeyNumberTable'
 import { NumberInput } from '../../ui/NumberInput'
 import { Select } from '../../ui/Select'
 import { Check } from '../../ui/Toggle'
+import { gameHasDowned, setItemRevive, setItemReviveValue } from '../../model/downed'
+import { D } from '../downed/text'
+import { ReviveAmount } from '../downed/ReviveAmount'
 import { ItemConditionFields } from './ItemConditionFields'
 import { ItemKeyPart } from './ItemKeyPart'
 import { ItemTorch } from '../fog/LightParts'
@@ -21,12 +24,21 @@ export function ItemKindFields({ id }: { id: string }) {
 
   if (item.kind === 'usable') {
     const full = item.heal === 'full'
+    const reviving = item.revive !== undefined
+    const showRevive = reviving || gameHasDowned(doc)  // hidden while the game has no downed units, so a game that does not use them sees nothing new
     return (
       <div className="stack">
         <Field label={T.target} help={T.targetHelp}>
           <Select value={item.target ?? 'self'} options={[{ value: 'self', label: T.targetSelf }, { value: 'ally', label: T.targetAlly }]}
             onChange={(v) => edit((d) => setTarget(d, id, v as 'self' | 'ally'))} />
         </Field>
+        {showRevive && (
+          <>
+            <Check label={D.itemOn} help={D.itemOnHelp} checked={reviving} onChange={(v) => edit((d) => setItemRevive(d, id, v))} />
+            {reviving && <ReviveAmount formula={false} value={item.revive} testId="item-revive" onChange={(v, k) => edit((d) => setItemReviveValue(d, id, v as never), k && `${key}:revive:${k}`)} />}
+          </>
+        )}
+        {!reviving && <>
         <Field label={T.heals} help={T.healsHelp}>
           <NumberInput data-learn="item-heal" aria-label={T.healsAmount} value={typeof item.heal === 'number' ? item.heal : undefined} min={1} max={1000000} allowEmpty disabled={full}
             onChange={(v) => edit((d) => setHeal(d, id, v), `${key}:heal`)} />
@@ -37,6 +49,7 @@ export function ItemKindFields({ id }: { id: string }) {
         <ItemConditionFields id={id} />
         <ItemKeyPart id={id} />
         <ItemTorch id={id} />
+        </>}
       </div>
     )
   }

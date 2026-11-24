@@ -48,7 +48,7 @@ export function moveItemInList(doc: ProjectDoc, from: number, to: number): Proje
 }
 
 /** Fields that only make sense for one kind; the loader refuses them on the others. */
-const KIND_FIELDS: Record<ItemKind, string[]> = { usable: ['target', 'heal', 'raise', 'promotes', 'opens'], weapon: ['weapon'], accessory: ['bonus', 'skills'], staff: STAFF_KEYS }
+const KIND_FIELDS: Record<ItemKind, string[]> = { usable: ['target', 'heal', 'revive', 'raise', 'promotes', 'opens'], weapon: ['weapon'], accessory: ['bonus', 'skills'], staff: STAFF_KEYS }
 
 /** Switches the kind and drops what belonged to the old one. The new kind starts with what makes it valid where that
  *  can be guessed (a heal amount, the first weapon); an accessory's bonus is left for the maker to fill in. */

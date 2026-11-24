@@ -8,6 +8,8 @@ import type { Ability } from '../../model/srpgTypes'
 import { Field } from '../../ui/Field'
 import { NumberInput } from '../../ui/NumberInput'
 import { Check } from '../../ui/Toggle'
+import { setAbilityReviveValue } from '../../model/downed'
+import { ReviveAmount } from '../downed/ReviveAmount'
 import { AbilityCurePicker } from './AbilityCurePicker'
 import { T } from './text'
 
@@ -57,6 +59,7 @@ export function AbilityEffectFields({ ability, change }: FormProps) {
       </Field>
     )
   }
+  if (kind === 'revive') return <ReviveAmount formula value={ability.effect?.revive} testId="ability-revive" onChange={(v, k) => change((a) => setAbilityReviveValue(a, v), k)} />
   if (kind === 'cure') return <AbilityCurePicker ability={ability} change={change} />
   if (kind === 'push') {
     return (
