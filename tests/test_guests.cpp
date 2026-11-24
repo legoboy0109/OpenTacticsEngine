@@ -269,3 +269,12 @@ TEST(guest_battle_plays_the_same_twice) {
   CHECK(a == b);
   CHECK(a.size() > 10);
 }
+
+TEST(guest_with_advance_walks_towards_the_foe) {
+  World w(make("guest_walk", guestOpts("{\"type\":\"mage\",\"id\":\"hero\",\"side\":\"blue\",\"x\":1,\"y\":2},"
+                                       "{\"type\":\"knight\",\"id\":\"ritz\",\"side\":\"blue\",\"x\":1,\"y\":0,\"guest\":true,\"behaviour\":\"advance\"},"
+                                       "{\"type\":\"brigand\",\"id\":\"bandit\",\"side\":\"red\",\"x\":8,\"y\":0}")));
+  const int before = w.b().grid.x(w.unit("ritz").cell);
+  playGuests(w.b(), w.events);
+  CHECK(w.b().grid.x(w.unit("ritz").cell) > before);
+}
