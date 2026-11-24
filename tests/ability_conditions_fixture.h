@@ -47,6 +47,8 @@ struct Opts {
                       "{\"type\":\"knight\",\"id\":\"pal\",\"side\":\"blue\",\"x\":0,\"y\":1},"
                       "{\"type\":\"brigand\",\"id\":\"bandit\",\"side\":\"red\",\"x\":3,\"y\":1}";
   bool blueAi = false;  // the computer plays blue too
+  std::string rules;     // more members of game.json "rules", each ending with "," (e.g. "\"progression\":{\"enabled\":true},")
+  std::string mapExtra;  // more keys of the map, each ending with "," (e.g. "\"heights\":[...],")
 };
 
 inline std::string make(const char* name, const Opts& o = Opts()) {
@@ -57,7 +59,7 @@ inline std::string make(const char* name, const Opts& o = Opts()) {
                       "{ \"formatVersion\": 1, \"name\": \"Acf\", \"view\": {\"width\":480,\"height\":270,\"tileSize\":24},"
                       " \"stats\": [{\"id\":\"hp\"},{\"id\":\"atk\"},{\"id\":\"def\"},{\"id\":\"mag\"},{\"id\":\"res\"},{\"id\":\"mov\"}],"
                       " \"roles\": {\"hp\":\"hp\",\"move\":\"mov\"}, \"moveTypes\": [{\"id\":\"foot\"}],"
-                      " \"rules\": { \"defeat\": [\"noUnits\"], \"counterAttacks\": true, \"items\": {\"weapons\":\"carried\",\"inventorySize\":4} },"
+                      " \"rules\": { " + o.rules + "\"defeat\": [\"noUnits\"], \"counterAttacks\": true, \"items\": {\"weapons\":\"carried\",\"inventorySize\":4} },"
                       " \"formulas\": {\"damage\":\"a.atk - b.def\",\"hit\":\"100\",\"crit\":\"0\"},"
                       " \"maps\": [{\"id\":\"field\",\"name\":\"Field\",\"file\":\"maps/field.json\"}] }"));
   CHECK(writeTextFile(root + "/data/terrain.json", "{ \"terrain\": [{\"id\":\"plain\"}] }"));
@@ -77,7 +79,7 @@ inline std::string make(const char* name, const Opts& o = Opts()) {
                       "\"wields\":[\"blade\"],\"items\":[\"iron_sword\"],\"abilities\":" + o.brigandAbilities + "}] }"));
   CHECK(writeTextFile(root + "/maps/field.json",
                       std::string("{ \"name\": \"Field\", \"grid\": {\"type\":\"square\",\"width\":9,\"height\":3}, \"legend\": {\".\":\"plain\"},"
-                                  " \"tiles\": [\".........\",\".........\",\".........\"],"
+                                  " \"tiles\": [\".........\",\".........\",\".........\"]," + o.mapExtra +
                                   " \"sides\": [{\"id\":\"blue\",\"controller\":\"") + (o.blueAi ? "ai" : "human") + "\"},{\"id\":\"red\",\"controller\":\"ai\"}],"
                       " \"units\": [" + o.units + "] }"));
   return root;
