@@ -136,7 +136,7 @@ TEST(staves2_loader_refusals_for_light) {
   CHECK(saysIn(itemsError("s2_l11", at, "\"hit\": 50, " + at), "so there is no unit to roll \"hit\" for"));
   CHECK(saysIn(itemsError("s2_l12", at, "\"if\": [ { \"hp\": 5 } ], " + at), "so there is no unit for \"if\" to judge"));
   CHECK(saysIn(itemsError("s2_l13", at, "\"xp\": 5, " + at), ""));  // an experience reward is fine
-  CHECK(saysIn(itemsError("s2_l14", kLantern, "{ \"glow\": 1 }"), "unknown effect \"glow\" (a staff can: heal, warp, pull, swap, repair, light, inflict, cure, unlock)"));
+  CHECK(saysIn(itemsError("s2_l14", kLantern, "{ \"glow\": 1 }"), "unknown effect \"glow\" (a staff can: heal, warp, pull, swap, repair, light, inflict, cure, unlock, revive)"));
 }
 
 TEST(staves2_a_light_is_saved_while_it_lasts_and_an_old_save_loads) {

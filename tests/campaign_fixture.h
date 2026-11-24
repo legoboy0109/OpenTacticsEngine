@@ -127,6 +127,7 @@ struct Game {
   Database db;
   Formulas formulas;
   std::string dir;
+  std::string gameJson;  // replaces game.json when set (the downed-unit tests add rules.downed)
   std::string keepJson;  // replaces the keep map when set
   std::string fordJson, millJson;  // replace the ford / mill maps when set (maps whose units are characters, docs/SRPG.md)
   std::string researchJson;  // data/research.json when set (else the game has no research)
@@ -138,7 +139,7 @@ struct Game {
     dir = savetest::tempFolder(folder);
     makeDir(dir + "/data");
     makeDir(dir + "/maps");
-    bool ok = write(dir + "/game.json", kGameJson) && write(dir + "/data/weapons.json", kWeapons) &&
+    bool ok = write(dir + "/game.json", gameJson.empty() ? std::string(kGameJson) : gameJson) && write(dir + "/data/weapons.json", kWeapons) &&
               write(dir + "/data/terrain.json", kTerrain) && write(dir + "/data/units.json", kUnits) &&
               write(dir + "/data/items.json", kItems) && write(dir + "/maps/ford.json", fordJson.empty() ? fordMap() : fordJson) &&
               write(dir + "/maps/mill.json", millJson.empty() ? millMap() : millJson) && write(dir + "/maps/keep.json", keepJson.empty() ? keepMap() : keepJson) &&
