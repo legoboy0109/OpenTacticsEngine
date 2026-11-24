@@ -1490,7 +1490,8 @@ once.
 | `{ "summon": { … } }` | `cell` | a new unit appears on the square (below) |
 
 Refusals (all start `data/abilities.json: ability "<id>": `): `"target" must be "self", "ally", "enemy", "unit" or
-"cell"`; `"effect" needs exactly one of push, pull, swap, moveBehind, heal, summon, unlock, steal, refresh, movePast, cure`; `"push" moves a neighbour:
+"cell"`; `"effect" needs exactly one of push, pull, swap, moveBehind, heal, summon, unlock, steal, refresh, movePast, cure` (heal and cure may go
+together, and heal / cure / inflict-only abilities may have an `area`: section 11 "Areas and several effects for abilities"); `"push" moves a neighbour:
 "range" must be [1, 1]`; `"summon" needs "target": "cell"`; `"heal" cannot target "enemy" or "cell"`; `"cost" must be
 "action" or "free"`; `"uses" must be from 1 to 99`; `"cooldown" must be from 1 to 99`; `"summon": unknown unit type
 "x"`; `"summon": "limit" must be from 1 to 20`; `"summon": "lifetime" must be from 0 to 99`; `"summon": "level" must
@@ -2877,8 +2878,9 @@ conditions" below); **possible** = already expressible, with how; **not built** 
 | Damage plus a condition (one target or an area) | possible, **chance built** | A strike ability's `inflict` hits every unit the strike hit (area too); the weapon's own `inflict` has a `chance`. The ability's `inflict` now takes `chance` too |
 | Cure one condition, a list, or all | possible | `"effect": { "cure": ["poison"] }` / `"all"` (abilities, staves, items, skills) |
 | Cure every *harmful* condition (esuna) / strip every *helpful* one (dispel) | **built** | condition `"kind": "harmful"` (default) or `"helpful"`; a cure list may be `"harmful"` / `"helpful"`; a cure ability may target an enemy or any unit |
-| Heal and cure in one ability (first-aid style) | not built | an ability has one effect; needs a second-effect rule (order, legality when only one part would act). Small, left for the owner |
-| Status / heal / cure abilities with an area | not built | only strike abilities have areas (their weapon's). An area for other effects needs the area pick, forecast and AI for non-strike abilities |
+| Heal and cure in one ability (first-aid style) | **built** | `"effect": { "heal": 10, "cure": ["poison"] }`: heal first, then cure; usable when either part would act (section 11 "Areas and several effects for abilities") |
+| Two conditions in one ability (Protect + Shell) | **built** | `"inflict": [ { "condition": "protect" }, { "condition": "shell" } ]`: each entry with its own turns and chance, rolled in list order |
+| Status / heal / cure abilities with an area | **built** | `"area": { "shape": "radius", "radius": 1 }` on a heal, cure or inflict-only ability: every unit the `target` accepts in the area, in unit-id order; range may start at 0 (section 11 "Areas and several effects for abilities"). Harmful status spells may also stay strike abilities with a weapon area |
 | Revive a defeated unit | not built | a defeated unit leaves the board at once; there is no "down but on the map" state. Needs a design (a downed state: occupancy, win checks, saves, AI, a `revive` effect) |
 | Drain (damage that heals the user) | possible | the strike weapon's `strike` block `{ "drain": 100 }` |
 | Protect / shell (less damage from physical / magic) | possible | a condition with a `combat` block `"if": [ { "weaponKind": "physical", "who": "foe" } ], "do": [ { "damageTakenPercent": 66 } ]` (the weapon's `damageKind`) |
@@ -3356,6 +3358,92 @@ squares, the battle scene, the computer's scoring and the formulas' `w` all see 
 An ability's `"heal"` also takes `{ "percent": 30 }` (1 to 100 of the target's maximum HP, at least 1) and a **formula** (text): `"heal": "a.mag * 3"` (`a`
 = the user, `b` = the unit healed; rounded down, below 0 counts as 0). `"full"` and whole numbers stay. Refused: `"heal" must be a whole number from 1 to
 999, "full", { "percent": 1 to 100 } or a formula`; a formula that does not compile, with the Lua message.
+
+### Areas and several effects for abilities
+
+Two additions for heal, cure and status abilities (a port of a game whose white magic and status spells hit an area and whose techniques do two
+things at once: Cura, Esuna, Barrier = Protect + Shell, First Aid = heal + cure). A game that writes none of the new keys loads, plays, rolls,
+saves and hashes exactly as before. Harmful status spells with an area are still written as zero-damage strike abilities with a weapon area
+("Abilities that strike"); that path is unchanged.
+
+```jsonc
+{ "id": "cura", "name": "Cura", "target": "unit", "range": [0, 4], "effect": { "heal": "a.mag * 3" },
+  "area": { "shape": "radius", "radius": 1 }, "spend": { "mp": 10 } },              // everyone hurt in a diamond of radius 1
+{ "id": "esuna", "name": "Esuna", "target": "ally", "range": [0, 3], "effect": { "cure": "harmful" }, "area": { "shape": "radius", "radius": 1 } },
+{ "id": "barrier", "name": "Barrier", "target": "ally", "range": [1, 3],
+  "inflict": [ { "condition": "protect" }, { "condition": "shell" } ] },          // two conditions, no area
+{ "id": "first_aid", "name": "First Aid", "target": "unit", "range": [1, 1], "effect": { "heal": 10, "cure": ["poison", "blind"] } },
+{ "id": "chakra", "name": "Chakra", "target": "ally", "range": [0, 0], "effect": { "heal": 20, "cure": "harmful" },
+  "area": { "shape": "burst" } },                                                   // centred on the user
+{ "id": "devil_gaze", "name": "Devil Gaze", "target": "enemy", "range": [1, 3],
+  "inflict": [ { "condition": "sleep", "chance": 40 }, { "condition": "confuse", "chance": "a.mag + 20 - b.res" } ] }
+```
+
+**An area (`"area"`).** On an ability whose effect is `heal`, `cure`, heal and cure together, or none (only `inflict`). The object has a weapon area's
+shape keys (`shape`: `burst`, `radius`, `cross`, `line`; `radius` / `length` 1 to 8; the squares come from the same `areaCells()`, so a radius is a diamond on
+squares and a hexagon on hexagons) and `vertical` (height rules only: squares more than that many levels above or below the aimed one are left out). There is
+no `friendlyFire` and no `apExtra`: the ability's `target` says who in the area is acted on.
+
+- **Aiming.** The ability aims at a **square** within `range`, empty or not. With an area `range` may start at **0**, the user's own square: `[0, 0]` is
+  "centred on the user", `[0, 4]` "anywhere up to 4 away, the user's square too". A `line` needs a direction, so it covers nothing aimed at the user's own
+  square or off the straight lines of the grid. Fog: any square in range may be aimed at, as for a summon.
+- **Who is acted on.** Every unit standing in the area that the ability's `target` accepts: `"ally"` = units of the user's team, **the user included** when it
+  stands in the area; `"enemy"` = units of the other teams; `"unit"` = everyone, the user included. `"self"` and `"cell"` are refused with an area
+  (`"range": [0, 0]` is the way to centre one on the user). Of those, only the ones the ability would **change** are acted on: hurt (heal), having something it
+  cures (cure), either (heal and cure), at least one condition that could take hold (inflict only: not immune, not had already for as long). A unit at full HP
+  in a Cura is simply left out.
+- **Legality.** The square is legal when at least one such unit is one **the user's team sees**; otherwise `nobody there would be affected` (out of range:
+  `that square is out of range`). Units in fog that pass the test are acted on all the same (as an area attack hits them) but never make a square legal, are
+  never listed and never counted by the computer. The ability's other rules (uses, cooldown, price, `afterMove`, `if` about the user) are unchanged; `if`
+  conditions with `"who": "foe"` are refused (there is no one target unit).
+- **Order.** The units are acted on in **unit-id order**; for each: the heal, then the cure, then each `inflict` entry in list order (each with its own roll
+  when it has a `chance`). So the random numbers are used in a fixed order: one roll per unit per entry that has a chance and could take hold.
+- **Events.** `AbilityUsed` (a = user, b = ability, c = -1, d = the aimed square) with the flag `kArea` and `data` = the units acted on, in order; then for each
+  unit its `UnitHealed`, `ConditionEnded` (cured) and `ConditionApplied` / `ConditionResisted` entries. Supports count a heal of each other unit as for a single
+  heal.
+- **Experience.** `xp` is paid **once per use** (in a formula `b` is the first unit acted on), not per unit.
+- **Charged** (speed turn order): an area ability keeps the **square** it was aimed at (as an area strike does): when it goes off, whoever passes the test then
+  is acted on; with nobody there it fizzles. `"chargeTargets": "unit"` is refused with an area (`an ability with an "area" keeps the square it aims at`).
+- **Player.** Choosing the ability opens a square pick (the legal squares blue); the highlighted square's area is tinted red and the hint line says who
+  gets what: `Cura: 3 units (Rook +12 HP, Mia +8 HP cured, ...)` (first two units, then `...`; a condition with a chance shows it, `Sleep 50%`). The ability's
+  line in the unit details reads `Heals 10 HP (area: radius 1)`, its target `a square (allies in the area)`.
+- **Computer opponent**: docs/AI.md "Abilities with an area".
+
+**Heal and cure together.** `"effect": { "heal": <any heal>, "cure": <any cure list> }` (the only two effects that may go together). The heal goes first,
+then the cure. The target rules are the heal's (`self`, `ally`, `unit`). It may be used on a unit that is hurt **or** has something it cures; with neither it
+is refused (`that unit needs neither healing nor a cure`; on itself `nothing to heal or cure`). Its line reads `Heals 10 HP and cures Poison, Blind`. With an
+area each unit gets what applies to it. The computer heals with it as with any heal (docs/SRPG.md section 4 "AI") and also weighs its cure like a cure ability.
+
+**Several conditions.** `"inflict"` may be a list of 1 to 8 entries, each the single form (`condition`, optional `turns` and `chance`); a single object stays one
+entry, exactly as before. Each entry is judged and rolled on its own, in list order, after the effect: an immune target gets `ConditionResisted` for that entry
+and no roll, one that has it for as long already is skipped, a miss is `ConditionResisted` with `kMissed`; the others still go on. An ability with only
+`inflict` may be used on a unit when **at least one** entry could take hold (`that unit is immune` when it is immune to all, else `that unit already has them`).
+An entry's condition may change the next one's chances (an earlier one that `replaces` or gives immunity), which is why the order is the list's. The chance
+of entry `k`: `Battle::abilityInflictChance(user, ability, target, from, k)`. The pick hint names every entry that rolls (`Sleep 40%, Confuse 55%`), the
+ability's line `Inflicts Sleep (40%) and Confuse (a chance)`. A strike's own `inflict` may be a list too (each entry on every unit it hit).
+
+**Loader refusals** (all start `data/abilities.json: ability "<id>": `): `"area" goes with "heal", "cure" (or both) or an ability with only "inflict"; it cannot
+push, pull, swap, summon, unlock, steal or refresh`; `"strike" takes its area from the weapon: leave out "area"`; `"area" needs "target" "ally", "enemy" or "unit"
+(who in the area is affected); "range": [0, 0] centres it on the user`; `"area"."friendlyFire" is for weapons: ...`; `"area"."apExtra" is for weapons ...`;
+`"area" has an unknown key "x" (an ability's area takes shape, radius, length, vertical)`; the weapon area's shape, radius and length messages;
+`"area"."vertical" needs "rules": { "height": ... } in game.json`; `"range" must be [min, max]: whole numbers from 0 to 20 (0 = the user's own square), min
+not above max` (with an area; without one the minimum stays 1); an `if` condition with `"who": "foe"` (the message ends `in an ability with an "area" (it has no one target unit)`); `an ability with an "area" keeps the
+square it aims at: "chargeTargets" must be "cell"`; `"effect" needs exactly one of ... (only heal and cure may go together)`; `"inflict" must be one condition
+entry or a list of 1 to 8 ...`; `"inflict" names "x" twice (one entry per condition)`; an entry's own errors start `entry 2: "inflict" ...`.
+
+**Saves and hash.** Nothing new is saved (conditions, HP and a charged action's square were saved already). `data/abilities.json` is hashed whole, so only a
+game that writes the keys changes its data hash. **Editor**: docs/EDITOR_UI.md "Abilities: areas and several effects". Code: `data/loader_ability_area.cpp`
+(`area`, the inflict list), `data/loader_weapon_area.cpp` (`readAreaShape`, shared), `battle/ability_area.cpp` (who, the forecast, carrying it out),
+`battle/ability_conditions.cpp` (the entries' rolls), `ai/ai_ability_area.cpp`, player `battle/unit_info_ability_area.cpp`. Tests: `tests/test_ability_areas.cpp`
+(every rule and refusal, the rolls, height, experience, the words), `tests/test_ability_areas_ai.cpp` (the computer, charged areas and their save, the same game
+twice), `tests/ability_area_player_test.py` (the pick, the hint, the red area, the use), `tests/editor_api_ability_area_checks.py` (the editor server keeps every
+key; the loader names the refusals).
+
+**Owner decisions (placeholders; any may change):** the key names `area` (and its sub-keys, as a weapon's), `inflict` as a list, heal and cure side by side in
+`effect`; `"ally"` and `"unit"` areas include the user; range 0 = the user's square (only with an area); only units the ability would change are acted on (a
+full-HP unit is left out of a Cura); order = unit id, then heal, cure, conditions; `xp` once per use; a charged area keeps its square; the player's words
+`Cura: 3 units (...)`, `(area: radius 1)`, `a square (allies in the area)`, `Heals 10 HP and cures ...`, `Inflicts A and B`, `that unit needs neither healing nor a
+cure`, `that unit already has them`, `nobody there would be affected`.
 
 ### Unit resources (MP and the like)
 

@@ -561,6 +561,25 @@ chance it takes hold (the ability's `chance`, its formula worked out for that ta
 `abcond_ai_cures_harmful_on_allies_and_strips_helpful_from_foes`, `abcond_ai_play_is_the_same_twice`). Code: `ai/ai_conditions.cpp`, `ai/ai_abilities.cpp` (the cure pick),
 `ai/ai_strike.cpp`.
 
+### Abilities with an area
+
+Heal, cure and status abilities with an `"area"` (docs/SRPG.md "Areas and several effects for abilities") are scored at every square the unit can stand on, for
+every square in range they may be aimed at, after its attacks, strikes and status abilities. A use is worth the **sum** over the units it would act on that the
+unit's team **sees** (units in fog are never counted):
+
+- HP restored: the share of the unit's maximum times its value (as a staff's heal);
+- a cure: a quarter of the unit's value, once, when it frees its own team of a harmful condition or strips a foe of a helpful one;
+- each `inflict` entry: its worth as for a status ability (the condition's `kind` decides the side, times its chance).
+
+Whatever helps a foe or harms its own team counts **against** the use with the same weight (a `"unit"` heal that also heals two foes, a curse that catches an
+ally), and a total of 0 or less is never used, so an area is never wasted. A leader whose defeat ends the game counts double; a priced one (`spend`) is worth
+10 % less. The best total beats the order found so far only by its own worth, minus the danger of the square, plus the base an attack gets (as for status
+abilities); on an equal score the earlier order stays. Charged ones are not used (as for every ability). An ability without an area that heals **and** cures is
+used as a heal and also weighed as a cure; an `inflict` list is the sum of its entries. A game without area abilities plays move for move as before.
+
+**Tests.** `tests/test_ability_areas_ai.cpp` (heals the hurt in an area, never wastes one, waits rather than help foes, the Barrier list, the same game twice,
+charged areas). Code: `ai/ai_ability_area.cpp`, `ai/ai_conditions.cpp` (`inflictsWorth`, the cure part).
+
 ### Tests
 
 `tests/test_ai_behaviour.cpp` (rules, square and hex), `tests/test_ai_behaviour_data.cpp` (loader, commands, saves; fixture `tests/ai_behaviour_fixture.h`),
