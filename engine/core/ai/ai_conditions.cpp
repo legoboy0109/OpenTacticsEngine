@@ -39,7 +39,7 @@ double conditionWorth(const Battle& b, const Unit& user, const Unit& t, int cond
 }
 
 double cureWorth(const Battle& b, const Unit& user, const Unit& t, const AbilityDef& d) {
-  if (!t.alive || d.effect != AbilityEffect::Cure) return 0;
+  if (!t.alive || (d.effect != AbilityEffect::Cure && !d.healCures)) return 0;
   const bool foe = b.isEnemy(user, t);
   bool any = false;  // something it takes off that is worth taking: a curse from its own team, a blessing from a foe
   for (const ConditionState& cs : t.conditions)
@@ -51,13 +51,21 @@ double cureWorth(const Battle& b, const Unit& user, const Unit& t, const Ability
   return v;
 }
 
+double inflictsWorth(const Battle& b, const Unit& user, const Unit& t, int ability, Cell from) {
+  const AbilityDef& d = b.db->abilities[(size_t)ability];
+  double worth = 0;
+  for (size_t k = 0; k < d.inflicts.size(); ++k)  // every entry of a list, each by its own chance (one entry = the old single inflict)
+    worth += conditionWorth(b, user, t, d.inflicts[k].cond, d.inflicts[k].turns, b.abilityInflictChance(user.id, ability, t.id, from, (int)k));
+  return worth;
+}
+
 double strikeInflictWorth(const Battle& b, const Unit& u, int ability, const AttackOption& o, Cell s) {
   const AbilityDef& d = b.db->abilities[(size_t)ability];
-  if (d.inflictCond < 0) return 0;
+  if (d.inflicts.empty()) return 0;
   double worth = 0;
   auto add = [&](int target, int hit) {
     const Unit& t = b.units[(size_t)target];
-    worth += conditionWorth(b, u, t, d.inflictCond, d.inflictTurns, b.abilityInflictChance(u.id, ability, target, s)) * (hit / 100.0);
+    worth += inflictsWorth(b, u, t, ability, s) * (hit / 100.0);
   };
   if (o.area) {
     AreaForecast f;
@@ -81,13 +89,14 @@ void considerStatusAbilities(const Battle& b, const Unit& u, Cell s, int travel,
   for (const AbilityOption& o : menu) {
     if (!o.ok || b.abilityCharges(o.ability)) continue;
     const AbilityDef& d = b.db->abilities[(size_t)o.ability];
-    const bool cure = d.effect == AbilityEffect::Cure;
-    if (!cure && (d.effect != AbilityEffect::None || d.inflictCond < 0)) continue;
+    if (d.area.on()) continue;  // areas: ai_ability_area.cpp
+    // A cure, a heal that also cures (worth its cure here; the heal itself is the older emergency rule, ai_abilities.cpp), or only "inflict".
+    const bool cure = d.effect == AbilityEffect::Cure || d.healCures;
+    if (!cure && (d.effect != AbilityEffect::None || d.inflicts.empty())) continue;
     if (d.free && s != u.cell) continue;  // a free ability is used on the spot, before any move
     b.abilityTargets(u.id, o.ability, s, targets, cells);  // (only units it would change: abilityTargetOk refuses "immune", "has it already", "nothing to cure")
     for (int t : targets) {
-      double sc = cure ? cureWorth(b, u, b.units[(size_t)t], d)
-                       : conditionWorth(b, u, b.units[(size_t)t], d.inflictCond, d.inflictTurns, b.abilityInflictChance(u.id, o.ability, t, s));
+      double sc = cure ? cureWorth(b, u, b.units[(size_t)t], d) : inflictsWorth(b, u, b.units[(size_t)t], o.ability, s);
       if (!d.spend.empty()) sc *= kPricedFactor;
       if (sc <= 0) continue;
       sc -= exposureCost(b, u, s);

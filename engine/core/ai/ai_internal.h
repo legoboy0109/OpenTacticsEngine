@@ -210,10 +210,17 @@ double conditionWorth(const Battle& b, const Unit& user, const Unit& t, int cond
 // What a cure ability is worth used on `t`: a share of t's value (once) when it would take off a harmful condition of its own team or a helpful
 // one of a foe; 0 otherwise (so a blessing is never cured from an ally, a curse never from a foe).
 double cureWorth(const Battle& b, const Unit& user, const Unit& t, const AbilityDef& d);
+// What the ability's "inflict" entries are worth on `t` (conditionWorth of each, by its own chance, summed).
+double inflictsWorth(const Battle& b, const Unit& user, const Unit& t, int ability, Cell from);
 // What a strike ability's own "inflict" adds to the option's score (each unit it would hit and not defeat, times the strike's hit chance).
 double strikeInflictWorth(const Battle& b, const Unit& u, int ability, const AttackOption& o, Cell s);
 // Every instant status ability (only "inflict") and cure ability from `s`: replaces `best` with an Ability order when one beats it.
 void considerStatusAbilities(const Battle& b, const Unit& u, Cell s, int travel, Order& best);
+
+// ---- ai_ability_area.cpp (docs/AI.md "Abilities with an area") ----
+// Every instant heal / cure / status ability with an "area" from `s`: each square it may be aimed at is scored by the sum over the units it would act on
+// (a heal and a cure count for its own team and against a foe, a condition by its kind); a total of 0 or less is never used. Replaces `best` when it beats it.
+void considerAreaAbilities(const Battle& b, const Unit& u, Cell s, int travel, Order& best);
 
 // ---- ai_staves.cpp (docs/SRPG.md section 8 "AI"; docs/AI.md sections 9 and 10) ----
 // What a unit's behaviour asks of its staves ("heals", "staffPick", "inflictOnlyOn"). A default policy changes nothing. `keys` (per kind of staff: heal, afflict, cure)
