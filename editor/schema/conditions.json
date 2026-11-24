@@ -13,8 +13,11 @@
       "endsWhenStruck": { "type": "bool", "help": "Ends when the unit is hit." },
       "kind": { "type": "enum", "values": ["harmful", "helpful"], "help": "harmful (the default): a curse that cure \"harmful\" takes off; helpful: a blessing (cure \"helpful\" strips it; the computer gives it to its own side)." },
       "replaces": { "type": "list", "of": { "type": "ref", "ref": "data/conditions.json" }, "help": "Conditions it removes when it is put on." },
+      "autoRevive": { "type": "variant", "help": "When the unit would be downed it stands up at once with this many HP and the condition ends (needs rules.downed; then blocks may be empty).", "variants": [
+        { "name": "amount", "kind": "number", "node": { "type": "int", "min": 1, "max": 999 } }, { "name": "full", "value": "full" },
+            { "name": "percent", "key": "percent", "node": { "type": "object", "fields": { "percent": { "type": "int", "required": true, "min": 1, "max": 100, "help": "Percent of the maximum (at least 1 point)." } } } } ] },
       "scale": { "type": "enum", "values": ["turnsLeft"], "help": "The numbers of its always blocks count as many times as it has turns left (needs turns)." },
-      "blocks": { "type": "list", "required": true, "help": "What the condition does (at least one block); same blocks as a skill, plus cannotAct, cannotMove, forbid, berserk.", "of": {
+      "blocks": { "type": "list", "required": true, "help": "What the condition does (at least one block, unless it has autoRevive); same blocks as a skill, plus cannotAct, cannotMove, forbid, berserk.", "of": {
         "use": "_skills#block", "moreFields": {
           "do": { "type": "list", "required": true, "help": "Effects (at least one).", "of": {
             "use": "_skills#effect", "moreVariants": [

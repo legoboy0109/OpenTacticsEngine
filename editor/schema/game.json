@@ -232,6 +232,11 @@
                 "perLevels": { "type": "int", "required": true, "min": 1, "max": 999, "help": "Levels of height for one extra square." },
                 "max": { "type": "int", "required": true, "min": 0, "max": 8, "help": "Most extra squares." } } },
               "lineOfSight": { "type": "bool", "default": false, "help": "Higher ground blocks shots." } } },
+          "downed": {
+            "type": "object", "block": true, "help": "A unit at 0 HP is downed on its square instead of leaving; a revive stands it up (docs/SRPG.md Downed units and revive).",
+            "fields": {
+              "afterBattle": { "type": "enum", "values": ["return", "fallen"], "default": "return", "help": "A unit still downed when the battle ends: return = back for the next battle; fallen = the campaign's fallen rule decides." },
+              "removeAfter": { "type": "int", "min": 0, "max": 99, "default": 0, "help": "Turns of its side a downed unit lies on the board before it is gone for good (0 = never)." } } },
           "facing": {
             "type": "object", "block": true, "help": "Units face a direction; hits from behind are stronger (docs/SRPG.md Facing).",
             "fields": {

@@ -14,6 +14,10 @@
         { "name": "swap", "key": "swap", "node": { "type": "object", "fields": { "swap": { "use": "_skills#flag", "help": "Trades places with the target." } } } },
         { "name": "moveBehind", "key": "moveBehind", "node": { "type": "object", "fields": { "moveBehind": { "use": "_skills#flag", "help": "Steps back and draws the target after it." } } } },
         { "name": "movePast", "key": "movePast", "node": { "type": "object", "fields": { "movePast": { "use": "_skills#flag", "help": "Moves past the target." } } } },
+        { "name": "revive", "key": "revive", "sample": { "revive": { "percent": 50 } }, "node": { "type": "object", "fields": { "revive": { "type": "variant", "required": true, "help": "Stands a downed unit up with this many HP (1 to 999, full, a percent of the maximum, or a formula: a = the user, b = the downed unit). Needs rules.downed; target ally or unit; no inflict.", "variants": [
+          { "name": "amount", "kind": "number", "node": { "type": "int", "min": 1, "max": 999 } }, { "name": "full", "value": "full" },
+          { "name": "formula", "kind": "string", "node": { "type": "string" }, "sample": "b.hp_max / 4" },
+          { "name": "percent", "key": "percent", "node": { "type": "object", "fields": { "percent": { "type": "int", "required": true, "min": 1, "max": 100, "help": "Percent of the maximum (at least 1 point)." } } } } ] } } } },
         { "name": "heal and cure", "key": "heal", "with": ["cure"], "sample": { "heal": 10, "cure": ["poison"] }, "node": { "type": "object", "fields": { "heal": { "type": "variant", "required": true, "help": "Hit points restored (1 to 999, full, a percent of the maximum, or a formula: a = the user, b = the unit healed).", "variants": [
           { "name": "amount", "kind": "number", "node": { "type": "int", "min": 1, "max": 999 } }, { "name": "full", "value": "full" },
           { "name": "formula", "kind": "string", "node": { "type": "string" }, "sample": "a.mag * 3" },
