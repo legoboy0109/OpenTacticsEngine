@@ -216,6 +216,8 @@ Order bestOrder(Context& cx, const Unit& u) {
     considerStatusAbilities(b, u, s, travel, best);
     // Heal, cure and status abilities with an area (ai_ability_area.cpp): the sum over everyone in the area.
     considerAreaAbilities(b, u, s, travel, best);
+    // Revive abilities and items on a downed ally (ai_revive.cpp; nothing in a game without rules.downed).
+    considerRevives(b, u, s, travel, best);
   }
 
   if (weights && !noAttack) {

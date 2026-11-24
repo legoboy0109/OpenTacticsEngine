@@ -222,6 +222,12 @@ void considerStatusAbilities(const Battle& b, const Unit& u, Cell s, int travel,
 // (a heal and a cure count for its own team and against a foe, a condition by its kind); a total of 0 or less is never used. Replaces `best` when it beats it.
 void considerAreaAbilities(const Battle& b, const Unit& u, Cell s, int travel, Order& best);
 
+// ---- ai_revive.cpp (docs/AI.md "Reviving downed units") ----
+// What standing `t` up with `hp` is worth to `user` (negative for a foe: never revived): (0.5 + the share of its maximum) times its value.
+double reviveWorth(const Battle& b, const Unit& user, const Unit& t, int hp);
+// Every single-target revive ability and revive item from `s` on a downed unit of its team: replaces `best` when one beats it. Nothing without rules.downed.
+void considerRevives(const Battle& b, const Unit& u, Cell s, int travel, Order& best);
+
 // ---- ai_staves.cpp (docs/SRPG.md section 8 "AI"; docs/AI.md sections 9 and 10) ----
 // What a unit's behaviour asks of its staves ("heals", "staffPick", "inflictOnlyOn"). A default policy changes nothing. `keys` (per kind of staff: heal, afflict, cure)
 // = the unit placed last that a staff of the kind could serve this turn (-1 = none: such a staff is then not used), filled by lastPlacedKeys when a rule picks it.

@@ -43,12 +43,20 @@ double healValue(const Battle& b, const StaffForecast& f) {
   for (const StaffHit& h : f.hits) {
     const Unit& t = b.units[(size_t)h.unit];
     const int max = std::max(1, b.maxHp(t));
-    if (h.amount <= 0) continue;
+    if (h.amount <= 0 || h.revives) continue;  // (a revive is reviveValue's)
     if (t.hp * 2 > max && h.amount * 2 < h.nominal) continue;  // a scratch: keep the use for someone who needs it
     double v = h.amount / (double)max * unitValue(b, t) * (h.hit / 100.0);
     if (t.leader && b.db->rules.defeatLeaderDead) v *= kLeaderHeal;
     value += v;
   }
+  return value;
+}
+
+// Standing downed units up (docs/SRPG.md "Downed units and revive"): reviveWorth (ai_revive.cpp; a foe counts against), times the hit chance.
+double reviveValue(const Battle& b, const Unit& user, const StaffForecast& f) {
+  double value = 0;
+  for (const StaffHit& h : f.hits)
+    if (h.revives) value += reviveWorth(b, user, b.units[(size_t)h.unit], h.hpAfter) * (h.hit / 100.0);
   return value;
 }
 
@@ -78,10 +86,10 @@ double pullValue(const Battle& b, const StaffForecast& f) {
   return value;
 }
 
-// The staves the computer uses at all: heal, inflict and cure effects; a pull too for a unit that heals only retreating allies (a rescue staff).
+// The staves the computer uses at all: heal, inflict, cure and revive effects; a pull too for a unit that heals only retreating allies (a rescue staff).
 bool usable(const StaffDef& def, const StaffPolicy& pol) {
   for (const StaffEffect& fx : def.effects)
-    if (!(fx.kind == StaffEffect::Kind::Heal || fx.kind == StaffEffect::Kind::Inflict || fx.kind == StaffEffect::Kind::Cure ||
+    if (!(fx.kind == StaffEffect::Kind::Heal || fx.kind == StaffEffect::Kind::Inflict || fx.kind == StaffEffect::Kind::Cure || fx.kind == StaffEffect::Kind::Revive ||
           (pol.healsRetreating && fx.kind == StaffEffect::Kind::Pull)))
       return false;
   return true;
@@ -196,7 +204,9 @@ void lastPlacedKeys(const Battle& b, const Unit& u, const std::vector<Cell>& sto
   }
 }
 
-double staffUseValue(const Battle& b, const Unit& user, const StaffForecast& f) { return healValue(b, f) + conditionValue(b, user, f) + pullValue(b, f); }
+double staffUseValue(const Battle& b, const Unit& user, const StaffForecast& f) {
+  return healValue(b, f) + conditionValue(b, user, f) + pullValue(b, f) + reviveValue(b, user, f);
+}
 
 bool staffUseAllowed(const Battle& b, const Unit& u, int item, const StaffForecast& f, const StaffPolicy& pol) {
   const StaffDef& def = b.db->staves[(size_t)b.db->items[(size_t)item].staff];
