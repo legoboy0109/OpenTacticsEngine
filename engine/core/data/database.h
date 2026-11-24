@@ -757,6 +757,7 @@ struct MapDef {
   std::vector<int> bgByTerrain, platformByTerrain;
   std::string weather;  // "weather": "rain" | "snow": the weather the battle starts with ("" = clear); a story `weather` command changes it
   std::vector<std::pair<int, int>> exits;  // "exits": squares (x, y) a computer unit can leave the map by (docs/AI.md "Looting and escaping"); empty = none
+  int apPerBattle = -1;  // "abilityPoints": { "perBattle": n }: this map's points for a win (docs/JOBS.md); -1 = the game's rules.abilityPoints.perBattle
   int bgDefault = -1, platformDefault = -1;
   std::shared_ptr<const StoryData> story;  // null = no events and no objectives; shared by copies
   std::shared_ptr<const PrepDef> prep;     // null = the map starts as it is placed (no preparation screen)

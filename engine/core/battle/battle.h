@@ -574,6 +574,7 @@ class Battle {
   std::vector<int> structureAt;  // per cell: index into `structures` or -1
   std::vector<Cell> exits;       // the map's "exits": squares a computer unit leaves the map by (docs/AI.md "Looting and escaping")
   bool isExit(Cell c) const;     // exits.cpp
+  int mapApPerBattle = -1;       // the map's "abilityPoints"."perBattle" (docs/JOBS.md); -1 = the game's. Map data: never saved (a load starts from the map)
   std::vector<int> occupant;  // per cell: unit id or -1
   std::vector<Unit> units;
   std::vector<SideState> sides;
