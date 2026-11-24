@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { styleView } from '../../art/scene'
 import { sheetsOf } from '../../model/graphics'
-import { getLook, setLook, setSideLook, type Slot } from '../../model/graphicsLooks'
+import { getLook, previewAs, setLook, setSideLook, type Slot } from '../../model/graphicsLooks'
 import { gameSides, type GameSide } from '../../model/graphicsUsage'
 import { isModelEntry } from '../../model/models3d'
 import { inheritsGeneralArt, is3dKind, viewKind } from '../../model/styleView'
@@ -18,6 +18,7 @@ import { ModelEditor } from './ModelEditor'
 import { M } from './modelText'
 import { PickerDialog } from './PickerDialog'
 import { WalkingCard } from '../../screens/art/walking/WalkingCard'
+import { PosesCard } from '../../screens/art/walking/PosesCard'
 import { StandEditor } from './StandEditor'
 import { P } from './text'
 import { useStructureSample, useTerrainSample, useUnitSample, type LookChoice } from './usePreview'
@@ -47,7 +48,7 @@ export function PictureCard({ kind, id, name }: Props) {
   const modelMode = can3d && (isModelEntry(entry) || modelPicked === `${id}:${style}`)
 
   return (
-    <Card title={P.cardTitle} help={kind === 'terrain' ? P.cardHelpTerrain : kind === 'structures' ? P.cardHelpStructure : P.cardHelpUnit} id={key}>
+    <Card title={P.cardTitle} help={kind === 'terrain' ? P.cardHelpTerrain : kind === 'structures' ? P.cardHelpStructure : kind === 'characters' ? P.cardHelpCharacter : P.cardHelpUnit} id={key}>
       <div className="stack tight">
         {styles.length > 1 && (
           <Field label={P.forLook} help={P.lookHelp}>
@@ -71,7 +72,7 @@ export function PictureCard({ kind, id, name }: Props) {
           : (
             <div className="picture-row">
               <div className="picture-preview">
-                {kind === 'terrain' ? <TerrainSample id={id} name={name} look={choice} /> : kind === 'structures' ? <StructureSample id={id} name={name} look={choice} /> : <UnitSample id={id} name={name} look={choice} />}
+                {kind === 'terrain' ? <TerrainSample id={id} name={name} look={choice} /> : kind === 'structures' ? <StructureSample id={id} name={name} look={choice} /> : <UnitSample kind={kind} id={id} name={name} look={choice} />}
               </div>
               <div className="stack tight picture-controls">
                 {style ? (
@@ -95,7 +96,8 @@ export function PictureCard({ kind, id, name }: Props) {
             </div>
           )}
         {canStand && <StandEditor slot={slot} entry={entry} id={id} name={name} choice={choice} />}
-        {kind === 'units' && hasImages && !modelMode && entry && <WalkingCard slot={slot} entry={entry} />}
+        {(kind === 'units' || kind === 'characters') && hasImages && !modelMode && entry && <WalkingCard slot={slot} entry={entry} />}
+        {(kind === 'units' || kind === 'characters') && hasImages && !modelMode && entry && <PosesCard slot={slot} entry={entry} />}
         {kind !== 'terrain' && hasImages && !modelMode && <SideList kind={kind} slot={slot} entry={entry} choice={choice} id={id} name={name} onChoose={(side) => setOpen({ side })} />}
       </div>
       {open && (
@@ -120,8 +122,10 @@ function TerrainSample({ id, name, look }: { id: string; name: string; look: Loo
 function StructureSample({ id, name, look }: { id: string; name: string; look: LookChoice }) {
   return <ArtCanvas spec={useStructureSample(id, look)} label={P.previewStructure(name)} />
 }
-function UnitSample({ id, name, look }: { id: string; name: string; look: LookChoice }) {
-  return <ArtCanvas spec={useUnitSample(id, look)} label={P.previewUnit(name)} />
+function UnitSample({ kind, id, name, look }: { kind: LookKind; id: string; name: string; look: LookChoice }) {
+  const doc = useDoc()
+  const as = useMemo(() => previewAs(doc, kind, id), [doc, kind, id]) // a character is shown as its unit type with the character's own picture
+  return <ArtCanvas spec={useUnitSample(as.id, look, kind === 'characters' ? as.doc : undefined)} label={P.previewUnit(name)} />
 }
 
 /** One row per side of the game (from the maps): that side's own picture, if any. */
@@ -165,13 +169,15 @@ function SideRow({ kind, side, own, id, name, choice }: { kind: LookKind; side: 
         <strong>{side.name}</strong>
         <span className="help">{side.orphan ? P.sideOrphan : own ? '' : P.sideSame}</span>
       </span>
-      {own && (structure ? <StructureSideSample id={id} name={`${name}, ${side.name}`} side={side.id} look={choice} /> : <UnitSideSample id={id} name={`${name}, ${side.name}`} side={side.id} look={choice} />)}
+      {own && (structure ? <StructureSideSample id={id} name={`${name}, ${side.name}`} side={side.id} look={choice} /> : <UnitSideSample kind={kind} id={id} name={`${name}, ${side.name}`} side={side.id} look={choice} />)}
     </span>
   )
 }
 
-function UnitSideSample({ id, name, side, look }: { id: string; name: string; side: string; look: LookChoice }) {
-  return <ArtCanvas spec={useUnitSample(id, look, undefined, [side])} label={P.previewUnit(name)} />
+function UnitSideSample({ kind, id, name, side, look }: { kind: LookKind; id: string; name: string; side: string; look: LookChoice }) {
+  const doc = useDoc()
+  const as = useMemo(() => previewAs(doc, kind, id), [doc, kind, id])
+  return <ArtCanvas spec={useUnitSample(as.id, look, kind === 'characters' ? as.doc : undefined, [side])} label={P.previewUnit(name)} />
 }
 function StructureSideSample({ id, name, side, look }: { id: string; name: string; side: string; look: LookChoice }) {
   return <ArtCanvas spec={useStructureSample(id, look, undefined, [side])} label={P.previewStructure(name)} />

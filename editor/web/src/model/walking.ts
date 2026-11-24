@@ -7,8 +7,8 @@ import type { CellRef, Look, ProjectDoc, WalkDef } from './types'
 
 export const WALK_MAX_FRAMES = 64
 export const DEFAULT_WALK_MS = 150
-/** The directions of the form, in the order the card lists and the preview cycles through (the game's down, up, right, left). */
-export const WALK_DIRS = ['down', 'up', 'side', 'left', 'right'] as const
+/** The directions of the form (the four diagonals are the facings of the 2D isometric view, docs/GRAPHICS.md "Poses and facing"), in the order the card lists and the preview cycles through (the game's down, up, right, left). */
+export const WALK_DIRS = ['down', 'up', 'side', 'left', 'right', 'downLeft', 'downRight', 'upLeft', 'upRight'] as const
 export type WalkDir = (typeof WALK_DIRS)[number]
 /** What the preview shows one after the other (a direction the walk does not have is left out). */
 export const PREVIEW_ORDER = ['down', 'right', 'up', 'left'] as const
@@ -23,6 +23,10 @@ export function rowOfRun(cells: CellRef[] | undefined): number | undefined {
   if (!cells || cells.length === 0) return undefined
   return cells.every(([c, r], i) => c === i && r === cells[0][1]) ? cells[0][1] : undefined
 }
+
+/** The keys of a unit picture that hold frames per direction: walking and the four poses (they all have the shape of `walk`). */
+export type PoseKey = 'walk' | 'facing' | 'attack' | 'hurt' | 'ko'
+export const POSE_KEYS: PoseKey[] = ['facing', 'attack', 'hurt', 'ko']
 
 export const walkOf = (look: Look | null | undefined): WalkDef | undefined => look?.walk
 
@@ -52,7 +56,7 @@ export function shownDirs(w: WalkDef): Array<{ dir: ShownDir; cells: CellRef[]; 
 // --- editing ------------------------------------------------------------------------------------------------------------------------
 
 /** Where a walk lives: the slot's picture, or one of its per-side pictures. */
-export interface WalkTarget { slot: Slot; side?: string }
+export interface WalkTarget { slot: Slot; side?: string; /** Which frames: walking (the default) or one of the poses. */ key?: PoseKey }
 
 /** The picture the target names (the slot's own entry or its side's). */
 export function lookOf(doc: ProjectDoc, t: WalkTarget): Look | undefined {
@@ -61,12 +65,13 @@ export function lookOf(doc: ProjectDoc, t: WalkTarget): Look | undefined {
   return t.side === undefined ? entry : entry.sides?.[t.side]
 }
 
-/** Applies `fn` to the walk of the target (undefined result removes it). */
+/** Applies `fn` to the walk (or pose) of the target (undefined result removes it). */
 export function editWalk(doc: ProjectDoc, t: WalkTarget, fn: (w: WalkDef | undefined, look: Look) => WalkDef | undefined): ProjectDoc {
   const look = lookOf(doc, t)
   if (!look) return doc
-  const next = fn(look.walk, look)
-  const updated = patchObj(look, { walk: next && Object.keys(next).length ? next : undefined })
+  const key = t.key ?? 'walk'
+  const next = fn(look[key], look)
+  const updated = patchObj(look, { [key]: next && Object.keys(next).length ? next : undefined })
   if (JSON.stringify(updated) === JSON.stringify(look)) return doc
   if (t.side !== undefined) return setSideLook(doc, t.slot, t.side, updated)
   return setLookExact(doc, t.slot, updated)
@@ -75,6 +80,10 @@ export function editWalk(doc: ProjectDoc, t: WalkTarget, fn: (w: WalkDef | undef
 /** A first walk: four frames of the first row facing down (the picture's own image unless another is given). */
 export function addWalk(doc: ProjectDoc, t: WalkTarget, cols?: number): ProjectDoc {
   return editWalk(doc, t, (w) => w ?? { down: runOfRow(0, Math.min(4, cols ?? 4)) })
+}
+/** A first pose: `front` (the down-left row of the first image row) and, if wanted, `back` (up-left). */
+export function addPose(doc: ProjectDoc, t: WalkTarget, cols?: number): ProjectDoc {
+  return editWalk(doc, t, (w) => w ?? { downLeft: runOfRow(0, Math.min(2, cols ?? 2)) })
 }
 export const removeWalk = (doc: ProjectDoc, t: WalkTarget): ProjectDoc => editWalk(doc, t, () => undefined)
 
@@ -123,12 +132,13 @@ export function setOwnSides(doc: ProjectDoc, t: WalkTarget, on: boolean): Projec
 export type Dims = (file: string) => { width: number; height: number } | undefined
 
 /** What the game's loader would refuse about this walk (the same rules as readWalk), in plain words. */
-export function walkProblems(doc: ProjectDoc, look: Look, dims?: Dims): string[] {
-  const w = look.walk
+export function walkProblems(doc: ProjectDoc, look: Look, dims?: Dims, key: PoseKey = 'walk'): string[] {
+  const w = look[key]
   if (!w) return []
   const out: string[] = []
+  const what = key === 'walk' ? 'The walking frames' : `The “${key}” pictures`
   const sheet = findSheet(doc, w.sheet ?? look.sheet)
-  if (!sheet) return ['The walking frames use an image that is no longer in the game.']
+  if (!sheet) return [`${what} use an image that is no longer in the game.`]
   if (!WALK_DIRS.some((d) => w[d]?.length)) out.push('Give at least one direction a row of frames.')
   if (w.frameMs !== undefined && (w.frameMs < 20 || w.frameMs > 60000)) out.push('The time per frame must be between 20 and 60000 milliseconds.')
   const d = dims?.(sheet.file)

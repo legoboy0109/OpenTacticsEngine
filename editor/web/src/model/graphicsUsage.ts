@@ -8,13 +8,13 @@ import type { Look, LookKind, ProjectDoc } from './types'
 export interface ArtUser { kind: LookKind; id: string; name: string }
 
 const nameOf = (doc: ProjectDoc, kind: LookKind, id: string): string =>
-  ((kind === 'terrain' ? doc.terrain : kind === 'units' ? doc.units : doc.structures) ?? []).find((x) => x.id === id)?.name ?? id
+  ((kind === 'terrain' ? doc.terrain : kind === 'units' ? doc.units : kind === 'characters' ? doc.characters : doc.structures) ?? []).find((x) => x.id === id)?.name ?? id
 
 /** Every look entry in the document with the thing it belongs to. */
 function* allLooks(doc: ProjectDoc): Generator<{ kind: LookKind; id: string; look: Look }> {
   const g = doc.graphics
   if (!g) return
-  for (const kind of ['terrain', 'units', 'structures'] as const) {
+  for (const kind of ['terrain', 'units', 'characters', 'structures'] as const) {
     for (const [id, look] of Object.entries(g[kind] ?? {})) yield { kind, id, look }
     for (const st of Object.values(g.styles ?? {}))
       for (const [id, look] of Object.entries(st[kind] ?? {})) if (look) yield { kind, id, look }
@@ -31,7 +31,7 @@ export function sheetUsers(doc: ProjectDoc, sheetId: string): ArtUser[] {
     seen.add(key)
     out.push({ kind, id, name: nameOf(doc, kind, id) })
   }
-  const rank = { terrain: 0, structures: 1, units: 2 } as const
+  const rank = { terrain: 0, structures: 1, units: 2, characters: 3 } as const
   return out.sort((a, b) => rank[a.kind] - rank[b.kind])
 }
 
@@ -73,7 +73,7 @@ export function gameSides(doc: ProjectDoc): GameSide[] {
   const g = doc.graphics
   const extra = new Set<string>()
   const scan = (l: Look | null | undefined) => { for (const k of Object.keys(l?.sides ?? {})) extra.add(k) }
-  for (const kind of ['units', 'structures'] as const) {
+  for (const kind of ['units', 'characters', 'structures'] as const) {
     Object.values(g?.[kind] ?? {}).forEach(scan)
     Object.values(g?.styles ?? {}).forEach((st) => Object.values(st[kind] ?? {}).forEach(scan))
   }
