@@ -83,7 +83,8 @@ void Battle::abilityTargets(int unit, int ability, Cell from, std::vector<int>& 
       if (abilityTargetOk(u, ability, from, -1, c, nullptr)) cells_.push_back(c);
   } else {
     for (const Unit& t : units)  // ascending unit id
-      if (t.alive && abilityTargetOk(u, ability, from, t.id, kNoCell, nullptr)) units_.push_back(t.id);
+      // (a downed unit is a target of a revive only: abilityTargetOk says which; docs/SRPG.md "Downed units and revive")
+      if ((t.alive || t.downed) && abilityTargetOk(u, ability, from, t.id, kNoCell, nullptr)) units_.push_back(t.id);
   }
 }
 
