@@ -34,6 +34,14 @@ void areaCells(const Grid& g, Cell from, Cell target, const AreaDef& area, std::
     case AreaShape::Radius:
       g.within(target, area.radius, out);
       return;
+    case AreaShape::Ring:  // the squares around the aimed one, not the aimed one (within() is ascending, so erasing keeps the order)
+      g.within(target, area.radius, out);
+      out.erase(std::remove(out.begin(), out.end(), target), out.end());
+      return;
+    case AreaShape::Field:  // the whole map, in square order
+      out.reserve((size_t)g.cellCount());
+      for (Cell c = 0; c < (Cell)g.cellCount(); ++c) out.push_back(c);
+      return;
     case AreaShape::Cross: {
       out.push_back(target);
       for (int dir = 0; dir < g.directionCount(); ++dir) {

@@ -14,7 +14,8 @@ int straightDirection(const Grid& g, Cell from, Cell to, int* steps = nullptr);
 
 // The squares an attack from `from` aimed at `target` covers, ascending, without duplicates; the target square is always among them
 // (when it is valid). Shapes: Radius = every square within `radius` of the target; Burst = the target and its direct neighbours;
-// Cross = the target and `radius` squares in each direction of the grid; Line = `length` squares along the line from `from` through
+// Cross = the target and `radius` squares in each direction of the grid; Ring = every square within `radius` of the target except the target
+// itself (the squares around it); Field = every square of the map (where it is aimed does not matter); Line = `length` squares along the line from `from` through
 // `target`, the target square first and then the squares behind it (the beam pierces: nothing stops it but the map edge).
 // A Line aimed at a square that is not on a straight line from `from` covers nothing. AreaShape::None covers just the target.
 void areaCells(const Grid& g, Cell from, Cell target, const AreaDef& area, std::vector<Cell>& out);
