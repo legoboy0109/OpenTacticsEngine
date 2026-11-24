@@ -1,5 +1,6 @@
 // Info panel (right side) and hint strip (bottom). Row pitch and widths all
 // come from the active font (Layout::row, Renderer::textWidth).
+#include "battle/guest_text.h"
 #include "battle/place_text.h"
 #include <algorithm>
 #include <cmath>
@@ -226,6 +227,10 @@ void drawUnitInfo(Renderer& r, const DrawCtx& c, const Unit& u, int x, int& y, i
   y += rh;
   if (b.typeOf(u).name != u.name) {  // unnamed units would just repeat the type
     r.drawText(x, y, fitText(r, b.typeOf(u).name, w).c_str(), kLabel);
+    y += rh;
+  }
+  if (u.guest) {  // docs/SRPG.md "Guests": "Guest   moves itself" (the computer moves it)
+    row(r, x, y, w, GuestWords::kGuest, GuestWords::kMovedBy, kLabel, kText);
     y += rh;
   }
   drawRescueRow(r, c, u, x, y, w);  // "Carrying: Bram" (rescue.cpp / panel_rescue.cpp)

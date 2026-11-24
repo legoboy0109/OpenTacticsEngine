@@ -85,13 +85,17 @@ void BattleScene::coverConfirmed() {
 void BattleScene::aiStep() {
   if (aiTurnKey_ != turnKey()) {
     aiTurnKey_ = turnKey();
-    OTE_INFO("ai: %s acts, round %d t=%.2f", battle_.sides[(size_t)battle_.activeSide].name.c_str(), battle_.round, time_);
+    const int guest = autoplay_ ? -1 : battle_.guestToAct();
+    if (guest >= 0) OTE_INFO("ai: guests of %s act, round %d t=%.2f", battle_.sides[(size_t)battle_.activeSide].name.c_str(), battle_.round, time_);
+    else OTE_INFO("ai: %s acts, round %d t=%.2f", battle_.sides[(size_t)battle_.activeSide].name.c_str(), battle_.round, time_);
   }
   int budget = fogActive_ ? 256 : 1;
   do {
     events_.clear();
     const Battle before = battle_;  // for the forecast of a fight this step makes (the scene shows hit and crit percentages)
-    aiTakeStep(battle_, events_);
+    // A side a person plays has the computer move only its guests (docs/SRPG.md "Guests"); on --autoplay the computer plays the whole side.
+    if (!autoplay_ && !battle_.sides[(size_t)battle_.activeSide].ai) aiGuestStep(battle_, events_);
+    else aiTakeStep(battle_, events_);
     for (const Event& e : events_)
       if (e.type == EventType::Attack && !(e.flags & kCounter)) { noteForecast(before, e.a, e.b, e.c); break; }
     view_.push(events_);
