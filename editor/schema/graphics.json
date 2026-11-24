@@ -58,15 +58,26 @@
           "frames": { "use": "cells", "excludes": ["cell"], "help": "An animation." },
           "frameMs": { "type": "int", "min": 20, "max": 60000, "help": "Milliseconds per frame." } } } } }
     },
+    "dirFrames": {
+      "type": "object", "help": "Frames per direction on the screen (docs/GRAPHICS.md \"Walking\", \"Poses and facing\").", "fields": {
+        "sheet": { "type": "ref", "ref": "@sheets", "help": "The sheet of these frames (default: the picture's own)." },
+        "down": { "use": "cells", "help": "Frames looking down the screen (1 to 64)." },
+        "up": { "use": "cells", "help": "Frames looking up the screen." },
+        "side": { "use": "cells", "help": "Frames looking right; left is the same turned round." },
+        "left": { "use": "cells", "help": "Own frames looking left." },
+        "right": { "use": "cells", "help": "Own frames looking right." },
+        "downLeft": { "use": "cells", "help": "Looking down-left (the front in the 2D isometric view); without downRight also that, turned round." },
+        "downRight": { "use": "cells", "help": "Looking down-right; without downLeft also that, turned round." },
+        "upLeft": { "use": "cells", "help": "Looking up-left (the back in the 2D isometric view); without upRight also that, turned round." },
+        "upRight": { "use": "cells", "help": "Looking up-right; without upLeft also that, turned round." },
+        "frameMs": { "type": "int", "min": 20, "max": 60000, "help": "Milliseconds per frame." } }
+    },
     "unitLook": { "use": "spriteLook", "moreFields": {
-      "walk": { "type": "object", "block": true, "enable": { "down": [[0, 0]] }, "help": "Frames while the unit moves (down, up and side or left / right).", "fields": {
-          "sheet": { "type": "ref", "ref": "@sheets", "help": "The sheet of the walk frames (default: the picture's own)." },
-          "down": { "use": "cells", "help": "Frames walking down (1 to 64)." },
-          "up": { "use": "cells", "help": "Frames walking up." },
-          "side": { "use": "cells", "help": "Frames walking right; left is the same turned round." },
-          "left": { "use": "cells", "help": "Own frames walking left." },
-          "right": { "use": "cells", "help": "Own frames walking right." },
-          "frameMs": { "type": "int", "min": 20, "max": 60000, "help": "Milliseconds per walk frame." } } } } },
+      "walk": { "use": "dirFrames", "block": true, "enable": { "down": [[0, 0]] }, "help": "Frames while the unit moves (down, up and side or left / right, or the four diagonals)." },
+      "facing": { "use": "dirFrames", "block": true, "enable": { "downLeft": [[0, 0]] }, "help": "Standing frames per way the unit looks (front: downLeft, back: upLeft)." },
+      "attack": { "use": "dirFrames", "block": true, "enable": { "downLeft": [[0, 0]] }, "help": "Frames of a strike on the map, played once." },
+      "hurt": { "use": "dirFrames", "block": true, "enable": { "downLeft": [[0, 0]] }, "help": "Frames when a blow lands on the unit, played once." },
+      "ko": { "use": "dirFrames", "block": true, "enable": { "downLeft": [[0, 0]] }, "help": "Frames as a defeated unit falls (default: hurt), played once." } } },
     "modelLook": {
       "type": "object", "help": "A 3D model of a unit or structure.",
       "fields": {
@@ -115,6 +126,7 @@
       "fields": {
         "terrain": { "type": "map", "ref": "data/terrain.json", "of": { "use": "terrainEntry" }, "help": "How each terrain looks." },
         "units": { "type": "map", "ref": "data/units.json", "of": { "use": "unitThing" }, "help": "The picture or model of each unit type." },
+        "characters": { "type": "map", "ref": "data/characters.json", "of": { "use": "unitThing" }, "help": "A character's own picture or model, instead of its unit type's." },
         "structures": { "type": "map", "ref": "data/structures.json", "of": { "use": "structureThing" }, "help": "The picture or model of each structure." },
         "portraits": { "type": "map", "free": true, "of": { "use": "portraitLook" }, "help": "Portraits by id (a character's id or the name a say line uses)." } }
     }
@@ -128,6 +140,7 @@
         "cellWidth": { "type": "int", "required": true, "min": 1, "help": "Width of one cell in pixels." },
         "cellHeight": { "type": "int", "required": true, "min": 1, "help": "Height of one cell in pixels." },
         "smooth": { "type": "bool", "help": "Scaled smoothly (for painted art) instead of with hard pixels." },
+        "unitOffset": { "type": "list", "length": 2, "sample": [0, 4], "of": { "type": "int", "min": -256, "max": 256 }, "help": "[x, y] in the sheet's pixels: unit pictures cut from this sheet are drawn moved by this much (y down)." },
         "name": { "type": "string", "help": "Display name of the image in the editors (the engine does not read it)." } } } },
       "unitMarker": { "type": "bool", "help": "Draw the side's colour marker under a unit's picture." },
       "backgrounds": { "type": "map", "free": true, "help": "Story backgrounds by id (letters, digits, _ and -): a whole sheet or one cell.", "of": { "type": "object", "fields": {
@@ -156,6 +169,10 @@
           "ms": { "type": "int", "required": true, "min": 20, "max": 60000, "help": "Milliseconds per frame." } } } } } } },
       "terrain": { "type": "map", "ref": "data/terrain.json", "of": { "use": "terrainEntry" }, "help": "How each terrain looks in the flat views." },
       "units": { "type": "map", "ref": "data/units.json", "of": { "use": "unitThing" }, "help": "The picture of each unit type." },
+      "characters": { "type": "map", "ref": "data/characters.json", "of": { "use": "unitThing" }, "help": "A character's own picture, instead of its unit type's (whatever its class)." },
+      "portraitSize": { "type": "variant", "help": "The dialogue portrait plate in pixels (default 48 x 48).", "variants": [
+        { "name": "square", "kind": "number", "sample": 64, "node": { "type": "int", "min": 24, "max": 160, "help": "Width and height (24 to 160)." } },
+        { "name": "width and height", "kind": "array", "sample": [64, 80], "node": { "type": "list", "length": 2, "of": { "type": "int", "min": 24, "max": 160 }, "help": "[width, height], each 24 to 160." } } ] },
       "structures": { "type": "map", "ref": "data/structures.json", "of": { "use": "structureThing" }, "help": "The picture of each structure." },
       "portraits": { "type": "map", "free": true, "of": { "use": "portraitLook" }, "help": "Portraits by id (a character's id or the name a say line uses)." },
       "icons": { "type": "map", "free": true, "of": { "use": "iconLook" }, "help": "Icons by weapon or item id: the small picture before the name in item lists." },

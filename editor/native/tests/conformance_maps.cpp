@@ -31,6 +31,18 @@ void addMapContexts(std::vector<Context>& c) {
   c.push_back({"map-behaviour-patrol", "ai-scripted", {}, {KB ".route"}, {{KB ".route", R"([{"x":1,"y":1},{"x":2,"y":1}])"}}});
   // The map's exits (docs/AI.md "Looting and escaping").
   c.push_back({"map-exits", "ai-scripted", {}, {"maps:exits"}, {{"maps:exits", R"([{"x":0,"y":0},{"x":5,"y":5}])"}}});
+  // A prerendered backdrop (docs/VIEWS.md "Backdrop"): demo-srpg is a square game with the 2D isometric style "isometric"; its
+  // sheet iso_tiles stands in for the pictures (a piece's rect must fit inside the over picture: 1 x 1 does).
+  c.push_back({"map-backdrop", "demo-srpg", {{"maps/bridge.json", "backdrop", R"({"sheet":"iso_tiles","over":"iso_tiles"})"}},
+               {"maps:backdrop"},
+               {{"maps:backdrop", R"({"sheet":"iso_tiles"})"},
+                {"maps:backdrop.sheet", "\"iso_tiles\""},
+                {"maps:backdrop.over", "\"iso_tiles\""},
+                {"maps:backdrop.styles", R"(["isometric"])"},
+                {"maps:backdrop.styles[]", "\"isometric\""},
+                {"maps:backdrop.pieces", R"([{"rect":[0,0,1,1],"square":[0,0]}])"},
+                {"maps:backdrop.pieces[]", R"({"rect":[0,0,1,1],"square":[0,0]})"},
+                {"maps:backdrop.pieces[].rect", "[0,0,1,1]"}}});
 
   // --- the rest of a placed unit ---
   c.push_back({"map-unit-goes-for", "srpg-doors", {kLordIsRed}, {"maps:units[].goesFor"}, {}});
