@@ -549,6 +549,7 @@ struct Forecast {
 };
 
 #include "core/battle/area_state.h"
+#include "core/battle/ability_area_state.h"
 
 // What a repair would do to one unit (repairPreview): HP restored and the price per resource index.
 struct RepairPlan {
@@ -946,6 +947,7 @@ class Battle {
 #include "core/battle/pools_api.h"
 #include "core/battle/strike_api.h"
 #include "core/battle/ability_conditions_api.h"
+#include "core/battle/ability_area_api.h"
 #include "core/battle/commander_api.h"
 
  private:
@@ -1082,6 +1084,7 @@ class Battle {
 #include "core/battle/teaching_internal.h"
 #include "core/battle/pools_internal.h"
 #include "core/battle/strike_internal.h"
+#include "core/battle/ability_area_internal.h"
 #include "core/battle/commander_internal.h"
 #include "core/battle/exits_internal.h"
 

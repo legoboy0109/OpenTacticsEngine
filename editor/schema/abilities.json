@@ -7,13 +7,18 @@
       "name": { "type": "string", "help": "Display name (defaults to the id)." },
       "description": { "type": "string", "help": "Text shown in the menu." },
       "target": { "type": "enum", "values": ["self", "ally", "enemy", "unit", "cell"], "help": "Whom or what it is used on (required, except for a strike: it comes from the weapon)." },
-      "range": { "type": "list", "length": 2, "of": { "type": "int", "min": 1, "max": 20, "sample": 1 }, "sample": [1, 2], "help": "[min, max] distance (1 to 20); not for self or a strike (the weapon has it)." },
+      "range": { "type": "list", "length": 2, "of": { "type": "int", "min": 0, "max": 20, "sample": 1 }, "sample": [1, 2], "help": "[min, max] distance (1 to 20; 0 = the user's own square, only with an area); not for self or a strike (the weapon has it)." },
       "effect": { "type": "variant", "help": "What it does (exactly one of these). May be left out only when there is an inflict.", "variants": [
         { "name": "push", "key": "push", "node": { "type": "object", "fields": { "push": { "type": "int", "required": true, "min": 1, "max": 5, "help": "Squares the target is pushed away." } } } },
         { "name": "pull", "key": "pull", "node": { "type": "object", "fields": { "pull": { "use": "_skills#flag", "help": "Pulls the target next to the user." } } } },
         { "name": "swap", "key": "swap", "node": { "type": "object", "fields": { "swap": { "use": "_skills#flag", "help": "Trades places with the target." } } } },
         { "name": "moveBehind", "key": "moveBehind", "node": { "type": "object", "fields": { "moveBehind": { "use": "_skills#flag", "help": "Steps back and draws the target after it." } } } },
         { "name": "movePast", "key": "movePast", "node": { "type": "object", "fields": { "movePast": { "use": "_skills#flag", "help": "Moves past the target." } } } },
+        { "name": "heal and cure", "key": "heal", "with": ["cure"], "sample": { "heal": 10, "cure": ["poison"] }, "node": { "type": "object", "fields": { "heal": { "type": "variant", "required": true, "help": "Hit points restored (1 to 999, full, a percent of the maximum, or a formula: a = the user, b = the unit healed).", "variants": [
+          { "name": "amount", "kind": "number", "node": { "type": "int", "min": 1, "max": 999 } }, { "name": "full", "value": "full" },
+          { "name": "formula", "kind": "string", "node": { "type": "string" }, "sample": "a.mag * 3" },
+          { "name": "percent", "key": "percent", "node": { "type": "object", "fields": { "percent": { "type": "int", "required": true, "min": 1, "max": 100, "help": "Percent of the maximum (at least 1 point)." } } } } ] },
+          "cure": { "use": "_common#cureList", "required": true, "help": "Conditions removed after the heal." } } } },
         { "name": "heal", "key": "heal", "node": { "type": "object", "fields": { "heal": { "type": "variant", "required": true, "help": "Hit points restored (1 to 999, full, a percent of the maximum, or a formula: a = the user, b = the unit healed).", "variants": [
           { "name": "amount", "kind": "number", "node": { "type": "int", "min": 1, "max": 999 } }, { "name": "full", "value": "full" },
           { "name": "formula", "kind": "string", "node": { "type": "string" }, "sample": "a.mag * 3" },
@@ -64,7 +69,17 @@
       "xp": { "type": "variant", "help": "Experience for using it: a number (0 to 1000) or a formula (a = the user, b = the target).", "variants": [
         { "name": "number", "kind": "number", "node": { "type": "int", "min": 0, "max": 1000 } },
         { "name": "formula", "kind": "string", "node": { "type": "string" }, "sample": "1" } ] },
-      "inflict": { "use": "_common#inflictAbility", "help": "A condition it puts on the target, with an optional chance." },
+      "inflict": { "type": "variant", "help": "Conditions it puts on the target (each unit of an area): one, or a list rolled one by one in order.", "variants": [
+        { "name": "one condition", "kind": "object", "sample": { "condition": "poison" }, "node": { "use": "_common#inflictAbility" } },
+        { "name": "several conditions", "kind": "array", "sample": [{ "condition": "poison" }], "node": { "type": "list", "min": 1, "max": 8, "of": { "use": "_common#inflictAbility" } } } ] },
+      "area": {
+        "type": "object", "block": true, "help": "Acts on every unit in an area around the square it is aimed at; target says who (ally, enemy or unit). Heal, cure or inflict only.",
+        "fields": {
+          "shape": { "type": "enum", "required": true, "values": ["burst", "line", "radius", "cross"], "help": "burst = radius 1; line needs length; radius and cross need radius." },
+          "radius": { "type": "int", "min": 1, "max": 8, "help": "For radius and cross." },
+          "length": { "type": "int", "min": 1, "max": 8, "help": "For line." },
+          "vertical": { "type": "int", "min": 0, "max": 999, "help": "Levels of height the area reaches (needs rules.height)." } }
+      },
       "if": { "type": "list", "of": { "use": "_skills#condition" }, "help": "Conditions the target must meet (at most 8)." },
       "chargeSpeed": { "type": "int", "min": 1, "max": 1000, "help": "Makes it a charged action (needs turnOrder speed and cost action)." },
       "chargeTargets": { "type": "enum", "values": ["unit", "cell"], "help": "unit: follows the unit; cell: hits the square (needs chargeSpeed)." },

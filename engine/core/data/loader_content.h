@@ -39,6 +39,8 @@ bool loadAiRules(const std::string& gameFile, Database& db, std::string& err);  
 bool readAiWeightSet(const LoadCtx& c, const Database& db, const std::string& where, const std::string& name, const Json& e, AiWeightSet& out);
 // "fire" and "area" of a weapon (loader_weapon_area.cpp; docs/SRPG.md "Area attacks and line fire").
 bool readWeaponArea(const LoadCtx& c, const Json& e, const std::string& where, WeaponDef& w);
+// An area object's "shape", "radius", "length" (loader_weapon_area.cpp); weapons and abilities both use it. Other keys are the caller's.
+bool readAreaShape(const LoadCtx& c, const Json& a, const std::string& where, AreaDef& d);
 bool readWeaponAmmo(const LoadCtx& c, const Json& e, const std::string& where, WeaponDef& w);
 bool readUnitSupply(const LoadCtx& c, const Json& e, const std::string& where, UnitTypeDef& u);
 bool readStructureRepairs(const LoadCtx& c, const Database& db, const Json& e, const std::string& where, StructureDef& s);

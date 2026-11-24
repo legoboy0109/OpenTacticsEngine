@@ -385,6 +385,10 @@ if(OTE_BUILD_PLAYER AND OTE_BUILD_TESTS AND NOT EMSCRIPTEN AND TARGET ote-player
     add_test(NAME srpg_player_conditions
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/srpg_player_conditions_test.py
                      $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
+    # Abilities with an area and several effects (docs/SRPG.md "Areas and several effects for abilities"): the square pick, the hint, the use.
+    add_test(NAME ability_area_player
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/ability_area_player_test.py
+                     $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
     # Doors, keys, chests and visiting (docs/SRPG.md section 10): menu, key choice, break door, unlock ability and staff, auto setting, fog.
     add_test(NAME srpg_player_doors
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/srpg_player_doors_test.py

@@ -1624,3 +1624,20 @@ Wording is placeholder. Model checks mirror the loader (docs/EVENTS.md "Showing 
   change name read against the shown map. A staged fight inside a section is allowed in a "Before the preparation screen" event.
 - **Map editor > Map tab**: **Only for story scenes** (game.json `"cutScene": true`, `model/cutScene.ts`). Such a map is left out of the Play list, the campaign’s chapter map list and the free-battle
   list, and a check refuses events, objectives or a preparation on it, and a chapter or free battle that names it (the tabs stay, so a map that already has them can be cleaned up).
+
+## Abilities: areas and several effects (docs/SRPG.md "Areas and several effects for abilities"; placeholder wording)
+
+- **Area card** (`screens/abilities/AbilityArea.tsx`, `model/abilityArea.ts`), shown for heal, cure and "No other effect" abilities: **Acts on an area** (on = `{ "shape": "burst" }`,
+  a "self" target becomes "ally"; off = the key goes and the range starts at 1 again), **Shape** (Burst (the square and its neighbours) / Diamond (radius) / Cross / Line), **Radius** or
+  **Length** (1 to 8), **Height reach** (only when the game has height rules or the key is there; empty = no limit, 0 = the same level only) and a line of who it acts on from the target
+  ("Acts on the allies in the area, the user too." / "... the enemies ..." / "... everyone ..."). With an area the reach may start at 0 (the user's own square). Changing the effect to one
+  that cannot have an area removes it; while an area is on, the target offers only ally, enemy and unit.
+- **Heal**: **Also cures** (`model/abilityHealCure.ts`) shows the same cure picker as the cure effect (`AbilityCurePicker.tsx`) and writes `"effect": { "heal": ..., "cure": ... }`.
+- **Gives a condition** is a list (`AbilityExtras.tsx`, `model/abilityInflicts.ts`): one row per entry (condition, turns, chance), **Add another condition** (the first unused one; hidden at
+  8 or when every condition is used), **Remove this condition**. One entry is written as an object, as before; two or more as a list.
+- **Checks** (`model/abilityAreaChecks.ts`, `fidelityAbility.ts`): every loader refusal in plain words (two effects other than heal + cure, an area on a strike or a moving / summon /
+  unlock / steal / refresh ability, an area with target self or a square, friendlyFire / apExtra / unknown keys, shape and sizes, height reach without height rules, a reach from 0
+  without an area, a charged area that follows the unit, an "only if" about the target, a list of 0 or more than 8 entries, a condition twice; an entry's own problems start "Condition N:").
+- **Server / API**: nothing new (the keys pass through); `tests/editor_api_ability_area_checks.py`. **Native editor**: schema-driven (`editor/schema/abilities.json`: `area`, a range
+  from 0, the "heal and cure" effect, `inflict` one object or a list); conformance contexts `ability-area*`, `ability-heal-cure` in `editor/native/tests/conformance_data.cpp`.
+- **Tests**: unit `tests/unit/abilityAreas.test.ts`.

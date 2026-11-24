@@ -4,6 +4,7 @@
 // The percent the ability's "inflict" takes hold on `target` when `user` uses it from `from`: 100 for an ability without "chance", else its
 // number or its formula (a = the user, b = the target, rounded down, kept within 0..100). -1 when the ability inflicts nothing. Immunity and
 // "has it already" are not part of it (inflictWhy says those).
-int abilityInflictChance(int user, int ability, int target, Cell from) const;
-// Does the ability roll for its condition at all (an "inflict" with a "chance")?
+// `entry` = which "inflict" entry of a list (docs/SRPG.md "Areas and several effects for abilities"); -1 when there is no such entry.
+int abilityInflictChance(int user, int ability, int target, Cell from, int entry = 0) const;
+// Does the ability roll for a condition at all (an "inflict" entry with a "chance")?
 bool abilityInflictRolls(int ability) const;

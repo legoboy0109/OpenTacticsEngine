@@ -12,6 +12,7 @@
 #include "core/data/speed_rules.h"
 #include "core/data/jobs.h"
 #include "core/data/unit_pools.h"
+#include "core/data/weapon_area.h"
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -273,6 +274,15 @@ struct SummonDef {
   bool replace = false;           // "replace": at its limit a new summon makes the oldest one vanish instead of being refused
 };
 
+// One condition an ability puts on (docs/SRPG.md "Areas and several effects for abilities"): what the single "inflict" object always said.
+struct AbilityInflict {
+  int cond = -1;        // index into Database::conditions
+  int turns = 0;        // 0 = the condition's own
+  int chance = 0;       // 1..99; 0 = no roll (no "chance", or 100)
+  int chanceExpr = -1;  // a formula (a = the user, b = the target); -1 = none
+  bool rolls() const { return chance > 0 || chanceExpr >= 0; }
+};
+
 struct AbilityDef {
   std::string id, name, description;
   AbilityTarget target = AbilityTarget::Unit;
@@ -319,6 +329,19 @@ struct AbilityDef {
   int healExpr = -1;
   // "spend": what one use costs, unit resources and side resources (docs/SRPG.md "Unit resources").
   std::vector<AbilitySpend> spend;
+  // docs/SRPG.md "Areas and several effects for abilities":
+  // Every "inflict" entry in list order (a single object = one entry). inflictCond / inflictTurns / inflictChance / inflictChanceExpr above
+  // are always the FIRST entry (kept for the code that reads one); the rules and the AI walk this list.
+  std::vector<AbilityInflict> inflicts;
+  // "effect": { "heal": ..., "cure": ... }: effect stays Heal and the cure fields above (cureIds, cures, cureAll, cureKind) are filled too;
+  // the heal goes first, then the cure.
+  bool healCures = false;
+  // "area" (heal, cure, both, or only "inflict"): the ability aims at a square in range and acts on every unit in the area its "target"
+  // accepts. shape / radius / length / vertical as on a weapon; friendlyFire and apExtra are never set (the target decides who is affected).
+  AreaDef area;
+  // With an area "range" may start at 0 (the user's own square); minRange is then 0.
+  // Is it aimed at a square (a summon, an unlock, an area) rather than at a unit? (Strikes with an area weapon have target Cell.)
+  bool aimsSquare() const { return target == AbilityTarget::Cell || area.on(); }
 };
 
 // ---- 2. promotion (game.json rules.promotion, units.json "promotions") ----

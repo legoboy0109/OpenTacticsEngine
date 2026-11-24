@@ -591,6 +591,8 @@ having; written when true). The battle gets a `"clock"` object: `"activeUnit"` (
 gone off already); the caster is alive and has no other pending action; `"follow": true` needs a `"target"`. `round` and `activeSide` are the usual keys and `activeSide` must be the active unit's side.
 A save of a speed game without `"clock"`, or with any of these keys in a game that is not a speed game, is refused with a path (`battle.clock: missing`, `units[0].ct: this game has no speed turn order`,
 `battle.clock.pending[0].id: "x" is not a weapon of this game`). A save of any other game is unchanged. Code: `core/battle/save_clock.cpp`. Tests: `tests/test_speed_save_ai.cpp`, `speed_order_player_test.py`.
+A charged ability with an `"area"` (docs/SRPG.md "Areas and several effects for abilities") is saved like any other: its aimed square in `"cell"`, `"follow"` false;
+nothing new is written (test: `abarea_a_charged_area_keeps_its_square` in `tests/test_ability_areas_ai.cpp`).
 
 ## Height rules (docs/SRPG.md "Height rules")
 

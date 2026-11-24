@@ -19,6 +19,10 @@ void Battle::applyAbility(const Action& action, std::vector<Event>& events, bool
     applyStrikeAbility(action, events, resolving);
     return;
   }
+  if (def.area.on()) {  // every unit in an area (ability_area.cpp)
+    applyAreaAbility(action, events, resolving);
+    return;
+  }
   const int team = teamOf(units[(size_t)uid]);
   const bool onCell = def.target == AbilityTarget::Cell;
   const int target = def.target == AbilityTarget::Self ? uid : onCell ? -1 : action.target;
@@ -63,20 +67,9 @@ void Battle::applyAbility(const Action& action, std::vector<Event>& events, bool
   events.push_back(used);
 
   switch (def.effect) {
-    case AbilityEffect::Heal: {
-      Unit& t = units[(size_t)target];
-      const int amount = std::min(abilityHealAmount(def, uid, target), maxHp(t) - t.hp);  // a number, "full", a percent or a formula
-      if (amount > 0) {
-        t.hp += amount;
-        Event h;
-        h.type = EventType::UnitHealed;
-        h.a = target;
-        h.b = amount;
-        events.push_back(h);
-        if (target != uid) supportsHealed(uid, target, events);  // supports: one healed the other
-      }
+    case AbilityEffect::Heal:  // the HP (and, for a heal that also cures, then the cure; ability_area.cpp)
+      abilityHealCure(def, uid, target, events);
       break;
-    }
     case AbilityEffect::Summon:
       if (!blocked) summonUnit(uid, ability, action.cell, events);
       break;

@@ -75,6 +75,7 @@ bool Battle::abilityTargetOk(const Unit& u, int ability, Cell from, int target, 
     return true;
   }
 
+  if (d.area.on()) return areaAbilityTargetOk(u, ability, from, cell, why);  // a square whose area holds someone it acts on (ability_area.cpp)
   if (d.target == AbilityTarget::Cell) {
     if (!grid.valid(cell)) return refuse(why, "that square is not on the map");
     const int dist = grid.distance(from, cell);
@@ -125,14 +126,9 @@ bool Battle::abilityTargetOk(const Unit& u, int ability, Cell from, int target, 
     case AbilityEffect::Steal:
     case AbilityEffect::Refresh:
     case AbilityEffect::Cure:
-      if (!abilityEffectOk(u, d, from, *t, why)) return false;
-      break;
-    case AbilityEffect::Heal:
-      if (t->hp >= maxHp(*t)) return refuse(why, "that unit is at full health");
-      break;
-    case AbilityEffect::None:  // only "inflict": refused where it could not take hold (immune, or already there for as long)
-      if (d.inflictCond >= 0 && inflictWhy(*t, d.inflictCond, d.inflictTurns) != 0)
-        return refuse(why, inflictWhy(*t, d.inflictCond, d.inflictTurns) == 1 ? "that unit is immune" : "that unit already has it");
+    case AbilityEffect::Heal:  // hurt (or, for a heal that also cures, something to cure)
+    case AbilityEffect::None:  // only "inflict": refused where none of its conditions could take hold (immune, or already there for as long)
+      if (!abilityActsOn(u, d, from, *t, why)) return false;  // ability_area.cpp
       break;
     case AbilityEffect::Summon: break;
     case AbilityEffect::Unlock: break;  // handled above (a square, not a unit)

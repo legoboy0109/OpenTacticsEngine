@@ -2,6 +2,7 @@
 // engine/core/data/loader_conditions.cpp, so a maker sees it before pressing Play; the loader's own message still shows in Problems after a save);
 // the rest load fine but are worth a look: a condition nothing can inflict, an "until cured" condition nothing cures. The places that use a
 // condition (a usable item, a weapon) have their refusals here too (`siteChecks`); a staff's are in staffChecks.ts and a skill rule's in skillChecks.ts.
+import { inflictList } from './abilityInflicts'
 import { blocksOfCondition, CONDITION_TURNS_MAX, CONDITION_WEAROFF_MAX, hasScalableEffect, MAX_CONDITIONS_LISTED, TAG_MAX } from './conditions'
 import { isControlBlock } from './conditionBehaviour'
 import { cureOf } from './staffConditions'
@@ -45,7 +46,7 @@ const storyCommands = (doc: ProjectDoc): Extra[] => {
 export function canBeInflicted(doc: ProjectDoc, id: string): boolean {
   if ((doc.items ?? []).some((i) => (i.kind === 'staff' && fxList(i).some((e) => fxKind(e) === 'inflict' && (e.inflict as Extra | undefined)?.condition === id)) || (i.kind === 'usable' && i.inflict?.condition === id))) return true
   if ((doc.weapons ?? []).some((w) => w.inflict?.condition === id)) return true
-  if ((doc.abilities ?? []).some((a) => (a.inflict as Extra | undefined)?.condition === id)) return true  // an ability's "inflict"
+  if ((doc.abilities ?? []).some((a) => inflictList(a).some((e) => e.condition === id))) return true  // an ability's "inflict"
   if (allBlocks(doc).some((o) => o.blocks.some((b) => effectsIn(b).some((e) => (e.inflict as Extra | undefined)?.condition === id)))) return true
   return storyCommands(doc).some((c) => c.addCondition === id)
 }

@@ -96,7 +96,10 @@ export interface Ability extends Named {
   if?: Extra[]
   /** docs/SRPG.md section 11: experience for the user per use (a number or a formula), and a condition the target gets. */
   xp?: number | string
-  inflict?: Extra
+  /** One condition entry, or a list of 1 to 8 (docs/SRPG.md "Ability conditions"); one entry is written as an object (model/abilityInflicts.ts). */
+  inflict?: Extra | Extra[]
+  /** The area it acts on (model/abilityArea.ts): shape, radius or length, vertical. Heal, cure and inflict-only abilities. */
+  area?: Extra
   /** Each use takes one use of the item that gives the ability (docs/SRPG.md "An ability that spends its item"). */
   spendsItem?: boolean
   /** What using it costs: resource id (unit resource or side resource) -> amount 1 to 999 (docs/SRPG.md "Unit resources"). */

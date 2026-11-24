@@ -31,7 +31,7 @@ PendingAction Battle::chargeFor(int unit, bool weapon, int index, int target, Ce
   } else {
     const AbilityDef& d = db->abilities[(size_t)index];
     p.speed = d.charge.speed;
-    aim = d.charge.aim != ChargeDef::Aim::Default ? d.charge.aim : d.target == AbilityTarget::Cell ? ChargeDef::Aim::Cell : ChargeDef::Aim::Unit;
+    aim = d.charge.aim != ChargeDef::Aim::Default ? d.charge.aim : d.aimsSquare() ? ChargeDef::Aim::Cell : ChargeDef::Aim::Unit;
     if (d.target == AbilityTarget::Self) target = unit;  // it follows the caster, wherever the caster goes
   }
   Cell at = cell;
@@ -209,11 +209,11 @@ void Battle::resolveCharge(int index, std::vector<Event>& events) {
     const AbilityDef& d = db->abilities[(size_t)p.index];
     Cell cell = kNoCell;
     if (d.target == AbilityTarget::Self) target = p.unit;
-    else if (d.target == AbilityTarget::Cell) {
+    else if (d.aimsSquare()) {  // (an area keeps its square, as an area strike does)
       cell = p.cell;
       target = -1;
     }
-    bool ok = (d.target == AbilityTarget::Cell || (target >= 0 && units[(size_t)target].alive)) &&
+    bool ok = (d.aimsSquare() || (target >= 0 && units[(size_t)target].alive)) &&
               abilityTargetOk(caster, p.index, caster.cell, target, cell, nullptr);
     if (ok && d.effect == AbilityEffect::Steal) {
       std::vector<StealOption> opts;

@@ -3,6 +3,7 @@
 // square, and so on; here the pickers only offer what the loader accepts, and changing the effect repairs the target.
 // A default (cost "action", afterMove true, summon limit 1 ...) is never written; keys the editor does not know stay.
 import { withAbilities } from './doc'
+import { hasArea, kindAllowsArea } from './abilityArea'
 import { newAbilityId } from './srpgRefs'
 import { moveItem, patchObj, updateById } from './util'
 import type { Ability, AbilityEffect, AbilityTarget, StealOptions, Summon } from './srpgTypes'
@@ -37,7 +38,7 @@ export const targetsFor = (k: EffectKind): AbilityTarget[] => (k === 'none' ? ['
 
 export function effectKind(a: Ability): EffectKind | null {
   const e = a.effect
-  if (!e || typeof e !== 'object') return a.inflict && typeof a.inflict === 'object' && !Array.isArray(a.inflict) ? 'none' : null
+  if (!e || typeof e !== 'object') return a.inflict && typeof a.inflict === 'object' ? 'none' : null  // an object or a list of conditions
   return EFFECT_KINDS.find((k) => Object.prototype.hasOwnProperty.call(e, k)) ?? null
 }
 
@@ -74,6 +75,7 @@ const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, M
 /** The range is written only when it is not the default [1, 1]; "itself" and the moving effects have none to write. */
 function withRange(a: Ability, range: [number, number]): Ability {
   const kind = effectKind(a)
+  if (!hasArea(a) && range[0] < 1) range = [1, Math.max(1, range[1])]  // a min of 0 (the user's own square) needs an area
   const keep = targetOf(a) !== 'self' && effectKind(a) !== 'strike' && !hasFixedRange(kind) && !(range[0] === 1 && range[1] === 1)
   return patchObj(a, { range: keep ? range : undefined })
 }
@@ -81,11 +83,12 @@ function withRange(a: Ability, range: [number, number]): Ability {
 export function setTarget(a: Ability, target: AbilityTarget): Ability {
   const kind = effectKind(a)
   if (kind && !targetsFor(kind).includes(target)) return a
+  if (hasArea(a) && (target === 'self' || target === 'cell')) return a  // an area needs to say who in it is affected
   return withRange(patchObj(a, { target }), rangeOf(a))
 }
 
 export function setRange(a: Ability, min: number, max: number): Ability {
-  const lo = clamp(min, 1, RANGE_MAX)
+  const lo = clamp(min, hasArea(a) ? 0 : 1, RANGE_MAX)  // 0 = the user's own square, only with an area
   return withRange(a, [lo, clamp(Math.max(max, lo), lo, RANGE_MAX)])
 }
 
@@ -111,8 +114,10 @@ const defaultEffect = (k: EffectKind): AbilityEffect => {
  *  needs a square within reach, so it starts with range 1..2 (the summon's own default is the maker's to change). */
 export function setEffectKind(doc: ProjectDoc, a: Ability, k: EffectKind): Ability {
   if (effectKind(a) === k) return a
-  if (k === 'strike') return patchObj(a, { effect: { strike: doc.weapons?.[0]?.id ?? '' }, target: undefined, range: undefined, cost: undefined })  // the weapon gives the target and reach; a strike always uses the action
-  const target = targetsFor(k).includes(targetOf(a)) ? targetOf(a) : targetsFor(k)[0]
+  if (k === 'strike') return patchObj(a, { effect: { strike: doc.weapons?.[0]?.id ?? '' }, target: undefined, range: undefined, cost: undefined, area: undefined })  // the weapon gives the target and reach; a strike always uses the action
+  const keepsArea = hasArea(a) && kindAllowsArea(k)  // any other effect cannot have an area: it goes
+  const target = targetsFor(k).includes(targetOf(a)) ? targetOf(a) : targetsFor(k).find((t) => !keepsArea || (t !== 'self' && t !== 'cell')) ?? targetsFor(k)[0]
+  a = keepsArea ? a : patchObj(a, { area: undefined })
   if (k === 'none') {  // no "effect" key; "inflict" is then required, so one is started
     const next = patchObj(a, { effect: undefined, target, inflict: a.inflict ?? (doc.conditions?.[0] ? { condition: doc.conditions[0].id } : undefined) })
     return withRange(next, rangeOf(a))
@@ -122,6 +127,16 @@ export function setEffectKind(doc: ProjectDoc, a: Ability, k: EffectKind): Abili
   if (k === 'cure' && doc.conditions?.[0]) effect.cure = [doc.conditions[0].id]
   const next = patchObj(a, { effect, target })
   return withRange(next, k === 'summon' && a.range === undefined ? [1, 2] : rangeOf(a))
+}
+
+/** "Acts on an area": starts a burst (radius 1) when the effect allows one. Off removes it and the range goes back to starting at 1.
+ *  A target that cannot be used with an area (itself) becomes "ally". */
+export function setArea(a: Ability, on: boolean): Ability {
+  if (on === hasArea(a)) return a
+  if (!on) return withRange(patchObj(a, { area: undefined }), rangeOf(a))
+  if (!kindAllowsArea(effectKind(a))) return a
+  const target = targetOf(a)
+  return withRange(patchObj(a, { area: { shape: 'burst' }, target: target === 'self' || target === 'cell' ? 'ally' : a.target }), rangeOf(a))
 }
 
 /** The weapon a strike attacks with ('' = none picked yet). */
@@ -193,8 +208,10 @@ export function setRefreshPerTurn(a: Ability, n: number): Ability {
 }
 export const REFRESH_MAX = 9
 
-/** Cure: "all", "harmful" / "helpful" (every condition of that kind), or the ids of the conditions it cures (the first one when the maker leaves "all"). */
-export const setCure = (a: Ability, cure: CureValue): Ability => (effectKind(a) === 'cure' ? patchObj(a, { effect: { cure } }) : a)
+/** Cure: "all", "harmful" / "helpful" (every condition of that kind), or the ids of the conditions it cures (the first one when the maker leaves "all").
+ *  A heal that also cures keeps its heal; turning "also cures" on or off is in abilityHealCure.ts. */
+export const setCure = (a: Ability, cure: CureValue): Ability =>
+  effectKind(a) === 'cure' ? patchObj(a, { effect: { cure } }) : effectKind(a) === 'heal' && a.effect && 'cure' in a.effect ? patchObj(a, { effect: { ...a.effect, cure } }) : a
 
 export const setCost = (a: Ability, free: boolean): Ability => patchObj(a, { cost: free ? 'free' : undefined })
 export const setUses = (a: Ability, n: number | undefined): Ability => patchObj(a, { uses: n === undefined ? undefined : clamp(n, 1, USES_MAX) })

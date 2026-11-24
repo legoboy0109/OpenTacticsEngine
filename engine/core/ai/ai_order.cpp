@@ -214,6 +214,8 @@ Order bestOrder(Context& cx, const Unit& u) {
     considerStrikes(b, u, s, travel, st, best);
     // Abilities that only put a condition on (ai_conditions.cpp): a blessing on its own team, a curse on a foe, by the condition's worth.
     considerStatusAbilities(b, u, s, travel, best);
+    // Heal, cure and status abilities with an area (ai_ability_area.cpp): the sum over everyone in the area.
+    considerAreaAbilities(b, u, s, travel, best);
   }
 
   if (weights && !noAttack) {

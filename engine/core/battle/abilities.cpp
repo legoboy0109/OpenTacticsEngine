@@ -74,7 +74,7 @@ void Battle::abilityTargets(int unit, int ability, Cell from, std::vector<int>& 
   const AbilityDef& d = db->abilities[(size_t)ability];
   if (d.target == AbilityTarget::Self) {
     if (abilityTargetOk(u, ability, from, unit, kNoCell, nullptr)) units_.push_back(unit);
-  } else if (d.target == AbilityTarget::Cell) {
+  } else if (d.aimsSquare()) {  // a summon or unlock square, an area weapon's aim, or the square an area ability is aimed at
     std::vector<Cell> near;
     // A strike: the squares its weapon can be aimed at (the height rules may add reach), as abilityStrikeOptions offers them; else the range.
     if (d.effect == AbilityEffect::Strike) aimCells(d.strike, from, unit, near);
