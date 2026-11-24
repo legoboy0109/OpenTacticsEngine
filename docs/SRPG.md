@@ -3439,7 +3439,7 @@ game that writes the keys changes its data hash. **Editor**: docs/EDITOR_UI.md "
 twice), `tests/ability_area_player_test.py` (the pick, the hint, the red area, the use), `tests/editor_api_ability_area_checks.py` (the editor server keeps every
 key; the loader names the refusals).
 
-**Owner decisions (placeholders; any may change):** the key names `area` (and its sub-keys, as a weapon's), `inflict` as a list, heal and cure side by side in
+**Owner decisions (kept by the owner 2026-11-23):** the key names `area` (and its sub-keys, as a weapon's), `inflict` as a list, heal and cure side by side in
 `effect`; `"ally"` and `"unit"` areas include the user; range 0 = the user's square (only with an area); only units the ability would change are acted on (a
 full-HP unit is left out of a Cura); order = unit id, then heal, cure, conditions; `xp` once per use; a charged area keeps its square; the player's words
 `Cura: 3 units (...)`, `(area: radius 1)`, `a square (allies in the area)`, `Heals 10 HP and cures ...`, `Inflicts A and B`, `that unit needs neither healing nor a
