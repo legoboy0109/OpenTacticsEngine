@@ -28,6 +28,8 @@ import { setGoesFor } from '../../../../model/mapPlaces'
 import { DifficultyOnly } from './DifficultyOnly'
 import { UnitVariants } from './UnitVariants'
 import { GoesFor } from './GoesFor'
+import { GuestCheck } from './GuestCheck'
+import { computerMoves } from '../../../../model/guests'
 import { UnitBehaviour } from './UnitBehaviour'
 import { UnitRankOverride } from './UnitRankOverride'
 import { UnitSkills } from './UnitSkills'
@@ -103,10 +105,11 @@ export function UnitProps({ mapId, cell, say, onSelect }: Props) {
         )}
       </div>
       <Check checked={!!unit.leader} label={T.unitLeader} help={T.unitLeaderHelp} onChange={(v) => patch({ leader: v })} />
+      <GuestCheck map={map} unit={unit} onChange={(on) => patch({ guest: on ? true : undefined })} />
       <GoesFor map={map} side={unit.side} value={unit.goesFor} onChange={(goals) => edit((d) => editMap(d, mapId, (m) => setGoesFor(m, unit, goals)))} />
       <UnitBehaviour mapId={mapId} map={map} unit={unit} variant={v} />
       <UnitVariants mapId={mapId} cell={cell} onSelect={onSelect} say={say} />
-      <DifficultyOnly doc={doc} unit={unit} ai={map.sides?.find((s) => s.id === unit.side)?.controller === 'ai'} onChange={(p) => patch(p)} />
+      <DifficultyOnly doc={doc} unit={unit} ai={computerMoves(map, unit)} onChange={(p) => patch(p)} />
       {((doc.items?.length ?? 0) > 0 || unit.items !== undefined) && (
         <div className="stack tight" data-testid="unit-own-items">
           <Toggle label={T.ownItems} help={unit.items === undefined ? T.ownItemsOff(typeItems) : T.ownItemsOn}

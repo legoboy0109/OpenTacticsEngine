@@ -19,6 +19,8 @@ function areaPhrase(a: Ability): string {
   switch (v.shape) {
     case 'radius': return `${squares(v.size ?? 1)} around the square it aims at${up}`
     case 'cross': return `a cross reaching ${squares(v.size ?? 1)} from the square it aims at${up}`
+    case 'ring': return `a ring of ${squares(v.size ?? 1)} around the square it aims at${up}`
+    case 'field': return 'the whole map'
     case 'line': return `a line of ${squares(v.size ?? 1)} from it${up}`
     default: return `the square it aims at and the ones next to it${up}`
   }
@@ -82,7 +84,8 @@ function whatText(doc: ProjectDoc, a: Ability): string {
     }
     case 'strike': {
       const w = typeof e.strike === 'string' ? (doc.weapons?.find((x) => x.id === e.strike)?.name ?? e.strike) : ''
-      return `attacks with ${w || 'a weapon'}, aiming and reaching as the weapon does`
+      return e.reach === 'equipped' ? `attacks with the damage of ${w || 'a weapon'}, from as far as the weapon in hand reaches`
+        : `attacks with ${w || 'a weapon'}, aiming and reaching as the weapon does`
     }
     case 'summon': {
       const s = summonOf(a)

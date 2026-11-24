@@ -121,6 +121,7 @@ export function newCommand(c: DefCtx, kind: CommandKind): Command {
     case 'showMap': return newShowMap(c.doc, Object.keys(c.doc.maps).find((k) => c.doc.maps[k] === c.map) ?? '')
     case 'returnMap': return { returnMap: true }
     case 'fight': return { fight: newFight(namedUnits(c.doc, c.map).map((u) => u.id)) }
+    case 'guestJoins': return { guestJoins: defaultFilter(c) }
     case 'changeSide': return { changeSide: defaultFilter(c), side: firstSide(c) }
     case 'addSupport': return { addSupport: firstPair(c.doc), by: 10 }
     case 'promote': return { promote: firstUnit(c), to: c.doc.units?.[0]?.id ?? '' }

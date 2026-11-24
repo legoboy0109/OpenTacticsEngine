@@ -14,6 +14,7 @@ import { MapMusic } from '../../../sound/MapMusic'
 import { BattleSceneSettings } from './BattleSceneSettings'
 import { ExitsSettings } from './ExitsSettings'
 import { FogSettings } from './FogSettings'
+import { MapApSettings } from './MapApSettings'
 import { MapDifficulty } from './MapDifficulty'
 import { ResizeDialog } from './ResizeDialog'
 
@@ -38,6 +39,7 @@ export function SettingsPanel({ doc, map, mapId, vs }: { doc: ProjectDoc; map: M
       <FogSettings doc={doc} map={map} mapId={mapId} vs={vs} />
       <BattleSceneSettings doc={doc} map={map} mapId={mapId} />
       <MapMusic doc={doc} map={map} mapId={mapId} />
+      <MapApSettings doc={doc} map={map} mapId={mapId} />
       <MapDifficulty doc={doc} map={map} mapId={mapId} />
       {resizing && <ResizeDialog doc={doc} map={map} mapId={mapId} onClose={() => setResizing(false)} />}
     </div>

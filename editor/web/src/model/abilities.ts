@@ -3,7 +3,7 @@
 // square, and so on; here the pickers only offer what the loader accepts, and changing the effect repairs the target.
 // A default (cost "action", afterMove true, summon limit 1 ...) is never written; keys the editor does not know stay.
 import { withAbilities } from './doc'
-import { hasArea, kindAllowsArea } from './abilityArea'
+import { hasArea, kindAllowsArea, rangeMayStartAtZero } from './abilityArea'
 import { newAbilityId } from './srpgRefs'
 import { moveItem, patchObj, updateById } from './util'
 import type { Ability, AbilityEffect, AbilityTarget, StealOptions, Summon } from './srpgTypes'
@@ -75,7 +75,7 @@ const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, M
 /** The range is written only when it is not the default [1, 1]; "itself" and the moving effects have none to write. */
 function withRange(a: Ability, range: [number, number]): Ability {
   const kind = effectKind(a)
-  if (!hasArea(a) && range[0] < 1) range = [1, Math.max(1, range[1])]  // a min of 0 (the user's own square) needs an area
+  if (!rangeMayStartAtZero(a, kind, targetOf(a)) && range[0] < 1) range = [1, Math.max(1, range[1])]  // a min of 0 (the user itself) needs an area or a heal/cure/condition on an ally or unit
   const keep = targetOf(a) !== 'self' && effectKind(a) !== 'strike' && !hasFixedRange(kind) && !(range[0] === 1 && range[1] === 1)
   return patchObj(a, { range: keep ? range : undefined })
 }
@@ -88,7 +88,7 @@ export function setTarget(a: Ability, target: AbilityTarget): Ability {
 }
 
 export function setRange(a: Ability, min: number, max: number): Ability {
-  const lo = clamp(min, hasArea(a) ? 0 : 1, RANGE_MAX)  // 0 = the user's own square, only with an area
+  const lo = clamp(min, rangeMayStartAtZero(a, effectKind(a), targetOf(a)) ? 0 : 1, RANGE_MAX)  // 0 = the user itself, only where the loader allows it
   return withRange(a, [lo, clamp(Math.max(max, lo), lo, RANGE_MAX)])
 }
 

@@ -1,4 +1,5 @@
 // The form of one ability: name, what it does and on whom, cost and limits, conditions, and the sentence it adds up to.
+import { rangeMayStartAtZero } from '../../model/abilityArea'
 import { EFFECT_KINDS, NO_EFFECT, targetsFor, effectKind, hasFixedRange, rangeOf, setAfterMove, setCooldown, setCost, setEffectKind, setRange, setTarget, setUses, targetOf, updateAbility } from '../../model/abilities'
 import { setSpendsItem, spendsItemProblems } from '../../model/abilityItem'
 import { abilitySummary } from '../../model/abilityText'
@@ -35,6 +36,7 @@ export function AbilityForm({ id }: { id: string }) {
   const target = targetOf(ability)
   const [rmin, rmax] = rangeOf(ability)
   const area = hasArea(ability)
+  const zeroOk = rangeMayStartAtZero(ability, kind, target)  // the user itself may be picked
   const far = rmax > 1
   // Offer only the targets the effect accepts; the one the file has stays even when it is wrong, so the select shows it.
   const allowed = (kind ? targetsFor(kind) : (Object.keys(T.targets) as AbilityTarget[])).filter((t) => !area || (t !== 'self' && t !== 'cell'))  // an area says who in it is affected
@@ -73,8 +75,8 @@ export function AbilityForm({ id }: { id: string }) {
           <AbilityEffectFields ability={ability} change={change} />
           {showRange && (
             <FormGrid>
-              <Field label={T.rangeFrom}><NumberInput value={rmin} min={area ? 0 : 1} max={20} onChange={(v) => { if (v !== undefined) change((a) => setRange(a, v, rangeOf(a)[1]), 'rangeMin') }} /></Field>
-              <Field label={T.rangeTo} help={area ? T.areaRangeHelp : T.rangeHelp}><NumberInput value={rmax} min={area ? 0 : 1} max={20} onChange={(v) => { if (v !== undefined) change((a) => setRange(a, rangeOf(a)[0], v), 'rangeMax') }} /></Field>
+              <Field label={T.rangeFrom}><NumberInput value={rmin} min={zeroOk ? 0 : 1} max={20} onChange={(v) => { if (v !== undefined) change((a) => setRange(a, v, rangeOf(a)[1]), 'rangeMin') }} /></Field>
+              <Field label={T.rangeTo} help={area ? T.areaRangeHelp : zeroOk ? T.rangeZeroHelp : T.rangeHelp}><NumberInput value={rmax} min={zeroOk ? 0 : 1} max={20} onChange={(v) => { if (v !== undefined) change((a) => setRange(a, rangeOf(a)[0], v), 'rangeMax') }} /></Field>
             </FormGrid>
           )}
         </div>

@@ -2,6 +2,7 @@
 // said in plain words, so a maker sees them before pressing Play. (The loader's own messages still reach the Problems list.)
 import { spendsItemProblems } from './abilityItem'
 import { areaChecks, effectPairChecks } from './abilityAreaChecks'
+import { strikeReachChecks } from './abilityStrikeReach'
 import { healChecks, spendChecks, strikeChecks } from './abilityStrikeChecks'
 import { summonItemProblems } from './summonItems'
 import { targetsFor, effectKind, hasFixedRange, stealOf, targetOf, summonOf, unlockOf } from './abilities'
@@ -35,7 +36,7 @@ function shapeChecks(doc: ProjectDoc, a: Ability): string[] {
     else out.push(`${a.name}: “${EFFECT_WORDS[kind]}” needs a unit next to it as its target.`)
   }
   if (kind === 'none' && a.effect !== undefined) out.push(`${a.name}: an ability with no effect of its own must leave “effect” out.`)
-  out.push(...effectPairChecks(a), ...areaChecks(doc, a), ...strikeChecks(doc, a), ...healChecks(a), ...spendChecks(doc, a))
+  out.push(...effectPairChecks(a), ...areaChecks(doc, a), ...strikeChecks(doc, a), ...strikeReachChecks(a), ...healChecks(a), ...spendChecks(doc, a))
   if (kind === 'summon') {
     const type = summonOf(a).type
     if (!type) out.push(`${a.name}: choose which unit type it summons.`)

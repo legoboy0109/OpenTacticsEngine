@@ -320,6 +320,7 @@ function mapCommand(c: Command, w: Walk, where: string): Command | Dropped {
     (x) => withFightUnits(x, w, where), // a staged fight: attacker and defender
     (x) => withRef(x, 'moveUnit', 'unit', w, where),
     (x) => withFilter(x, 'changeSide', w, where),
+    (x) => withFilter(x, 'guestJoins', w, where),
     (x) => withRef(x, 'promote', 'unit', w, where),
     (x) => withPair(x, 'addSupport', w, where),
     (x) => (x.promote !== undefined ? withRef(x, 'to', 'type', w, where) : x), // promote's `to` is a unit type id

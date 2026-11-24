@@ -1,6 +1,6 @@
 // Checks on an ability's "area", its range with an area, and the heal + cure pair, in plain words; each mirrors one refusal of the
 // loader (data/abilities.json). Every sentence starts with the ability's name, like the other ability checks.
-import { AREA_MAX, AREA_SHAPES, VERTICAL_MAX, kindAllowsArea } from './abilityArea'
+import { AREA_MAX, AREA_SHAPES, VERTICAL_MAX, hasRadius, kindAllowsArea, rangeMayStartAtZero } from './abilityArea'
 import { isFoe } from './abilityConditions'
 import { EFFECT_KINDS, effectKind, hasFixedRange, targetOf } from './abilities'
 import type { Ability } from './srpgTypes'
@@ -23,14 +23,15 @@ export function effectPairChecks(a: Ability): string[] {
   return keys.length > 1 && !pair ? [`${a.name}: it can do only one thing. Only healing and curing may go together.`] : []
 }
 
-/** The range: from 1 to 20, or from 0 (the user's own square) with an area. */
+/** The range: from 1 to 20, or from 0 (the user itself) with an area or on a heal, cure or condition ability aimed at an ally or any unit. */
 function rangeChecks(a: Ability, withArea: boolean): string[] {
   const kind = effectKind(a)
   if (a.range === undefined || kind === 'strike' || hasFixedRange(kind) || targetOf(a) === 'self') return []
   const [lo, hi] = Array.isArray(a.range) ? a.range : [NaN, NaN]
-  const min = withArea ? 0 : 1
+  const zero = rangeMayStartAtZero(a, kind, targetOf(a)) || withArea
+  const min = zero ? 0 : 1
   return Array.isArray(a.range) && a.range.length === 2 && whole(lo, min, 20) && whole(hi, min, 20) && lo <= hi ? []
-    : [`${a.name}: the reach must be two whole numbers from ${min} to 20${withArea ? ' (0 is the unit’s own square)' : ''}, the first not above the second.`]
+    : [`${a.name}: the reach must be two whole numbers from ${min} to 20${zero ? ' (0 is the unit itself)' : ''}, the first not above the second.${!zero && Array.isArray(a.range) && a.range[0] === 0 ? ' A reach may start at 0 only on a healing, curing or condition ability aimed at an ally or any unit, or with an area.' : ''}`]
 }
 
 export function areaChecks(doc: ProjectDoc, a: Ability): string[] {
@@ -50,17 +51,20 @@ export function areaChecks(doc: ProjectDoc, a: Ability): string[] {
     else if (!KNOWN_KEYS.includes(k)) out.push(`${a.name}: the area has an unknown setting “${k}”. An ability’s area takes a shape, a radius or length, and a vertical reach.`)
   }
   const shape = o.shape
-  if (shape === undefined) out.push(`${a.name}: the area needs a shape (burst, radius, cross or line).`)
-  else if (!AREA_SHAPES.includes(shape as never)) out.push(`${a.name}: the shape of the area must be burst, radius, cross or line.`)
-  if (shape === 'radius' || shape === 'cross') {
+  if (shape === undefined) out.push(`${a.name}: the area needs a shape (burst, line, radius, cross, ring or field).`)
+  else if (!AREA_SHAPES.includes(shape as never)) out.push(`${a.name}: the shape of the area must be burst, line, radius, cross, ring or field.`)
+  if (typeof shape === 'string' && hasRadius(shape)) {
     if (o.radius === undefined) out.push(`${a.name}: an area of shape “${shape}” needs a radius from 1 to ${AREA_MAX}.`)
     else if (!whole(o.radius, 1, AREA_MAX)) out.push(`${a.name}: the radius of the area must be a whole number from 1 to ${AREA_MAX}.`)
-  } else if (o.radius !== undefined) out.push(`${a.name}: a radius goes only with the shapes “radius” and “cross”.`)
+  } else if (o.radius !== undefined && shape === 'field') out.push(`${a.name}: a “field” covers the whole map and takes no radius.`)
+  else if (o.radius !== undefined) out.push(`${a.name}: a radius goes only with the shapes “radius”, “cross” and “ring”.`)
   if (shape === 'line') {
     if (o.length === undefined) out.push(`${a.name}: an area of shape “line” needs a length from 1 to ${AREA_MAX}.`)
     else if (!whole(o.length, 1, AREA_MAX)) out.push(`${a.name}: the length of the area must be a whole number from 1 to ${AREA_MAX}.`)
   } else if (o.length !== undefined) out.push(`${a.name}: a length goes only with the shape “line”.`)
-  if (o.vertical !== undefined) {
+  if (shape === 'field') {
+    if (o.vertical !== undefined) out.push(`${a.name}: a “field” covers the whole map at every height. Leave out the vertical reach.`)
+  } else if (o.vertical !== undefined) {
     if (!whole(o.vertical, 0, VERTICAL_MAX)) out.push(`${a.name}: the vertical reach of the area must be a whole number from 0 to ${VERTICAL_MAX}.`)
     if (!gameHasHeight(doc)) out.push(`${a.name}: a vertical reach needs the height rules to be switched on for the game.`)
   }
