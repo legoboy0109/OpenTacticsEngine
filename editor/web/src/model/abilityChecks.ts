@@ -1,6 +1,7 @@
 // Editor-side checks for abilities (docs/SRPG.md "Checks / Problems"): an ability nobody has, plus the loader's refusals
 // said in plain words, so a maker sees them before pressing Play. (The loader's own messages still reach the Problems list.)
 import { spendsItemProblems } from './abilityItem'
+import { areaChecks, effectPairChecks } from './abilityAreaChecks'
 import { healChecks, spendChecks, strikeChecks } from './abilityStrikeChecks'
 import { summonItemProblems } from './summonItems'
 import { targetsFor, effectKind, hasFixedRange, stealOf, targetOf, summonOf, unlockOf } from './abilities'
@@ -34,7 +35,7 @@ function shapeChecks(doc: ProjectDoc, a: Ability): string[] {
     else out.push(`${a.name}: “${EFFECT_WORDS[kind]}” needs a unit next to it as its target.`)
   }
   if (kind === 'none' && a.effect !== undefined) out.push(`${a.name}: an ability with no effect of its own must leave “effect” out.`)
-  out.push(...strikeChecks(doc, a), ...healChecks(a), ...spendChecks(doc, a))
+  out.push(...effectPairChecks(a), ...areaChecks(doc, a), ...strikeChecks(doc, a), ...healChecks(a), ...spendChecks(doc, a))
   if (kind === 'summon') {
     const type = summonOf(a).type
     if (!type) out.push(`${a.name}: choose which unit type it summons.`)
@@ -54,7 +55,7 @@ function shapeChecks(doc: ProjectDoc, a: Ability): string[] {
     const r = a.effect?.refresh
     if (r !== true && !(r && typeof r === 'object' && Number.isInteger(r.perTurn) && r.perTurn >= 1 && r.perTurn <= 9)) out.push(`${a.name}: how many times a unit can be refreshed in a turn must be from 1 to 9.`)
   }
-  if (kind === 'cure') {
+  if (kind === 'cure' || (kind === 'heal' && a.effect && 'cure' in a.effect)) {  // a cure, or the cure part of a heal
     const c = a.effect?.cure
     if ((c === 'harmful' || c === 'helpful') && !(doc.conditions ?? []).length) out.push(`${a.name}: it cures every ${c} condition, but the game has no conditions yet.`)
     else if (c !== 'all' && c !== 'harmful' && c !== 'helpful') {

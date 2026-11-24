@@ -13,6 +13,8 @@ import { Select } from '../../ui/Select'
 import { TextInput } from '../../ui/TextInput'
 import { Banner } from '../../ui/Banner'
 import { Check } from '../../ui/Toggle'
+import { hasArea, kindAllowsArea } from '../../model/abilityArea'
+import { AbilityArea } from './AbilityArea'
 import { AbilityConditions } from './AbilityConditions'
 import { AbilityEffectFields } from './AbilityEffectFields'
 import { AbilityExtras } from './AbilityExtras'
@@ -32,9 +34,10 @@ export function AbilityForm({ id }: { id: string }) {
   const kind = effectKind(ability)
   const target = targetOf(ability)
   const [rmin, rmax] = rangeOf(ability)
+  const area = hasArea(ability)
   const far = rmax > 1
   // Offer only the targets the effect accepts; the one the file has stays even when it is wrong, so the select shows it.
-  const allowed = kind ? targetsFor(kind) : (Object.keys(T.targets) as AbilityTarget[])
+  const allowed = (kind ? targetsFor(kind) : (Object.keys(T.targets) as AbilityTarget[])).filter((t) => !area || (t !== 'self' && t !== 'cell'))  // an area says who in it is affected
   const targetOptions = [...new Set([...allowed, target])].map((t) => ({ value: t, label: kind === 'unlock' && t === 'cell' ? (far ? T.unlockTarget : T.unlockTargetNext) : far && T.targetsFar[t] ? T.targetsFar[t] : T.targets[t] }))
   const showRange = kind !== null && !hasFixedRange(kind) && target !== 'self'
   const strike = kind === 'strike'  // the weapon gives a strike its targets and reach, and it always uses the action
@@ -70,12 +73,14 @@ export function AbilityForm({ id }: { id: string }) {
           <AbilityEffectFields ability={ability} change={change} />
           {showRange && (
             <FormGrid>
-              <Field label={T.rangeFrom}><NumberInput value={rmin} min={1} max={20} onChange={(v) => { if (v !== undefined) change((a) => setRange(a, v, rangeOf(a)[1]), 'rangeMin') }} /></Field>
-              <Field label={T.rangeTo} help={T.rangeHelp}><NumberInput value={rmax} min={1} max={20} onChange={(v) => { if (v !== undefined) change((a) => setRange(a, rangeOf(a)[0], v), 'rangeMax') }} /></Field>
+              <Field label={T.rangeFrom}><NumberInput value={rmin} min={area ? 0 : 1} max={20} onChange={(v) => { if (v !== undefined) change((a) => setRange(a, v, rangeOf(a)[1]), 'rangeMin') }} /></Field>
+              <Field label={T.rangeTo} help={area ? T.areaRangeHelp : T.rangeHelp}><NumberInput value={rmax} min={area ? 0 : 1} max={20} onChange={(v) => { if (v !== undefined) change((a) => setRange(a, rangeOf(a)[0], v), 'rangeMax') }} /></Field>
             </FormGrid>
           )}
         </div>
       </Card>
+
+      {kindAllowsArea(kind) && <AbilityArea ability={ability} change={change} />}
 
       {kind === 'summon' && <SummonFields ability={ability} change={change} />}
 

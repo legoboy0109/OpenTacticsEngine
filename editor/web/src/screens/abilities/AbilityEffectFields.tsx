@@ -1,13 +1,14 @@
 // The number an effect needs: how far a push goes, how much a heal gives.
-import { HEAL_MAX, PERCENT_MAX, PUSH_MAX, REFRESH_MAX, effectKind, healKind, refreshPerTurn, setCure, setEffectAmount, setHealKind, setHealValue, setRefreshPerTurn, setSteal, setStrikeWeapon, setUnlock, stealOf, strikeWeapon, unlockOf, type HealKind, type UnlockKinds } from '../../model/abilities'
+import { alsoCures, setAlsoCures } from '../../model/abilityHealCure'
+import { HEAL_MAX, PERCENT_MAX, PUSH_MAX, REFRESH_MAX, effectKind, healKind, refreshPerTurn, setEffectAmount, setHealKind, setHealValue, setRefreshPerTurn, setSteal, setStrikeWeapon, setUnlock, stealOf, strikeWeapon, unlockOf, type HealKind, type UnlockKinds } from '../../model/abilities'
 import { useDoc } from '../../store/context'
-import { MultiSelect } from '../../ui/MultiSelect'
 import { Select } from '../../ui/Select'
 import { TextInput } from '../../ui/TextInput'
 import type { Ability } from '../../model/srpgTypes'
 import { Field } from '../../ui/Field'
 import { NumberInput } from '../../ui/NumberInput'
 import { Check } from '../../ui/Toggle'
+import { AbilityCurePicker } from './AbilityCurePicker'
 import { T } from './text'
 
 export interface FormProps { ability: Ability; change: (fn: (a: Ability) => Ability, key?: string) => void }
@@ -56,24 +57,7 @@ export function AbilityEffectFields({ ability, change }: FormProps) {
       </Field>
     )
   }
-  if (kind === 'cure') {
-    const cure = ability.effect?.cure
-    const whole = cure === 'all' || cure === 'harmful' || cure === 'helpful' ? cure : null  // a whole group, not a list
-    const list = (Array.isArray(cure) ? cure : []) as string[]
-    const options = (doc.conditions ?? []).map((c) => ({ value: c.id, label: c.name }))
-    return (
-      <div className="stack tight">
-        <Field label={T.cureWhich} help={T.cureWhichHelp}>
-          <Select value={whole ?? 'some'} options={[{ value: 'all', label: T.cureAll }, { value: 'harmful', label: T.cureHarmful },
-            { value: 'helpful', label: T.cureHelpful }, { value: 'some', label: T.curePick }]}
-            onChange={(m) => change((a) => setCure(a, m === 'some' ? (options[0] ? [options[0].value] : 'all') : (m as 'all' | 'harmful' | 'helpful')))} />
-        </Field>
-        {!whole && (options.length === 0 && list.length === 0
-          ? <p className="help">{T.cureNone}</p>
-          : <MultiSelect label={T.curePick} options={options} value={list} onChange={(v) => change((a) => setCure(a, v))} />)}
-      </div>
-    )
-  }
+  if (kind === 'cure') return <AbilityCurePicker ability={ability} change={change} />
   if (kind === 'push') {
     return (
       <Field label={T.pushBy} help={T.pushHelp}>
@@ -118,6 +102,8 @@ export function AbilityEffectFields({ ability, change }: FormProps) {
             <TextInput mono value={String(h)} onChange={(v) => change((a) => setHealValue(a, v), 'formula')} />
           </Field>
         )}
+        <Check label={T.alsoCures} help={T.alsoCuresHelp} checked={alsoCures(ability)} onChange={(v) => change((a) => setAlsoCures(doc, a, v))} />
+        {alsoCures(ability) && <AbilityCurePicker ability={ability} change={change} />}
       </div>
     )
   }

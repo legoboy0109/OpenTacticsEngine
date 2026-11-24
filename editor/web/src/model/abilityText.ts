@@ -1,6 +1,8 @@
 // The plain one-line summary of an ability ("Pushes a unit next to it 1 square away. Uses the unit’s action."), shown under
 // its form and as the list's second line. Wording is a placeholder for the owner to review (docs/SRPG.md "E3 as built").
 import { conditionsText } from './abilityConditions'
+import { areaOf } from './abilityArea'
+import { inflictEntries } from './abilityInflicts'
 import { effectKind, healKind, refreshPerTurn, rangeOf, stealOf, summonOf, targetOf, unlockOf } from './abilities'
 import type { Ability } from './srpgTypes'
 import type { ProjectDoc } from './types'
@@ -8,7 +10,25 @@ import type { ProjectDoc } from './types'
 const squares = (n: number) => `${n} ${n === 1 ? 'square' : 'squares'}`
 const times = (n: number) => `${n} ${n === 1 ? 'time' : 'times'}`
 
+/** "the square it aims at and the ones next to it", "a cross of 2 squares around the square it aims at" ... */
+function areaPhrase(a: Ability): string {
+  const v = areaOf(a)
+  if (!v) return 'an area'
+  const up = v.vertical === undefined ? '' : v.vertical === 0 ? ', on the same level only'
+    : `, up to ${v.vertical} ${v.vertical === 1 ? 'level' : 'levels'} up or down`
+  switch (v.shape) {
+    case 'radius': return `${squares(v.size ?? 1)} around the square it aims at${up}`
+    case 'cross': return `a cross reaching ${squares(v.size ?? 1)} from the square it aims at${up}`
+    case 'line': return `a line of ${squares(v.size ?? 1)} from it${up}`
+    default: return `the square it aims at and the ones next to it${up}`
+  }
+}
+
 const whom = (a: Ability): string => {
+  if (areaOf(a)) {
+    const who = targetOf(a) === 'ally' ? 'every ally (itself too)' : targetOf(a) === 'enemy' ? 'every enemy' : 'every unit'
+    return `${who} in ${areaPhrase(a)}`
+  }
   switch (targetOf(a)) {
     case 'self': return 'itself'
     case 'ally': return 'an ally next to it'
@@ -16,6 +36,16 @@ const whom = (a: Ability): string => {
     case 'unit': return 'a unit next to it'
     case 'cell': { const [lo, hi] = rangeOf(a); return lo === hi ? `a free square ${squares(lo)} away` : `a free square ${lo} to ${squares(hi)} away` }
   }
+}
+
+/** `who`: whom it cures (the heal part has already named them, so a heal + cure says "them"). */
+function cureText(doc: ProjectDoc, a: Ability, who: string): string {
+  const e = a.effect ?? {}
+  const ids = Array.isArray(e.cure) ? e.cure : []
+  const names = ids.map((id) => doc.conditions?.find((c) => c.id === id)?.name ?? id)
+  if (e.cure === 'harmful') return `cures every harmful condition of ${who}`
+  if (e.cure === 'helpful') return `takes every helpful condition away from ${who}`
+  return `cures ${e.cure === 'all' ? 'every condition of' : names.length ? `${names.join(' and ')} on` : 'nothing on'} ${who}`
 }
 
 function whatText(doc: ProjectDoc, a: Ability): string {
@@ -32,27 +62,23 @@ function whatText(doc: ProjectDoc, a: Ability): string {
       return `takes ${what} from ${whom(a)}${s.if ? ` (only if ${s.if})` : ''}${s.if && s.reason ? `, otherwise “${s.reason}”` : ''}`
     }
     case 'refresh': { const n = refreshPerTurn(a); return `lets ${whom(a)} act again after it has acted${n > 1 ? ` (a unit can be refreshed ${times(n)} a turn)` : ''}` }
-    case 'cure': {
-      const ids = Array.isArray(e.cure) ? e.cure : []
-      const names = ids.map((id) => doc.conditions?.find((c) => c.id === id)?.name ?? id)
-      if (e.cure === 'harmful') return `cures every harmful condition of ${whom(a)}`
-      if (e.cure === 'helpful') return `takes every helpful condition away from ${whom(a)}`
-      return `cures ${e.cure === 'all' ? 'every condition of' : names.length ? `${names.join(' and ')} on` : 'nothing on'} ${whom(a)}`
-    }
+    case 'cure': return cureText(doc, a, whom(a))
     case 'unlock': {
       const u = unlockOf(a)
       const lock = u.needs ? ` (needs a ${doc.items?.find((i) => i.id === u.needs)?.name ?? u.needs}, which wears out)` : ''
       return `opens ${u.kinds === 'door' ? 'a locked door' : u.kinds === 'chest' ? 'a locked chest' : 'a locked door or chest'} on a square ${(() => { const [lo, hi] = rangeOf(a); return hi === 1 ? 'next to it' : lo === hi ? `${squares(lo)} away` : `${lo} to ${squares(hi)} away` })()} without a key${lock}`
     }
     case 'none': {
-      const c = a.inflict as { condition?: string; turns?: number }
-      const name = doc.conditions?.find((x) => x.id === c.condition)?.name ?? c.condition ?? 'a condition'
-      return `gives ${name}${c.turns ? ` for ${c.turns} ${c.turns === 1 ? 'turn' : 'turns'}` : ''} to ${whom(a)}, and nothing else`
+      const gives = inflictEntries(a).map((c) => {
+        const name = doc.conditions?.find((x) => x.id === c.condition)?.name ?? (c.condition || 'a condition')
+        return `${name}${c.turns ? ` for ${c.turns} ${c.turns === 1 ? 'turn' : 'turns'}` : ''}`
+      })
+      return `gives ${gives.length ? gives.join(' and ') : 'a condition'} to ${whom(a)}, and nothing else`
     }
     case 'heal': {
       const h = e.heal
       const how = healKind(a) === 'full' ? 'fully' : healKind(a) === 'percent' ? `by ${(h as { percent: number }).percent}% of its maximum` : healKind(a) === 'formula' ? `by a formula (${String(h)})` : `by ${h ?? 0}`
-      return `heals ${whom(a)} ${how}`
+      return `heals ${whom(a)} ${how}${'cure' in e ? `, then ${cureText(doc, a, 'them')}` : ''}`
     }
     case 'strike': {
       const w = typeof e.strike === 'string' ? (doc.weapons?.find((x) => x.id === e.strike)?.name ?? e.strike) : ''

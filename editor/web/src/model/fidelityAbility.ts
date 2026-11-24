@@ -1,17 +1,11 @@
 // An ability's "xp" and "inflict" (docs/SRPG.md section 11) and a staff's "xpMiss": small edits and checks mirroring the loader.
 // Defaults are never written; unknown keys are kept.
+import { amountFromText } from './amountText'
+import { inflictEntries, setInflictChance, setInflictCondition, setInflictTurns, INFLICT_MAX } from './abilityInflicts'
 import type { Ability } from './srpgTypes'
 import type { ProjectDoc } from './types'
 
-export type Amount = number | string | undefined
-
-/** "10" -> 10 (a whole number), other text stays a formula, '' -> removed. */
-export function amountFromText(text: string): Amount {
-  const t = text.trim()
-  if (t === '') return undefined
-  return /^\d+$/.test(t) ? Number(t) : t
-}
-export const amountText = (v: unknown): string => (typeof v === 'number' || typeof v === 'string' ? String(v) : '')
+export { amountFromText, amountText, type Amount } from './amountText'
 
 export function setAbilityXp(a: Ability, text: string): Ability {
   const next: Ability = { ...a }
@@ -21,38 +15,31 @@ export function setAbilityXp(a: Ability, text: string): Ability {
   return next
 }
 
-export interface AbilityInflict { condition: string; turns?: number; chance?: number | string }
-export const abilityInflict = (a: Ability): AbilityInflict | undefined => {
-  const v = a.inflict as { condition?: unknown; turns?: unknown; chance?: unknown } | undefined
-  return v && typeof v === 'object' && typeof v.condition === 'string'
-    ? { condition: v.condition, turns: typeof v.turns === 'number' ? v.turns : undefined,
-        chance: typeof v.chance === 'number' || typeof v.chance === 'string' ? v.chance : undefined }
-    : undefined
-}
+export type { InflictEntry as AbilityInflict } from './abilityInflicts'
+/** The first (or only) condition entry; the form lists all of them (abilityInflicts.ts). */
+export const abilityInflict = (a: Ability) => inflictEntries(a)[0]
 
-/** condition '' removes the key; turns undefined = the condition's own. A chance (and any other key) already there is kept. */
+/** condition '' removes the first entry; turns undefined = the condition's own. A chance (and any other key) already there is kept. */
 export function setAbilityInflict(a: Ability, condition: string, turns?: number): Ability {
-  const next: Ability = { ...a }
-  if (condition === '') {
-    delete next.inflict
-    return next
-  }
-  const was = (a.inflict && typeof a.inflict === 'object' ? a.inflict : {}) as Record<string, unknown>
-  const v: Record<string, unknown> = { ...was, condition }
-  if (turns === undefined) delete v.turns
-  else v.turns = turns
-  next.inflict = v as Ability['inflict']
-  return next
+  return setInflictTurns(setInflictCondition(a, 0, condition), 0, turns)
 }
 
-/** The chance it takes hold (docs/SRPG.md "Ability conditions"): "60" -> 60, other text = a formula, '' -> removed (always takes hold). */
-export function setAbilityInflictChance(a: Ability, text: string): Ability {
-  if (!a.inflict || typeof a.inflict !== 'object') return a
-  const v: Record<string, unknown> = { ...(a.inflict as Record<string, unknown>) }
-  const amount = amountFromText(text)
-  if (amount === undefined) delete v.chance
-  else v.chance = amount
-  return { ...a, inflict: v as Ability['inflict'] }
+/** The chance it takes hold (docs/SRPG.md "Ability conditions") of the first entry: "60" -> 60, other text = a formula, '' -> removed (always takes hold). */
+export const setAbilityInflictChance = (a: Ability, text: string): Ability => setInflictChance(a, 0, text)
+
+/** One condition entry's problems; `at` ('' for a single entry, "Condition 2: " in a list) goes in front of each. */
+function entryProblems(doc: ProjectDoc, e: Record<string, unknown>, at: string): string[] {
+  const out: string[] = []
+  if (typeof e.condition !== 'string') return [`${at}"Gives a condition" must name a condition.`]
+  const cond = (doc.conditions ?? []).find((c) => c.id === e.condition)
+  const turns = e.turns
+  if (!cond) out.push(`${at}The condition "${e.condition}" does not exist (Conditions screen).`)
+  else if (turns !== undefined && (cond.until === 'cured' || cond.until === 'mapEnd')) out.push(`${at}"${cond.name}" does not count turns, so a number of turns means nothing.`)
+  if (turns !== undefined && (typeof turns !== 'number' || !Number.isInteger(turns) || turns < 1 || turns > 99)) out.push(`${at}Turns must be a whole number from 1 to 99.`)
+  const ch = e.chance
+  if (ch !== undefined && !(typeof ch === 'string' && ch.trim() !== '') && !(typeof ch === 'number' && Number.isInteger(ch) && ch >= 1 && ch <= 100))
+    out.push(`${at}The chance must be a percent from 1 to 100 or a formula (a = the user, b = the target).`)
+  return out
 }
 
 export function abilityExtraProblems(doc: ProjectDoc, a: Ability): string[] {
@@ -65,17 +52,19 @@ export function abilityExtraProblems(doc: ProjectDoc, a: Ability): string[] {
   }
   const inf = a.inflict
   if (inf !== undefined) {
-    const i = abilityInflict(a)
-    if (!i) out.push('"Gives a condition" must name a condition.')
-    else {
-      const cond = (doc.conditions ?? []).find((c) => c.id === i.condition)
-      if (!cond) out.push(`The condition "${i.condition}" does not exist (Conditions screen).`)
-      else if (i.turns !== undefined && (cond.until === 'cured' || cond.until === 'mapEnd')) out.push(`"${cond.name}" does not count turns, so a number of turns means nothing.`)
-      if (i.turns !== undefined && (!Number.isInteger(i.turns) || i.turns < 1 || i.turns > 99)) out.push('Turns must be a whole number from 1 to 99.')
-      const ch = (inf as { chance?: unknown }).chance
-      if (ch !== undefined && !(typeof ch === 'string' && ch.trim() !== '') && !(typeof ch === 'number' && Number.isInteger(ch) && ch >= 1 && ch <= 100))
-        out.push('The chance must be a percent from 1 to 100 or a formula (a = the user, b = the target).')
-    }
+    if (Array.isArray(inf)) {
+      if (inf.length < 1 || inf.length > INFLICT_MAX) out.push(`The conditions it gives must be one entry or a list of 1 to ${INFLICT_MAX}.`)
+      const seen = new Set<unknown>()
+      inf.forEach((e, i) => {
+        const at = `Condition ${i + 1}: `
+        if (!e || typeof e !== 'object' || Array.isArray(e)) { out.push(`${at}"Gives a condition" must name a condition.`); return }
+        out.push(...entryProblems(doc, e as Record<string, unknown>, at))
+        const c = (e as Record<string, unknown>).condition
+        if (typeof c === 'string' && seen.has(c)) out.push(`It gives "${c}" twice. List each condition once.`)
+        seen.add(c)
+      })
+    } else if (inf && typeof inf === 'object') out.push(...entryProblems(doc, inf as Record<string, unknown>, ''))
+    else out.push('"Gives a condition" must name a condition.')
     if (a.target === 'cell' || (a.effect && ('summon' in a.effect || 'unlock' in a.effect)))
       out.push('An ability that gives a condition needs a unit to give it to (not a summon, an unlock or a square).')
   }
