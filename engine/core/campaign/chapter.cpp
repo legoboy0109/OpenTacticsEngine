@@ -86,7 +86,10 @@ void takeUnits(const Database& db, Playthrough& pt, const Battle& b) {
         }
       continue;
     }
-    if (b.exists(u) || u.hidden) {  // R1: a carried unit goes to the roster as living; so does a hidden one (docs/EVENTS.md)
+    // docs/SRPG.md "Downed units and revive": a unit still downed at the end is back as a survivor unless rules.downed.afterBattle is "fallen"
+    // (a body that was removed is an ordinary fallen unit by then).
+    const bool downedBack = u.downed && !db.rules.downed.fallenAfterBattle;
+    if (b.exists(u) || u.hidden || downedBack) {  // R1: a carried unit goes to the roster as living; so does a hidden one (docs/EVENTS.md)
       putUnit(pt.roster, rosterEntry(b, u));
     } else if (!db.campaign->fallenReturn) {
       RosterUnit r = rosterEntry(b, u);
