@@ -103,6 +103,7 @@ double Battle::skillExpr(int expr, const SkillCtx& ctx, double def) const {
   fc.dealt = ctx.dealt;
   fc.item = ctx.item;
   fc.itemUses = ctx.itemUses;
+  fc.arc = ctx.arc;
   return formulas->evalExpr(expr, fc, def);
 }
 
