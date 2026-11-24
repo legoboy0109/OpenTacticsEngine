@@ -17,6 +17,8 @@ bool aiTakeApStep(Battle& battle, std::vector<Event>& events);
 
 // ai_speed.cpp: the computer opponent's turn in a game with the speed turn order (docs/AI.md "Speed turn order"); aiTakeStep hands over to it.
 bool aiTakeSpeedStep(Battle& battle, std::vector<Event>& events);
+// ai_speed.cpp: the unit part of it (no power, research or upgrade for the side): the active unit's one decision. Also a guest's turn (ai_guests.cpp).
+bool aiSpeedUnitStep(Battle& battle, std::vector<Event>& events);
 
 namespace ai {
 
@@ -182,7 +184,8 @@ bool lootLeft(const Battle& b, const Unit& u);
 // ---- ai_order.cpp ----
 Order bestOrder(Context& cx, const Unit& u);
 // ai.cpp: carries out an order: the walk, the action, and a Wait when it did not work (so the unit's turn always ends).
-void playOrder(Battle& battle, int unit, Order order, std::vector<Event>& events);
+// `mayEndTurn` false (a guest on a side a person plays): never falls back to EndTurn, which would end the person's turn.
+void playOrder(Battle& battle, int unit, Order order, std::vector<Event>& events, bool mayEndTurn = true);
 // Takes the charged weapons (speed turn order) out of a list of attack options: they are not instant attacks; ai_speed.cpp scores them.
 inline void dropCharged(const Battle& b, std::vector<AttackOption>& options) {
   if (!b.speedGame()) return;

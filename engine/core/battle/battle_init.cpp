@@ -186,7 +186,7 @@ bool Battle::init(const Database& database, const MapDef& map, Formulas& formula
     u.id = (int)units.size();
     u.cell = c;
     occupant[c] = u.id;
-    sides[u.side].everHadUnits = true;
+    if (!u.guest) sides[u.side].everHadUnits = true;  // a guest never keeps a side in the battle, so it does not count as the side's own (docs/SRPG.md "Guests")
     units.push_back(u);
   }
   assignFacings();  // rules.facing: the units the map gave no facing look at the nearest foe (all of them stand on the board now)
@@ -235,6 +235,7 @@ Unit Battle::makeUnit(const MapUnitDef& ud) const {
   u.merit = ud.merit;  // 0 unless the map says ("rules.ranks" games)
   u.leader = ud.leader;
   u.facing = ud.facing;  // -1 unless the map said (rules.facing); the default is given once the unit stands on the board
+  u.guest = ud.guest;    // docs/SRPG.md "Guests"
   u.aiGoals = ud.aiGoals;  // docs/SRPG.md section 10
   u.behaviour = ud.behaviour;  // docs/AI.md
   u.jobs = ud.jobs;  // docs/JOBS.md

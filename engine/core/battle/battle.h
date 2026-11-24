@@ -278,6 +278,9 @@ struct Unit {
   std::vector<MasteryPoints> mastery;
   // Unit resources (docs/SRPG.md "Unit resources"): what it has of each, per Database::unitResources index; empty in a game without them.
   std::vector<int> pools;
+  // Guests (docs/SRPG.md "Guests"): on a side a person plays, but the computer moves it (guestToAct), it does not keep its side in the battle and it never
+  // joins the party (unless a story "guestJoins" makes it an ordinary unit). Saved only when true.
+  bool guest = false;
 };
 
 struct CellState {
@@ -950,6 +953,7 @@ class Battle {
 #include "core/battle/ability_conditions_api.h"
 #include "core/battle/ability_area_api.h"
 #include "core/battle/commander_api.h"
+#include "core/battle/guests_api.h"
 
  private:
   // combat.cpp
@@ -1053,6 +1057,7 @@ class Battle {
   void cmdRemoveUnit(const Command& c, std::vector<Event>& events);
   void cmdMoveUnit(const Command& c, std::vector<Event>& events);
   void cmdChangeSide(const Command& c, std::vector<Event>& events);
+  void cmdGuestJoins(const Command& c);  // docs/SRPG.md "Guests" (guests.cpp)
   void cmdSetBehaviour(const Command& c);
   // objectives.cpp
   bool objectiveHolds(const ObjectiveRule& r, bool win) const;

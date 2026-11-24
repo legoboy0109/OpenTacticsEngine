@@ -717,6 +717,7 @@ struct MapUnitDef {
   bool difficultyShift = true;
   std::vector<char> statExact;  // per stat index: the placement gave the stat itself (empty = none)
   int facing = -1;              // "facing" (rules.facing only): the direction it starts looking in (Grid::neighbor numbering); -1 = the default (docs/SRPG.md "Facing")
+  bool guest = false;           // "guest": on a side a person plays, but the computer moves it and it never joins the party (docs/SRPG.md "Guests")
 };
 
 // A structure placed on a map: `x`, `y` is its top-left square (hexagon games: its middle hexagon).

@@ -143,6 +143,7 @@ void Battle::runCommand(const Command& c, std::vector<Event>& events) {
     case K::RemoveUnit: cmdRemoveUnit(c, events); break;
     case K::MoveUnit: cmdMoveUnit(c, events); break;
     case K::ChangeSide: cmdChangeSide(c, events); break;
+    case K::GuestJoins: cmdGuestJoins(c); break;
     case K::GiveItem: cmdGiveItem(c, events); break;
     case K::TakeItem: cmdTakeItem(c); break;
     case K::GiveResource: cmdGiveResource(c, events); break;

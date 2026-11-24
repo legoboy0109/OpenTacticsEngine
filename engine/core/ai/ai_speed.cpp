@@ -130,7 +130,13 @@ bool aiTakeSpeedStep(Battle& battle, std::vector<Event>& events) {
   if (ai::chooseResearch(battle, tech) && battle.apply(Action::research(tech), events)) return mine();
   int structure, to;
   if (ai::chooseUpgrade(battle, structure, to) && battle.apply(Action::upgrade(structure, to), events)) return mine();
+  return aiSpeedUnitStep(battle, events);
+}
 
+bool aiSpeedUnitStep(Battle& battle, std::vector<Event>& events) {
+  if (battle.over || battle.activeUnit < 0) return false;
+  const int uid = battle.activeUnit, turn = battle.turnNo;
+  auto mine = [&]() { return !battle.over && battle.turnNo == turn && battle.activeUnit == uid; };
   const Unit& u = battle.units[(size_t)uid];
   if (battle.charging(uid)) {  // its action is on its way: it only waits
     if (!battle.apply(Action::wait(uid, ai::endFacing(battle, u)), events)) battle.apply(Action::endTurn(), events);

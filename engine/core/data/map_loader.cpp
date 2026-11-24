@@ -8,6 +8,7 @@
 #include "core/data/loader_facing.h"
 #include "core/data/loader_jobs.h"
 #include "core/data/loader_teaching.h"
+#include "core/data/loader_guests.h"
 #include "core/data/loader_unit_ranks.h"
 #include "core/data/loader_commanders.h"
 #include "core/data/loader_factions.h"
@@ -220,7 +221,7 @@ bool readUnitHead(const LoadCtx& c, const Database& db, const MapDef& m, const J
   std::string type, side, character;
   // (the keys of a unit that a story command adds are listed in loader_story_commands.cpp: the same without "facing")
   if (!c.onlyKeys(e, {"character", "type", "side", "x", "y", "name", "level", "leader", "id", "job", "jobs", "equipped", "learned", "goesFor",
-                      "behaviour", "xp", "merit", "facing", "difficulty", "difficultyShift", "stats", "ranks", "skills", "items"},
+                      "behaviour", "xp", "merit", "facing", "difficulty", "difficultyShift", "stats", "ranks", "skills", "items", "guest"},
                   where))
     return false;
   if (!c.str(e, "character", where, character)) return false;
@@ -282,13 +283,14 @@ bool readUnitHead(const LoadCtx& c, const Database& db, const MapDef& m, const J
   if (u.level < 1) return c.fail(where, "\"level\" must be at least 1");
   if (u.x < 0 || u.y < 0 || u.x >= m.width || u.y >= m.height)
     return c.fail(where, "position is outside the map");
+  if (!readUnitGuest(c, db, m, e, where, u)) return false;  // "guest" (docs/SRPG.md "Guests"); before "behaviour", which a guest may have
   return readUnitGoals(c, m, e, where, u) &&  // "goesFor" (docs/SRPG.md section 10)
          readUnitBehaviour(c, db, m, e, where, u) &&  // "behaviour" (docs/AI.md)
          readUnitXp(c, db, e, where, u) &&  // "xp" (docs/SRPG.md "Unit ranks")
          readUnitMerit(c, db, e, where, u) &&  // "merit" (the same, "rules.ranks")
          readUnitFacing(c, db, m, e, where, u) &&  // "facing" (docs/SRPG.md "Facing")
          readUnitDifficulty(c, db, e, where, u) &&  // "difficulty", "difficultyShift" (docs/DIFFICULTY.md)
-         (u.onlyOn.empty() || m.sides[(size_t)u.side].ai ||
+         (u.onlyOn.empty() || m.sides[(size_t)u.side].ai || u.guest ||
           c.fail(where, "\"difficulty\" is for units of computer sides: a unit of a human side belongs to the party (roster, preparation screen), so it cannot come and go with a difficulty"));
 }
 

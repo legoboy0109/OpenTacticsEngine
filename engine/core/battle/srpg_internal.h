@@ -254,9 +254,10 @@ void removeSummon(int unit, std::vector<Event>& events);
 // "givesXp": false: the foe of this experience award is a summon that gives none (the last Attack event of the
 // fight names the fighters).
 bool summonGivesNoXp(int unit, const std::vector<Event>& events) const;
-// Objectives and story conditions "defeated" / "dead" / "alive": a filter by side, team or "any" does not see a summon.
+// Objectives and story conditions "defeated" / "dead" / "alive": a filter by side, team or "any" does not see a summon, nor a guest (docs/SRPG.md
+// "Guests"); naming the unit itself does.
 bool summonIgnored(const UnitFilter& filter, const Unit& u) const {
-  return u.summoner >= 0 && (filter.kind == UnitFilter::Kind::Any || filter.kind == UnitFilter::Kind::Side ||
+  return (u.summoner >= 0 || u.guest) && (filter.kind == UnitFilter::Kind::Any || filter.kind == UnitFilter::Kind::Side ||
                              filter.kind == UnitFilter::Kind::Team);
 }
 // Notes that the unit used the ability (count, cooldown, once per turn).
