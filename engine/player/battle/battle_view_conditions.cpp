@@ -42,8 +42,8 @@ bool BattleView::beginConditions(const Battle& b) {
       OTE_INFO("condition applied: %s - %s%s", who.c_str(), name.c_str(), (e.flags & kRefreshed) ? " (again)" : "");
       break;
     case EventType::ConditionEnded: {
-      static const char* const kWhy[] = {"ran out", "wore off", "cured", "replaced", "struck"};
-      OTE_INFO("condition ended: %s - %s (%s)", who.c_str(), name.c_str(), e.c >= 0 && e.c < 5 ? kWhy[e.c] : "?");
+      static const char* const kWhy[] = {"ran out", "wore off", "cured", "replaced", "struck", "revived"};
+      OTE_INFO("condition ended: %s - %s (%s)", who.c_str(), name.c_str(), e.c >= 0 && e.c < 6 ? kWhy[e.c] : "?");
       break;
     }
     case EventType::ConditionResisted:

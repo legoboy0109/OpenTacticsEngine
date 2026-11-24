@@ -188,7 +188,7 @@ bool BattleView::progressStory(const Battle& b) {
       focusX = stickyX_;
       focusY = stickyY_;
       return true;
-    case EventType::UnitRemoved: units[(size_t)e.a].alpha = 1 - p; return true;
+    case EventType::UnitRemoved: units[(size_t)e.a].alpha = (units[(size_t)e.a].downed ? kDownedAlpha : 1.0f) * (1 - p); return true;
     case EventType::UnitRelocated: {
       UnitView& v = units[(size_t)e.a];
       if ((e.flags & kRelocateWalk) && cur_.path.size() >= 2) {  // a walked move: along its path with the walking frames
@@ -235,6 +235,8 @@ bool BattleView::finishStory(const Battle& b) {
       v.visible = false;
       v.hp = 0;
       v.alpha = 1;
+      v.downed = false;  // (a downed unit's body: docs/SRPG.md "Downed units and revive")
+      v.down = 0;
       return true;
     }
     case EventType::UnitRelocated: {

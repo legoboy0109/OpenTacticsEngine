@@ -22,7 +22,7 @@ void BattleView::soundStarted(const Battle& b) {
   // StaffUsed / ItemUsed that began them; any other entry ends the use, so a later heal (a drain, a condition) never takes the staff's sound.
   switch (e.type) {
     case EventType::StaffUsed: case EventType::ItemUsed: healItem_ = e.b; break;
-    case EventType::UnitHealed: case EventType::StaffMissed: case EventType::ItemRepaired: case EventType::StatsRaised:
+    case EventType::UnitHealed: case EventType::UnitRevived: case EventType::StaffMissed: case EventType::ItemRepaired: case EventType::StatsRaised:
     case EventType::ConditionApplied: case EventType::ConditionEnded: case EventType::ConditionResisted: break;
     default: healItem_ = -1; break;
   }
@@ -67,7 +67,8 @@ void BattleView::soundStarted(const Battle& b) {
       if (a.defines(Cue::Miss, c)) a.cue(Cue::Miss, c);
       break;
     }
-    case EventType::UnitHealed: {
+    case EventType::UnitHealed:
+    case EventType::UnitRevived: {  // a revive sounds like a heal (docs/SRPG.md "Downed units and revive"; no cue of its own yet)
       CueCtx c;
       c.item = healItem_;  // a staff / healing item may carry its own "heal" sound, or "" for none (docs/SOUND.md)
       c.unitType = typeOf(e.a);

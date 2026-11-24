@@ -240,7 +240,9 @@ void drawUnitInfo(Renderer& r, const DrawCtx& c, const Unit& u, int x, int& y, i
   }
   int hp = u.id < (int)c.view.units.size() ? c.view.units[u.id].hp : u.hp;  // displayed, not final
   int mx = b.maxHp(u);
-  row(r, x, y, w, db.stats[db.rules.statHp].name, intStr(hp) + "/" + intStr(mx));
+  const bool downed = u.id < (int)c.view.units.size() && c.view.units[u.id].downed;
+  row(r, x, y, w, db.stats[db.rules.statHp].name, downed ? std::string(DownedWords::kState) : intStr(hp) + "/" + intStr(mx), kLabel,
+      downed ? Color(255, 140, 120) : kText);
   y += rh;
   r.fillRect(x, y, w, 3, Color(0, 0, 0, 200));
   r.fillRect(x, y, mx > 0 ? w * std::min(hp, mx) / mx : 0, 3, hpColor(hp, mx));
@@ -368,7 +370,8 @@ void drawPanel(Renderer& r, const DrawCtx& c, Cell cursor, bool autoplay) {
     rule(r, x, y, w);
     drawCell(r, c, cursor, x, y, w);
     int uid = b.unitAt(cursor);
-    if (uid >= 0 && b.units[uid].alive && uid < (int)c.view.units.size() && c.view.units[uid].visible) {
+    // (a downed unit is shown too, its HP line saying so: docs/SRPG.md "Downed units and revive")
+    if (uid >= 0 && (b.units[uid].alive || b.units[uid].downed) && uid < (int)c.view.units.size() && c.view.units[uid].visible) {
       rule(r, x, y, w);
       drawUnitInfo(r, c, b.units[uid], x, y, w);
     }
