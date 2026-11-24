@@ -96,8 +96,9 @@ TEST(abarea_loader_refusals) {
   CHECK(says(withArea("r12", "{\"id\":\"x\",\"target\":\"ally\",\"effect\":{\"heal\":5},\"area\":{\"shape\":\"burst\",\"vertical\":1}}"),
              "\"vertical\" needs \"rules\""));
   CHECK(says(withArea("r13", "{\"id\":\"x\",\"target\":\"ally\",\"effect\":{\"heal\":5},\"area\":5}"), "area"));
-  // Range 0 only with an area.
-  CHECK(says(withArea("r14", "{\"id\":\"x\",\"target\":\"ally\",\"range\":[0,2],\"effect\":{\"heal\":5}}"), "whole numbers from 1 to 20"));
+  // Range 0 without an area: only a heal, cure or condition on "ally" / "unit" (the user itself, test_ability_on_self.cpp).
+  CHECK(says(withArea("r14", "{\"id\":\"x\",\"target\":\"enemy\",\"range\":[0,2],\"inflict\":{\"condition\":\"sleep\"}}"),
+             "\"range\" may start at 0 (the user itself) only on"));
   CHECK(says(withArea("r15", "{\"id\":\"x\",\"target\":\"ally\",\"range\":[-1,2],\"effect\":{\"heal\":5},\"area\":{\"shape\":\"burst\"}}"),
              "whole numbers from 0 to 20 (0 = the user's own square)"));
   // An area has no one target unit: "who": "foe" conditions are refused.

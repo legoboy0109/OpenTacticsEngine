@@ -90,19 +90,21 @@ bool Battle::abilityTargetOk(const Unit& u, int ability, Cell from, int target, 
   if (d.target != AbilityTarget::Self) {
     if (target < 0 || target >= (int)units.size() || !units[(size_t)target].alive) return refuse(why, "that is not a unit on the board");
     t = &units[(size_t)target];
-    if (t->id == u.id) return refuse(why, "a unit cannot use that on itself");
+    // A "range" from 0 lets it pick the user itself (docs/SRPG.md "An ability on its user"); the user stands on `from`, wherever it is now.
+    const bool self = t->id == u.id;
+    if (self && d.minRange > 0) return refuse(why, "a unit cannot use that on itself");
     if (!unitVisibleTo(team, *t)) return refuse(why, "you cannot see that unit");
     const bool ally = teamOf(*t) == team;
     if (d.target == AbilityTarget::Ally && !ally) return refuse(why, "that ability works on an ally");
     if (d.target == AbilityTarget::Enemy && ally) return refuse(why, "that ability works on an enemy");
-    const int dist = grid.distance(from, t->cell);
+    const int dist = self ? 0 : grid.distance(from, t->cell);
     if (dist < d.minRange || dist > d.maxRange) return refuse(why, "that unit is out of range");
   } else if (target != -1 && target != u.id) {
     return refuse(why, "that ability can only be used on the unit itself");
   }
 
   // What the effect needs. The user's square is where it would stand (`from`); it counts as free for itself.
-  const int dir = t == &u ? -1 : grid.directionTo(from, t->cell);
+  const int dir = t->id == u.id ? -1 : grid.directionTo(from, t->cell);
   const Cell back = dir < 0 ? kNoCell : grid.neighbor(from, grid.opposite(dir));  // the user's opposite side
   switch (d.effect) {
     case AbilityEffect::Push:
