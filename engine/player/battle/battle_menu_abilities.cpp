@@ -7,6 +7,7 @@
 // the ability does while a target is picked (a swap's end squares are both under units, so the marks alone are not
 // enough). The id is the position in abilityOptions, which is recomputed on choosing (the state cannot change while
 // the menu is open).
+#include "battle/ability_area_text.h"
 #include "battle/ability_preview.h"
 #include "battle/ability_text.h"
 #include "battle/condition_text.h"
@@ -138,8 +139,14 @@ bool BattleScene::abilityChosen(int id) {
   // The chance of the ability's condition on the unit under the cursor ("Sleep 60%"; docs/SRPG.md "Ability conditions"), only for one that rolls.
   auto chanceOn = [this, user, ability](int target) -> std::string {
     if (!battle_.abilityInflictRolls(ability) || target < 0) return "";
-    const int p = battle_.abilityInflictChance(user, ability, target, battle_.units[(size_t)user].cell);
-    const std::string t = conditionChanceText(*battle_.db, battle_.db->abilities[(size_t)ability].inflictCond, p);
+    // Each entry that rolls, in list order ("Sleep 60%, Poison 40%"; one entry is the old single chance).
+    const AbilityDef& d = battle_.db->abilities[(size_t)ability];
+    std::string t;
+    for (size_t k = 0; k < d.inflicts.size(); ++k) {
+      if (!d.inflicts[k].rolls()) continue;
+      const int p = battle_.abilityInflictChance(user, ability, target, battle_.units[(size_t)user].cell, (int)k);
+      t += (t.empty() ? "" : ", ") + conditionChanceText(*battle_.db, d.inflicts[k].cond, p);
+    }
     OTE_INFO("condition chance: %s", t.c_str());  // (the player tests read it)
     return t;
   };
@@ -186,6 +193,18 @@ bool BattleScene::abilityChosen(int id) {
         sayLine(line);
       });
     }
+  } else if (def.area.on()) {
+    // An area (docs/SRPG.md "Areas and several effects for abilities"): a square in range, every square its area covers marked red, the hint line
+    // says who it acts on and how. The heals, cures and conditions arrive as their own events.
+    if (cells.empty()) { say(AbilityWords::kNothingToTarget); return true; }
+    beginPickCell(cells, [use](Cell c) { use(-1, c); }, [this, user, ability](int cand, Overlay& ov) {
+      std::vector<Cell> covered;
+      const std::string line = abilityAreaLine(battle_, user, ability, cand, covered);
+      for (Cell c : covered) { ov.reach[(size_t)c] = 0; ov.attack[(size_t)c] = 1; }
+      OTE_INFO("area ability forecast: %s", line.c_str());  // (the player tests read it)
+      gPickHint = (line.empty() ? std::string("?") : line) + "  {ok}:use  {cancel}:back";
+      say(gPickHint);
+    });
   } else if (def.target == AbilityTarget::Self) {
     menu_.close();
     use(-1, kNoCell);

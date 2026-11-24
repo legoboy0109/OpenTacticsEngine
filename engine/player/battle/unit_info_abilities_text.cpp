@@ -1,5 +1,6 @@
 // The wording of ability_text.h. (Named unit_info_* so the unit tests' source glob picks it up.)
 #include <algorithm>
+#include <cctype>
 
 #include "battle/ability_text.h"
 
@@ -11,14 +12,44 @@ std::string plural(int n, const char* one, const char* many) { return num(n) + "
 std::string join(const std::string& t, const std::string& more) { return t.empty() ? more : t + ", " + more; }
 
 // "Sleep for 3 turns (60%)": the condition an ability puts on, its turns and its chance (docs/SRPG.md "Ability conditions"); "by a formula" when the
-// chance depends on the two units.
-std::string inflictText(const Database& db, const AbilityDef& def, bool withChance) {
-  std::string t = def.inflictCond >= 0 && (size_t)def.inflictCond < db.conditions.size() ? db.conditions[(size_t)def.inflictCond].name : "a condition";
-  if (def.inflictTurns > 0) t += " for " + plural(def.inflictTurns, "turn", "turns");
+// chance depends on the two units. A list of conditions reads "Protect for 3 turns and Shell for 3 turns" (docs/SRPG.md "Areas and several effects
+// for abilities").
+std::string oneInflictText(const Database& db, const AbilityInflict& in, bool withChance) {
+  std::string t = in.cond >= 0 && (size_t)in.cond < db.conditions.size() ? db.conditions[(size_t)in.cond].name : "a condition";
+  if (in.turns > 0) t += " for " + plural(in.turns, "turn", "turns");
   if (!withChance) return t;  // (the pick hint names the chance against the highlighted target itself)
-  if (def.inflictChanceExpr >= 0) t += " (a chance)";
-  else if (def.inflictChance > 0) t += " (" + num(def.inflictChance) + "%)";
+  if (in.chanceExpr >= 0) t += " (a chance)";
+  else if (in.chance > 0) t += " (" + num(in.chance) + "%)";
   return t;
+}
+
+std::string inflictText(const Database& db, const AbilityDef& def, bool withChance) {
+  std::string t;
+  for (size_t k = 0; k < def.inflicts.size(); ++k)
+    t += (k == 0 ? "" : k + 1 == def.inflicts.size() ? " and " : ", ") + oneInflictText(db, def.inflicts[k], withChance);
+  return t.empty() ? "a condition" : t;
+}
+
+std::string cureText(const Database& db, const AbilityDef& def) {
+  if (def.cureAll) return "Cures every condition";
+  if (def.cureKind == 1) return "Cures every harmful condition";
+  if (def.cureKind == 2) return "Takes away every helpful condition";
+  std::string t;
+  for (int c : def.cures)
+    if (c >= 0 && (size_t)c < db.conditions.size()) t = join(t, db.conditions[(size_t)c].name);
+  return "Cures " + t;
+}
+
+// "radius 2", "a burst", "a cross of 2", "a line of 3": the shape of an ability's area (placeholder wording).
+std::string areaShapeText(const AreaDef& a) {
+  switch (a.shape) {
+    case AreaShape::Burst: return "a burst";
+    case AreaShape::Radius: return "radius " + num(a.radius);
+    case AreaShape::Cross: return "a cross of " + num(a.radius);
+    case AreaShape::Line: return "a line of " + num(a.length);
+    case AreaShape::None: break;
+  }
+  return "";
 }
 
 std::string effectOnly(const Database& db, const AbilityDef& def, bool withChance);
@@ -26,9 +57,10 @@ std::string effectOnly(const Database& db, const AbilityDef& def, bool withChanc
 }  // namespace
 
 std::string abilityEffectText(const Database& db, const AbilityDef& def, bool withChance) {
-  const std::string t = effectOnly(db, def, withChance);
-  if (def.inflictCond < 0 || def.effect == AbilityEffect::None) return t;
-  return t + "; inflicts " + inflictText(db, def, withChance);  // a condition on top of the effect (a strike that poisons)
+  std::string t = effectOnly(db, def, withChance);
+  if (!def.inflicts.empty() && def.effect != AbilityEffect::None) t += "; inflicts " + inflictText(db, def, withChance);  // a condition on top of the effect (a strike that poisons)
+  if (def.area.on()) t += " (area: " + areaShapeText(def.area) + ")";  // docs/SRPG.md "Areas and several effects for abilities"
+  return t;
 }
 
 namespace {
@@ -39,10 +71,15 @@ std::string effectOnly(const Database& db, const AbilityDef& def, bool withChanc
     case AbilityEffect::Pull: return "Pulls it next to you";
     case AbilityEffect::Swap: return "Swaps places with it";
     case AbilityEffect::MoveBehind: return "Moves it behind you";
-    case AbilityEffect::Heal:
-      if (def.healPercent > 0) return "Heals " + num(def.healPercent) + "% of its HP";
-      if (def.healExpr >= 0) return "Heals HP";  // (by a formula: the amount depends on both units)
-      return def.amount >= kHealFull ? "Heals all HP" : "Heals " + num(def.amount) + " HP";
+    case AbilityEffect::Heal: {
+      std::string t = def.healPercent > 0 ? "Heals " + num(def.healPercent) + "% of its HP"
+                      : def.healExpr >= 0 ? "Heals HP"  // (by a formula: the amount depends on both units)
+                      : def.amount >= kHealFull ? "Heals all HP" : "Heals " + num(def.amount) + " HP";
+      if (!def.healCures) return t;
+      std::string c = cureText(db, def);  // "Heals 30 HP and cures Poison, Blind"
+      c[0] = (char)std::tolower((unsigned char)c[0]);
+      return t + " and " + c;
+    }
     case AbilityEffect::Strike: {  // docs/SRPG.md "Abilities that strike"
       const WeaponDef* w = def.strike >= 0 && (size_t)def.strike < db.weapons.size() ? &db.weapons[(size_t)def.strike] : nullptr;
       if (!w) return "Strikes";
@@ -60,15 +97,7 @@ std::string effectOnly(const Database& db, const AbilityDef& def, bool withChanc
                               : "Takes an item it carries (not weapons)";
     case AbilityEffect::Refresh: return def.refreshPerTurn > 1 ? "Lets it act again (up to " + num(def.refreshPerTurn) + " times a turn)" : "Lets it act again";
     case AbilityEffect::MovePast: return "Moves you to the far side of it";
-    case AbilityEffect::Cure: {
-      if (def.cureAll) return "Cures every condition";
-      if (def.cureKind == 1) return "Cures every harmful condition";
-      if (def.cureKind == 2) return "Takes away every helpful condition";
-      std::string t;
-      for (int c : def.cures)
-        if (c >= 0 && (size_t)c < db.conditions.size()) t = join(t, db.conditions[(size_t)c].name);
-      return "Cures " + t;
-    }
+    case AbilityEffect::Cure: return cureText(db, def);
     case AbilityEffect::None: return "Inflicts " + inflictText(db, def, withChance);  // only "inflict": the condition is the whole doing
     case AbilityEffect::Summon: {
       const SummonDef& s = def.summon;
@@ -87,6 +116,13 @@ std::string effectOnly(const Database& db, const AbilityDef& def, bool withChanc
 }  // namespace
 
 std::string abilityTargetText(const AbilityDef& def) {
+  if (def.area.on()) {  // the square it is aimed at, and who in the area it acts on
+    switch (def.target) {
+      case AbilityTarget::Ally: return "a square (allies in the area)";
+      case AbilityTarget::Enemy: return "a square (enemies in the area)";
+      default: return "a square (everyone in the area)";
+    }
+  }
   switch (def.target) {
     case AbilityTarget::Self: return "yourself";
     case AbilityTarget::Ally: return "an ally";
