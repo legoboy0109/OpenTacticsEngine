@@ -73,8 +73,9 @@ bool Battle::highGroundBetween(Cell from, Cell to) const {
   return false;
 }
 
-void Battle::areaCover(int weapon, Cell from, Cell target, std::vector<Cell>& out) const {
-  const AreaDef& area = db->weapons[(size_t)weapon].area;
+void Battle::areaCover(int weapon, Cell from, Cell target, std::vector<Cell>& out) const { areaCoverOf(db->weapons[(size_t)weapon].area, from, target, out); }
+
+void Battle::areaCoverOf(const AreaDef& area, Cell from, Cell target, std::vector<Cell>& out) const {
   areaCells(grid, from, target, area, out);
   if (!db->rules.height.on || area.vertical < 0) return;
   const int level = heightAt(target);
