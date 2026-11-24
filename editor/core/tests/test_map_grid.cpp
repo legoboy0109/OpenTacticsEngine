@@ -229,6 +229,35 @@ TEST(map_grid_resize_removes_what_no_longer_fits_and_says_so) {
   CHECK_STR(out["heights"].dump(0), "[[0,1,2],[0,0,0]]");
 }
 
+TEST(map_grid_resize_moves_backdrop_pieces_and_drops_those_off_the_map) {
+  Json m = J(kSquare);
+  m.set("backdrop", J(R"({"sheet": "ground", "origin": [64, 20], "over": "props",
+    "pieces": [{"rect": [0, 0, 8, 8], "square": [0, 0]}, {"rect": [8, 0, 8, 8], "square": [3, 2]}]})"));
+  const MapGrid g = read(m);
+  ResizeSpec s;
+  s.width = 5;  // one column more, on the left (anchor right): everything moves one to the right
+  s.height = 3;
+  s.anchorX = 2;
+  s.fill = '.';
+  ResizeResult r;
+  std::string err;
+  CHECK(resizeMap(m, g, s, {}, r, err));
+  Json out = m;
+  for (const auto& kv : r.set) out.set(kv.first, kv.second);
+  CHECK_STR(out["backdrop"]["pieces"].dump(0), R"([{"rect":[0,0,8,8],"square":[1,0]},{"rect":[8,0,8,8],"square":[4,2]}])");
+  CHECK_STR(out["backdrop"]["origin"].dump(0), "[64,20]");  // left for the maker to re-align
+  // Shrinking to 3 x 2 from the top left: the piece on 3,2 is gone and said so; with none left the key goes.
+  s.width = 3;
+  s.height = 2;
+  s.anchorX = 0;
+  m.set("backdrop", J(R"({"sheet": "ground", "over": "props", "pieces": [{"rect": [0, 0, 8, 8], "square": [3, 2]}]})"));
+  CHECK(resizeMap(m, read(m), s, {}, r, err));
+  CHECK(std::any_of(r.lost.begin(), r.lost.end(), [](const LostThing& t) { return t.kind == "backdrop piece" && t.x == 3 && t.y == 2; }));
+  out = m;
+  for (const auto& kv : r.set) out.set(kv.first, kv.second);
+  CHECK(!out["backdrop"].has("pieces") && out["backdrop"]["sheet"].asString() == "ground");
+}
+
 TEST(map_grid_resize_hex_ring_structures_must_fit_whole) {
   Json m = J(R"({"grid": {"type": "hex", "width": 5, "height": 5}, "legend": {".": "plain"},
                  "tiles": [".....", ".....", ".....", ".....", "....."],

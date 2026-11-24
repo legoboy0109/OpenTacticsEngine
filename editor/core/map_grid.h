@@ -71,7 +71,7 @@ struct Footprint {
 };
 // Something that does not fit the new map and is removed with it.
 struct LostThing {
-  std::string kind;   // "unit", "structure", "preparation slot", "map change square"
+  std::string kind;   // "unit", "structure", "preparation slot", "map change square", "backdrop piece"
   std::string label;  // "knight (gilda)", "city"; empty when the entry names nothing (a deployment slot)
   int x = 0, y = 0;   // where it stood in the old map
 };

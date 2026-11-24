@@ -131,6 +131,34 @@ bool resizeMap(const Json& map, const MapGrid& g, const ResizeSpec& spec, const 
     }
     copy.set("changes", changes);
   }
+  // Backdrop pieces (docs/VIEWS.md "Backdrop") name their square as [x, y]; they move with the squares, and those off the new
+  // map are dropped (the loader refuses a piece outside the map). The picture and its origin are left as they are: the origin
+  // is in the style's own pixels, which this file does not know; the maker re-aligns it.
+  if (map["backdrop"].isObject() && map["backdrop"]["pieces"].isArray()) {
+    Json backdrop = map["backdrop"];
+    Json pieces = Json::makeArray();
+    for (const Json& p : map["backdrop"]["pieces"].items()) {
+      const Json& sq = p["square"];
+      if (!sq.isArray() || sq.size() != 2 || !sq[0].isNumber() || !sq[1].isNumber()) {
+        pieces.push(p);
+        continue;
+      }
+      const int ox = sq[0].asInt(), oy = sq[1].asInt();
+      if (!sh.fits(ox + out.dx, oy + out.dy, Footprint())) {
+        out.lost.push_back({"backdrop piece", "", ox, oy});
+        continue;
+      }
+      Json moved = p, s = Json::makeArray();
+      s.push(Json::makeNumber(ox + out.dx));
+      s.push(Json::makeNumber(oy + out.dy));
+      moved.set("square", s);
+      pieces.push(moved);
+    }
+    // An empty list is refused: no pieces left = the over picture drawn whole, so the key goes.
+    if (pieces.size() == 0) backdrop.erase("pieces");
+    else backdrop.set("pieces", pieces);
+    copy.set("backdrop", backdrop);
+  }
 
   for (const Json::Member& m : copy.members())
     if (!map.has(m.first.c_str()) || map[m.first].dump(0) != m.second.dump(0)) out.set.emplace_back(m.first, m.second);
