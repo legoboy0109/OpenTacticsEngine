@@ -606,6 +606,12 @@ every unit that has one (a unit off the board that never stood on it has none) a
 refused (`units[2].facing`), and so is a `facing` in the save of a game without the rules. A unit without the key (a save from before the game had facing is refused by the data hash anyway;
 this only covers a hand-written save) looks at the nearest foe when the battle is restored. Code: `core/battle/save_facing.cpp`.
 
+## Guests (docs/SRPG.md "Guests")
+
+A guest unit carries `"guest": true`; the key is written **only for a guest**, so a save of a game without guests (and of every unit that is not one) is unchanged.
+A `"guest"` that is not `true` / `false`, or a guest on a computer side, is refused (`a guest belongs to a side a person plays`). A guest that joined (`guestJoins`)
+is saved as an ordinary unit. A map's `"abilityPoints"` is map data and is never saved: a load starts from the map.
+
 ## Unit ranks (docs/SRPG.md "Unit ranks")
 
 In a game with `rules.ranks` (merit mode) every unit of a battle save and every roster entry also carries `"merit": n`, the counter the rank derives from (0 up to the top entry's `at`); a save
