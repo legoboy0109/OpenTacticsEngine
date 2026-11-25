@@ -5,6 +5,7 @@
     "type": "object",
     "fields": {
       "name": { "type": "string", "default": "Campaign", "help": "The campaign's name." },
+      "backdrop": { "type": "ref", "ref": "keys:data/graphics.json#backgrounds", "help": "A background every chapter scene starts on (a scene's own backdrop overrides it)." },
       "rules": { "type": "object", "block": true, "help": "What happens to fallen units and to a lost battle.", "fields": {
         "fallen": { "type": "enum", "values": ["gone", "return"], "default": "gone", "help": "gone: a unit that falls is lost for good; return: it is back next chapter." },
         "onDefeat": { "type": "enum", "values": ["retry", "end"], "default": "retry", "help": "retry: the chapter can be played again; end: the campaign is over." } } },

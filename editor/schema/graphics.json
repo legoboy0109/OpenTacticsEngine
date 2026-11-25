@@ -113,7 +113,8 @@
         "cell": { "use": "cell", "required": true, "help": "The portrait's cell." },
         "faces": { "type": "enum", "values": ["left", "right"], "help": "The way the picture looks, so the game can mirror it." },
         "talk": { "use": "cells", "help": "Frames shown while the person talks (1 to 8)." },
-        "blink": { "use": "cells", "help": "Frames shown when the person blinks (1 to 8)." } }
+        "blink": { "use": "cells", "help": "Frames shown when the person blinks (1 to 8)." },
+        "expressions": { "type": "list", "min": 1, "max": 15, "of": { "use": "cell" }, "help": "Other faces a line picks with \"face\" (1 = the first of these), 1 to 15 cells of the sheet." } }
     },
     "iconLook": {
       "type": "object", "help": "An icon: one cell of a sheet, drawn before the weapon's or item's name in lists.",

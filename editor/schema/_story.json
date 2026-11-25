@@ -392,6 +392,7 @@
               "speaker": {"type": "ref", "ref": "@storyUnits", "help": "A unit of the map.", "excludes": ["speakerName"]},
               "speakerName": {"type": "string", "help": "A name shown instead, for someone who is no unit.", "excludes": ["speaker"]},
               "portrait": {"type": "string", "help": "Portrait id (text for the player to look up)."},
+              "face": {"type": "int", "help": "Shows this expression of the speaker's portrait (its \"expressions\" list, 1 to 15) instead of the portrait's own cell.", "min": 1, "max": 15},
               "position": {
                 "type": "enum",
                 "values": ["farLeft", "left", "midLeft", "center", "midRight", "right", "farRight"],
@@ -400,6 +401,39 @@
               "auto": {"type": "int", "help": "The line goes on by itself after this many milliseconds.", "min": 1, "max": 60000}
             }
           }
+        },
+        {
+          "name": "notice",
+          "key": "notice",
+          "help": "A system message in its own window in the middle of the screen: no name, no portrait.",
+          "summary": "notice \"{notice}\"",
+          "node": {
+            "type": "object",
+            "fields": {
+              "notice": {"type": "string", "help": "The text shown.", "required": true},
+              "auto": {"type": "int", "help": "The line goes on by itself after this many milliseconds.", "min": 1, "max": 60000}
+            }
+          }
+        },
+        {
+          "name": "loop",
+          "key": "loop",
+          "help": "Runs its commands again and again until a break (or the most rounds).",
+          "summary": "loop (up to {max})",
+          "node": {
+            "type": "object",
+            "fields": {
+              "loop": {"use": "commands", "help": "The commands of one round (put a break inside).", "required": true},
+              "max": {"type": "int", "help": "The most rounds, so a story never hangs (default 10).", "min": 1, "max": 100, "default": 10}
+            }
+          }
+        },
+        {
+          "name": "break",
+          "key": "break",
+          "help": "Ends the loop it is in at once; the commands after the loop run.",
+          "summary": "break",
+          "node": {"type": "object", "fields": {"break": {"type": "bool", "help": "Must be true. Only works inside a loop.", "required": true}}}
         },
         {
           "name": "narrate",
@@ -1034,6 +1068,9 @@
               "speaker": {"type": "ref", "ref": "@storyUnits", "help": "A unit of the map.", "excludes": ["speakerName"]},
               "speakerName": {"type": "string", "help": "A name shown instead, for someone who is no unit.", "excludes": ["speaker"]},
               "portrait": {"type": "string", "help": "Portrait id (text for the player to look up)."},
+              "face": {"type": "int", "help": "Shows this expression of the speaker's portrait (its \"expressions\" list, 1 to 15) instead of the portrait's own cell.", "min": 1, "max": 15},
+              "notice": {"type": "bool", "help": "true: the question and its answers show in a notice window in the middle of the screen (no speaker, name, portrait or face with it)."},
+              "cursor": {"type": "int", "help": "The answer the highlight starts on (1 = the first as written). With nobody to ask, the simulator and autoplay take this answer.", "min": 1, "max": 4},
               "store": {"type": "ref", "ref": "game.json#variables", "help": "A variable that remembers the answer's number."},
               "answers": {
                 "type": "list",
