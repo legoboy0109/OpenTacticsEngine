@@ -4,7 +4,38 @@ Current state of the build, for whoever (or whichever model) continues.
 Read docs/PLAN.md (roadmap + owner decisions), docs/ARCHITECTURE.md
 (structure + binding portability rules) and docs/GAME_FORMAT.md first.
 
-## Latest (2026-11-22) — START HERE
+## Latest (2026-11-24) — START HERE
+
+**origin/main = local main (4902f52e), worktrees all removed.** Full check on the merged engine: sdl3/sdl2 2912 (2940 with the dialogue
+branch, whose own full check passed), editor API 1640/1669, ctest 92/93, sims identical, webtest 280+59, vitest 1832/1864, e2e 632, native 25/25.
+Pushed since 2026-11-22 (all optional keys; games without them are byte-identical; the owner KEPT every name, docs say "kept by the owner"):
+- Scene shows another map (`showMap`/`returnMap`, cutScene maps), empty side panel then; HP bars of scene-added units (UnitAdded c = hp).
+- Ability `area` for heal / cure / inflict-only, heal+cure in one effect, `inflict` as a list (docs/SRPG.md "Areas and several effects").
+- Rules: `guest` / `guestJoins`, area shapes `ring` and `field`, range from 0 on the user, `arc` in inflict chance, a map's `abilityPoints`,
+  strike `reach: "equipped"`. Downed units: `rules.downed`, `revive` (ability / item / staff), `autoRevive` condition.
+- Graphics: map `backdrop` (+ `over` / `pieces`), `characters` looks, poses `attack`/`hurt`/`ko` + diagonals/back frames, sheet `unitOffset`, `portraitSize`.
+- Dialogue: `dialogue.style` box|bubble, `notice` window, choice `cursor`, `askName` + `{name:id}` (campaign scenes only), scene `backdrop`,
+  portrait `expressions` + `face`, story `loop`/`break`.
+Merge lesson: three parallel worktree branches conflicted only additively; keep-both broke one CMake add_test (shared closing line) — build after.
+Parallel agents: run check_all through `flock /tmp/ote-check-all.lock`, unique log names (the scratchpad is shared), link main's node_modules.
+
+**Owner's PC rules learned:** ComfyUI runs on the RX 6900 XT (`~/ComfyUI/run.sh` + `gpu_watchdog.sh`, http://127.0.0.1:8188). Never run Xenia or
+other GPU-heavy tests while it runs: tools/xbox360/xenia_smoke.sh crashed it once (VRAM page fault). Agents must not stop processes they didn't start.
+
+**Xbox 360:** big-endian 2817/2817, xex builds, Xenia smoke OK on 8c578aac; console folder `~/.local/share/xbox360/OpenTacticsEngine-app`
+replaced with that build (owner OK). Waiting for the owner's real-console `OpenTacticsEngine.log`.
+
+**Vision Quest (private):** steps 49 (cut-scene maps) and 50 (ch23/ch24 staged fights) done and installed; tree clean.
+
+**FFTA port (private, /home/kadenm/Projects/FFTAPort):** steps 7–14 done this session (statuses, immunities, AP, Regen, techniques, graphics,
+areas, story campaign missions 1–8 with full dialogue, levelling, KO/revive, guests, prerendered maps + poses, bubbles / notice / name entry /
+scene backdrops). Installed in games/ffta-port, validates clean. The automated campaign stops at chapter 5 (The Cheetahs) unless `--test-level 10`.
+Open engine gaps (docs/CONVERSION.md steps 12–14): EXP for multi-target actions ("largest"), 0-damage hits earning EXP, askName only in campaign
+scenes, `--campaign` not drawing a map backdrop (`--map` does), box fallback shows names despite `names:false`, strike knockback, an ability
+that also affects its user, revive+heal in one, undead, per-map sky colour, weapon-specific attack poses, random-side field areas, speed order
+with Haste/Slow. Port next: missions 9+, clan-name entry, sound/music. Materite Now's palette not live-checked.
+
+## 2026-11-22 (previous)
 
 **Correction:** the 2026-11-21 "next" items are already built (hexagons in all four views: docs/HEX.md "Status"; standing terrain in 3D:
 docs/VIEWS.md "Standing terrain"). The thief work (165c877) is pushed.
