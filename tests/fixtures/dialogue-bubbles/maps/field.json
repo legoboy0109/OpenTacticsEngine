@@ -1,0 +1,26 @@
+{
+  "name": "The Field",
+  "grid": { "type": "square", "width": 12, "height": 8 },
+  "legend": { ".": "plain" },
+  "tiles": [ "............", "............", "............", "............", "............", "............", "............", "............" ],
+  "sides": [ { "id": "blue", "name": "Travellers", "controller": "human" }, { "id": "red", "name": "Wardens", "controller": "ai" } ],
+  "units": [ { "id": "eirik", "type": "walker", "side": "blue", "x": 2, "y": 0, "name": "Eirik" },
+             { "id": "lyra", "type": "walker", "side": "blue", "x": 5, "y": 5, "name": "Lyra" },
+             { "id": "gorm", "type": "warden", "side": "red", "x": 10, "y": 3, "name": "Gorm" } ],
+  "events": [
+    { "id": "intro", "when": { "battle": "start" }, "do": [
+      { "say": "Bubbles today, {name:eirik} speaking from the top row.", "speaker": "eirik" },
+      { "say": "And Lyra down by the river. A longer line, so that the bubble has to wrap its words onto a second row and a third.", "speaker": "lyra" },
+      { "say": "Smile!", "speaker": "eirik", "face": 1 },
+      { "say": "A free name keeps the box.", "speakerName": "Stranger" },
+      { "loop": [
+          { "say": "Now, attack the snowman!", "speaker": "gorm" },
+          { "choice": "Repeat lesson?", "notice": true, "cursor": 2,
+            "answers": [ { "text": "Yes" }, { "text": "No", "do": [ { "break": true } ] } ] } ],
+        "max": 3 },
+      { "notice": "{name:eirik} has learned the lesson." },
+      { "choice": "Which way, {name:eirik}?", "speaker": "lyra",
+        "answers": [ { "text": "North" }, { "text": "East" }, { "text": "Stay" } ] },
+      { "say": "Then we go.", "speaker": "eirik" } ] }
+  ]
+}

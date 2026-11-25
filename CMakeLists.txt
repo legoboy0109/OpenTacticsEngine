@@ -535,6 +535,10 @@ if(OTE_BUILD_PLAYER AND OTE_BUILD_TESTS AND NOT EMSCRIPTEN AND TARGET ote-player
     add_test(NAME srpg_player_skillblocks2
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/srpg_player_skillblocks2_test.py
                      $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
+    # Speech bubbles, notices, names, faces, loops and scene backdrops (player, windowless).
+    add_test(NAME dialogue_bubbles_player
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/dialogue_bubbles_player_test.py
+                     $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
     # Stage (player, windowless).
     add_test(NAME stage_player
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/stage_player_test.py
