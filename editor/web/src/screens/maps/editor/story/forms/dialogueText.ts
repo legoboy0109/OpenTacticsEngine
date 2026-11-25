@@ -8,7 +8,7 @@ export const DX = {
     askName: 'Ask for a character’s name',
   },
   // A line's and a question's portrait face.
-  face: 'Portrait face',
+  face: 'Face (expression)',
   faceHelp: 'Which of the speaker’s portrait faces to show (1 = the first of its “Expressions” in Art, Portraits). Empty = the portrait’s own picture.',
   facePlaceholder: 'The portrait’s own picture',
 
@@ -18,7 +18,7 @@ export const DX = {
 
   // A question's notice / cursor.
   choiceNotice: 'Show it as a notice',
-  choiceNoticeHelp: 'The question and its answers appear in the notice window instead of beside a speaker. A notice question has no speaker and no portrait.',
+  choiceNoticeHelp: 'It is asked, with its answers, in the notice window instead of beside a speaker. A notice question has no speaker and no portrait.',
   choiceCursor: 'Starts on answer',
   choiceCursorHelp: 'Which answer is highlighted first (1 = the first answer as written). Empty = the first one. When nobody is asked (the simulator, Play on autopilot) this is the answer that is taken.',
   choiceCursorPlaceholder: 'The first answer',

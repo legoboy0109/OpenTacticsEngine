@@ -11,7 +11,7 @@ import { AutoField } from './SceneForms'
 import { DX } from './dialogueText'
 import { useCommandEdit, type CommandRef } from './useCommandEdit'
 
-/** "Portrait face": the N-th expression of the speaker's portrait (a say line or a question). */
+/** "Face (expression)": the N-th expression of the speaker's portrait (a say line or a question). */
 export function FaceField({ cmd, at }: { cmd: Command; at: CommandRef }) {
   const { patch } = useCommandEdit(at)
   return (

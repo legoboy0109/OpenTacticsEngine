@@ -103,7 +103,7 @@ export const T = {
   portraitTalkHelp: 'Pieces of the same image shown one after another while this speaker’s line is being typed, like 2,1  3,1 (column,row counted from 1). Empty = the face does not move.',
   // PLACEHOLDER wording (docs/EDITOR_UI.md "Speech bubbles, notices, names, faces and loops")
   portraitExpressions: 'Expressions',
-  portraitExpressionsHelp: 'Other faces of this person: pieces of the same image, like 1,1  2,1  3,1 (column,row counted from 1), up to 15. A line’s “Portrait face” 2 shows the second one. Empty = only the picture above.',
+  portraitExpressionsHelp: 'Other faces of this person: pieces of the same image, like 1,1  2,1  3,1 (column,row counted from 1), up to 15. A line’s “Face (expression)” 2 shows the second one. Empty = only the picture above.',
   portraitBlink: 'Blinking frames',
   portraitBlinkHelp: 'Pieces shown for a moment every few seconds. Empty = the face does not blink.',
   // PLACEHOLDER wording (docs/EDITOR_UI.md "Owner decisions"): unit offset, portrait size, characters

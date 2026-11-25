@@ -1722,7 +1722,7 @@ All wording is placeholder (`screens/rules/dialogueStyleText.ts`, `screens/maps/
 - **Dialogue style card** (Rules screen, after Menu options; `model/dialogueStyle.ts`): *A box at the bottom* / *A speech bubble*; with the bubble, *Beside the bubble* / *Inside the bubble* /
   *None* for the portrait and a *Show the speaker's name* switch. The defaults are written as no key, the box removes the whole `dialogue` object (the loader refuses `portrait` and
   `names` with the box), unknown keys stay.
-- **Say and Ask a question**: a *Portrait face* number (1 to 15; empty = the portrait's own picture). A question also has *Show it as a notice* (switching it on clears the speaker, name,
+- **Say and Ask a question**: a *Face (expression)* number (1 to 15; empty = the portrait's own picture). A question also has *Show it as a notice* (switching it on clears the speaker, name,
   portrait and face, which the loader refuses there; the speaker fields are hidden) and *Starts on answer* (the cursor; empty = the first).
 - **Commands**: *Show a notice* (text and the usual "goes on by itself"; in the Dialogue group), *Repeat these commands* (a list nested under it like an If's branches, plus *Most rounds*,
   1 to 100, empty = 10) and *Leave the repeat* (Flow group), *Ask for a character's name* (Dialogue group, **campaign scenes only**: the menu leaves it out for map events). Its form: whose
@@ -1741,7 +1741,7 @@ All wording is placeholder (`screens/rules/dialogueStyleText.ts`, `screens/maps/
   `askName` command's own id does follow); no live preview of a bubble or the name entry (the player shows them); no unknown-key refusal on a question (the other commands have it).
 - **Tests**: unit `tests/unit/dialogueExtras.test.ts`.
 
-**Owner decisions (placeholders):** the card and field names *Dialogue style*, *Look of a line*, *A box at the bottom*, *A speech bubble*, *Portrait in a bubble*, *Portrait face*, *Show it as a
+**Owner decisions (placeholders):** the card and field names *Dialogue style*, *Look of a line*, *A box at the bottom*, *A speech bubble*, *Portrait in a bubble*, *Face (expression)*, *Show it as a
 notice*, *Starts on answer*, *Show a notice*, *Repeat these commands*, *Leave the repeat*, *Most rounds*, *Ask for a character's name*, *Starting name*, *Most letters*, *Words above the name*,
 *Expressions*, *Backdrop for the scenes*, *Backdrop for this scene*; the Dialogue style card sitting on the Rules screen; the loop's commands shown as a nested list; the name command offered
 only in campaign scenes.
