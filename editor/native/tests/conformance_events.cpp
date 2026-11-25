@@ -82,6 +82,10 @@ void addEventContexts(std::vector<Context>& c) {
   add(c, {"cmd-chest", "srpg-rename", "field", {}, {DO "{openChest}"}, {{DO "{openChest}", R"({"openChest":"c1"})"}, {DO "{openChest}.openChest", "\"c1\""}}});
   add(c, {"cmd-end-turn", "srpg-rename", "field", {}, {DO "{endTurn}"}, {}, R"({"talk":"hero","to":"ally"})"});
   add(c, {"cmd-scene", "srpg-rename", "field", {}, {DO "{clearStage}", DO "{leave}", DO "{enter}", DO "{move}", DO "{shake}", DO "{weather}", DO "{wait}"}, {}});
+  // Notices, loops and faces (docs/EVENTS.md "Speech bubbles, notices, names, faces and loops"). dialogue-bubbles has portraits with expressions.
+  add(c, {"cmd-notice", "dialogue-bubbles", "field", {{"data/graphics.json", "portraits.eirik.expressions", R"([[0,1],[0,1],[0,1],[0,1],[0,1],[0,1],[0,1],[0,1],[0,1],[0,1],[0,1],[0,1],[0,1],[0,1],[0,1]])"}}, {DO "{notice}", DO "{loop}", DO "{say}.face", DO "{choice}.notice", DO "{choice}.cursor", DO "{choice}.face"},
+          {{DO "{loop}", R"({"loop":[{"break":true}],"max":3})"}, {DO "{loop}.loop", R"([{"break":true}])"},
+           {DO "{choice}.answers", R"([{"text":"A"},{"text":"B"},{"text":"C"},{"text":"D"}])"}}});
   add(c, {"cmd-fade", "srpg-rename", "field", {}, {DO "{fade}"}, {{DO "{fade}.color", "\"#112233\""}}});
 
   // --- commands that need something else of the game ---

@@ -413,7 +413,8 @@
               "notice": {"type": "string", "help": "The text shown.", "required": true},
               "auto": {"type": "int", "help": "The line goes on by itself after this many milliseconds.", "min": 1, "max": 60000}
             }
-          }
+          },
+          "unless": ["choice"]
         },
         {
           "name": "loop",

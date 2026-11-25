@@ -117,6 +117,10 @@ const std::map<QString, QString>& skipped() {
       {"maps:events[].do[]{if}.if[]{*", "the conditions are the same definition as the event's own if: tried there"},
       {"maps:events[].do[]{choice}.answers[].do[]{*", "the commands in a nested list are the same definition as the event's do list: tried there"},
       {"maps:events[].do[]{choice}.answers[].if[]{*", "the conditions are the same definition as the event's own if: tried there"},
+      {"maps:events[].do[]{loop}.loop[]{*", "the commands in a nested list are the same definition as the event's do list: tried there"},
+      {"campaign:chapters[].before{commands}[]{loop}.loop[]{*", "the commands in a nested list are the same definition as the scene's own list: tried there"},
+      {"maps:events[].do[]{break}*", "a break only works inside a loop: tried as the loop's own sample"},
+      {"campaign:chapters[].before{commands}[]{break}*", "a break only works inside a loop: tried as the loop's own sample"},
       {"maps:events[].do[]{setTerrain}.tile", "needs a tile sheet image inside the game folder (graphics.json, tileLayer); the test only writes JSON"},
   };
   return s;
@@ -148,6 +152,10 @@ const std::map<QString, QString>& blockExcuses() {
       {"maps:prep.shop", "it must sell at least one item, which Enable alone cannot know"},
       {"maps:backdrop", "it must name a sheet of data/graphics.json, which Enable alone cannot know"},
       {"maps:units[].behaviour{behaviour block}.retreat.to", "it needs at least one terrain id, which Enable alone cannot know"},
+      {"maps:events[].do[]{loop}.loop[]{addUnit}.addUnit.behaviour{behaviour block}.retreat", "a unit an addUnit command adds needs a type, which Enable alone cannot know: tried under maps:units[]"},
+      {"maps:events[].do[]{loop}.loop[]{addUnit}.addUnit.behaviour{behaviour block}.retreat.to", "a unit an addUnit command adds needs a type, which Enable alone cannot know: tried under maps:units[]"},
+      {"maps:events[].do[]{loop}.loop[]{setBehaviour}.setBehaviour{behaviour block}.retreat.to", "it needs at least one terrain id, which Enable alone cannot know"},
+      {"maps:events[].do[]{loop}.loop[]{fight}.fight.weapon", "it must name at least one weapon, which Enable alone cannot know"},
       {"game:grid", "the keys are tried in a hexagon fixture; Enable alone writes a square grid, which its structures (rings) refuse"},
   };
   return s;

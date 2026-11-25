@@ -11,6 +11,16 @@ namespace {
 }  // namespace
 
 void addStoryContexts(std::vector<Context>& c) {
+  // Speech bubbles, notices, names, faces and loops in a campaign scene (docs/EVENTS.md): listed first, so these keys are tried in the
+  // dialogue-bubbles fixture (portraits with expressions, a background) before the general contexts below claim their prefixes.
+  c.push_back({"campaign-dialogue", "dialogue-bubbles", {{"data/graphics.json", "portraits.eirik.expressions", R"([[0,1],[0,1],[0,1],[0,1],[0,1],[0,1],[0,1],[0,1],[0,1],[0,1],[0,1],[0,1],[0,1],[0,1],[0,1]])"}},
+               {SC "{notice}", SC "{loop}", SC "{askName}", SC "{say}.face", SC "{choice}.notice", SC "{choice}.cursor", SC "{choice}.face", "campaign:backdrop"},
+               {{SC "{loop}", R"({"loop":[{"break":true}],"max":3})"}, {SC "{loop}.loop", R"([{"break":true}])"},
+                {SC "{choice}.answers", R"([{"text":"A"},{"text":"B"},{"text":"C"},{"text":"D"}])"}}});
+  // A scene's own backdrop is a key of the scene form with music (a background id, or null for the plain colour).
+  c.push_back({"campaign-scene-backdrop", "dialogue-bubbles",
+               {{"data/campaign.json", "chapters[0].before", R"({"backdrop":"forest","commands":[{"say":"Hello."}]})"}},
+               {"campaign:chapters[].before{music and commands}.backdrop"}, {}});
   // --- the campaign file ---
   c.push_back({"campaign-base", "parties-flow", {},
                {"campaign:name", "campaign:rules", "campaign:freeBattles", "campaign:parties", "campaign:chapters", SC "{say}", SC "{narrate}", SC "{giveResource}",
