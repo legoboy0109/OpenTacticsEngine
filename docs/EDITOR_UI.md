@@ -1660,7 +1660,7 @@ Wording is placeholder. Model checks mirror the loader (docs/EVENTS.md "Showing 
 - **Server / API**: nothing new (the keys pass through); `tests/editor_api_rule_gaps_checks.py`. **Native editor**: schema-driven (`editor/schema`: shapes ring / field, a strike's
   `reach`, the map's `abilityPoints`, a unit's `guest`, the `guestJoins` command).
 - **Tests**: unit `tests/unit/ruleGaps.test.ts` (and the updated `abilityAreas.test.ts`).
-- *Owner decisions (placeholders)*: every label above ("Ring (around the square, not on it)", "Whole map", "Reach of the weapon in hand", "AP for a won battle (this map)", "Guest",
+- *Owner decisions (kept by the owner 2026-11-24)*: every label above ("Ring (around the square, not on it)", "Whole map", "Reach of the weapon in hand", "AP for a won battle (this map)", "Guest",
   "A guest joins the party"), the help and check sentences.
 
 ## Downed units and revive (docs/SRPG.md "Downed units and revive"; placeholder wording)
@@ -1709,7 +1709,7 @@ Built for the iso-map-art engine keys. Nothing new in the server or API (the key
   native editor is separate.
 - **Tests**: unit `tests/unit/backdrop.test.ts`, `tests/unit/artPoses.test.ts`.
 
-**Owner decisions (placeholders):** all wording is placeholder: the card and field names *Poses*, *Standing, facing*, *Striking*, *Hurt*, *Defeated*, *Front row (down-left)*, *Back row (up-left)*,
+**Owner decisions (kept by the owner 2026-11-24):** all wording is placeholder: the card and field names *Poses*, *Standing, facing*, *Striking*, *Hurt*, *Defeated*, *Front row (down-left)*, *Back row (up-left)*,
 *Diagonal rows (2D isometric view)*; *Characters* (Art screen) and "own picture"; *Unit offset* ("Offset across / down (pixels)"); *Portrait size* ("Portrait width / height"); *Backdrop*,
 *Backdrop image*, *Origin*, *Over image*, *Drawn in these styles* and the read-only pieces note; where each lives (Poses under Walking, characters as a card on the Art screen rather than on the
 Characters screen, the backdrop in the Map tab's settings); that the front / back rows are the only pose rows with boxes.

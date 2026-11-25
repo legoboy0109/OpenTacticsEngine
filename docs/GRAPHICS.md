@@ -233,7 +233,7 @@ character)`.
   per change (tests read it). Code: `UnitPoses` / `Look::poses` (`core/data/graphics.h`), `readUnitPoses` (`loader_unit_frames.cpp`),
   `unitPic` (`player/battle/sprites.cpp`); `UnitView::pose`, `poseT`, `faceDx`, `faceDy` (set in `battle_view.cpp`).
 
-**Owner decisions (placeholders; any may change):** the key names (`facing`, `attack`, `hurt`, `ko`, the diagonal names); poses
+**Owner decisions (kept by the owner 2026-11-24):** the key names (`facing`, `attack`, `hurt`, `ko`, the diagonal names); poses
 play once and hold their last frame; `hurt` only while the strike that hit plays (a miss shows none); without the rules' facing a
 unit keeps looking the way it last walked or struck, and shows its plain picture until then; no "dodge", "cast" or "victory" pose yet.
 
@@ -250,7 +250,7 @@ For art whose feet are not at the cell's bottom edge, or a converted game whose 
 foot point (FFTA: 4 px). Terrain, structures and portraits ignore it; the 3D kinds do not use it yet. Refused: `"unitOffset" must be
 [x, y]: whole numbers from -256 to 256 ...`. Code: `SheetDef::unitOffX/Y`, `unitPicOffset` (`sprites.cpp`).
 
-**Owner decisions (placeholders):** per sheet (not per unit type or per style); the picture moves alone.
+**Owner decisions (kept by the owner 2026-11-24):** per sheet (not per unit type or per style); the picture moves alone.
 
 ## Portraits (dialogue)
 

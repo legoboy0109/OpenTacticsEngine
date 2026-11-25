@@ -2927,7 +2927,7 @@ target unit`). With `"cure": "helpful"` on an enemy it is a dispel. A target mus
 - A number from 1 to 100 (100 = always, no roll) or a formula (a = the user, b = the target, `dist` = the distance, judged from where the user stands; rounded
   down, kept within 0..100). **`arc`** in the formula is the target's arc as seen from the user's square (0 front, 1 side, 2 back: `Battle::arcOfAttack`, the
   same function as a strike's; 0 in a game without `rules.facing`, and 0 (front) on the user itself): `"chance": "40 + arc * 20"` is a status spell that lands
-  more often from behind. The forecast and the pick hint use the square the user would act from. *Owner decisions (placeholders):* the name `arc` (the strike
+  more often from behind. The forecast and the pick hint use the square the user would act from. *Owner decisions (kept by the owner 2026-11-24):* the name `arc` (the strike
   formulas' own), the user itself counts as front, an area ability's units each get their own arc from the user's square. Tests: `tests/test_inflict_arc.cpp`. Refused: `"inflict": "chance" must be a percent from 1 to 100 or a formula such as "a.mag + 40 - b.res"`; a formula that does not
   compile, with the Lua message.
 - **When it rolls**: once per target, after the ability's effect (a strike: for each unit it hit that still stands, in the order struck), with `Battle::rng`, and
@@ -3356,7 +3356,7 @@ squares, the battle scene, the computer's scoring and the formulas' `w` all see 
   bow reaches as far as the bow and from a sword only next to the user. A unit holding no weapon uses `w`'s own range. Only the range moves (min and max;
   `fire`, height reach rules and the area stay `w`'s). The forecast, the square pick, the action check, the computer and a charged strike all ask the same
   `Battle::StrikeScope` (`strikeReachOf`). Refused: `"effect": "reach" goes with "strike" (how far the strike reaches)`, `"effect": "reach" must be "equipped" (the
-  range of the weapon in the user's hand) or left out (the strike weapon's own range)`. Saves: nothing new. *Owner decisions (placeholders):* the key `"reach":
+  range of the weapon in the user's hand) or left out (the strike weapon's own range)`. Saves: nothing new. *Owner decisions (kept by the owner 2026-11-24):* the key `"reach":
   "equipped"`; the weapon in hand is the resting one (the equipped weapon, else the first usable); a unit with none uses the strike weapon's range; only the range
   follows the weapon. Tests: `tests/test_strike_reach.cpp`.
 - **Differences from an attack**: the target **never strikes back**; nothing is worn or spent from an inventory (no uses, no ammunition), no weapon rank
@@ -3483,7 +3483,7 @@ write an ability that is used **only** on the user.
   or with an "area"; otherwise it starts at 1`. Push, pull, swap and the like (`must be [1, 1]`) keep their own message.
 - **Computer opponent.** Nothing new: it already scores every unit `abilityTargets` lists, the user included (a hurt healer heals itself when that is the best
   use). **Player**: the user's own square is offered in the unit pick. Saves: nothing new.
-- *Owner decisions (placeholders):* which effects may start at 0 (heal, cure, condition only), `"enemy"` and `"cell"` never; this widens the earlier decision
+- *Owner decisions (kept by the owner 2026-11-24):* which effects may start at 0 (heal, cure, condition only), `"enemy"` and `"cell"` never; this widens the earlier decision
   "range 0 only with an area". Tests: `tests/test_ability_on_self.cpp`.
 
 ### Guests
@@ -3515,7 +3515,7 @@ exactly as before.
   be used with "rules": { "actionPoints" } (the side's shared points pay for the player's own units)`; a guest may have `"behaviour"` and `"difficulty"`, which
   stay refused on the person's own units; `guestJoins` takes only the filter (`unknown key ...`).
 - **Player.** While a guest acts the hint reads `Guest Ritz is acting...`; the unit panel has a `Guest  moves itself` row (words: `engine/player/battle/guest_text.h`).
-- *Owner decisions (placeholders):* the key names `guest` and `guestJoins`; guests act first in their side's turn; a guest does not keep its side alive nor lose
+- *Owner decisions (kept by the owner 2026-11-24):* the key names `guest` and `guestJoins`; guests act first in their side's turn; a guest does not keep its side alive nor lose
   the battle by falling (unless an objective names it); side / team / any filters ignore guests; guests never in the roster, preparation or a party until they
   join; they earn experience like the others; refused with action points; the words `Guest`, `moves itself`, `Guest <name> is acting...`.
 - Code: `data/loader_guests.cpp`, `battle/guests.cpp` (`guestToAct`, `guestJoins`), `ai/ai_guests.cpp`. Tests: `tests/test_guests.cpp`, `tests/test_guests_campaign.cpp`,
@@ -3601,7 +3601,7 @@ Code: `data/loader_downed.cpp`, `battle/downed.cpp` (revive, auto-revive, remova
 **Not built:** carrying a downed unit (rescue), undead units that a revive hurts, a revive that also cures, an XP reward for reviving beyond the ability's
 own `xp`.
 
-**Owner decisions (placeholders):** the key names `rules.downed`, `afterBattle` (`return` / `fallen`, default `return`), `removeAfter`, `effect.revive`, item
+**Owner decisions (kept by the owner 2026-11-24):** the key names `rules.downed`, `afterBattle` (`return` / `fallen`, default `return`), `removeAfter`, `effect.revive`, item
 `revive`, staff `revive`, condition `autoRevive`; a body is always seen and may be walked past by anyone; conditions end when a unit falls; drops, last words
 and defeat events happen at the fall; a unit revived in its own turn has finished it and a speed game's charge starts over; an auto-revive keeps the other
 conditions and is no defeat (the attacker gets hit experience); revive takes no `inflict` and no charge; a defeated side's bodies are removed; the player's

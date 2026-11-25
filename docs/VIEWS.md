@@ -159,7 +159,7 @@ hashed, and a map without the key draws exactly as before.
 - Code: `MapDef::backdrop` (`core/data/map_backdrop.h`), `loader_map_backdrop.cpp`; player `battle/iso_backdrop.{h,cpp}` and
   `drawMapIso` (`iso_draw.cpp`). Tests: `tests/test_iso_map_art.cpp`, `tests/iso_map_art_player_test.py` (screenshots).
 
-**Owner decisions (placeholders; any may change):** the key names `backdrop`, `origin`, `over`, `pieces`, `rect`, `square`; the
+**Owner decisions (kept by the owner 2026-11-24):** the key names `backdrop`, `origin`, `over`, `pieces`, `rect`, `square`; the
 backdrop lives in the map file (not in graphics.json); the picture is never scaled; a piece sorts like a structure on its square
 (a unit on the same square is in front); units hidden by a piece are shown through faintly (FFTA itself does not); fogged squares
 are darkened with a diamond over the picture.

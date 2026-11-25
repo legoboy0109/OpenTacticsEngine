@@ -596,7 +596,7 @@ guest with nothing better waits. Speed turn order: the guest's own turn is playe
 (fog as for its side). It treats the person's units as its allies (it heals them, never strikes them) and counts its own value as a unit of its side. The player
 calls it before the person gets control (with `--autoplay` the computer plays the whole side, guests included, as usual); it never runs on a computer side. **Tests.**
 `tests/test_guests.cpp` (acts first, never ends the turn, `hold`, the speed turn order, the same battle twice). Code: `ai/ai_guests.cpp`, `ai/ai_speed.cpp`.
-*Owner decisions (placeholders):* guests act before the person each turn, lowest unit id first; no turn end; the computer's usual choices.
+*Owner decisions (kept by the owner 2026-11-24):* guests act before the person each turn, lowest unit id first; no turn end; the computer's usual choices.
 
 ### Reviving downed units
 

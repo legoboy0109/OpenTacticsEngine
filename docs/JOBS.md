@@ -272,7 +272,7 @@ without jobs.
 **A map's own points for a win.** `maps/*.json` may say `"abilityPoints": { "perBattle": 40 }` (a whole number 0 to 9999): a battle on that map gives that
 many for the win instead of the game's `perBattle` (0 = none for the win); `perAction` and `perDefeat` stay the game's. Refused: `"abilityPoints" needs items that
 teach (data/items.json "teaches"): without them nobody earns AP`, a missing `perBattle` (`needs "perBattle": ...`), any other key, a number out of range. Not saved
-(map data; `Battle::mapApPerBattle`). *Owner decisions (placeholders):* the key `"abilityPoints": { "perBattle" }` on the map (only the win amount), 0 allowed. Tests:
+(map data; `Battle::mapApPerBattle`). *Owner decisions (kept by the owner 2026-11-24):* the key `"abilityPoints": { "perBattle" }` on the map (only the win amount), 0 allowed. Tests:
 `tests/test_map_ability_points.cpp`.
 
 **Equipped** means: the weapon in hand (a weapon item in its inventory's equipped slot) and every accessory it carries (accessories work while carried,
