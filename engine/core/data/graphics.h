@@ -111,6 +111,9 @@ struct Look {
   // Portraits only: other cells of the same sheet, "talk" (cycled while the speaker's line is being typed) and "blink" (shown for a
   // moment now and then). Empty = the portrait never changes.
   std::vector<SpriteCell> talk, blink;
+  // Portraits only (docs/EVENTS.md "Portrait expressions"): "expressions", other faces of the same sheet that a line picks with "face": N
+  // (N-th entry, 1-based). Empty = the portrait has one face.
+  std::vector<SpriteCell> expressions;
   // Units only: standing per facing, attack, hurt and KO frames (docs/GRAPHICS.md "Poses and facing"); null = none (every existing
   // game). Shared, so copying the look into each style is cheap.
   std::shared_ptr<const UnitPoses> poses;
@@ -259,6 +262,8 @@ struct Graphics {
   bool unitMarker = true;
   // The plate the dialogue box draws a portrait on, in logical pixels at the 8 px font ("portraitSize"; docs/GRAPHICS.md "Portraits").
   int portraitW = 48, portraitH = 48;
+  // The longest "expressions" list of any portrait of any style: a line's "face" may not go past it (the loaders' check).
+  int maxExpressions = 0;
   // The side-view battle scene's art (docs/BATTLE_SCENE.md); empty when the game gives none.
   BattleArt battle;
   // Icons (docs/GRAPHICS.md "Icons"): the small picture the player draws before a weapon's or an item's name in a list. One

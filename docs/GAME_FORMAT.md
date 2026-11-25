@@ -60,6 +60,7 @@ or writing anything: `ote-editor --validate <game folder>` (docs/EDITOR_API.md).
   "battleSceneSides": "map",                                 // optional: "map" (default) | "playerRight" | "playerLeft": which side of the scene each fighter stands on
   "battleSceneStaves": false,                                // optional: true = a staff used on one other unit plays in the scene (docs/BATTLE_SCENE.md "Staves in the scene")
   "quotesPerFight": "both",                                  // optional: "both" (default: each fighter may say its battle quote) | "one" (at most one per fight; docs/EVENTS.md "Battle and defeat quotes")
+  "dialogue": { "style": "bubble", "portrait": "beside", "names": true },  // optional: speech bubbles (docs/EVENTS.md "Speech bubbles"); default the bottom box
   "menuUnavailable": "grey",                                 // optional: "grey" (default) | "hide": an action with nothing to act on stays greyed or is left out of the action menu (docs/SRPG.md "Menu options")
   "attackWeaponChoice": "equipped",                          // optional: "equipped" (default) | "pick": Attack goes straight to the targets or asks which weapon first (docs/SRPG.md "Menu options")
   "saving": "any",                                           // optional: "any" | "continue" | "off"
@@ -523,7 +524,10 @@ Specified in docs/EVENTS.md "Campaign": `name`, `rules` (`fallen`, `onDefeat`),
 `freeBattles` (`"none"` | `"all"` | a list of map ids, or the object `{ "maps", "when": "always" | "storyComplete", "lockedNote" }`: the game page lists them only after the story is complete), optional `parties` (docs/EVENTS.md "Parties": `[ { "id", "name" } ]`, the first one starts the story) and `chapters` (`id`, `name`, `map`, `before` / `after` scenes, `next`, optional `party`). The scene commands `{ "switchParty": "id" }` and `{ "mergeParties": ["id"], "into": "id" }` change the active party. Scenes may ask questions (`choice`) and
 branch with `goto` (also from a before scene, which skips that chapter's battle), and use the scene presentation commands
 (`background`, `fade`, `wait`, `shake`, `leave`, `clearStage`, `narrate`, and `position` / `auto` on a `say`; docs/EVENTS.md "Scene
-presentation"; not `weather`, `focus` or a walked `moveUnit`, which need a map).
+presentation"; not `weather`, `focus` or a walked `moveUnit`, which need a map). Scenes may also use `notice`, `loop` / `break`, `face` on a
+`say` / `choice`, `notice` / `cursor` on a `choice` and `askName` (docs/EVENTS.md "Speech bubbles, notices, names, faces and loops"); a
+top-level `"backdrop": "<background id>"` puts that picture behind every scene from its first line, and a scene written as the object
+`{ "backdrop": "<id>" | null, "music": ..., "commands": [ ... ] }` names its own (docs/EVENTS.md "Scene backdrops").
 Unknown keys, unknown maps / chapters and bad rule values are loader errors. The
 file counts for the save hash except its wording (docs/SAVES.md).
 

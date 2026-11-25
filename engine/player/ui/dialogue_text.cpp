@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "core/data/name_tokens.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -13,7 +14,8 @@ bool startsChar(char c) { return ((unsigned char)c & 0xC0) != 0x80; }
 DialogueLine dialogueLine(const Battle& b, const Event& e) {
   DialogueLine line;
   const bool unit = e.a >= 0 && (size_t)e.a < b.units.size();
-  line.text = e.b >= 0 ? b.storyText(e.b) : "";
+  line.text = e.b >= 0 ? expandNameTokens(b.storyText(e.b), [&b](const std::string& id) { return b.heroName(id); }) : "";
+  line.unit = unit ? e.a : -1;
   if (unit) line.name = b.units[(size_t)e.a].name;
   else if (e.c >= 0) line.name = b.storyText(e.c);
   if (e.d >= 0) line.portrait = b.storyText(e.d);
@@ -23,6 +25,14 @@ DialogueLine dialogueLine(const Battle& b, const Event& e) {
   line.narrate = e.type == EventType::Dialogue && (e.flags & kDialogueNarrate) != 0;
   if (e.type == EventType::Dialogue && !e.data.empty()) line.autoMs = e.data[0];  // (a Choice entry's data are its answers)
   if (line.narrate) line.name.clear();
+  // A notice, a face and a question's starting answer (docs/EVENTS.md "Notices", "Portrait expressions").
+  line.notice = (e.flags & kDialogueNotice) != 0;
+  line.face = (e.flags & kDialogueFaceMask) >> kDialogueFaceShift;
+  if (e.type == EventType::Choice) line.cursor = (e.flags & kChoiceCursorMask) >> kChoiceCursorShift;
+  if (line.notice) {
+    line.name.clear();
+    line.portrait.clear();
+  }
   return line;
 }
 

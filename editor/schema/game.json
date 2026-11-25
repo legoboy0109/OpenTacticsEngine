@@ -28,6 +28,13 @@
       "quotesPerFight": { "type": "enum", "values": ["both", "one"], "default": "both", "help": "both: each fighter may say its battle quote (the attacked unit first); one: at most one battle quote per fight." },
       "menuUnavailable": { "type": "enum", "values": ["grey", "hide"], "default": "grey", "help": "An action with nothing to act on stays greyed in the menu, or is left out." },
       "attackWeaponChoice": { "type": "enum", "values": ["equipped", "pick"], "default": "equipped", "help": "Attack goes straight to the targets, or first asks which weapon to use." },
+      "dialogue": {
+        "type": "object", "block": true, "help": "How lines are shown (docs/EVENTS.md \"Speech bubbles\"): the box at the bottom, or a bubble pointing at the speaker.",
+        "fields": {
+          "style": { "type": "enum", "values": ["box", "bubble"], "default": "box", "help": "box: the box at the bottom; bubble: a bubble pointing at a unit on the map that speaks." },
+          "portrait": { "type": "enum", "values": ["beside", "inside", "none"], "default": "beside", "when": { "style": "bubble" }, "help": "Bubbles only: the portrait next to the bubble, in it, or none." },
+          "names": { "type": "bool", "default": true, "when": { "style": "bubble" }, "help": "Bubbles only: show the speaker's name on the bubble's first row." } }
+      },
       "grid": {
         "type": "object", "block": true, "help": "Hexagon games (docs/HEX.md); without this block the game is square.",
         "fields": {

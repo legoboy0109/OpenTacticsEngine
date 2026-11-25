@@ -177,6 +177,20 @@ export interface Command extends Extra {
   clearStage?: boolean
   weather?: 'rain' | 'snow' | 'none'
   narrate?: string
+  /** A notice command's text; on a `choice` it is `true` = the question and answers in the notice window (docs/EVENTS.md "Notices"). */
+  notice?: string | boolean
+  /** A choice: the answer the highlight starts on (1 = the first answer as written). */
+  cursor?: number
+  /** say / choice: the portrait's N-th expression (1 to 15). */
+  face?: number
+  /** loop: the commands that run again and again, and its most rounds (default 10). `break` ends the loop it is in. */
+  loop?: Command[]
+  max?: number
+  break?: boolean
+  /** Campaign scenes only: the character whose name is asked, with its `default` name, `max` letters and `prompt` (docs/EVENTS.md "Naming a character"). */
+  askName?: string
+  default?: string
+  prompt?: string
   /** A line's place on the stage (seven slots, docs/EVENTS.md "Standing portraits"), and "it goes on by itself after this many ms". */
   position?: StagePosition
   auto?: number
@@ -239,6 +253,7 @@ export type CommandKind =
   | 'openDoor' | 'closeDoor' | 'lockDoor' | 'unlockDoor' | 'openChest' | 'setBehaviour' | 'wakeGroup'
   | 'setTerrain' | 'applyChange' | 'revertChange' | 'setFog' | 'setVision'
   | 'background' | 'fade' | 'wait' | 'shake' | 'leave' | 'clearStage' | 'weather' | 'narrate' | 'enter' | 'move'
+  | 'notice' | 'loop' | 'break' | 'askName'
   | 'setPhaseMusic'
   | 'storeItems' | 'switchParty' | 'mergeParties' | 'showUnit' | 'fight' | 'showMap' | 'returnMap'
 /** In the order the loader looks for them (`goto` is only ever found in a campaign scene). */
@@ -251,6 +266,8 @@ export const COMMAND_KINDS: CommandKind[] = [
   'storeItems', 'switchParty', 'mergeParties', 'showUnit', 'fight', 'setPhaseMusic',
   // The stage commands enter / move (docs/EVENTS.md "Standing portraits"); their keys are not the scene kinds' keys, so they sit before them
   'enter', 'move',
+  // Notices, loops and name entry (docs/EVENTS.md "Speech bubbles, notices, names, faces and loops"); a choice with `notice: true` is found as a choice first
+  'notice', 'loop', 'break', 'askName',
   // Scene presentation (kept LAST: `fade` and `wait` are also the keys of playMusic / focus / moveUnit, whose own kinds come first)
   'background', 'fade', 'wait', 'shake', 'leave', 'clearStage', 'weather', 'narrate',
 ]

@@ -21,6 +21,9 @@ void addGameContexts(std::vector<Context>& c) {
                 {"game:styles[].background", "\"#102030\""},
                 {"game:styles[].terrainColors", R"({"plain":"#102030"})"},
                 {"game:styles[].structureColors", R"({"city":"#102030"})"}}});
+  // Speech bubbles (docs/EVENTS.md): "portrait" and "names" are refused with the box style, so the block starts as a bubble one.
+  c.push_back({"game-dialogue", "plain-economy", {{"game.json", "dialogue", R"({"style":"bubble"})"}}, {"game:dialogue"},
+               {{"game:dialogue.style", "\"bubble\""}, {"game:dialogue.portrait", "\"inside\""}, {"game:dialogue.names", "false"}}});
   c.push_back({"game-scripts", "srpg-triangle", {}, {"game:scripts"}, {{"game:scripts", R"(["scripts/triangle.lua"])"}}});
   c.push_back({"game-grid", "hex-flat", {}, {"game:grid"}, {{"game:grid.type", "\"hex\""}, {"game:grid", R"({"type":"hex","layout":"flat"})"}}});
   c.push_back({"game-rescue", "srpg-carry", {}, {"game:rules.rescue"}, {{"game:rules.rescue.carrierStats", R"({"str":1})"}}});

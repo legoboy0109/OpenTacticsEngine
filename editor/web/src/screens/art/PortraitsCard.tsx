@@ -1,7 +1,7 @@
 // "Portraits": the pictures shown beside dialogue. Each has a name (what a Say command's "Portrait" refers to) and a
 // piece of one of the game's images. The story names of the units in the maps are offered as quick starts.
 import { useState } from 'react'
-import { addPortrait, framesText, movePortrait, parseFrames, portraitIdProblem, portraitList, portraitSuggestions, removePortrait, renamePortrait, setPortraitFacing, setPortraitFrames, setPortraitPicture, type PortraitFacing } from '../../model/portraits'
+import { MAX_PORTRAIT_EXPRESSIONS, addPortrait, framesText, movePortrait, parseFrames, portraitIdProblem, portraitList, portraitSuggestions, removePortrait, renamePortrait, setPortraitFacing, setPortraitFrames, setPortraitPicture, type PortraitFacing } from '../../model/portraits'
 import { portraitSizeOf, setPortraitSize, sheetsOf } from '../../model/graphics'
 import { tidyId } from '../../model/storyIds'
 import { useDoc, useEdit } from '../../store/context'
@@ -18,7 +18,7 @@ import { PortraitThumb } from './PortraitThumb'
 import { T } from './text'
 
 /** A list of pieces typed as "2,1  3,1"; what cannot be read is said under the box and not saved. */
-function FramesField({ label, help, name, value, onCommit }: { label: string; help: string; name: string; value: string; onCommit: (cells: Array<[number, number]>) => void }) {
+function FramesField({ label, help, name, value, onCommit, most }: { label: string; help: string; name: string; value: string; onCommit: (cells: Array<[number, number]>) => void; most?: number }) {
   const [text, setText] = useState(value)
   const [error, setError] = useState('')
   const [seen, setSeen] = useState(value)
@@ -27,7 +27,7 @@ function FramesField({ label, help, name, value, onCommit }: { label: string; he
     <Field label={label} help={help}>
       <TextInput aria-label={name} value={text} onChange={(v) => {
         setText(v)
-        const r = parseFrames(v)
+        const r = parseFrames(v, most)
         if ('error' in r) setError(r.error)
         else { setError(''); onCommit(r.cells) }
       }} />
@@ -78,6 +78,8 @@ export function PortraitsCard() {
                   <FramesField key={key} label={key === 'talk' ? T.portraitTalk : T.portraitBlink} help={key === 'talk' ? T.portraitTalkHelp : T.portraitBlinkHelp} name={`${p.id}: ${key === 'talk' ? T.portraitTalk : T.portraitBlink}`}
                     value={framesText(p.portrait[key])} onCommit={(cells) => edit((d) => setPortraitFrames(d, p.id, key, cells), `portrait:${p.id}:${key}`)} />
                 ))}
+                <FramesField label={T.portraitExpressions} help={T.portraitExpressionsHelp} name={`${p.id}: ${T.portraitExpressions}`} most={MAX_PORTRAIT_EXPRESSIONS}
+                  value={framesText(p.portrait.expressions)} onCommit={(cells) => edit((d) => setPortraitFrames(d, p.id, 'expressions', cells), `portrait:${p.id}:expressions`)} />
               </div>
               <RowButtons index={i} count={list.length} up={T.portraitUp(p.id)} down={T.portraitDown(p.id)} del={T.portraitDelete(p.id)}
                 onUp={() => edit((d) => movePortrait(d, i, i - 1))} onDown={() => edit((d) => movePortrait(d, i, i + 1))} onDelete={() => edit((d) => removePortrait(d, p.id))} />

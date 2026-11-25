@@ -50,6 +50,7 @@ struct SceneRun {
   const std::vector<int>* picks = nullptr;
   size_t used = 0;
   bool halted = false;
+  bool breaking = false;  // a { "break": true } ran: the lists stop until the loop around it is left (docs/EVENTS.md "Loops")
   // The chapter's map, read once when a speaker is not in the party yet: before the first battle
   // the roster is empty, yet the hero must be able to speak under their name.
   bool mapTried = false, mapOk = false;
@@ -105,7 +106,7 @@ struct SceneRun {
 
   void run(const std::vector<SceneCommand>& list) {
     for (const SceneCommand& c : list) {
-      if (halted) return;
+      if (halted || breaking) return;
       command(c);
     }
   }
@@ -126,6 +127,24 @@ struct SceneRun {
     l.text = texts[(size_t)c.text];
   }
 
+  // docs/EVENTS.md "Naming a character": a line for the player's name entry. Nobody to type (the simulator, --autoplay) keeps the
+  // "default" when no name was typed yet; the player stores what is typed (setTypedName) when the entry closes.
+  void askName(const SceneCommand& c) {
+    const std::vector<std::string>& texts = db.campaign->texts;
+    if (!typedName(pt, c.unit) && c.speakerName >= 0) setTypedName(pt, c.unit, texts[(size_t)c.speakerName]);
+    SceneLine l;
+    l.kind = SceneLine::Kind::AskName;
+    l.speakerId = c.unit;
+    l.speaker = characterName(db, pt, c.unit);
+    if (l.speaker == c.unit && !typedName(pt, c.unit)) {  // not known to the party nor as a character: the chapter map's name for it
+      const std::string fromMap = nameFromMap(c.unit);
+      if (!fromMap.empty()) l.speaker = fromMap;
+    }
+    if (c.text >= 0) l.text = texts[(size_t)c.text];
+    l.maxLetters = c.value;
+    lines.push_back(l);
+  }
+
   void choice(const SceneCommand& c) {
     const std::vector<std::string>& texts = db.campaign->texts;
     std::vector<size_t> offered;
@@ -135,10 +154,18 @@ struct SceneRun {
       if (all) offered.push_back(i);
     }
     if (offered.empty()) return;  // every answer is hidden: nothing to ask, nothing to record
-    size_t picked = offered[0];
+    // "cursor" (docs/EVENTS.md "Notices"): where the highlight starts among the offered answers (the first when that one is hidden);
+    // with nobody to ask it is the answer taken.
+    int start = 0;
+    for (size_t i = 0; i < offered.size(); ++i)
+      if ((int)offered[i] == c.fx.cursor - 1) start = (int)i;
+    size_t picked = offered[(size_t)start];
     if (offered.size() >= 2) {
       SceneLine l;
       speaker(c, l);
+      l.notice = c.fx.notice;
+      l.face = c.fx.face;
+      l.cursor = start;
       if (!picks) {  // nobody to ask: the question is only said
         lines.push_back(l);
       } else {
@@ -168,9 +195,23 @@ struct SceneRun {
         l.position = c.fx.position;  // the presentation keys (docs/EVENTS.md "Scene presentation")
         l.narrate = c.fx.narrate;
         l.autoMs = std::max(0, c.fx.ms);
+        l.notice = c.fx.notice;  // docs/EVENTS.md "Notices", "Portrait expressions"
+        l.face = c.fx.face;
         lines.push_back(l);
         break;
       }
+      case K::Loop:  // docs/EVENTS.md "Loops": the block again and again, until a break in it or `value` rounds
+        for (int round = 0; round < c.value; ++round) {
+          run(c.thenDo);
+          if (halted) return;  // a question waits inside the block (the scene is run again with the answer)
+          if (breaking) {
+            breaking = false;
+            break;
+          }
+        }
+        break;
+      case K::Break: breaking = true; break;
+      case K::AskName: askName(c); break;
       case K::SetSwitch: pt.switches[(size_t)c.index] = c.on ? 1 : 0; break;
       case K::SetVariable: pt.variables[(size_t)c.index] = c.reading.kind == UnitReading::Kind::None ? c.value : clampStory(readRoster(db, pt, c.reading)); break;
       case K::AddVariable:
@@ -246,10 +287,16 @@ bool runSceneWith(const Database& db, Playthrough& pt, SceneKind which, std::vec
   if (!cd || pt.chapter < 0 || pt.chapter >= (int)cd->chapters.size()) return false;
   if (pt.phase != (which == SceneKind::Before ? Phase::Before : Phase::After)) return false;
   const ChapterDef& ch = cd->chapters[(size_t)pt.chapter];
-  SceneRun r{db, pt, lines, std::string(), picks, 0, false, false, false, MapDef()};
+  SceneRun r{db, pt, lines, std::string(), picks, 0, false, false, false, false, MapDef()};
+  // Typed names (docs/EVENTS.md "Naming a character") also reach units that joined the party after the name was asked.
+  const auto keepNames = [&pt] {
+    const std::vector<std::pair<std::string, std::string>> names = pt.names;
+    for (const auto& n : names) setTypedName(pt, n.first, n.second);
+  };
   if (which == SceneKind::Before) {
     if (!ch.party.empty()) switchParty(db, pt, ch.party);  // the chapter's "party": active from the start of its scene
     r.run(ch.before);
+    keepNames();
     if (r.halted) return true;
     // A "goto" in a before scene skips this chapter's battle: the chapter it names is next, starting with its own before scene.
     if (!r.gotoChapter.empty() && cd->findChapter(r.gotoChapter) >= 0) {
@@ -261,6 +308,7 @@ bool runSceneWith(const Database& db, Playthrough& pt, SceneKind which, std::vec
     return true;
   }
   r.run(ch.after);
+  keepNames();
   if (r.halted) return true;  // a question waits: the chapter has not been left
   // The next chapter: the last "goto" that ran, else the chapter's "next", else the following one.
   int next = pt.chapter + 1;

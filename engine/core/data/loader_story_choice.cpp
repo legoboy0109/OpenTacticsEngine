@@ -2,6 +2,7 @@
 // with its own list of commands. The same shape is read for campaign scenes in loader_campaign_choice.cpp.
 #include <algorithm>
 
+#include "core/data/loader_dialogue.h"
 #include "core/data/loader_events.h"
 
 namespace ote {
@@ -11,9 +12,12 @@ std::string quoted(const std::string& s) { return "\"" + s + "\""; }
 }  // namespace
 
 bool StoryLoader::choiceCommand(const Json& e, const std::string& at, bool talk, Command& out, bool& usesEndTurn) {
-  if (!onlyKeys(e, {"choice", "speaker", "speakerName", "portrait", "store", "answers"}, at)) return false;
+  if (!onlyKeys(e, {"choice", "speaker", "speakerName", "portrait", "store", "answers", "notice", "cursor", "face"}, at)) return false;
   const Json& v = e["choice"];
   if (!v.isString() || v.asString().empty()) return fail(at, "\"choice\" must be the question to ask (text that is not empty)");
+  if (!checkNameTokens(c_, v.asString(), at)) return false;
+  // "notice", "cursor" and "face" (docs/EVENTS.md "Notices"): read once the answers' count is known to be a list's size.
+  if (!readChoiceLook(c_, db_, e, at, e["answers"].isArray() ? e["answers"].size() : 0, out.fx)) return false;
   out.text = text(v.asString());
   if (e.has("speaker") && e.has("speakerName")) return fail(at, "give \"speaker\" or \"speakerName\", not both");
   if (e.has("speaker") && !unitId(e["speaker"], at, "\"speaker\"", out.unit)) return false;
@@ -52,6 +56,7 @@ bool StoryLoader::choiceCommand(const Json& e, const std::string& at, bool talk,
       if (data_.texts[(size_t)o.text] == a["text"].asString())
         return fail(where, "says the same as an earlier answer (" + quoted(a["text"].asString()) +
                                "); the player could not tell them apart");
+    if (!checkNameTokens(c_, a["text"].asString(), where)) return false;
     ans.text = text(a["text"].asString());
     if (a.has("if") && !conditions(a["if"], where, ans.cond)) return false;
     if (a.has("do") && !commands(a["do"], where + ": \"do\"", talk, ans.commands, usesEndTurn)) return false;

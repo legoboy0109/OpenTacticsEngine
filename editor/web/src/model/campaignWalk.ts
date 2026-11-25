@@ -8,7 +8,7 @@
 // The scene commands are walked by storyWalk's own `mapCommands`, so a command is understood in one place only.
 // Returns the very same object when nothing changed.
 import { chapterName, type Campaign, type Chapter, type SceneKey } from './campaignTypes'
-import { isSceneObject, sceneCommands, sceneMusic, withSceneCommands, withSceneMusic, type Scene } from './campaignScene'
+import { isSceneObject, sceneCommands, sceneMusic, withSceneBackdrop, withSceneCommands, withSceneMusic, type Scene } from './campaignScene'
 import { DROP, mapCommands, put, type Walk } from './storyWalk'
 
 export const SCENE_TITLE: Record<SceneKey, string> = { before: 'Before the battle', after: 'After the battle' }
@@ -51,6 +51,14 @@ function walkChapter(ch: Chapter, w: Walk): Chapter {
         next = withSceneMusic(next, undefined)
       } else if (r !== music) next = withSceneMusic(next, r)
     }
+    // Its backdrop names a background (null = the plain colour: not a name).
+    if (isSceneObject(next) && typeof next.backdrop === 'string') {
+      const r = w.ref({ kind: 'background', id: next.backdrop }, where)
+      if (r === DROP) {
+        w.dropped?.({ what: 'setting', text: 'its backdrop is taken off (it then starts on the campaign’s)', where })
+        next = withSceneBackdrop(next, undefined)
+      } else if (r !== next.backdrop) next = withSceneBackdrop(next, r)
+    }
     const list = sceneCommands(next)
     const mapped = mapCommands(list, w, where)
     if (mapped !== list) next = isSceneObject(next) ? withSceneCommands(next, mapped) : mapped
@@ -73,6 +81,14 @@ export function walkCampaign(c: Campaign, w: Walk): Campaign {
     return next
   })
   let out: Campaign = changed ? { ...c, chapters } : c
+  if (typeof c.backdrop === 'string') {  // the campaign's own backdrop names a background too
+    const r = w.ref({ kind: 'background', id: c.backdrop }, 'the campaign’s backdrop')
+    if (r === DROP) {
+      w.dropped?.({ what: 'setting', text: 'the campaign’s backdrop is taken off', where: 'the campaign’s backdrop' })
+      const { backdrop: _gone, ...rest } = out
+      out = rest as Campaign
+    } else if (r !== c.backdrop) out = { ...out, backdrop: r }
+  }
   const fb = c.freeBattles
   const list = Array.isArray(fb) ? fb : fb && typeof fb === 'object' && Array.isArray(fb.maps) ? fb.maps : null
   if (list) {

@@ -15,9 +15,9 @@ export interface RawSection {
   again: Command[]
 }
 
-const nested = (c: Command): Command[] => [...(c.then ?? []), ...(c.else ?? []), ...(c.answers ?? []).flatMap((a) => a.do ?? [])]
+const nested = (c: Command): Command[] => [...(c.then ?? []), ...(c.else ?? []), ...(c.loop ?? []), ...(c.answers ?? []).flatMap((a) => a.do ?? [])]
 function collect(list: Command[] | undefined, into: Command[]): void {
-  for (const c of Array.isArray(list) ? list : []) { into.push(c); collect(c.then, into); collect(c.else, into); for (const a of c.answers ?? []) collect(a.do, into) }
+  for (const c of Array.isArray(list) ? list : []) { into.push(c); collect(c.then, into); collect(c.else, into); collect(c.loop, into); for (const a of c.answers ?? []) collect(a.do, into) }
 }
 
 /** The sections of one command list (an event's `do`), and the returnMaps that close nothing. */

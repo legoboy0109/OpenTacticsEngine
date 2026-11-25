@@ -4,6 +4,7 @@
 
 #include "campaign/end_scenes.h"
 #include "core/base/log.h"
+#include "core/data/name_tokens.h"
 #include "ui/chrome.h"
 #include "ui/dialogue_portrait.h"
 #include "ui/text.h"
@@ -35,7 +36,7 @@ const StageDrawCtx StoryScene::stageCtx() const {
 // lines (Fx) act on the scene's own stage; they are left alone until the card is gone (`fx` = false).
 void StoryScene::consumeAudio(bool fx) {
   using K = SceneLine::Kind;
-  while (next_ < lines_.size() && lines_[next_].kind != K::Say && lines_[next_].kind != K::Choice) {
+  while (next_ < lines_.size() && lines_[next_].kind != K::Say && lines_[next_].kind != K::Choice && lines_[next_].kind != K::AskName) {
     if (lines_[next_].kind == K::Fx) {
       if (!fx) return;
       const SceneLine& l = lines_[next_++];
@@ -123,7 +124,7 @@ void StoryScene::applyRest(size_t from, size_t to) {
       if (!entered_) queued_.push_back(l);
       else playAudio(l);
     } else if (l.kind == SceneLine::Kind::Say) {  // who is standing where when the scene ends
-      stage_.say(l.speakerId.empty() ? l.speaker : l.speakerId, l.portrait.empty() ? l.speakerId : l.portrait, l.position);
+      stage_.say(l.speakerId.empty() ? l.speaker : l.speakerId, l.portrait.empty() ? l.speakerId : l.portrait, l.position, l.face);
     }
   }
   blockLeft_ = 0;
@@ -137,15 +138,18 @@ void StoryScene::openLine() {
   const SceneLine& l = lines_[next_++];
   // A question that was answered already (the scene was run again with the answers) is not shown twice.
   if (l.kind == SceneLine::Kind::Choice && !l.waiting) { openLine(); return; }
+  if (l.kind == SceneLine::Kind::AskName) { openNameEntry(l); return; }
   DialogueLine d;
-  d.name = l.narrate ? std::string() : l.speaker;
-  d.text = l.text;
-  d.portrait = l.portrait.empty() ? l.speakerId : l.portrait;  // like a battle line: the speaker's own picture
+  d.name = l.narrate || l.notice ? std::string() : shownName(l);
+  d.text = withNames(l.text);
+  d.portrait = l.notice ? std::string() : l.portrait.empty() ? l.speakerId : l.portrait;  // like a battle line: the speaker's own picture
   d.narrate = l.narrate;
   d.autoMs = l.autoMs;
+  d.notice = l.notice;
+  d.face = l.face;
   // Staging (docs/EVENTS.md "Scene presentation"): a speaker on the stage has no portrait beside the box.
-  const bool staged = l.kind == SceneLine::Kind::Say && !l.narrate &&
-                      stage_.say(l.speakerId.empty() ? l.speaker : l.speakerId, d.portrait, l.position);
+  const bool staged = l.kind == SceneLine::Kind::Say && !l.narrate && !l.notice &&
+                      stage_.say(l.speakerId.empty() ? l.speaker : l.speakerId, d.portrait, l.position, l.face);
   if (l.kind == SceneLine::Kind::Say && l.narrate) stage_.say(std::string(), std::string(), 0);
   if (l.position != 0)
     OTE_INFO("scene: portrait %s %s", (l.speakerId.empty() ? l.speaker : l.speakerId).c_str(), positionName(l.position));
@@ -153,10 +157,18 @@ void StoryScene::openLine() {
   const Renderer& r = host_.renderer();
   int style = std::max(0, std::min(host_.styleIndex(), (int)host_.session()->db.styles.size() - 1));
   box_.setSkipInside(!stage_.portraits().empty());
+  // A notice (docs/EVENTS.md "Notices") is the window in the middle of the screen; every other line keeps the box (a scene has no map
+  // for a bubble to point into).
+  DialogueFrame frame;
+  if (l.notice) frame.shape = DialogueFrame::Shape::Notice;
+  box_.setFrame(frame);
   box_.open(r, r.width(), r.height(), r.height() - footerHeight(r), d,
-            staged || l.narrate ? PortraitArt() : portraitArt(host_.session()->db, host_.sprites(), style, d.portrait));
+            staged || l.narrate || l.notice ? PortraitArt() : portraitArt(host_.session()->db, host_.sprites(), style, d.portrait, l.face));
+  if (l.notice) OTE_INFO("scene: notice");
   if (l.kind == SceneLine::Kind::Choice) {
-    box_.setAnswers(r, l.answers);
+    std::vector<std::string> answers;
+    for (const std::string& a : l.answers) answers.push_back(withNames(a));
+    box_.setAnswers(r, answers, l.cursor);
     OTE_INFO("choice: scene question \"%s\": %s", l.text.c_str(), box_.describeAnswers().c_str());
   }
   lineTime_ = 0;
@@ -181,10 +193,11 @@ void StoryScene::answered(int pick) {
 void StoryScene::skipRest() {
   onCard_ = false;
   box_.close();
+  if (names_.isOpen()) return;  // the keyboard is not skipped (it takes the name with OK)
   size_t stop = lines_.size();
   for (size_t i = next_; i < lines_.size(); ++i)
-    if (lines_[i].kind == SceneLine::Kind::Choice && lines_[i].waiting) {
-      stop = i;  // a question is never skipped: it is the next thing shown
+    if ((lines_[i].kind == SceneLine::Kind::Choice && lines_[i].waiting) || lines_[i].kind == SceneLine::Kind::AskName) {
+      stop = i;  // a question (and a name to type) is never skipped: it is the next thing shown
       break;
     }
   applyRest(next_, stop);
@@ -257,6 +270,10 @@ void StoryScene::onInput(const InputEvent& e) {
     }
     return;
   }
+  if (names_.isOpen()) {
+    if (names_.onInput(e) == NameEntry::Done) nameDone();
+    return;
+  }
   lineResult(box_.onInput(e));
 }
 
@@ -290,6 +307,13 @@ void StoryScene::update(double dt) {
     }
     return;
   }
+  if (names_.isOpen()) {
+    if (autoplay) {  // nobody types: the name it opened with (the default) is taken
+      names_.close();
+      nameDone();
+    }
+    return;
+  }
   lineResult(box_.update(dt));
   if (finished_ || ending_) return;
   if (autoplay) {
@@ -316,9 +340,58 @@ void StoryScene::draw(Renderer& r) {
   }
   drawStageBackground(r, ctx, stage_);  // nothing when there is none: the scene looks as it always did
   drawStagePortraits(r, ctx, stage_, box_.isOpen() ? box_.top() : r.height() - footerHeight(r) - 4, box_.revealing());
+  if (names_.isOpen()) {
+    drawFooter(r, "{confirm}: press   {cancel}: delete   {menu}: to OK");
+    names_.draw(r);
+    drawStageFade(r, stage_);
+    return;
+  }
   drawFooter(r, box_.choosing() ? kChoiceHint : kDialogueHint);
   box_.draw(r);
   drawStageFade(r, stage_);
+}
+
+// ---- typed names (docs/EVENTS.md "Naming a character")
+
+Playthrough* StoryScene::playthrough() const {
+  GameSession* s = host_.session();
+  return s && s->campaign ? &s->campaign->pt : nullptr;
+}
+
+std::string StoryScene::shownName(const SceneLine& l) const {
+  const Playthrough* pt = playthrough();
+  if (pt && !l.speakerId.empty())
+    if (const std::string* typed = typedName(*pt, l.speakerId)) return *typed;
+  return l.speaker;
+}
+
+std::string StoryScene::withNames(const std::string& s) const {
+  const Playthrough* pt = playthrough();
+  if (!pt || s.find('{') == std::string::npos) return s;
+  const Database& db = host_.session()->db;
+  return expandNameTokens(s, [&](const std::string& id) { return characterName(db, *pt, id); });
+}
+
+void StoryScene::openNameEntry(const SceneLine& l) {
+  const Renderer& r = host_.renderer();
+  const Playthrough* pt = playthrough();
+  const std::string* typed = pt ? typedName(*pt, l.speakerId) : nullptr;
+  const std::string start = typed ? *typed : l.speaker;
+  namingId_ = l.speakerId;
+  box_.close();
+  names_.open(r, r.width(), r.height() - footerHeight(r), l.speaker, withNames(l.text), start, l.maxLetters);
+  OTE_INFO("name entry: open %s \"%s\" max %d", l.speakerId.c_str(), names_.name().c_str(), l.maxLetters);
+  OTE_INFO("%s", names_.describeKeys().c_str());
+  lineTime_ = 0;
+}
+
+// The name is the playthrough's from now on: its rosters, the next battles, the saves and the lines that follow use it.
+void StoryScene::nameDone() {
+  Playthrough* pt = playthrough();
+  const std::string name = names_.name();
+  if (!pt || !setTypedName(*pt, namingId_, name)) OTE_WARN("name entry: '%s' could not be named \"%s\"", namingId_.c_str(), name.c_str());
+  else OTE_INFO("name entry: %s = \"%s\"", namingId_.c_str(), name.c_str());
+  openLine();
 }
 
 }  // namespace ote

@@ -11,6 +11,7 @@ import { TextInput } from '../../../../../ui/TextInput'
 import { ConditionList } from '../ConditionList'
 import { useStory } from '../StoryContext'
 import { S } from '../text'
+import { ChoiceLookFields, FaceField } from './DialogueForms'
 import { SpeakerFields } from './SayForm'
 import { useCommandEdit, type CommandRef } from './useCommandEdit'
 
@@ -30,7 +31,8 @@ export function ChoiceForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
   ]
   return (
     <div className="stack tight" data-testid="choice-form">
-      <SpeakerFields cmd={cmd} at={at} />
+      {cmd.notice !== true && <><SpeakerFields cmd={cmd} at={at} /><FaceField cmd={cmd} at={at} /></>}
+      <ChoiceLookFields cmd={cmd} at={at} />
       <Field label={S.choiceQuestion} help={S.choiceQuestionHelp}>
         <TextInput multiline rows={3} value={String(cmd.choice ?? '')} onChange={(v) => patch({ choice: v }, 'choice')} />
       </Field>

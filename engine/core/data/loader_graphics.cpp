@@ -1,7 +1,10 @@
 // Loads data/graphics.json (docs/GRAPHICS.md). The file is optional.
+#include <algorithm>
+
 #include "core/data/loader_content.h"
 #include "core/data/loader_graphics_art.h"
 #include "core/data/loader_util.h"
+#include "core/data/scene_fx.h"
 
 namespace ote {
 namespace {
@@ -272,7 +275,7 @@ bool readPortraits(const LoadCtx& c, const Database& db, const Json& o, const st
     if (e.second.isNull()) continue;
     if (e.second.isObject() && (e.second.has("frames") || e.second.has("variants") || e.second.has("join")))
       return c.fail(where, "a portrait is one \"cell\" of a sheet");
-    if (!c.onlyKeys(e.second, {"sheet", "cell", "frameMs", "faces", "talk", "blink"}, where)) return false;
+    if (!c.onlyKeys(e.second, {"sheet", "cell", "frameMs", "faces", "talk", "blink", "expressions"}, where)) return false;
     Look look;
     if (!readLook(c, db, e.second, where, false, -1, look, "portraits")) return false;
     if (look.kind != Look::Still) return c.fail(where, "a portrait is one \"cell\" of a sheet");
@@ -282,16 +285,19 @@ bool readPortraits(const LoadCtx& c, const Database& db, const Json& o, const st
       if (f != "left" && f != "right") return c.fail(where, "\"faces\" must be \"left\" or \"right\": the way the picture looks");
       look.faces = f == "left" ? 1 : 2;
     }
-    for (const char* key : {"talk", "blink"}) {  // other frames of the face (docs/GRAPHICS.md "Portraits")
+    for (const char* key : {"talk", "blink", "expressions"}) {  // other frames of the face (docs/GRAPHICS.md "Portraits"; expressions: docs/EVENTS.md)
       if (!e.second.has(key)) continue;
       const Json* frames;
       if (!c.array(e.second, key, where, frames, true)) return false;
-      if (frames->size() < 1 || frames->size() > 8) return c.fail(where, q(key) + " must list between 1 and 8 cells of the portrait's sheet");
+      const bool expr = std::string(key) == "expressions";
+      const size_t most = expr ? (size_t)kMaxFaces : 8;
+      if (frames->size() < 1 || frames->size() > most)
+        return c.fail(where, q(key) + " must list between 1 and " + std::to_string(most) + " cells of the portrait's sheet");
       const SheetDef& sh = db.graphics.sheets[(size_t)look.sheet];
       for (size_t i = 0; i < frames->size(); ++i) {
         SpriteCell cell;
         if (!readArtCell(c, (*frames)[i], where, key, cell) || !checkCellsInside(c, sh, cell, 1, 1, where)) return false;
-        (std::string(key) == "talk" ? look.talk : look.blink).push_back(cell);
+        (expr ? look.expressions : std::string(key) == "talk" ? look.talk : look.blink).push_back(cell);
       }
     }
     list.push_back(std::make_pair(e.first, look));
@@ -498,6 +504,8 @@ bool loadGraphics(const std::string& path, Database& db, std::string& err) {
   }
   // A file with no sheets and no models cannot draw anything; keep "no art" cheap to test.
   if (!db.graphics.sheets.empty() || models) db.graphics.styles = sets;
+  for (const GraphicsSet& set : db.graphics.styles)  // a line's "face" may not go past the longest "expressions" (docs/EVENTS.md)
+    for (const auto& p : set.portraits) db.graphics.maxExpressions = std::max(db.graphics.maxExpressions, (int)p.second.expressions.size());
   return readBattleArt(c, db, root);  // the battle scene's animation sets and backgrounds (docs/BATTLE_SCENE.md)
 }
 

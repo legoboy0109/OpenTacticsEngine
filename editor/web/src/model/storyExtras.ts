@@ -33,7 +33,7 @@ export function usesActorFilter(c: Command): boolean {
     if (Array.isArray(v)) return v.some((x) => look(x, depth + 1))
     const o = v as Record<string, unknown>
     if (o.actor === true) return true
-    return Object.entries(o).some(([k, x]) => k !== 'then' && k !== 'else' && k !== 'answers' && look(x, depth + 1))
+    return Object.entries(o).some(([k, x]) => k !== 'then' && k !== 'else' && k !== 'loop' && k !== 'answers' && look(x, depth + 1))
   }
   return look(c, 0)
 }

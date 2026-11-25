@@ -107,6 +107,7 @@ bool checkScene(const CampaignLoader& L, const CampaignDef& c, const std::vector
       return L.fail(where, "\"goto\" names unknown chapter " + quoted(cmd.chapter));
     if (cmd.kind == SceneCommand::Kind::Goto && !self.empty() && cmd.chapter == self)
       return L.fail(where, "\"goto\" names its own chapter " + quoted(cmd.chapter) + " (a \"before\" scene can only jump to another chapter)");
+    if (cmd.kind == SceneCommand::Kind::Loop && !checkScene(L, c, cmd.thenDo, where, self)) return false;
     if (cmd.kind == SceneCommand::Kind::If &&
         (!checkScene(L, c, cmd.thenDo, where, self) || !checkScene(L, c, cmd.elseDo, where, self)))
       return false;
@@ -135,9 +136,12 @@ bool loadCampaign(const std::string& path, Database& db, std::string& err) {
   if (!loadObjectFile(path, root, err)) return false;
   auto def = std::make_shared<CampaignDef>();
   CampaignLoader L(db, err, path, *def);
-  if (!L.onlyKeys(root, {"name", "rules", "freeBattles", "parties", "chapters"}, "")) return false;
+  if (!L.onlyKeys(root, {"name", "rules", "freeBattles", "parties", "backdrop", "chapters"}, "")) return false;
   def->name = "Campaign";
   if (!L.ctx().str(root, "name", "", def->name)) return false;
+  if (!L.ctx().str(root, "backdrop", "", def->backdrop)) return false;  // docs/EVENTS.md "Scene backdrops"
+  if (root.has("backdrop") && db.graphics.findBackground(def->backdrop) < 0)
+    return L.fail("", "\"backdrop\" names unknown background " + quoted(def->backdrop) + " (data/graphics.json \"backgrounds\")");
   if (!readRules(L, root, *def) || !readFreeBattles(L, db, root, *def)) return false;
   if (!L.readParties(root)) return false;  // before the chapters: they and their commands name parties
   const Json* chapters;

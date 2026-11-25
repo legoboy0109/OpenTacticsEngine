@@ -5,6 +5,7 @@ import { chapterName } from './campaignTypes'
 import { mapChangeText } from './mapChangeStory'
 import { placesOf } from './placeStory'
 import { namedUnits, teamsOf, unitDisplayName } from './storyIds'
+import { DEFAULT_LOOP } from './storyDialogue'
 import { fightText } from './storyFight'
 import { showMapText } from './storyShowMapText'
 import { levelName, pairLabel } from './supports'
@@ -17,6 +18,7 @@ import type { MapFile, ProjectDoc } from './types'
 export interface SumCtx { doc: ProjectDoc; map: MapFile }
 
 const q = (s: string) => `“${s}”`
+const loopText = (n: number, max: number) => `Repeats ${n === 1 ? '1 command' : `${n} commands`} (at most ${max} times)`
 export const squareText = (x: number, y: number): string => `${x + 1}, ${y + 1}`
 export const areaText = (r: { x: number; y: number; w: number; h: number }): string =>
   (r.w === 1 && r.h === 1 ? `square ${squareText(r.x, r.y)}` : `area ${squareText(r.x, r.y)} (${r.w} × ${r.h})`)
@@ -261,6 +263,10 @@ export function commandText(c: SumCtx, cmd: Command): string {
     case 'clearStage': return 'Clears the stage'
     case 'weather': return cmd.weather === 'rain' ? 'Makes it rain' : cmd.weather === 'snow' ? 'Makes it snow' : 'Clears the weather'
     case 'narrate': return `Narrates ${q(clip(String(cmd.narrate ?? '')))}`
+    case 'notice': return `Shows the notice ${q(clip(String(cmd.notice ?? '')))}`
+    case 'loop': return loopText(cmd.loop?.length ?? 0, typeof cmd.max === 'number' ? cmd.max : DEFAULT_LOOP)
+    case 'break': return 'Leaves the repeat'
+    case 'askName': return `Asks for ${cmd.askName ? unitText(c, cmd.askName) : 'a character'}’s name`
     default: return mapChangeText(c.doc, cmd) ?? 'Does something'
   }
 }

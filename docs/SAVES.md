@@ -402,6 +402,11 @@ hashes are byte for byte as before (pinned by tests).
   "battle": { … } }                         // exactly a battle save's "battle"; present only while a battle is under way
 ```
 
+- **Typed names** (docs/EVENTS.md "Naming a character"): `"names": { "eirik": "Kai" }` in `playthrough`, written only when a scene's
+  `askName` has named somebody, so every other campaign saves exactly as before. The rosters (active and parked) already carry the name;
+  `names` keeps it for units that join later, for the next battles (their units with that story id are renamed) and for `{name:<id>}` in
+  lines. Restoring refuses a key that is not a character id and a name that is empty, longer than 24 letters or has `{` / `}`
+  (`playthrough.names.eirik: must be a name of 1 to 24 letters without "{" or "}"`). Owner decision (placeholder): the key name.
 - **Parties** (docs/EVENTS.md "Parties"): only a campaign whose `data/campaign.json` has `parties` writes these optional keys into `playthrough`;
   every other campaign saves exactly as above. `"party": "main"` is the active party's id; `roster`, `sides`, `lastDeployed` and `prep` are THAT
   party's data. `"parties": [ { "id": "north", "roster": [...], "sides": [...], "lastDeployed": [...], "prep": {...} } ]` holds the other parties that

@@ -9,9 +9,6 @@
 #include "ui/text.h"
 
 namespace ote {
-namespace {
-constexpr const char* kSkipLabel = "Skip";
-}
 
 void DialogueBox::open(const Renderer& r, int screenW, int screenH, int bottom, const DialogueLine& line,
                        const PortraitArt& art) {
@@ -26,13 +23,35 @@ void DialogueBox::open(const Renderer& r, int screenW, int screenH, int bottom, 
   centred_ = line.narrate;
   autoMs_ = line.autoMs;
   autoT_ = 0;
+  answers_.clear();
+  answerLines_.clear();
+  choosing_ = false;
+  sel_ = 0;
+  chosen_ = -1;
+  shape_ = frame_.shape;
 
   // Everything is measured from the active font, like the other panels.
   lh_ = r.lineHeight();
   pad_ = std::max(4, lh_ / 2);
+  step_ = lh_ + 2;  // line pitch (a little air between lines, like the other panels)
+  skipW_ = textW(r, kDialogueSkipLabel) + 8;
+  skipH_ = lh_ + 4;
+  // A bubble and a notice stay inside the map's part of the screen (docs/EVENTS.md "Speech bubbles", "Notices").
+  const bool area = frame_.areaW > 0 && frame_.areaH > 0;
+  areaX_ = area ? frame_.areaX : 0;
+  areaY_ = area ? frame_.areaY : 0;
+  areaW_ = area ? frame_.areaW : screenW;
+  areaH_ = area ? frame_.areaH : bottom;
+  if (shape_ == DialogueFrame::Shape::Bubble) layoutBubble(r, screenW, bottom, line.text);
+  else if (shape_ == DialogueFrame::Shape::Notice) layoutNotice(r, screenW, bottom, line.text);
+  else layoutBox(r, screenW, screenH, bottom, line.text);
+}
+
+// The classic box across the bottom (every game before speech bubbles).
+void DialogueBox::layoutBox(const Renderer& r, int screenW, int screenH, int bottom, const std::string& text) {
+  const PortraitArt& art = art_;
   headerH_ = name_.empty() && !skipInside_ ? 0 : lh_ + 2;  // (a nameless line keeps the row for the Skip tab when it sits inside)
   // Up to three lines a page, fewer when a big font would make the box cover more than 40% of the screen.
-  step_ = lh_ + 2;  // line pitch (a little air between lines, like the other panels)
   int room = (screenH * 2 / 5 - 2 * pad_ - headerH_) / step_;
   linesPerPage_ = std::max(1, std::min(3, room));
   boxH_ = 2 * pad_ + headerH_ + linesPerPage_ * step_;
@@ -62,35 +81,51 @@ void DialogueBox::open(const Renderer& r, int screenW, int screenH, int bottom, 
   boxY_ = std::max(0, bottom - boxH_ - margin);
   portraitY_ = boxY_ + boxH_ - psH_;
 
-  skipW_ = textW(r, kSkipLabel) + 8;
-  skipH_ = lh_ + 4;
   skipX_ = boxX_ + boxW_ - skipW_;
   skipY_ = skipInside_ ? boxY_ + 1 : boxY_ - skipH_;
   if (skipInside_) skipX_ -= 2;
 
   // The text keeps clear of the "more" mark in the bottom-right corner.
   int textW_ = boxW_ - 2 * pad_ - textW(r, "v") - 2;
-  pages_ = paginateDialogue(r, line.text, textW_, linesPerPage_);
-  answers_.clear();
-  answerLines_.clear();
-  choosing_ = false;
-  sel_ = 0;
-  chosen_ = -1;
+  pages_ = paginateDialogue(r, text, textW_, linesPerPage_);
 }
 
 // Rows of the answers panel: each answer wrapped to the box's width, at most as many lines as the free room above the box
 // allows (four long answers on a phone: fewer lines each, the last one cut with ".."), the panel sitting on the box.
-void DialogueBox::setAnswers(const Renderer& r, const std::vector<std::string>& answers) {
+void DialogueBox::setAnswers(const Renderer& r, const std::vector<std::string>& answers, int start) {
   answers_ = answers;
   choosing_ = false;
-  sel_ = 0;
+  sel_ = answers_.empty() ? 0 : std::max(0, std::min(start, (int)answers_.size() - 1));  // "cursor" (docs/EVENTS.md "Notices")
   chosen_ = -1;
   markW_ = textW(r, "> ");
+  if (shape_ == DialogueFrame::Shape::Notice) {  // the answers go inside the notice window, under the question
+    answersInNotice(r);
+    return;
+  }
+  if (shape_ == DialogueFrame::Shape::Bubble) {
+    // The usual panel across the view: at its bottom, or at its top when the bubble (with its tail and portrait) is down there.
+    panelX_ = areaX_ + 2;
+    panelW_ = std::max(40, areaW_ - 4);
+    int lo = boxY_, hi = boxY_ + boxH_;
+    if (request_.sideW > 0) { lo = std::min(lo, place_.sideY); hi = std::max(hi, place_.sideY + psH_); }
+    lo = std::min(lo, place_.tipY);
+    hi = std::max(hi, place_.tipY);
+    const int below = areaY_ + areaH_ - 2 - (hi + 2), above = (lo - 2) - (areaY_ + 2);
+    const int h = wrapAnswers(r, std::max(20, panelW_ - 2 * pad_ - markW_), std::max(lh_ + 2 * pad_, std::max(below, above)));
+    panelY_ = h <= below || below >= above ? areaY_ + areaH_ - 2 - h : areaY_ + 2;
+    rowsFrom(panelY_ + pad_);
+    return;
+  }
   panelX_ = boxX_;
   panelW_ = boxW_;
-  const int wrapW = std::max(20, panelW_ - 2 * pad_ - markW_);
-  const int gap = 2;  // between the rows
   const int room = std::max(lh_ + 2 * pad_, boxY_ - 2 - 2);  // the free height above the box
+  wrapAnswers(r, std::max(20, panelW_ - 2 * pad_ - markW_), room);
+  panelY_ = std::max(2, boxY_ - 2 - panelH_);
+  rowsFrom(panelY_ + pad_);
+}
+
+int DialogueBox::wrapAnswers(const Renderer& r, int wrapW, int room) {
+  const int gap = 2;  // between the rows
   std::vector<std::vector<std::string>> wrapped;
   for (const std::string& a : answers_) wrapped.push_back(wrapText(r, a, wrapW));
   int cap = 8;
@@ -111,10 +146,13 @@ void DialogueBox::setAnswers(const Renderer& r, const std::vector<std::string>& 
     answerLines_.push_back(w);
   }
   panelH_ = height(cap);
-  panelY_ = std::max(2, boxY_ - 2 - panelH_);
+  return panelH_;
+}
+
+void DialogueBox::rowsFrom(int y) {
+  const int gap = 2;
   rowY_.clear();
   rowH_.clear();
-  int y = panelY_ + pad_;
   for (const std::vector<std::string>& w : answerLines_) {
     rowY_.push_back(y);
     rowH_.push_back((int)w.size() * step_ + 2);
@@ -241,6 +279,8 @@ DialogueBox::Result DialogueBox::onInput(const InputEvent& e) {
 
 void DialogueBox::draw(Renderer& r) const {
   if (!open_) return;
+  if (shape_ == DialogueFrame::Shape::Bubble) { drawBubble(r); return; }
+  if (shape_ == DialogueFrame::Shape::Notice) { drawNotice(r); return; }
   using namespace chrome;
   // Portrait: a dark plate, the picture fitted inside it keeping the cell's proportions, a frame.
   if (art_.any()) {
@@ -262,11 +302,7 @@ void DialogueBox::draw(Renderer& r) const {
 
   // The Skip button is a tab on the box's top-right corner (a question keeps it until its answers are up: it then
   // only shows them at once).
-  if (!choosing_) {
-    r.fillRect(skipX_, skipY_, skipW_, skipH_, Color(16, 20, 36, 240));
-    r.drawRect(skipX_, skipY_, skipW_, skipH_, Color(150, 156, 185));
-    r.drawText(skipX_ + 4, skipY_ + 2, kSkipLabel, held_ ? kAccent : kDim);
-  }
+  drawSkipTab(r);
 
   int y = boxY_ + pad_;
   if (!name_.empty()) {
@@ -282,14 +318,25 @@ void DialogueBox::draw(Renderer& r) const {
   // "More" mark once the page is fully shown: it blinks, and a last page shows it too (= "continue").
   if (pageDone() && !choosing_ && std::fmod(time_, 0.8f) < 0.5f)
     r.drawText(boxX_ + boxW_ - pad_ - textW(r, "v"), boxY_ + boxH_ - pad_ - lh_ + 2, "v", kAccent);
-  if (choosing_) drawAnswers(r);
+  if (choosing_) drawAnswers(r, true);
 }
 
-void DialogueBox::drawAnswers(Renderer& r) const {
+void DialogueBox::drawSkipTab(Renderer& r) const {
   using namespace chrome;
-  r.fillRect(panelX_ + 2, panelY_ + 2, panelW_, panelH_, Color(0, 0, 0, 110));
-  r.fillRect(panelX_, panelY_, panelW_, panelH_, Color(16, 20, 36, 245));
-  r.drawRect(panelX_, panelY_, panelW_, panelH_, Color(200, 205, 230));
+  if (choosing_) return;
+  r.fillRect(skipX_, skipY_, skipW_, skipH_, Color(16, 20, 36, 240));
+  r.drawRect(skipX_, skipY_, skipW_, skipH_, Color(150, 156, 185));
+  r.drawText(skipX_ + 4, skipY_ + 2, kDialogueSkipLabel, held_ ? kAccent : kDim);
+}
+
+// `framed`: the panel of its own (box, bubble); false = the rows sit inside the notice window, which is drawn already.
+void DialogueBox::drawAnswers(Renderer& r, bool framed) const {
+  using namespace chrome;
+  if (framed) {
+    r.fillRect(panelX_ + 2, panelY_ + 2, panelW_, panelH_, Color(0, 0, 0, 110));
+    r.fillRect(panelX_, panelY_, panelW_, panelH_, Color(16, 20, 36, 245));
+    r.drawRect(panelX_, panelY_, panelW_, panelH_, Color(200, 205, 230));
+  }
   for (size_t i = 0; i < answerLines_.size(); ++i) {
     const bool on = (int)i == sel_;
     if (on) r.fillRect(panelX_ + 2, rowY_[i] - 1, panelW_ - 4, rowH_[i] + 1, Color(60, 66, 110, 255));

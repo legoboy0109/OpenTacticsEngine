@@ -391,7 +391,7 @@ namespace {
 bool checkCommands(const AudioData& d, const std::vector<Command>& list, const std::vector<std::string>& texts,
                    const std::string& where, std::string& err) {
   for (const Command& c : list) {
-    if (c.kind == Command::Kind::If) {
+    if (c.kind == Command::Kind::If || c.kind == Command::Kind::Loop) {  // (a loop's block is its thenDo)
       if (!checkCommands(d, c.thenDo, texts, where, err) || !checkCommands(d, c.elseDo, texts, where, err)) return false;
       continue;
     }
@@ -421,7 +421,7 @@ bool checkCommands(const AudioData& d, const std::vector<Command>& list, const s
 bool checkScene(const AudioData& d, const std::vector<SceneCommand>& list, const std::vector<std::string>& texts,
                 const std::string& where, std::string& err) {
   for (const SceneCommand& c : list) {
-    if (c.kind == SceneCommand::Kind::If) {
+    if (c.kind == SceneCommand::Kind::If || c.kind == SceneCommand::Kind::Loop) {  // (a loop's block is its thenDo)
       if (!checkScene(d, c.thenDo, texts, where, err) || !checkScene(d, c.elseDo, texts, where, err)) return false;
       continue;
     }

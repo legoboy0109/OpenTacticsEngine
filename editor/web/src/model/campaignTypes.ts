@@ -37,6 +37,8 @@ export interface Campaign extends Extra {
   name?: string
   rules?: CampaignRules
   freeBattles?: FreeBattles
+  /** A background id: every chapter scene starts on it unless its own object says otherwise (campaignBackdrop.ts). */
+  backdrop?: string
   /** The campaign's parties (docs/EVENTS.md "Parties"); no key = one roster for the whole story. */
   parties?: Party[]
   chapters: Chapter[]

@@ -49,7 +49,7 @@ export function ownCommands(list: Command[] | undefined, fn: (c: Command) => voi
   const walk = (l: Command[] | undefined): void => {
     for (const c of Array.isArray(l) ? l : []) {
       if (!members.has(c)) fn(c)
-      walk(c.then); walk(c.else)
+      walk(c.then); walk(c.else); walk(c.loop)
       for (const a of c.answers ?? []) walk(a.do)
     }
   }

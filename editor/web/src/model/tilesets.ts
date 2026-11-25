@@ -130,7 +130,7 @@ function stripCommands(list: Command[] | undefined): Command[] | undefined {
   const out = list.map((c) => {
     let r: Command = c
     if (typeof r.setTerrain === 'string' && ('tile' in r || 'keepTile' in r)) { const { tile: _t, keepTile: _k, ...rest } = r; r = rest as Command }
-    for (const branch of ['then', 'else'] as const) {
+    for (const branch of ['then', 'else', 'loop'] as const) {
       const inner = r[branch]
       const next = stripCommands(inner)
       if (next !== inner) r = { ...r, [branch]: next }

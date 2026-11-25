@@ -5,6 +5,7 @@ import { tidyObjectives } from '../../../../model/storyEdit'
 import { AddUnitForm } from './forms/AddUnitForm'
 import { ChoiceForm } from './forms/ChoiceForm'
 import { GiveItemForm, GiveResourceForm, GrantResearchForm, TakeItemForm } from './forms/GiveForms'
+import { AskNameForm, BreakForm, LoopForm, NoticeForm } from './forms/DialogueForms'
 import { GotoForm } from './forms/GotoForm'
 import { SayForm } from './forms/SayForm'
 import { BackgroundForm, ClearStageForm, EnterForm, FadeForm, LeaveForm, MoveStageForm, NarrateForm, ShakeForm, WaitForm, WeatherForm } from './forms/SceneForms'
@@ -94,6 +95,10 @@ export function CommandForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
     case 'setPhaseMusic': return <PhaseMusicForm cmd={cmd} at={at} />
     case 'weather': return <WeatherForm cmd={cmd} at={at} />
     case 'narrate': return <NarrateForm cmd={cmd} at={at} />
+    case 'notice': return <NoticeForm cmd={cmd} at={at} />
+    case 'loop': return <LoopForm cmd={cmd} at={at} />
+    case 'break': return <BreakForm />
+    case 'askName': return <AskNameForm cmd={cmd} at={at} />
     case 'storeItems': return <StoreItemsForm cmd={cmd} at={at} />
     case 'switchParty': return <SwitchPartyForm cmd={cmd} at={at} />
     case 'mergeParties': return <MergePartiesForm cmd={cmd} at={at} />

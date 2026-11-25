@@ -12,6 +12,7 @@ import { UnitResourcesCard } from './UnitResourcesCard'
 import { FormulaEditor } from './FormulaEditor'
 import { MoveTypesCard, ResourcesCard } from './ListsCards'
 import { BattleViewCard } from './BattleViewCard'
+import { DialogueStyleCard } from './DialogueStyleCard'
 import { MenuOptionsCard } from './MenuOptionsCard'
 import { DifficultyCard } from './DifficultyCard'
 import { SavingCard } from './SavingCard'
@@ -53,6 +54,7 @@ function RulesForm() {
       <BattleCard />
       <BattleViewCard />
       <MenuOptionsCard />
+      <DialogueStyleCard />
       <FeaturesCard />
       <SrpgRulesCards />
       <SupplyCard />

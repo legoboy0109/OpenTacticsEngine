@@ -92,7 +92,12 @@ void Battle::storyChoice(const Command& c, std::vector<Event>& events) {
     OTE_INFO("story: choice \"%s\": no answer is offered; skipped", storyText(c.text).c_str());
     return;
   }
-  size_t picked = (size_t)offered[0];
+  // "cursor" (docs/EVENTS.md "Notices"): the answer the highlight starts on, as a position among the offered ones (the first when it
+  // is hidden). With nobody to ask it is also the answer taken.
+  int start = 0;
+  for (size_t i = 0; i < offered.size(); ++i)
+    if (offered[i] == c.fx.cursor - 1) start = (int)i;
+  size_t picked = (size_t)offered[(size_t)start];
   if (offered.size() >= 2) {
     Event e;
     e.type = choice_.running ? EventType::Choice : EventType::Dialogue;  // nobody to ask: the question is only said
@@ -100,6 +105,8 @@ void Battle::storyChoice(const Command& c, std::vector<Event>& events) {
     e.b = c.text;
     e.c = c.speakerName;
     e.d = c.portrait;
+    e.flags = (c.fx.notice ? kDialogueNotice : 0) | ((c.fx.face << kDialogueFaceShift) & kDialogueFaceMask) |
+              ((start << kChoiceCursorShift) & kChoiceCursorMask);
     if (choice_.running)
       for (int i : offered) e.data.push_back(c.answers[(size_t)i].text);
     events.push_back(e);

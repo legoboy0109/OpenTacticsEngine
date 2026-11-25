@@ -11,6 +11,7 @@ import { ACTOR_FILTER_ELSEWHERE, ACTOR_FILTER_NOBODY, ACTOR_NOBODY, BEFORE_PREP_
 import { blockProblems, groupNames } from './behaviour'
 import { guestJoinsChecks } from './guests'
 import { choiceChecks, storeCounts } from './choiceChecks'
+import { commandsInLoops, dialogueProblems } from './storyDialogue'
 import { inventorySize } from './itemRules'
 import { readingProblems } from './readingChecks'
 import { addSupportChecks, supportConditionChecks, supportTriggerChecks } from './supportStoryChecks'
@@ -79,7 +80,7 @@ function objectivesChecks(map: MapFile, o: Objectives, where: string, say: (w: s
     (o[k] ?? []).forEach((r, i) => ruleChecks(map, r, `${where}, “${k === 'win' ? 'Win' : 'Lose'}” entry ${i + 1}`, k === 'win', say))
 }
 
-interface CommandCtx { mapId: string; sections: Sections; top: Set<Command>; defined: Set<string> }
+interface CommandCtx { mapId: string; sections: Sections; top: Set<Command>; defined: Set<string>; inLoop: Set<Command> }
 
 /** The sentences for a command that sits between a showMap and its returnMap: what is refused there, and the names it points at, read
  *  against the shown map (the battle's own map for an `if`'s conditions, a variable that reads a unit and setPhaseMusic). */
@@ -94,6 +95,7 @@ function sectionChecks(doc: ProjectDoc, map: MapFile, c: Command, kind: CommandK
 function commandChecks(doc: ProjectDoc, battleMap: MapFile, e: StoryEvent, c: Command, where: string, say: (w: string, t: string) => void, battleIds: Map<string, number>, stores: Map<string, number>, ctx: CommandCtx): void {
   const talk = triggerKind(e.when ?? {}) === 'talk'
   for (const t of sceneProblems(doc, c, false)) say(where, t)  // scene presentation (sceneChecks.ts)
+  for (const t of dialogueProblems(doc, c, false, ctx.inLoop.has(c))) say(where, t)  // faces, notices, loops, name tokens (storyDialogue.ts)
   const kind = commandKind(c)
   if (kind === 'showMap' || kind === 'returnMap') { for (const t of showMapProblems(doc, ctx.mapId, c, kind, ctx.top.has(c), ctx.sections)) say(where, t); return }
   // Between a showMap and its returnMap the commands act on the shown map: its size, units and sides are the ones to check against.
@@ -262,7 +264,8 @@ export function storyChecks(doc: ProjectDoc, mapId: string): StoryCheck[] {
     if (kind === 'talk' && trig.talk && trig.talk === trig.to) say(`${where}, “When”`, 'a unit cannot talk to itself.')
     const sections = sectionsOf(doc, e.do)
     const top = new Set(e.do ?? [])
-    forEachCommand(e.do, where, (c, w) => commandChecks(doc, map, e, c, w, say, ids, stores, { mapId, sections, top, defined }))
+    const inLoop = commandsInLoops(e.do)
+    forEachCommand(e.do, where, (c, w) => commandChecks(doc, map, e, c, w, say, ids, stores, { mapId, sections, top, defined, inLoop }))
     seesChecks(map, e.if, `${where}, “Only if”`, say)
     forEachCommand(e.do, where, (c, w) => seesChecks(map, c.if, w, say))
     supportTriggerChecks(doc, trig, `${where}, “When”`, say)

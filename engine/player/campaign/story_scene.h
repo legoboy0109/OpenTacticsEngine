@@ -11,6 +11,7 @@
 #include "core/campaign/playthrough.h"
 #include "scene.h"
 #include "ui/dialogue_box.h"
+#include "ui/name_entry.h"
 #include "ui/scene_stage.h"
 #include "ui/scene_stage_draw.h"
 
@@ -47,6 +48,12 @@ class StoryScene : public Scene {
   void applyRest(size_t from, size_t to);   // skip: the music and presentation of the lines in [from, to) take effect at once
   void endScene();
   const StageDrawCtx stageCtx() const;
+  // Typed names (docs/EVENTS.md "Naming a character"): the askName keyboard, and the names a line shows.
+  Playthrough* playthrough() const;
+  std::string shownName(const SceneLine& l) const;    // the speaker's typed name when it has one, else the line's
+  std::string withNames(const std::string& s) const;  // "{name:<id>}" -> the character's name
+  void openNameEntry(const SceneLine& l);
+  void nameDone();
 
   SceneHost& host_;
   std::string heading_, title_;
@@ -65,6 +72,8 @@ class StoryScene : public Scene {
   bool ending_ = false;       // the scene is over but faded out: it fades in before it leaves
   float holdT_ = -1;          // Cancel / Menu held while a block runs (seconds), -1 = not held
   DialogueBox box_;
+  NameEntry names_;
+  std::string namingId_;  // the character the open keyboard names
   Color bg_;
 };
 

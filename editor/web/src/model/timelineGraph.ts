@@ -123,7 +123,7 @@ export function buildTimeline(doc: ProjectDoc): TimelineGraph | null {
 function countAll(list: ReturnType<typeof sceneCommands>): number {
   let n = 0
   const walk = (l: ReturnType<typeof sceneCommands> | undefined) => {
-    for (const c of l ?? []) { n++; walk(c.then); walk(c.else); for (const a of c.answers ?? []) walk(a.do) }
+    for (const c of l ?? []) { n++; walk(c.then); walk(c.else); walk(c.loop); for (const a of c.answers ?? []) walk(a.do) }
   }
   walk(list)
   return n

@@ -17,6 +17,7 @@ class SceneStage {
     std::string key;  // the speaker: a unit's story id, or the free name of the line
     std::string art;  // the portrait id to look up in the graphics
     int position = 0; // kPos* (scene_fx.h)
+    int face = 0;     // the expression its last line picked (docs/EVENTS.md "Portrait expressions"); 0 = its own cell
     // Enter / leave / move transitions (docs/EVENTS.md "Standing portraits"): fading in or out, sliding from another slot.
     float alpha = 1;          // 0..1
     float alphaSpeed = 0;     // per second; 0 = at rest
@@ -37,7 +38,8 @@ class SceneStage {
   // A line spoken by `key`. position 0 = the classic portrait beside the box (nothing staged, unless `key` already
   // stands on the stage: then that portrait lights up). Returns true when the line's speaker stands on the stage (the
   // box then draws no portrait of its own).
-  bool say(const std::string& key, const std::string& art, int position);
+  // `face`: the expression the line picks; the speaker's standing portrait shows it until its next line.
+  bool say(const std::string& key, const std::string& art, int position, int face = 0);
   // `leave` with `ms` > 0 fades the portrait out first ("" = everybody); 0 = at once.
   void leave(const std::string& key, int ms = 0);
   // A portrait on stage without a line (docs/EVENTS.md "Standing portraits"): `fadeMs` > 0 fades it in. It is not lit.

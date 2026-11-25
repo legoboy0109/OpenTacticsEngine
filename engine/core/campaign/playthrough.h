@@ -81,6 +81,9 @@ struct Playthrough {
   std::string party;
   std::vector<ParkedParty> parked;
   std::vector<std::string> merged;
+  // Names the player typed for characters (askName, docs/EVENTS.md "Naming a character"): story id -> name, in the order first typed.
+  // Empty unless the campaign asks; saved only when not empty (docs/SAVES.md).
+  std::vector<std::pair<std::string, std::string>> names;
 
   // A new playthrough at chapter 1; false (nothing changed) if the game has no campaign.
   bool begin(const Database& db);
@@ -99,7 +102,7 @@ struct SceneLine {
   // = nothing answered it yet, so the scene stops here (runScene with answers).
   // Fx (docs/EVENTS.md "Scene presentation"): `fx` says which command, `text` is its picture id / speaker key (""= none /
   // everybody), `fadeMs` its milliseconds, the rest are the extra keys; a Say line carries position / narrate / autoMs.
-  enum class Kind { Say, PlayMusic, StopMusic, PlaySound, Choice, Fx };
+  enum class Kind { Say, PlayMusic, StopMusic, PlaySound, Choice, Fx, AskName };
   Kind kind = Kind::Say;
   bool waiting = false;
   std::vector<std::string> answers;
@@ -108,6 +111,13 @@ struct SceneLine {
   std::string speaker;    // the name to show ("" = nobody)
   std::string portrait;   // portrait id ("" = none; the player may look up speakerId's instead)
   std::string text;
+  // docs/EVENTS.md "Notices", "Portrait expressions", "Naming a character": a notice line / question in the notice window, the
+  // portrait's expression, where a question's highlight starts (among the offered answers). AskName: `speakerId` is the character,
+  // `speaker` its name now (the entry starts with it), `text` the prompt, `maxLetters` the most letters.
+  bool notice = false;
+  int face = 0;
+  int cursor = 0;
+  int maxLetters = 0;
   SceneFx::Kind fx = SceneFx::Kind::None;  // Fx lines
   uint32_t color = 0;                       // Fx Fade: 0xRRGGBB
   int strength = 3;                         // Fx Shake
@@ -118,6 +128,16 @@ struct SceneLine {
 };
 
 enum class SceneKind { Before, After };
+
+// Names typed for characters (campaign_names.cpp; docs/EVENTS.md "Naming a character").
+// The typed name of `id`, or null.
+const std::string* typedName(const Playthrough& pt, const std::string& id);
+// Stores the name and renames the character in every roster of the playthrough (the active party's and the parked ones), so the
+// panels, the next battle and the saves use it. `name` must pass validEnteredName (else nothing changes and false comes back).
+bool setTypedName(Playthrough& pt, const std::string& id, const std::string& name);
+// The name "{name:<id>}" shows in a scene: the typed one, else the roster's (any party), else the character's own (data/characters.json),
+// else the id itself.
+std::string characterName(const Database& db, const Playthrough& pt, const std::string& id);
 
 // The chapter in play (null when the game has no campaign or the playthrough is Finished / Over).
 const ChapterDef* currentChapter(const Database& db, const Playthrough& pt);

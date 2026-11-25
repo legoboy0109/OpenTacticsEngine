@@ -15,6 +15,7 @@
 #include "core/data/loader_unit_pools.h"
 #include "core/data/loader_unit_ranks.h"
 #include "core/data/loader_content.h"
+#include "core/data/loader_dialogue.h"
 #include "core/data/loader_research_branch.h"
 #include "core/data/loader_conditions.h"
 #include "core/data/loader_damage_types.h"
@@ -189,7 +190,7 @@ static bool loadGameFile(const std::string& path, Database& db, std::string& err
   // "editor": the web editor keeps its own bookkeeping there (which formula preset a text came from; editor/web model/formulas.ts);
   // nothing in the game reads it. Quiet: accepted, never listed in a message.
   if (!c.onlyKeys(root, {"formatVersion", "name", "description", "author", "saving", "battleScene", "battleBackgroundFrom", "battlePlatformFrom",
-                         "battleSceneSides", "battleSceneStaves", "quotesPerFight", "menuUnavailable", "attackWeaponChoice", "grid", "view", "font", "stats",
+                         "battleSceneSides", "battleSceneStaves", "quotesPerFight", "menuUnavailable", "attackWeaponChoice", "dialogue", "grid", "view", "font", "stats",
                          "resources", "unitResources", "moveTypes", "switches", "variables", "roles", "rules", "formulas", "damageTypes", "resistRange",
                          "difficulties", "styles", "scripts", "maps"},
                   "", {"editor"}))
@@ -242,6 +243,7 @@ static bool loadGameFile(const std::string& path, Database& db, std::string& err
   if (weaponChoice != "equipped" && weaponChoice != "pick")
     return c.fail("", "\"attackWeaponChoice\" must be \"equipped\" (Attack goes straight to the targets, the default) or \"pick\" (Attack asks which weapon to use first), got \"" + weaponChoice + "\"");
   db.attackWeaponPick = weaponChoice == "pick";
+  if (!readDialogueLook(c, root, db)) return false;  // speech bubbles (docs/EVENTS.md "Speech bubbles"); presentation only
 
   if (!readGameGrid(c, root, db)) return false;
 

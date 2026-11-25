@@ -4,6 +4,8 @@
 #include "core/data/loader_command_kind.h"
 #include "core/data/loader_content.h"
 #include "core/data/loader_difficulty.h"
+#include "core/data/loader_dialogue.h"
+#include "core/data/name_tokens.h"
 #include "core/data/loader_scene_fx.h"
 
 namespace ote {
@@ -21,6 +23,8 @@ constexpr const char* kSrpgConditionKeys[] = {"support"};
 constexpr const char* kSceneFxKeys[] = {"background", "fade", "wait", "shake", "leave", "clearStage", "weather", "narrate", "enter", "move"};
 // Small extras (docs/EVENTS.md "Sending a unit's items to storage"), read in loader_campaign_extras.cpp.
 constexpr const char* kExtrasSceneKeys[] = {"storeItems", "switchParty", "mergeParties"};
+// Notices, names and loops (docs/EVENTS.md "Notices", "Naming a character", "Loops"), read with loader_dialogue.cpp.
+constexpr const char* kDialogueSceneKeys[] = {"notice", "askName", "loop", "break"};
 
 bool parseOp(const std::string& t, CmpOp& op) {
   if (t == "=" || t == "==") op = CmpOp::Eq;
@@ -99,6 +103,7 @@ bool CampaignLoader::command(const Json& e, const std::string& where, bool allow
   const auto isSceneFx = [&e](const char* k) { return SceneFxReader::isCommandIn(e, k); };
   if (!pickCommandKind(c_, where, kSceneFxKeys, isSceneFx, kind)) return false;
   if (!pickCommandKind(c_, e, where, kExtrasSceneKeys, kind)) return false;
+  if (!pickCommandKind(c_, where, kDialogueSceneKeys, [&e](const char* k) { return isDialogueCommandIn(e, k); }, kind)) return false;
   // Status conditions end with the map (docs/SRPG.md section 9): a scene says so in its own words.
   for (const char* k : {"addCondition", "removeCondition"})
     if (!kind && e.has(k))
@@ -123,10 +128,31 @@ bool CampaignLoader::command(const Json& e, const std::string& where, bool allow
       out.kind = K::Say;
       if (!r.onlyKeys(e, {"narrate", "auto"}, at)) return false;
       if (!v.isString()) return fail(at, "\"narrate\" must be the text to show");
+      if (!checkNameTokens(c_, v.asString(), at)) return false;
       out.text = text(v.asString());
       out.fx.narrate = true;
       return r.sayExtras(e, at, out.fx);
     }
+  if (k == "notice") {
+    out.kind = K::Say;
+    std::string t;
+    if (!readNotice(c_, db_, false, e, at, t, out.fx)) return false;
+    out.text = text(t);
+    return true;
+  }
+  if (k == "askName") return askNameCommand(e, at, out);
+  if (k == "loop") {  // docs/EVENTS.md "Loops"
+    out.kind = K::Loop;
+    if (!readLoopHead(c_, e, at, out.value)) return false;
+    ++loopDepth_;
+    const bool ok = scene(e["loop"], at + ": \"loop\"", allowGoto, out.thenDo);
+    --loopDepth_;
+    return ok;
+  }
+  if (k == "break") {
+    out.kind = K::Break;
+    return readBreak(c_, e, at, loopDepth_ > 0);
+  }
   if (k == "addSupport") return supportCommand(e, at, out);
   if (k == "storeItems") return storeItemsCommand(e, at, out);
   if (k == "switchParty" || k == "mergeParties") return partyCommand(e, at, out);
@@ -136,9 +162,10 @@ bool CampaignLoader::command(const Json& e, const std::string& where, bool allow
   }
   if (k == "say") {
     out.kind = K::Say;
-    if (!onlyKeys(e, {"say", "speaker", "speakerName", "portrait", "position", "auto"}, at)) return false;
-    if (!SceneFxReader{c_, db_, false, nullptr}.sayExtras(e, at, out.fx)) return false;
+    if (!onlyKeys(e, {"say", "speaker", "speakerName", "portrait", "position", "auto", "face"}, at)) return false;
+    if (!SceneFxReader{c_, db_, false, nullptr}.sayExtras(e, at, out.fx) || !readFace(c_, db_, e, at, out.fx)) return false;
     if (!v.isString()) return fail(at, "\"say\" must be the text to show");
+    if (!checkNameTokens(c_, v.asString(), at)) return false;
     out.text = text(v.asString());
     if (e.has("speaker") && e.has("speakerName")) return fail(at, "give \"speaker\" or \"speakerName\", not both");
     if (e.has("speaker")) {
@@ -250,8 +277,22 @@ bool CampaignLoader::command(const Json& e, const std::string& where, bool allow
 
 bool CampaignLoader::chapterScene(const Json& v, const std::string& where, bool allowGoto, std::vector<SceneCommand>& out) {
   beginScene();
-  if (!v.isObject()) return scene(v, where, allowGoto, out);
-  if (!onlyKeys(v, {"music", "commands"}, where)) return false;
+  std::string backdrop = def_.backdrop;  // docs/EVENTS.md "Scene backdrops": the campaign's, unless the scene object names its own
+  if (v.isObject() && v.has("backdrop")) {
+    const Json& b = v["backdrop"];
+    if (b.isNull()) backdrop.clear();
+    else if (!b.isString() || db_.graphics.findBackground(b.asString()) < 0)
+      return fail(where, "\"backdrop\" names unknown background " + quoted(b.isString() ? b.asString() : "") +
+                             " (data/graphics.json \"backgrounds\"), or is null for none");
+    else backdrop = b.asString();
+  }
+  const size_t first = out.size();
+  if (!v.isObject()) {
+    if (!scene(v, where, allowGoto, out)) return false;
+    addBackdrop(backdrop, first, out);
+    return true;
+  }
+  if (!onlyKeys(v, {"music", "commands", "backdrop"}, where)) return false;
   if (v.has("music")) {
     if (!v["music"].isString() || !isStoryId(v["music"].asString()))
       return fail(where, "\"music\" must name a music track of data/audio.json (letters, digits, \"_\" and \"-\")");
@@ -261,7 +302,49 @@ bool CampaignLoader::chapterScene(const Json& v, const std::string& where, bool 
     play.value = -1;
     out.push_back(play);
   }
-  return !v.has("commands") || scene(v["commands"], where + ": \"commands\"", allowGoto, out);
+  if (v.has("commands") && !scene(v["commands"], where + ": \"commands\"", allowGoto, out)) return false;
+  addBackdrop(backdrop, first, out);
+  return true;
+}
+
+// A scene with commands starts on its backdrop: a `background` cut put in front of them (an empty scene stays empty, so it is still
+// not shown at all). It goes behind a "music" entry, which only plays.
+void CampaignLoader::addBackdrop(const std::string& id, size_t first, std::vector<SceneCommand>& out) {
+  if (id.empty() || out.size() == first) return;
+  size_t at = first;
+  if (out[at].kind == SceneCommand::Kind::PlayMusic) ++at;
+  if (at == out.size()) return;  // only the music: nothing is shown
+  SceneCommand bg;
+  bg.kind = SceneCommand::Kind::Fx;
+  bg.fx.kind = SceneFx::Kind::Background;
+  bg.fx.text = text(id);
+  out.insert(out.begin() + (long)at, bg);
+}
+
+// { "askName": "hero", "default": "Ash", "max": 8, "prompt": "Your name?" } (docs/EVENTS.md "Naming a character").
+bool CampaignLoader::askNameCommand(const Json& e, const std::string& at, SceneCommand& out) {
+  out.kind = SceneCommand::Kind::AskName;
+  if (!onlyKeys(e, {"askName", "default", "max", "prompt"}, at)) return false;
+  if (!e["askName"].isString() || !isStoryId(e["askName"].asString()))
+    return fail(at, "\"askName\" must be the id of the character to name (letters, digits, \"_\" and \"-\")");
+  out.unit = e["askName"].asString();
+  out.value = kDefaultNameLetters;
+  if (!c_.integerIn(e, "max", at, 1, kMaxNameLetters, out.value)) return false;
+  if (e.has("default")) {
+    if (!e["default"].isString() || !validEnteredName(e["default"].asString()))
+      return fail(at, "\"default\" must be a name of 1 to " + std::to_string(kMaxNameLetters) + " letters (no \"{\" or \"}\")");
+    int letters = 0;
+    for (char ch : e["default"].asString()) letters += ((unsigned char)ch & 0xC0) != 0x80 ? 1 : 0;
+    if (letters > out.value)
+      return fail(at, "\"default\" has " + std::to_string(letters) + " letters, more than \"max\" (" + std::to_string(out.value) + ")");
+    out.speakerName = text(e["default"].asString());
+  }
+  if (e.has("prompt")) {
+    if (!e["prompt"].isString() || e["prompt"].asString().empty()) return fail(at, "\"prompt\" must be the question shown above the name (text)");
+    if (!checkNameTokens(c_, e["prompt"].asString(), at)) return false;
+    out.text = text(e["prompt"].asString());
+  }
+  return true;
 }
 
 bool CampaignLoader::scene(const Json& list, const std::string& where, bool allowGoto, std::vector<SceneCommand>& out) {

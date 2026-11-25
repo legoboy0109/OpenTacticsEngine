@@ -4,13 +4,17 @@
 #include <algorithm>
 
 #include "core/data/loader_campaign.h"
+#include "core/data/loader_dialogue.h"
 
 namespace ote {
 
 bool CampaignLoader::choiceCommand(const Json& e, const std::string& at, bool allowGoto, SceneCommand& out) {
-  if (!onlyKeys(e, {"choice", "speaker", "speakerName", "portrait", "store", "answers"}, at)) return false;
+  if (!onlyKeys(e, {"choice", "speaker", "speakerName", "portrait", "store", "answers", "notice", "cursor", "face"}, at)) return false;
   const Json& v = e["choice"];
   if (!v.isString() || v.asString().empty()) return fail(at, "\"choice\" must be the question to ask (text that is not empty)");
+  if (!checkNameTokens(c_, v.asString(), at)) return false;
+  // "notice", "cursor" and "face" (docs/EVENTS.md "Notices"), as for a map event's choice.
+  if (!readChoiceLook(c_, db_, e, at, e["answers"].isArray() ? e["answers"].size() : 0, out.fx)) return false;
   out.text = text(v.asString());
   if (e.has("speaker") && e.has("speakerName")) return fail(at, "give \"speaker\" or \"speakerName\", not both");
   if (e.has("speaker")) {
@@ -53,6 +57,7 @@ bool CampaignLoader::choiceCommand(const Json& e, const std::string& at, bool al
       if (def_.texts[(size_t)o.text] == a["text"].asString())
         return fail(where, "says the same as an earlier answer (" + quoted(a["text"].asString()) +
                                "); the player could not tell them apart");
+    if (!checkNameTokens(c_, a["text"].asString(), where)) return false;
     ans.text = text(a["text"].asString());
     if (a.has("if")) {
       if (!a["if"].isArray()) return fail(where, "\"if\" must be a list of conditions");

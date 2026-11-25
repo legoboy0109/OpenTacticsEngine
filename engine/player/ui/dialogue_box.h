@@ -4,6 +4,10 @@
 // every kind of view. It only talks to its owner through Result: the owner (the battle scene)
 // decides what "line finished" and "skip everything" mean.
 //
+// The same box takes two other shapes (docs/EVENTS.md "Speech bubbles", "Notices"; dialogue_shapes.cpp): a speech bubble
+// pointing at the speaking unit on the map, and the notice window in the middle of the screen. The owner picks the shape per
+// line with setFrame() before open(); input, paging, skipping and questions work the same in all three.
+//
 // A line can be a question (dialogue choices, docs/EVENTS.md "Dialogue choices"): setAnswers() adds two to four answers.
 // The question is read like any line; when its last page is complete the answers appear in a panel just above the box.
 // Up / Down (they wrap) move the highlight and Confirm picks it; a pointer over an answer highlights it, a tap on the
@@ -17,6 +21,7 @@
 #include <vector>
 
 #include "platform/platform.h"
+#include "ui/bubble_layout.h"
 #include "ui/dialogue_text.h"
 
 namespace ote {
@@ -26,6 +31,8 @@ constexpr float kDialogueHoldToSkip = 0.5f;  // seconds Cancel / Menu must be he
 constexpr const char* kDialogueHint = "{okTap}: next   {skipAll}: skip all";
 // The hint line while a question's answers are up.
 constexpr const char* kChoiceHint = "{choiceHint}";
+// The Skip tab's word.
+constexpr const char* kDialogueSkipLabel = "Skip";
 
 // Where a portrait is in a texture (tex 0 = the speaker has none).
 struct PortraitArt {
@@ -38,18 +45,33 @@ struct PortraitArt {
   bool any() const { return tex != 0 && sw > 0 && sh > 0; }
 };
 
+// How the next line is shown (setFrame before open()).
+struct DialogueFrame {
+  enum class Shape { Box, Bubble, Notice };
+  Shape shape = Shape::Box;
+  BubbleAnchor anchor;                             // Bubble: the speaker on the screen
+  int areaX = 0, areaY = 0, areaW = 0, areaH = 0;  // Bubble / Notice: the map's part of the screen (areaW 0 = all of it above the hints)
+  int portrait = 2;                                // Bubble: 0 none, 1 inside the bubble, 2 beside it (game.json "dialogue")
+  bool names = true;                               // Bubble: the speaker's name on the first row
+};
+
 class DialogueBox {
  public:
   enum Result { None, Finished, SkipAll, Chosen };
 
+  // The shape of the next line (kept until changed). The default is the classic box.
+  void setFrame(const DialogueFrame& f) { frame_ = f; }
   // Lays the line out for a screen `screenW` x `screenH` whose free area ends at `bottom` (the top
   // of the hint strip) and starts typing it.
   void open(const Renderer& r, int screenW, int screenH, int bottom, const DialogueLine& line, const PortraitArt& art);
   // Call before open(): portraits stand on the stage above the box, so the Skip tab sits inside the box's top-right corner
   // (in the name row) instead of on top of the portrait's corner. Off = the tab on the box's top edge, as always.
   void setSkipInside(bool inside) { skipInside_ = inside; }
-  // Makes the open line a question with these answers (two to four; call right after open()).
-  void setAnswers(const Renderer& r, const std::vector<std::string>& answers);
+  // Makes the open line a question with these answers (two to four; call right after open()); the highlight starts on `start`.
+  void setAnswers(const Renderer& r, const std::vector<std::string>& answers, int start = 0);
+  // A bubble follows its speaker (the camera may move while it is up): the same bubble, placed again. Nothing for other shapes.
+  void reanchor(const BubbleAnchor& a);
+  DialogueFrame::Shape shape() const { return open_ ? shape_ : DialogueFrame::Shape::Box; }
   // True once the answers are on screen (the question has been read); chosen() is then valid after Result::Chosen.
   bool choosing() const { return choosing_; }
   int chosen() const { return chosen_; }
@@ -72,22 +94,43 @@ class DialogueBox {
   // The answers' panel and rows (valid once setAnswers ran), for tests and screenshots.
   struct Rows { int x, y, w, h; };
   Rows panel() const { return {panelX_, panelY_, panelW_, panelH_}; }
+  Rows box() const { return {boxX_, boxY_, boxW_, boxH_}; }
+  const BubblePlace& bubble() const { return place_; }
   int answerCount() const { return (int)answers_.size(); }
   Rows answerRow(int i) const { return {panelX_, rowY_[(size_t)i], panelW_, rowH_[(size_t)i]}; }
   int answerLines(int i) const { return (int)answerLines_[(size_t)i].size(); }
   int highlighted() const { return sel_; }
   // One log line saying where the answers are (test scripts tap them): "choice: 3 answers: 0@x,y 1@x,y 2@x,y" (row centres).
   std::string describeAnswers() const;
+  // One log line for a bubble: "bubble: <name> x,y wxh above|below tail x,y".
+  std::string describeBubble() const;
 
  private:
   Result advance();
   void startChoosing();
   int rowAt(int x, int y) const;
   Result chooseInput(const InputEvent& e);
-  void drawAnswers(Renderer& r) const;
+  void drawAnswers(Renderer& r, bool framed) const;
   bool pageDone() const { return letters_ >= (float)countLetters(pages_[(size_t)page_]); }
+  // The three shapes (the box in dialogue_box.cpp, the others in dialogue_shapes.cpp).
+  void layoutBox(const Renderer& r, int screenW, int screenH, int bottom, const std::string& text);
+  void layoutBubble(const Renderer& r, int screenW, int bottom, const std::string& text);
+  void layoutNotice(const Renderer& r, int screenW, int bottom, const std::string& text);
+  void placeBubbleNow();
+  void placeSkipTab();
+  // Wraps the answers into rows of `wrapW`, at most as many lines each as `room` allows (the last line cut with "..").
+  int wrapAnswers(const Renderer& r, int wrapW, int room);
+  void rowsFrom(int y);
+  void answersInNotice(const Renderer& r);
+  void drawBubble(Renderer& r) const;
+  void drawNotice(Renderer& r) const;
+  void drawSkipTab(Renderer& r) const;
+  void drawPortrait(Renderer& r) const;
+  void drawPage(Renderer& r, int x, int y, int w, bool centred, Color text) const;
 
   bool open_ = false;
+  DialogueFrame frame_;
+  DialogueFrame::Shape shape_ = DialogueFrame::Shape::Box;
   std::string name_;
   std::vector<std::vector<std::string>> pages_;
   int page_ = 0;
@@ -100,6 +143,11 @@ class DialogueBox {
   int boxX_ = 0, boxY_ = 0, boxW_ = 0, boxH_ = 0;
   int psW_ = 0, psH_ = 0, portraitX_ = 0, portraitY_ = 0;
   int skipX_ = 0, skipY_ = 0, skipW_ = 0, skipH_ = 0;
+  // Bubble / notice: the area they stay inside, the bubble's placement request and result, the text's height in a notice.
+  int areaX_ = 0, areaY_ = 0, areaW_ = 0, areaH_ = 0;
+  BubbleRequest request_;
+  BubblePlace place_;
+  int noticeTextH_ = 0, noticeMaxW_ = 0;
   // Question: the answers, wrapped into rows, and where the panel stands (above the box).
   std::vector<std::string> answers_;
   std::vector<std::vector<std::string>> answerLines_;

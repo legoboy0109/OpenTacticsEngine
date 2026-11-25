@@ -171,12 +171,62 @@
               },
               "speakerName": {"type": "string", "help": "A name shown instead.", "excludes": ["speaker"]},
               "portrait": {"type": "string", "help": "Portrait id."},
+              "face": {"type": "int", "help": "Shows this expression of the speaker's portrait (its \"expressions\" list, 1 to 15) instead of the portrait's own cell.", "min": 1, "max": 15},
               "position": {
                 "type": "enum",
                 "values": ["farLeft", "left", "midLeft", "center", "midRight", "right", "farRight"],
                 "help": "Where the speaker stands on the stage."
               },
               "auto": {"type": "int", "help": "The line goes on by itself after this many milliseconds.", "min": 1, "max": 60000}
+            }
+          }
+        },
+        {
+          "name": "notice",
+          "key": "notice",
+          "help": "A system message in its own window in the middle of the screen: no name, no portrait.",
+          "summary": "notice \"{notice}\"",
+          "node": {
+            "type": "object",
+            "fields": {
+              "notice": {"type": "string", "help": "The text shown.", "required": true},
+              "auto": {"type": "int", "help": "The line goes on by itself after this many milliseconds.", "min": 1, "max": 60000}
+            }
+          },
+          "unless": ["choice"]
+        },
+        {
+          "name": "loop",
+          "key": "loop",
+          "help": "Runs its commands again and again until a break (or the most rounds).",
+          "summary": "loop (up to {max})",
+          "node": {
+            "type": "object",
+            "fields": {
+              "loop": {"use": "sceneCommands", "help": "The commands of one round (put a break inside).", "required": true},
+              "max": {"type": "int", "help": "The most rounds, so a story never hangs (default 10).", "min": 1, "max": 100, "default": 10}
+            }
+          }
+        },
+        {
+          "name": "break",
+          "key": "break",
+          "help": "Ends the loop it is in at once; the commands after the loop run.",
+          "summary": "break",
+          "node": {"type": "object", "fields": {"break": {"type": "bool", "help": "Must be true. Only works inside a loop.", "required": true}}}
+        },
+        {
+          "name": "askName",
+          "key": "askName",
+          "help": "Stops the scene for the name entry: the person types a name for this character (campaign scenes only).",
+          "summary": "ask the name of {askName}",
+          "node": {
+            "type": "object",
+            "fields": {
+              "askName": {"type": "string", "help": "The character's id (a story id; {name:id} shows the typed name).", "required": true},
+              "default": {"type": "string", "help": "The name it starts with when none was typed before (default: the character's own name; no { or }, at most max letters)."},
+              "max": {"type": "int", "help": "The most letters (default 12).", "min": 1, "max": 24, "default": 12},
+              "prompt": {"type": "string", "help": "The text over the name entry."}
             }
           }
         },
@@ -426,6 +476,9 @@
               },
               "speakerName": {"type": "string", "help": "A name shown instead.", "excludes": ["speaker"]},
               "portrait": {"type": "string", "help": "Portrait id."},
+              "face": {"type": "int", "help": "Shows this expression of the speaker's portrait (its \"expressions\" list, 1 to 15) instead of the portrait's own cell.", "min": 1, "max": 15},
+              "notice": {"type": "bool", "help": "true: the question and its answers show in a notice window in the middle of the screen (no speaker, name, portrait or face with it)."},
+              "cursor": {"type": "int", "help": "The answer the highlight starts on (1 = the first as written). With nobody to ask, the simulator and autoplay take this answer.", "min": 1, "max": 4},
               "store": {"type": "ref", "ref": "game.json#variables", "help": "A variable that remembers the answer's number."},
               "answers": {
                 "type": "list",
@@ -669,6 +722,14 @@
             "type": "object",
             "fields": {
               "music": {"type": "ref", "ref": "keys:data/audio.json#music", "help": "The track that plays during the scene."},
+              "backdrop": {
+                "type": "variant",
+                "help": "A background this scene starts on (overrides the campaign's), or null for the plain colour.",
+                "variants": [
+                  {"name": "background", "kind": "string", "node": {"type": "ref", "ref": "keys:data/graphics.json#backgrounds", "help": "A background of data/graphics.json."}},
+                  {"name": "none", "value": null}
+                ]
+              },
               "commands": {"use": "sceneCommands", "help": "The commands."}
             }
           }

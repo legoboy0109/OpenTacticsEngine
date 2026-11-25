@@ -13,6 +13,7 @@ import { P } from './forms/placeText'
 import { SM } from './forms/showMapText'
 import { showMapOptions } from '../../../../model/storyShowMapEdit'
 import { MC } from './forms/mapChangeText'
+import { DX } from './forms/dialogueText'
 import { EX } from './forms/extrasText'
 import { PT } from './forms/partyText'
 import { storageMode } from '../../../../model/itemRules'
@@ -24,7 +25,7 @@ import { StoryScope, useStory, type Story } from './StoryContext'
 import { S } from './text'
 
 /** Which row is open: the path to its list plus its index. */
-export const cmdKey = (path: ListPath, i: number): string => `${path.map(([n, b]) => `${n}${b === 'then' ? 't' : b === 'else' ? 'e' : `a${answerOf(b)}`}`).join('/')}#${i}`
+export const cmdKey = (path: ListPath, i: number): string => `${path.map(([n, b]) => `${n}${b === 'then' ? 't' : b === 'else' ? 'e' : b === 'loop' ? 'l' : `a${answerOf(b)}`}`).join('/')}#${i}`
 
 interface Props {
   eventId: string
@@ -41,11 +42,11 @@ interface Props {
 }
 
 const GROUPS: Array<{ group: string; kinds: CommandKind[] }> = [
-  { group: S.commandGroups.dialogue, kinds: ['say', 'choice'] },
+  { group: S.commandGroups.dialogue, kinds: ['say', 'choice', 'notice', 'askName'] },
   { group: S.commandGroups.units, kinds: ['addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'guestJoins', 'promote', 'teachSkill', 'forgetSkill', 'addCondition', 'removeCondition', 'addSupport', 'setBehaviour', 'wakeGroup', 'showUnit', 'fight'] },
   { group: S.commandGroups.give, kinds: ['giveItem', 'takeItem', 'giveResource', 'grantResearch'] },
   { group: S.commandGroups.story, kinds: ['setSwitch', 'setVariable', 'addVariable', 'objective', 'win', 'lose'] },
-  { group: S.commandGroups.flow, kinds: ['if', 'endTurn', 'focus', 'goto'] },
+  { group: S.commandGroups.flow, kinds: ['if', 'loop', 'break', 'endTurn', 'focus', 'goto'] },
   { group: S.commandGroups.sound, kinds: ['playMusic', 'stopMusic', 'playSound', 'setPhaseMusic'] },
   { group: S.commandGroups.scene, kinds: ['background', 'fade', 'wait', 'shake', 'enter', 'move', 'leave', 'clearStage', 'weather', 'narrate', 'showMap', 'returnMap'] },
   { group: S.commandGroups.places, kinds: ['openDoor', 'closeDoor', 'lockDoor', 'unlockDoor', 'openChest'] },
@@ -55,7 +56,7 @@ const GROUPS: Array<{ group: string; kinds: CommandKind[] }> = [
 ]
 
 /** A campaign scene knows no map, so it can only use these (`goto` in a chapter's scenes, not in a support conversation). */
-const SCENE_KINDS: CommandKind[] = ['say', 'choice', 'addSupport', 'takeItem', 'giveResource', 'setSwitch', 'setVariable', 'addVariable', 'if', 'goto', 'playMusic', 'stopMusic', 'playSound',
+const SCENE_KINDS: CommandKind[] = ['say', 'choice', 'notice', 'askName', 'loop', 'break', 'addSupport', 'takeItem', 'giveResource', 'setSwitch', 'setVariable', 'addVariable', 'if', 'goto', 'playMusic', 'stopMusic', 'playSound',
   'background', 'fade', 'wait', 'shake', 'enter', 'move', 'leave', 'clearStage', 'narrate', 'storeItems', 'switchParty', 'mergeParties']
 
 /** A door / chest command needs such a place with a story name on this map. */
@@ -96,7 +97,7 @@ function menu(story: Story, talk: boolean, at: { top: boolean; open: boolean }):
     applyChange: changeIds(story.map).length ? null : MC.noChangesYet, revertChange: changeIds(story.map).length ? null : MC.noChangesYet,
   }
   // A support conversation (`scene.only`) takes the listed kinds and nothing else.
-  const allowed = (k: CommandKind) => (story.scene?.only ? story.scene.only.includes(k) : story.scene ? SCENE_KINDS.includes(k) && (k !== 'goto' || story.scene.goto) : k !== 'goto' && k !== 'switchParty' && k !== 'mergeParties')
+  const allowed = (k: CommandKind) => (story.scene?.only ? story.scene.only.includes(k) : story.scene ? SCENE_KINDS.includes(k) && (k !== 'goto' || story.scene.goto) : k !== 'goto' && k !== 'switchParty' && k !== 'mergeParties' && k !== 'askName')
   return GROUPS.map((g) => ({
     group: g.group,
     options: g.kinds.filter(allowed).map((k) => ({ value: k, label: why[k] ? `${S.commandKinds[k]} (${why[k]})` : S.commandKinds[k], disabled: !!why[k] })),
@@ -160,6 +161,15 @@ export function CommandList({ eventId, path, commands, talk, selected, onSelect,
                         name={`${name === S.then ? '' : `${name}, `}Question ${i + 1}: Answer ${k + 1}`} />
                     </div>
                   ))}
+                </div>
+              )}
+              {kind === 'loop' && (
+                <div className="command-nested">
+                  <div className="nested-part" data-testid="loop-body">
+                    <h4>{DX.loopPart}</h4>
+                    <CommandList eventId={eventId} path={[...path, [i, 'loop']]} commands={c.loop ?? []} talk={talk} selected={selected} onSelect={onSelect} shown={section && section.show !== c ? section : undefined}
+                      name={`${name === S.then ? '' : `${name}, `}Repeat ${i + 1}`} />
+                  </div>
                 </div>
               )}
               {kind === 'if' && (

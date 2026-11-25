@@ -75,6 +75,8 @@ export function portraitSuggestions(doc: ProjectDoc): Array<{ id: string; label:
 
 export type PortraitFacing = 'left' | 'right'
 export const MAX_PORTRAIT_FRAMES = 8
+/** A portrait's `expressions` (the faces a line's `face` picks): up to 15 (docs/EVENTS.md "Portrait expressions"). */
+export const MAX_PORTRAIT_EXPRESSIONS = 15
 
 /** Which way the picture looks, so the stage can turn it towards the middle of the screen; undefined = not said (drawn as it is). */
 export function setPortraitFacing(doc: ProjectDoc, id: string, facing: PortraitFacing | undefined): ProjectDoc {
@@ -83,15 +85,15 @@ export function setPortraitFacing(doc: ProjectDoc, id: string, facing: PortraitF
   return setPortraits(doc, { ...doc.graphics!.portraits!, [id]: patchObj(cur, { faces: facing }) })
 }
 
-/** The "talk" or "blink" cells; an empty list takes the key away. */
-export function setPortraitFrames(doc: ProjectDoc, id: string, key: 'talk' | 'blink', cells: CellRef[]): ProjectDoc {
+/** The "talk", "blink" or "expressions" cells; an empty list takes the key away. */
+export function setPortraitFrames(doc: ProjectDoc, id: string, key: 'talk' | 'blink' | 'expressions', cells: CellRef[]): ProjectDoc {
   const cur = doc.graphics?.portraits?.[id]
   if (!cur) return doc
   return setPortraits(doc, { ...doc.graphics!.portraits!, [id]: patchObj(cur, { [key]: cells.length ? cells : undefined }) })
 }
 
 /** "2,1  3,1" (column,row counted from 1, as the Row boxes do) -> cells, or a sentence when it cannot be read. */
-export function parseFrames(text: string): { cells: CellRef[] } | { error: string } {
+export function parseFrames(text: string, most = MAX_PORTRAIT_FRAMES): { cells: CellRef[] } | { error: string } {
   const parts = text.trim() === '' ? [] : text.trim().split(/[\s;]+/)
   const cells: CellRef[] = []
   for (const p of parts) {
@@ -99,7 +101,7 @@ export function parseFrames(text: string): { cells: CellRef[] } | { error: strin
     if (!m || Number(m[1]) < 1 || Number(m[2]) < 1) return { error: `“${p}” is not a piece: write the column and the row counted from 1, like 2,1.` }
     cells.push([Number(m[1]) - 1, Number(m[2]) - 1])
   }
-  if (cells.length > MAX_PORTRAIT_FRAMES) return { error: `A face can have at most ${MAX_PORTRAIT_FRAMES} frames of each kind.` }
+  if (cells.length > most) return { error: `A face can have at most ${most} ${most === MAX_PORTRAIT_FRAMES ? 'frames of each kind' : 'expressions'}.` }
   return { cells }
 }
 

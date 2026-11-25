@@ -618,6 +618,10 @@ class Battle {
   // A campaign's roster as it was when the chapter began (null = none): named units of human sides
   // take its version of themselves (setStartingRoster). Copies share it; it is not saved.
   std::shared_ptr<const Roster> roster;
+  // Names the player typed in for campaign characters (docs/EVENTS.md "Naming a character"): story id -> name. Copies share it; it is
+  // not saved (the units keep their names in a save, and a campaign hands the list in again).
+  using HeroNames = std::vector<std::pair<std::string, std::string>>;
+  std::shared_ptr<const HeroNames> heroNames;
   // The rosters of the campaign's other (parked) parties, for the `party: any` of the roster conditions (docs/EVENTS.md); null = none. Not saved.
   std::shared_ptr<const std::vector<Roster>> otherRosters;
   // Closeness of the support pairs (docs/SRPG.md "Supports"); empty in a game without pairs.
@@ -943,6 +947,13 @@ class Battle {
   // on a human side get the same treatment. Call after init(), before start().
   void setStartingRoster(std::shared_ptr<const Roster> carried);
   void setStartingOtherRosters(std::shared_ptr<const std::vector<Roster>> others) { otherRosters = others; }
+  // Hands in the names typed for campaign characters (hero_names.cpp): every unit with that story id is renamed now, and so is one an
+  // addUnit brings later. Call after setStartingRoster().
+  void setHeroNames(std::shared_ptr<const HeroNames> names);
+  // The name a "{name:<id>}" in a line shows: the typed name, else the unit with that story id, else the character's own name, else the id.
+  std::string heroName(const std::string& id) const;
+  // The typed name of a story id, or null (hero_names.cpp).
+  const std::string* typedName(const std::string& id) const;
 
   // ---- actions ----
   // why (optional) receives a short human-readable reason on failure.
@@ -1055,6 +1066,7 @@ class Battle {
   // story_commands.cpp
   void runCommands(const std::vector<Command>& list, std::vector<Event>& events);
   void runCommand(const Command& c, std::vector<Event>& events);
+  void storyLoop(const Command& c, std::vector<Event>& events);  // docs/EVENTS.md "Loops" (story_loop.cpp)
   void storyAddUnit(const MapUnitDef& def, std::vector<Event>& events);
   void storyRelocate(int unit, Cell to, std::vector<Event>& events, bool walk = false, bool noWait = false);
   // story_scene_fx.cpp: the scene presentation commands, a walked moveUnit, and the fade that never outlives a run of events.

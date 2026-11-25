@@ -31,6 +31,10 @@ struct SceneFx {
   bool walk = false;             // MoveUnit: "walk": true
   int position = 0;              // Say / Enter / Move: 0 = none (today's look), kPos* (seven slots)
   bool narrate = false;          // Say: a "narrate" line (no name, no portrait, centred)
+  // docs/EVENTS.md "Notices, faces, names and loops":
+  bool notice = false;           // Say: a "notice" line (the system window, no speaker); Choice: "notice": true (the question and answers in it)
+  int face = 0;                  // Say / Choice: "face" N (1..kMaxFaces) = the portrait's expression N; 0 = its own cell
+  int cursor = 0;                // Choice: "cursor" N (1-based, as written) = the answer the highlight starts on; 0 = the first
 };
 
 // The seven stage slots. left / right / center keep their first values (saved dialogue flags and logs); the four added ones
@@ -55,6 +59,7 @@ constexpr int kMaxShakeStrength = 32;
 constexpr double kMinFocusSpeed = 0.1, kMaxFocusSpeed = 100;  // squares per second, a focus "speed"
 constexpr int kDefaultFadeMs = 500;
 constexpr int kDefaultSlideMs = 400;  // a portrait moving to another slot
+constexpr int kMaxFaces = 15;         // a portrait's "expressions" and a line's "face"
 
 // The entries a scene command leaves in a battle's event stream (EventType::SceneEffect) and the flags of the
 // Dialogue / Focus / UnitRelocated entries that carry the extra keys.
@@ -67,7 +72,10 @@ enum : int {
   kDialogueQuote = 64,   // Dialogue flags: a line of a battle quote (before the fight's first strike); the battle scene may play it inside the scene
   kDialogueDefeat = 128, // Dialogue flags: a line of a defeat quote (right after UnitDied); the battle scene may play it inside the scene
   kFocusNoWait = 16,     // Focus flags: "wait": false
-  kRelocateWalk = 32     // UnitRelocated flags: walk (data = the path, from..to)
+  kRelocateWalk = 32,    // UnitRelocated flags: walk (data = the path, from..to)
+  kDialogueNotice = 256, // Dialogue / Choice flags: shown in the notice window (docs/EVENTS.md "Notices")
+  kDialogueFaceShift = 12, kDialogueFaceMask = 0xF000,     // Dialogue / Choice flags: the "face" (0 = the portrait's own cell)
+  kChoiceCursorShift = 16, kChoiceCursorMask = 0x70000     // Choice flags: where the highlight starts, among the OFFERED answers
 };
 
 }  // namespace ote

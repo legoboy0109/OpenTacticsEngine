@@ -12,6 +12,7 @@ import { Card } from '../../ui/Card'
 import { AudioChoice } from '../sound/AudioChoice'
 import { T as SoundT } from '../sound/text'
 import { Field } from '../../ui/Field'
+import { SceneBackdropField } from './BackdropFields'
 import { SceneCommands, type SceneSource } from './SceneCommands'
 import { C } from './text'
 
@@ -35,6 +36,7 @@ export function SceneEditor({ chapterId, which }: { chapterId: string; which: Sc
               aria-label={`${SCENE_TITLE[which]}: ${SoundT.sceneMusic}`} onChange={(v) => edit((d) => setSceneMusic(d, chapterId, which, v))} />
           </Field>
         )}
+        <SceneBackdropField chapterId={chapterId} which={which} />
         <SceneCommands source={source} name={SCENE_TITLE[which]} />
       </div>
       <p className="help">{C.speakersHelp}</p>

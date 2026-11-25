@@ -127,6 +127,7 @@ class StoryLoader {
   LoadCtx c_;
   StoryData& data_;
   bool actorOk_ = false, beforePrep_ = false;
+  int loopDepth_ = 0;  // inside how many "loop" blocks the command being read is ("break" needs one)
 };
 
 }  // namespace ote

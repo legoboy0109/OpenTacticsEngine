@@ -12,6 +12,13 @@
 
 namespace ote {
 
+namespace savejson {
+class Reader;
+// "names" of a playthrough (campaign_names.cpp): written only when a name was typed; read back with every name checked.
+void writePlaythroughNames(const Playthrough& pt, Json& out);
+bool readPlaythroughNames(Reader& rd, const Json& saved, Playthrough& pt);
+}  // namespace savejson
+
 // Must equal the player's kSaveFileVersion: a campaign save uses the same file format version.
 constexpr int kCampaignSaveVersion = 1;
 

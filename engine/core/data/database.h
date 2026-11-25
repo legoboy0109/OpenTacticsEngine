@@ -550,6 +550,13 @@ struct Database {
   // where a few stay greyed); "attackWeaponChoice": "pick" = Attack asks which weapon first. Presentation only (docs/SRPG.md "Menu options").
   bool menuHideUnavailable = false;
   bool attackWeaponPick = false;
+  // game.json "dialogue" (docs/EVENTS.md "Speech bubbles"): how lines are shown. Presentation only: no rule and no save reads it.
+  struct DialogueLook {
+    bool bubbles = false;  // "style": "bubble" = a line said by a unit on the map points at it; "box" (default) = the bottom box
+    int portrait = 2;      // bubbles: "portrait": 0 "none", 1 "inside" (in the bubble), 2 "beside" (default: next to it)
+    bool names = true;     // bubbles: "names": the speaker's name on the bubble's first row
+  };
+  DialogueLook dialogue;
   // game.json "rules": { "display": { "enemyRanges": false } }: the game maker switches the player's enemy-range display off (default on;
   // docs/SRPG.md "Enemy ranges"). Presentation only: no rule and no save depends on it.
   bool enemyRanges = true;

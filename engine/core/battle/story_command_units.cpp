@@ -65,6 +65,7 @@ void Battle::storyAddUnit(const MapUnitDef& def, std::vector<Event>& events) {
     OTE_INFO("story: addUnit '%s': the campaign roster says it is gone; not added", u.storyId.c_str());
     return;
   }
+  if (const std::string* typed = typedName(u.storyId)) u.name = *typed;  // a name the player typed (docs/EVENTS.md "Naming a character")
   // After the roster: it may change the unit's type, and with it where it can stand.
   Cell cell = nearestFreeCell(grid.at(def.x, def.y), typeOf(u).moveType);
   if (cell == kNoCell) {

@@ -35,7 +35,7 @@ const storyCommands = (doc: ProjectDoc): Extra[] => {
   const walk = (cmds: unknown) => {
     for (const c of list(cmds)) {
       out.push(c)
-      walk(c.then); walk(c.else)
+      walk(c.then); walk(c.else); walk(c.loop)
       for (const a of list(c.answers)) walk(a.do)
     }
   }

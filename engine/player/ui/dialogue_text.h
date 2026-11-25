@@ -21,10 +21,16 @@ struct DialogueLine {
   int position = 0;      // kPosLeft / kPosRight / kPosCenter; 0 = the classic portrait beside the box
   bool narrate = false;  // no name, no portrait, the text centred
   int autoMs = 0;        // > 0: the line goes on by itself this long after its last page is complete
+  // docs/EVENTS.md "Speech bubbles, notices, names, faces and loops":
+  bool notice = false;   // the notice window (no name, no portrait)
+  int face = 0;          // the portrait's expression (0 = its own cell)
+  int cursor = 0;        // a question: the answer the highlight starts on (position among the offered answers)
+  int unit = -1;         // the speaking unit (battle: index into Battle::units; -1 = none): a speech bubble points at it
 };
 
 // Reads a `Dialogue` stream entry (a = speaker unit, b = text, c = free name, d = portrait id).
 // The portrait is the line's own id if it has one, else the speaking unit's story id, else none.
+// "{name:<id>}" in the text becomes the character's name (Battle::heroName).
 DialogueLine dialogueLine(const Battle& b, const Event& e);
 
 // Word-wraps `text` to `maxWidth` (the active font) and splits the lines into pages of at most

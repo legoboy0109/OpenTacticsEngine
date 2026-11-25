@@ -1713,3 +1713,35 @@ Built for the iso-map-art engine keys. Nothing new in the server or API (the key
 *Diagonal rows (2D isometric view)*; *Characters* (Art screen) and "own picture"; *Unit offset* ("Offset across / down (pixels)"); *Portrait size* ("Portrait width / height"); *Backdrop*,
 *Backdrop image*, *Origin*, *Over image*, *Drawn in these styles* and the read-only pieces note; where each lives (Poses under Walking, characters as a card on the Art screen rather than on the
 Characters screen, the backdrop in the Map tab's settings); that the front / back rows are the only pose rows with boxes.
+
+## Speech bubbles, notices, names, faces, loops and scene backdrops (web editor; docs/EVENTS.md "Speech bubbles, notices, names, faces and loops")
+
+All wording is placeholder (`screens/rules/dialogueStyleText.ts`, `screens/maps/editor/story/forms/dialogueText.ts`, `screens/campaign/backdropText.ts`, the portrait text in
+`screens/art/text.ts`). No helper (API) change: every key passes through and the real loaders refuse what is wrong.
+
+- **Dialogue style card** (Rules screen, after Menu options; `model/dialogueStyle.ts`): *A box at the bottom* / *A speech bubble*; with the bubble, *Beside the bubble* / *Inside the bubble* /
+  *None* for the portrait and a *Show the speaker's name* switch. The defaults are written as no key, the box removes the whole `dialogue` object (the loader refuses `portrait` and
+  `names` with the box), unknown keys stay.
+- **Say and Ask a question**: a *Face (expression)* number (1 to 15; empty = the portrait's own picture). A question also has *Show it as a notice* (switching it on clears the speaker, name,
+  portrait and face, which the loader refuses there; the speaker fields are hidden) and *Starts on answer* (the cursor; empty = the first).
+- **Commands**: *Show a notice* (text and the usual "goes on by itself"; in the Dialogue group), *Repeat these commands* (a list nested under it like an If's branches, plus *Most rounds*,
+  1 to 100, empty = 10) and *Leave the repeat* (Flow group), *Ask for a character's name* (Dialogue group, **campaign scenes only**: the menu leaves it out for map events). Its form: whose
+  name (a story name), *Starting name*, *Most letters* (1 to 24, empty = 12), *Words above the name*. The model keeps the lists inside a loop as the branch `loop` (`storyEdit.ts`
+  `Branch`), and the walks (checks, renames, clean-up, sections, timeline) go into loops.
+- **Portraits** (Art screen): an *Expressions* box on each portrait, pieces typed like the talk and blink frames (`1,1  2,1  3,1`, up to 15).
+- **Campaign**: *Backdrop for the scenes* in the campaign's settings card and *Backdrop for this scene* on each Before / After scene (*The same as the campaign's* writes nothing, *None* writes
+  `null`, a picture writes its id; the scene becomes the `{ "backdrop", "music", "commands" }` object only while it needs one, `model/campaignBackdrop.ts`). A renamed background is followed, a
+  deleted one is taken off. The fields only show when the game has backgrounds (or one is already named).
+- **Checks** (mirror the loader; `model/storyDialogue.ts`, `dialogueStyle.ts`, `campaignBackdrop.ts`): the dialogue setting (not an object, unknown key, bad words, bubble-only keys with the box); a
+  `face` not 1 to 15 or past the longest expressions list; a notice with no text, an unknown key or a bad "goes on by itself" time; a question's notice not on / off, a notice question with a
+  speaker / name / portrait / face, a cursor outside 1 to the number of answers; a loop that is empty, has a bad max or an unknown key; a *Leave the repeat* outside any loop (also through If and
+  answers); asking for a name in a map event, a bad id, max, starting name (empty, too long, braces) or prompt; a malformed `{name:` in any text (say, narrate, notice, a question, its answers, the
+  prompt); expressions that are not 1 to 15 whole pieces (Art banner); a campaign or scene backdrop naming an unknown background.
+- **Not done**: no check that an expression's piece lies inside its image (as for talk and blink frames); renaming a unit's story name does not rewrite `{name:id}` inside texts (the
+  `askName` command's own id does follow); no live preview of a bubble or the name entry (the player shows them); no unknown-key refusal on a question (the other commands have it).
+- **Tests**: unit `tests/unit/dialogueExtras.test.ts`.
+
+**Owner decisions (placeholders):** the card and field names *Dialogue style*, *Look of a line*, *A box at the bottom*, *A speech bubble*, *Portrait in a bubble*, *Face (expression)*, *Show it as a
+notice*, *Starts on answer*, *Show a notice*, *Repeat these commands*, *Leave the repeat*, *Most rounds*, *Ask for a character's name*, *Starting name*, *Most letters*, *Words above the name*,
+*Expressions*, *Backdrop for the scenes*, *Backdrop for this scene*; the Dialogue style card sitting on the Rules screen; the loop's commands shown as a nested list; the name command offered
+only in campaign scenes.

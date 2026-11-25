@@ -158,7 +158,10 @@ struct Command {
     // unit `unit` or square (x, y) when `on`. ReturnMap goes back to the battle's own map (also implied at the end of the event).
     ShowMap, ReturnMap,
     // docs/SRPG.md "Guests": every guest matching `filter` becomes an ordinary unit of its side (the person moves it; the party takes it in).
-    GuestJoins
+    GuestJoins,
+    // docs/EVENTS.md "Loops": Loop runs `thenDo` again and again, at most `value` times, until a Break inside it (at any depth of ifs
+    // and answers) stops it.
+    Loop, Break
   };
   Kind kind = Kind::Say;
   // Say, Choice
@@ -177,10 +180,10 @@ struct Command {
   bool on = false;       // SetSwitch; ChangeSide: "ready"; TakeItem: every copy
   bool hide = false;     // RemoveUnit: "hide": true takes the units off the map without losing them
   UnitReading reading;   // SetVariable / AddVariable: where the number comes from when it is not `value`
-  int value = 0;         // SetVariable / AddVariable; PlayMusic / StopMusic: the fade in milliseconds (-1 = not given)
+  int value = 0;         // SetVariable / AddVariable; PlayMusic / StopMusic: the fade in milliseconds (-1 = not given); Loop: the most rounds
   int objectives = -1;   // Objective: index into StoryData::objectives
   std::vector<Condition> cond;                // If
-  std::vector<Command> thenDo, elseDo;        // If
+  std::vector<Command> thenDo, elseDo;        // If; Loop: thenDo is the block
   std::vector<ChoiceAnswer> answers;          // Choice: two to four
   std::vector<int> keep;                      // StoreItems: item indices that stay with the unit
   std::vector<Rect> rects;                    // SetTerrain: the squares (an "area" is one rect, "cells" one 1 x 1 rect each)
@@ -236,6 +239,8 @@ constexpr int kMaxStoryNumber = 1000000000;
 
 // A question has two to four answers (docs/EVENTS.md "Dialogue choices"); shared by the event and scene loaders.
 constexpr int kMinChoiceAnswers = 2, kMaxChoiceAnswers = 4;
+// A loop's "max" (docs/EVENTS.md "Loops"): default and limit.
+constexpr int kDefaultLoopMax = 10, kMaxLoopMax = 100;
 
 // True for an id made of letters, digits, '_' and '-' (units, events, switches...).
 bool isStoryId(const std::string& id);

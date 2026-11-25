@@ -108,7 +108,7 @@ void drawStagePortraits(Renderer& r, const StageDrawCtx& ctx, const SceneStage& 
   std::vector<Shown> shown;
   std::vector<StageItem> items;
   for (const SceneStage::Portrait& p : stage.portraits()) {
-    const PortraitArt art = portraitArt(ctx.db, ctx.sprites, ctx.styleIdx, p.art);
+    const PortraitArt art = portraitArt(ctx.db, ctx.sprites, ctx.styleIdx, p.art, p.face);
     if (!art.any()) continue;
     shown.push_back(Shown{&p, art});
     StageItem it;

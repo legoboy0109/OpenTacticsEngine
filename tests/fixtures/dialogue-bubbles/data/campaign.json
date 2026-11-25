@@ -1,0 +1,13 @@
+{
+  "name": "Bubble Road",
+  "backdrop": "forest",
+  "chapters": [
+    { "id": "ch1", "name": "The Field", "map": "field",
+      "before": [
+        { "say": "Before we set out: what do they call you?", "speakerName": "Lyra", "portrait": "lyra" },
+        { "askName": "eirik", "default": "Eirik", "max": 8, "prompt": "Name the hero" },
+        { "say": "{name:eirik}. A fine name.", "speakerName": "Lyra", "portrait": "lyra" },
+        { "say": "Let us go.", "speaker": "eirik", "portrait": "eirik", "face": 1 },
+        { "notice": "{name:eirik} leads the party." } ] }
+  ]
+}

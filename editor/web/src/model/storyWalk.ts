@@ -353,6 +353,7 @@ function mapCommand(c: Command, w: Walk, where: string): Command | Dropped {
     (x) => withRef(x, 'lose', 'teamOrSide', w, where),
     (x) => (typeof x.focus === 'string' ? withRef(x, 'focus', 'unit', w, where) : x),
     (x) => withRef(x, 'goto', 'chapter', w, where),
+    (x) => withRef(x, 'askName', 'unit', w, where), // the character whose name is asked (campaign scenes only)
     (x) => withRef(x, 'openDoor', 'place', w, where),
     (x) => withRef(x, 'closeDoor', 'place', w, where),
     (x) => withRef(x, 'lockDoor', 'place', w, where),
@@ -401,7 +402,7 @@ export function mapCommands(list: Command[], w: Walk, where: string, trail = '',
     const first = mapCommand(c, shown && !readsBattleMap(c) ? onShownMap(w) : w, here)
     if (first === DROP) { changed = true; w.dropped?.({ what: 'command', text: w.describe?.command?.(c) ?? 'A command', where: here }); return }
     let r: Command = first
-    for (const branch of ['then', 'else'] as const) {
+    for (const branch of ['then', 'else', 'loop'] as const) {
       const inner: Command[] | undefined = r[branch]
       if (!Array.isArray(inner)) continue
       const next = mapCommands(inner, w, where, num, shown)
@@ -461,6 +462,7 @@ export function forEachCommand(list: Command[] | undefined, where: string, fn: (
     fn(c, `${where}, command ${num}`)
     forEachCommand(c.then, where, fn, num)
     forEachCommand(c.else, where, fn, num)
+    forEachCommand(c.loop, where, fn, num)
     ;(c.answers ?? []).forEach((a, k) => forEachCommand(a.do, `${where}, command ${num}, answer ${k + 1}`, fn))
   })
 }

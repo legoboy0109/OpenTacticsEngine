@@ -13,6 +13,8 @@ import { sceneCommands } from './campaignScene'
 import { addSupportChecks, supportConditionChecks } from './supportStoryChecks'
 import { audioRefProblem } from './audioChecks'
 import { choiceChecks, storeCounts } from './choiceChecks'
+import { commandsInLoops, dialogueProblems } from './storyDialogue'
+import { backdropProblems } from './campaignBackdrop'
 import { isStoryId } from './storyIds'
 import { partiesOf, partyHints } from './parties'
 import { commandKind, type Command } from './storyTypes'
@@ -67,14 +69,16 @@ function refProblem(doc: ProjectDoc, c: Campaign, r: Ref): { topic: CampaignChec
 }
 
 /** `own`: the chapter's id when the scene is its "before" scene, where a "go to" may name any chapter but this one (its scene would run for ever). */
-function commandChecks(doc: ProjectDoc, c: Command, where: string, say: (level: CampaignCheck['level'], topic: CampaignCheck['topic'], where: string, text: string) => void, own: string | undefined, stores: Map<string, number>): void {
+function commandChecks(doc: ProjectDoc, c: Command, where: string, say: (level: CampaignCheck['level'], topic: CampaignCheck['topic'], where: string, text: string) => void, own: string | undefined, stores: Map<string, number>, inLoop: boolean): void {
   for (const t of sceneProblems(doc, c, true)) say('error', 'general', where, t)  // scene presentation (sceneChecks.ts)
+  for (const t of dialogueProblems(doc, c, true, inLoop)) say('error', 'general', where, t)  // faces, notices, loops, names (storyDialogue.ts)
   switch (commandKind(c)) {
     case 'say':
       if (!String(c.say ?? '').trim()) say('error', 'general', where, 'the text to say is empty.')
       break
     case 'background': case 'fade': case 'wait': case 'shake': case 'leave': case 'clearStage': case 'narrate': case 'weather': case 'enter': case 'move':
-      break  // (sceneChecks.ts has said what is wrong with them)
+    case 'notice': case 'loop': case 'break': case 'askName':
+      break  // (sceneChecks.ts and storyDialogue.ts have said what is wrong with them)
     case 'giveResource':
       if (!Object.keys(c.giveResource ?? {}).length) say('error', 'resource', where, 'choose a resource to give.')
       else if (Object.values(c.giveResource!).some((n) => Math.abs(n) > BIG)) say('error', 'resource', where, 'an amount is unreasonably large.')
@@ -142,12 +146,15 @@ export function campaignChecks(doc: ProjectDoc): CampaignCheck[] {
     seen.add(ch.id)
     for (const key of ['before', 'after'] as const) {
       const stores = storeCounts([sceneCommands(ch[key])])
+      const inLoop = commandsInLoops(sceneCommands(ch[key]))
       forEachCommand(sceneCommands(ch[key]), `${where}, “${SCENE_TITLE[key]}”`, (cmd, w) => {
-        commandChecks(doc, cmd, w, (l, t, ww, tx) => say(l, t, ww, tx, ch.id), key === 'before' ? ch.id : undefined, stores)
+        commandChecks(doc, cmd, w, (l, t, ww, tx) => say(l, t, ww, tx, ch.id), key === 'before' ? ch.id : undefined, stores, inLoop.has(cmd))
         supportConditionChecks(doc, cmd.if, w, (ww, tx) => say('error', 'unit', ww, tx, ch.id))
       })
     }
   })
+
+  for (const b of backdropProblems(doc)) say('error', 'general', '', b.text, b.chapterId)
 
   // Do the names the campaign points at exist? (one walk for every kind of name)
   const idOf = new Map<string, string>()

@@ -3,9 +3,11 @@
 #include <algorithm>
 #include <cstdint>
 
+#include "core/base/log.h"
+
 namespace ote {
 
-PortraitArt portraitArt(const Database& db, const Sprites* sprites, int styleIdx, const std::string& id) {
+PortraitArt portraitArt(const Database& db, const Sprites* sprites, int styleIdx, const std::string& id, int face) {
   PortraitArt art;
   const GraphicsSet* set = db.graphics.set(styleIdx);
   if (id.empty() || !set || !sprites) return art;
@@ -22,6 +24,18 @@ PortraitArt portraitArt(const Database& db, const Sprites* sprites, int styleIdx
   art.plateH = db.graphics.portraitH;
   for (const SpriteCell& c : look->talk) art.talk.push_back(std::make_pair(c.col * sh.cellW, c.row * sh.cellH));
   for (const SpriteCell& c : look->blink) art.blink.push_back(std::make_pair(c.col * sh.cellW, c.row * sh.cellH));
+  if (face > 0) {  // an expression (docs/EVENTS.md "Portrait expressions"): another cell, still
+    if ((size_t)face <= look->expressions.size()) {
+      const SpriteCell& c = look->expressions[(size_t)face - 1];
+      art.sx = c.col * sh.cellW;
+      art.sy = c.row * sh.cellH;
+      art.talk.clear();
+      art.blink.clear();
+    } else {
+      OTE_WARN("dialogue: portrait '%s' has %d expressions, the line asks for face %d; its own cell is shown", id.c_str(),
+               (int)look->expressions.size(), face);
+    }
+  }
   return art;  // (the sheet's "smooth" flag is not honoured: the 2D renderer samples every texture the same way)
 }
 

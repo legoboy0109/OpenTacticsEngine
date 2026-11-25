@@ -8,6 +8,7 @@
 
 #include "battle/battle_view.h"
 #include "core/base/log.h"
+#include "core/data/name_tokens.h"
 #include "core/data/scene_fx.h"
 #include "ui/text.h"
 
@@ -36,7 +37,7 @@ bool BattleView::beginStory(const Battle& b) {
       OTE_INFO("dialogue: %s | %s%s", dialogue.line.name.c_str(), dialogue.line.text.c_str(), skipping_ ? " (skipped)" : "");
       // Staging (docs/EVENTS.md "Scene presentation"): a positioned line puts its speaker on the stage; the log line only
       // exists for those, so a game that does not use the keys logs exactly what it always did.
-      const bool staged = stage.say(dialogue.line.key, dialogue.line.portrait, dialogue.line.position);
+      const bool staged = stage.say(dialogue.line.key, dialogue.line.portrait, dialogue.line.position, dialogue.line.face);
       if (dialogue.line.position != 0)
         OTE_INFO("scene: portrait %s %s", dialogue.line.key.c_str(), positionName(dialogue.line.position));
       dialogue.staged = staged;
@@ -56,7 +57,8 @@ bool BattleView::beginStory(const Battle& b) {
       // A question always waits for the player and is never skipped: a skipped run goes back to showing lines after it.
       dialogue.line = dialogueLine(b, e);
       dialogue.answers.clear();
-      for (int t : e.data) dialogue.answers.push_back(b.storyText(t));
+      for (int t : e.data)  // "{name:<id>}" in an answer becomes the character's name, as in the question
+        dialogue.answers.push_back(expandNameTokens(b.storyText(t), [&b](const std::string& id) { return b.heroName(id); }));
       ++dialogue.serial;
       dialogue.active = true;
       skipping_ = false;

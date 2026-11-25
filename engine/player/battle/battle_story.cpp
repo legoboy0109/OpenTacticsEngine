@@ -14,8 +14,8 @@ namespace ote {
 
 // ---- Dialogue
 
-PortraitArt BattleScene::portraitFor(const std::string& id) const {
-  return portraitArt(session_.db, host_.sprites(), styleIdx_, id);  // a missing portrait is fine: no picture
+PortraitArt BattleScene::portraitFor(const std::string& id, int face) const {
+  return portraitArt(session_.db, host_.sprites(), styleIdx_, id, face);  // a missing portrait is fine: no picture
 }
 
 void BattleScene::dialogueResult(DialogueBox::Result res) {
@@ -50,13 +50,20 @@ void BattleScene::updateDialogue(double dt) {
     Renderer& r = host_.renderer();
     // A speaker standing on the scene stage has no portrait beside the box; a narrator line has none at all.
     dialogue_.setSkipInside(!view_.stage.portraits().empty());
-    dialogue_.open(r, layout_.W, layout_.H, layout_.vh, d.line, d.staged || d.line.narrate ? PortraitArt() : portraitFor(d.line.portrait));
+    dialogue_.setFrame(dialogueFrame(d));
+    dialogue_.open(r, layout_.W, layout_.H, layout_.vh, d.line,
+                   d.staged || d.line.narrate ? PortraitArt() : portraitFor(d.line.portrait, d.line.face));
+    if (d.line.notice) OTE_INFO("scene: notice");
     if (!d.answers.empty()) {
-      dialogue_.setAnswers(r, d.answers);
+      dialogue_.setAnswers(r, d.answers, d.line.cursor);
       OTE_INFO("choice: battle question \"%s\": %s", d.line.text.c_str(), dialogue_.describeAnswers().c_str());
     }
+    if (dialogue_.shape() == DialogueFrame::Shape::Bubble) OTE_INFO("%s", dialogue_.describeBubble().c_str());
   } else if (!d.active && dialogue_.isOpen()) {
     dialogue_.close();  // the view moved on by itself (autoplay)
+  } else if (d.active && dialogue_.shape() == DialogueFrame::Shape::Bubble) {
+    BubbleAnchor a;  // the camera may move while the line is up: the bubble follows its speaker
+    if (speakerAnchor(d.line.unit, a)) dialogue_.reanchor(a);
   }
   if (dialogue_.isOpen()) dialogueResult(dialogue_.update(dt));
 }
