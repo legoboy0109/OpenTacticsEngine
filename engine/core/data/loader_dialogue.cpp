@@ -89,7 +89,9 @@ bool readLoopHead(const LoadCtx& c, const Json& e, const std::string& at, int& m
 
 bool isDialogueCommandIn(const Json& e, const char* key) {
   if (!e.has(key)) return false;
-  return std::string(key) != "loop" || !e[key].isBool();
+  // A true / false "notice" is the modifier of a choice ({ "choice": ..., "notice": true }); a true / false "loop" a music option.
+  const std::string k = key;
+  return (k != "loop" && k != "notice") || !e[key].isBool();
 }
 
 bool readBreak(const LoadCtx& c, const Json& e, const std::string& at, bool inLoop) {

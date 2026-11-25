@@ -22,7 +22,7 @@ bool checkNameTokens(const LoadCtx& c, const std::string& text, const std::strin
 bool readNotice(const LoadCtx& c, const Database& db, bool mapEvent, const Json& e, const std::string& at, std::string& text, SceneFx& fx);
 // { "loop": [ ... ], "max": N }: the most rounds (default kDefaultLoopMax, 1..kMaxLoopMax). The block itself is read by the caller.
 bool readLoopHead(const LoadCtx& c, const Json& e, const std::string& at, int& max);
-// True when `key` (notice, loop, break, askName) is a command of its own in `e`. A "loop": true / false is not the loop command (it
+// True when `key` (notice, loop, break, askName) is a command of its own in `e`. A "notice": true / false is a choice's modifier. A "loop": true / false is not the loop command (it
 // reads as a music option somebody guessed, and gets the "unknown key" message of the command it sits on).
 bool isDialogueCommandIn(const Json& e, const char* key);
 // { "break": true } (only inside a loop: `inLoop`).
