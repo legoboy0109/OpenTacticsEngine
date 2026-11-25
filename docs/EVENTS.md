@@ -1127,6 +1127,157 @@ Games without `showMap` save and hash as before (the shown map's file is not par
   `loadMapShape`, `BattleScene::showOtherMap` / `returnFromOtherMap` (`player/battle/battle_other_map.cpp`), `BattleView::mapRequest` (`player/battle/battle_view_other_map.cpp`).
   Tests: `tests/test_story_show_map.cpp`, `tests/show_map_player_test.py` (fixture `tests/fixtures/scene-map`).
 
+## Speech bubbles, notices, names, faces and loops
+
+Built for the Final Fantasy Tactics Advance port (its story shows each line in a bubble pointing at the speaker, a separate notice
+window for system questions such as "Repeat lesson?" with the cursor on "No", asks for the hero's name, and loops a lesson until the
+player says no). **All of it is optional**: a game that uses none of the keys looks, plays, logs, saves and hashes exactly as before.
+
+**Owner decisions (placeholders; any may change):** the key names (`dialogue` with `style` / `portrait` / `names`, `notice`, `cursor`,
+`face` and `expressions`, `askName` with `default` / `max` / `prompt`, `{name:<id>}`, `loop` / `max` / `break`, `backdrop`); the defaults
+(box; bubble portrait beside; names shown; name length 12, at most 24; a loop's `max` 10, at most 100); the bubble's look (light fill,
+dark outline and text, rounded corners, a tail), where it goes (above the speaker when there is room, else below), the Skip tab in the
+view's bottom-right corner while a bubble is up; the notice window's look (centred, a double frame, the text centred, the answers listed
+inside it); the name entry's keys and layout (A-Z, a-z, 0-9, space - ' ., Case, Del, Reset, OK) and its wording ("Name", "OK", ...);
+taking the `cursor` answer when nobody is asked.
+
+### Speech bubbles (game.json `dialogue`)
+
+```jsonc
+"dialogue": { "style": "bubble",      // "box" (default): the box at the bottom, as always; "bubble": see below
+              "portrait": "beside",   // bubbles only: "beside" (default, next to the bubble), "inside" (in the bubble) or "none"
+              "names": true }         // bubbles only: the speaker's name on the bubble's first row (default true)
+```
+
+- With `"style": "bubble"` a line **said by a unit that stands on the map** (`say` with a `speaker` that is a unit of the map, a
+  `choice`'s question with one, a battle quote outside the battle scene) shows as a bubble pointing at that unit: above it when there is
+  room, else below it, moved sideways to stay on screen, never covering the speaker's square when the view leaves any room (on a very
+  small view it covers the least it can). It follows the unit's square while the camera moves. Text wraps to the bubble (at most three
+  quarters of the view's width, wider on a narrow phone view) in pages of up to three lines; Confirm, taps, skipping, holding Cancel /
+  Menu, `auto` and the `--input` token `skip` work exactly as with the box.
+- It **falls back to the box** when there is no unit to point at: a free `speakerName`, no speaker, a `narrate` line, a positioned line
+  (`position`: the stage), a speaker that is not on the map (removed, defeated, hidden, never added), hidden by fog, off the visible
+  part of the view, while a scene `background` hides the map, inside the side-view battle scene, and always in campaign scenes (they
+  have no map).
+- Works in every kind of view (top-down, 2D isometric, 3D isometric, full 3D: the bubble points at the square's place on the screen,
+  raised by a unit's height in the isometric views) and the phone layout.
+- A **question** in a bubble: the question is read in the bubble; the answers come up in the usual answer panel at the bottom of the
+  view (at the top when the bubble is down there).
+- Presentation only: nothing in the rules, the saves or the save hash depends on it (game.json `dialogue` is not part of the hash).
+- Loader refusals: `"dialogue"` not an object, an unknown key, `style` / `portrait` not one of the words, `names` not true / false, and
+  `portrait` / `names` with `style` `box` (`"portrait" and "names" are for speech bubbles: they need "style": "bubble"`).
+- Player log: `bubble: <name> x,y wxh above|below tail x,y` when a bubble opens (logical pixels).
+
+### Notices
+
+A **notice** is a system message in its own window in the middle of the screen: no name, no portrait, the text centred.
+
+```jsonc
+{ "notice": "Your clan has grown stronger.", "auto": 1500 }          // map events and campaign scenes; "auto" as for say
+{ "choice": "Repeat lesson?", "notice": true, "cursor": 2,          // the question and its answers in the notice window,
+  "answers": [ { "text": "Yes" }, { "text": "No", "do": [ { "break": true } ] } ] }   // the highlight starting on "No"
+```
+
+- `notice` reads, pages, skips and waits like a line (Confirm / tap to go on). It is shown the same with the box and with bubbles.
+- A choice with `"notice": true` shows its question in the notice window and the answers inside it, under the question. It takes no
+  `speaker`, `speakerName`, `portrait` or `face` (refused: `"speaker" makes no sense with "notice": true ...`).
+- `cursor` (any choice, 1 = the first answer **as written**): the answer the highlight starts on. When that answer is hidden (`if`) the
+  highlight starts on the first offered one. With nobody to ask (`ote-sim`, `--autoplay`, the editor's Play) the **cursor answer is the one
+  taken** (without `cursor`, the first, as before).
+- Refusals: `notice` text not text or empty; unknown keys (a notice takes only `notice` and `auto`); `notice` on a choice not true /
+  false; `cursor` not a whole number from 1 to the number of answers.
+- Player log: the usual `dialogue:  | <text>` line, then `scene: notice`.
+
+### Portrait expressions
+
+A portrait in data/graphics.json may list other faces, and a line may pick one:
+
+```jsonc
+"portraits": { "montblanc": { "sheet": "faces", "cell": [0, 0], "expressions": [[1, 0], [2, 0], [3, 0]] } }
+{ "say": "Kupo!", "speaker": "montblanc", "face": 2 }      // the second expression: cell [2, 0]
+```
+
+- `face` N (on `say` and `choice`, map events and scenes) shows the N-th entry of the speaker's portrait's `expressions` (whose portrait:
+  the line's `portrait`, else the speaker's, as always), beside the box, in a bubble and on the stage. Without `face` the portrait's own
+  `cell` (and its talk / blink frames) shows. A portrait with fewer expressions than N shows its own cell (and the player logs a warning).
+  An expression does not animate (no talk / blink frames).
+- Refusals: `expressions` not a list of 1 to 15 cells inside the sheet; `face` not a whole number from 1 to 15; a `face` larger than the
+  longest `expressions` list of any portrait (`"face" 3 needs a portrait with at least 3 "expressions" (the most any portrait of
+  data/graphics.json has is 2)`).
+
+### Naming a character
+
+```jsonc
+{ "askName": "marche", "default": "Marche", "max": 8, "prompt": "Enter your name." }   // campaign scenes only
+{ "say": "Welcome, {name:marche}!" }                                                   // any line, question, answer, notice, narrate
+```
+
+- `askName` (a chapter's `before` / `after` scene; the first chapter's `before` = the campaign's start) stops the scene for the **name
+  entry**: the prompt, the name being typed (it starts with the character's name now: a name typed before, else `default`, else the
+  character's own name) and an on-screen keyboard. Controller and keyboard: the arrows move over the keys, Confirm presses one, Cancel
+  deletes the last letter, Menu jumps to OK; mouse and touch press a key directly. Keys: A-Z (Case switches to a-z), 0-9, space, `-`,
+  `'`, `.`, Del, Reset (the name it started with), OK (not with an empty name). At most `max` letters (default 12, at most 24). A typed
+  keyboard (letters straight from a PC keyboard) is not built.
+- The name is used **everywhere the character's name appears**: the speaker's name of its lines (box, bubble, stage), `{name:<id>}` in
+  any text a line shows (say, narrate, notice, a choice's question and answers, the prompt), the battle's panels and menus (its units
+  are renamed when a chapter's battle is set up and when an `addUnit` brings it), the camp and preparation lists (its roster entries are
+  renamed), and the saves.
+- `{name:<id>}` shows the typed name, else the character's name as the battle or the roster has it, else its name in
+  data/characters.json, else the id. In map events it works in every game (it then reads the unit's name).
+- With nobody to type (`ote-sim`, `--autoplay`) the `default` is kept (when no name was typed yet). A scene that is skipped stops at a
+  name entry like at a question. A scene asked again (Continue after closing the window in the middle) asks again, starting with the
+  name typed last.
+- **Saved** in the campaign save: `"names": { "marche": "Kaden" }` in the playthrough, only once a name was typed (docs/SAVES.md); the
+  roster entries carry the name too, and a battle's units keep theirs in the battle save. A save with a name that is not 1 to 24 letters
+  or holds `{` / `}` is refused.
+- Refusals: `askName` in a map event (`"askName" is for campaign scenes only ...`); the id not a story id; unknown keys; `max` not 1 to
+  24; `default` empty, longer than `max` or with `{` / `}`; `prompt` not text or empty; a `{name:` not followed by an id and `}` in any
+  text (`"{name:" must be followed by a character id and "}", such as {name:hero}`).
+- Player log: `name entry: open <id> "<name now>" max N`, then `name entry: <id> = "<typed>"`.
+
+### Loops
+
+```jsonc
+{ "loop": [
+    { "say": "Now, attack the snowman!", "speaker": "lyle" },
+    { "choice": "Repeat lesson?", "notice": true, "cursor": 2,
+      "answers": [ { "text": "Yes" }, { "text": "No", "do": [ { "break": true } ] } ] } ],
+  "max": 10 }
+```
+
+- `loop` runs its commands again and again; `{ "break": true }` anywhere inside it (also inside an `if` or a choice's answer) ends the
+  loop at once and the commands after the loop run. A loop without a break runs `max` times (default 10, 1 to 100): the safety cap, so a
+  story can never hang. A loop inside a loop: `break` ends the inner one.
+- Map events and campaign scenes. With a person at the screen each round's question is asked again; with nobody to ask the `cursor`
+  answer (else the first) is taken each round, so "Repeat lesson?" with the cursor on "No" plays the lesson once in the simulator.
+- Refusals: `loop` not a list or empty; `max` not a whole number from 1 to 100; an unknown key; `break` not `true`; `break` outside a
+  loop (`"break" ends a loop: it only works inside a { "loop": [ ... ] }`).
+- Player log when the cap is reached: `story: a loop ran its most rounds (10) without a break`.
+
+### Scene backdrops
+
+A campaign scene has no map, so it shows the style's plain colour behind its lines unless a `background` command puts up a picture.
+`backdrop` gives scenes a picture from their first line without writing that command:
+
+```jsonc
+// data/campaign.json
+{ "name": "...", "backdrop": "town",                                     // every chapter scene starts on "town"
+  "chapters": [ { "id": "ch1", "map": "m1",
+                  "before": { "backdrop": "classroom", "commands": [ ... ] },   // this scene starts on "classroom"
+                  "after": { "backdrop": null, "commands": [ ... ] } } ] }      // this one on the plain colour
+```
+
+- It is a `background` cut at the start of the scene (after its `music`), so everything about backgrounds holds: a `background`
+  command replaces it, `{ "background": null }` takes it away. A scene with no commands stays empty (not shown). The title card is
+  drawn as before (on the plain colour).
+- Refusals: `backdrop` naming an unknown background (`(data/graphics.json "backgrounds")`), or a scene object's `backdrop` that is not
+  a background id or null.
+
+Code: `core/data/loader_dialogue.cpp` (the shared keys), `core/data/name_tokens.*`, `core/battle/story_loop.cpp`,
+`core/battle/hero_names.cpp`, `core/campaign/campaign_names.cpp`, `core/campaign/scene.cpp`; player `ui/bubble_layout.*`,
+`ui/dialogue_shapes.cpp`, `ui/name_entry.*`, `battle/battle_story.cpp`, `campaign/story_scene*.cpp`. Tests: `tests/test_dialogue_extras.cpp`,
+`tests/test_bubble_layout.cpp`, `tests/dialogue_bubbles_player_test.py` (fixture `tests/fixtures/dialogue-bubbles`).
+
 ## Battle and defeat quotes
 
 Built (PLAN k item 7; owner: "go ahead", scope below is the assistant's default for the owner to correct). A **character**
