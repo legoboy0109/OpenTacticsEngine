@@ -74,8 +74,10 @@ static void clearPlace(std::vector<SceneStage::Portrait>& list, const std::strin
              list.end());
 }
 
-bool SceneStage::say(const std::string& key, const std::string& art, int position) {
+bool SceneStage::say(const std::string& key, const std::string& art, int position, int face) {
   speaker_ = key;
+  for (Portrait& p : portraits_)  // the expression of its line (docs/EVENTS.md "Portrait expressions"), wherever it stands
+    if (!key.empty() && p.key == key) p.face = face;
   if (position == 0) return !key.empty() && staged(key);  // standing already: it lights up where it stands
   // A speaker already standing in that very place just lights up (a fade-in under way goes on); otherwise it takes the place.
   for (Portrait& p : portraits_)
@@ -88,6 +90,7 @@ bool SceneStage::say(const std::string& key, const std::string& art, int positio
   p.key = key;
   p.art = art;
   p.position = position;
+  p.face = face;
   portraits_.push_back(p);
   return true;
 }

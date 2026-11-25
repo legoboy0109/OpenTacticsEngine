@@ -133,6 +133,8 @@ SceneResolver PlayerApp::runSceneFor(SceneKind kind, const Playthrough& before, 
   return [this, kind, before](const std::vector<int>& answers, std::vector<SceneLine>& out) {
     if (!session_ || !session_->campaign) return false;
     Playthrough again = before;
+    // Names typed since the scene started (docs/EVENTS.md "Naming a character") are kept: the scene runs again with them.
+    for (const auto& n : session_->campaign->pt.names) setTypedName(again, n.first, n.second);
     out.clear();
     if (!runScene(session_->db, again, kind, out, answers)) return false;
     session_->campaign->pt = again;

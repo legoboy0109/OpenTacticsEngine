@@ -280,7 +280,10 @@ class BattleScene : public Scene {
   void updateDialogue(double dt);
   void dialogueResult(DialogueBox::Result res);
   void answerChosen(int pick);  // a question's answer: the core goes on and the view plays what follows
-  PortraitArt portraitFor(const std::string& id) const;
+  PortraitArt portraitFor(const std::string& id, int face = 0) const;
+  // battle_bubble.cpp (docs/EVENTS.md "Speech bubbles", "Notices"): how the current line is shown, and where its speaker is.
+  DialogueFrame dialogueFrame(const DialogueState& d) const;
+  bool speakerAnchor(int unit, BubbleAnchor& a) const;  // false = not on the map's part of the screen (or hidden by fog)
   void addTalkEntries(std::vector<MenuItem>& items);
   void talkChosen(int index);
   void openObjective();
