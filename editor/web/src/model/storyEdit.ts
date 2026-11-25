@@ -70,7 +70,7 @@ function stripEndTurn(list: Command[]): Command[] {
   const out: Command[] = []
   for (const c of list) {
     if (c.endTurn !== undefined) { changed = true; continue }
-    const inner = (['then', 'else'] as const).filter((b) => Array.isArray(c[b]))
+    const inner = (['then', 'else', 'loop'] as const).filter((b) => Array.isArray(c[b]))
     let next = c
     for (const b of inner) { const l = stripEndTurn(c[b]!); if (l !== c[b]) next = { ...next, [b]: l } }
     if (Array.isArray(c.answers)) {
@@ -91,7 +91,7 @@ export const setEventRepeat = (map: MapFile, id: string, on: boolean): MapFile =
 
 // --- commands, in the event's list or in the `then` / `else` list of an `if` further down ---
 /** `answer0`..`answer3`: the commands of a `choice` command's answer (docs/EVENTS.md "Dialogue choices"). */
-export type Branch = 'then' | 'else' | `answer${number}`
+export type Branch = 'then' | 'else' | 'loop' | `answer${number}`
 /** Where a list of commands is: [] = the event's own "Then" list; each step goes into one `if` command's branch or one `choice` command's answer. */
 export type ListPath = Array<[index: number, branch: Branch]>
 
@@ -101,7 +101,7 @@ export const answerOf = (b: Branch): number => (b.startsWith('answer') ? Number(
 /** The commands of one branch of a command. */
 export function branchList(c: Command | undefined, b: Branch): Command[] | undefined {
   const k = answerOf(b)
-  return k >= 0 ? c?.answers?.[k]?.do : c?.[b as 'then' | 'else']
+  return k >= 0 ? c?.answers?.[k]?.do : c?.[b as 'then' | 'else' | 'loop']
 }
 
 /** The command with the branch's list replaced; an emptied `else` (or an answer's `do`) leaves its key out. */

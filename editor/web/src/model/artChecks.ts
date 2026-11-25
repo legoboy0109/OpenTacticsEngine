@@ -3,6 +3,7 @@
 // poses of a unit picture, a sheet's unit offset and the portrait size. `dims` (the image library's width and height of a file) lets
 // the cells of a pose be checked against the image; without it that one check is skipped.
 import { FRAME_KEYS } from './graphics'
+import { expressionsProblems } from './storyDialogue'
 import { walkProblems, type Dims } from './walking'
 import type { Look, ProjectDoc } from './types'
 
@@ -37,6 +38,9 @@ export function artChecks(doc: ProjectDoc, dims?: Dims): ArtCheck[] {
     if (!(ok(p) || (Array.isArray(p) && p.length === 2 && ok(p[0]) && ok(p[1]))))
       say(`The portrait size must be a whole number, or a width and a height, each from ${PORTRAIT_MIN} to ${PORTRAIT_MAX}. The game will not load until it is fixed.`)
   }
+
+  // A portrait's expressions (docs/EVENTS.md "Portrait expressions").
+  for (const t of expressionsProblems(doc)) say(`${t} The game will not load until it is fixed.`)
 
   // Pictures of characters (base and per style) name characters the game has; poses and walking frames of every unit picture.
   const known = new Set((doc.characters ?? []).map((c) => c.id))

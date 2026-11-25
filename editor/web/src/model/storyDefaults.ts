@@ -155,6 +155,10 @@ export function newCommand(c: DefCtx, kind: CommandKind): Command {
     case 'clearStage': return { clearStage: true }
     case 'weather': return { weather: 'rain' }
     case 'narrate': return { narrate: '' }
+    case 'notice': return { notice: '' }
+    case 'loop': return { loop: [] }
+    case 'break': return { break: true }
+    case 'askName': return { askName: firstUnit(c) }
     case 'enter': return { enter: firstUnit(c), position: 'midLeft' }
     case 'move': return { move: firstUnit(c), position: 'right' }
     case 'setPhaseMusic': return { setPhaseMusic: { side: c.map.sides?.[0]?.id ?? '', music: Object.keys(c.doc.audio?.music ?? {})[0] ?? '' } }

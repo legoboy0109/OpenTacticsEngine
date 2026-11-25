@@ -125,6 +125,8 @@ export interface Game extends Extra {
   quotesPerFight?: 'both' | 'one'
   /** An action with nothing to act on in the unit's menu (docs/SRPG.md "Menu options"): missing = 'grey' (it stays, greyed); 'hide' leaves it out. */
   menuUnavailable?: 'grey' | 'hide'
+  /** How story lines are shown (docs/EVENTS.md "Speech bubbles"): missing = the box at the bottom (model/dialogueStyle.ts). */
+  dialogue?: DialogueLook
   /** What Attack does first (docs/SRPG.md "Menu options"): missing = 'equipped' (straight to the targets); 'pick' asks which weapon. */
   attackWeaponChoice?: 'equipped' | 'pick'
   /** Story switches (off / on) and variables (whole numbers) that events read and set (docs/EVENTS.md). */
@@ -133,6 +135,9 @@ export interface Game extends Extra {
   /** The maker's own list of difficulties (docs/DIFFICULTY.md; model/difficulty.ts); missing = the game has none. */
   difficulties?: DifficultySet
 }
+
+/** game.json "dialogue" (docs/EVENTS.md "Speech bubbles"): every key optional; `portrait` and `names` need style "bubble". */
+export interface DialogueLook extends Extra { style?: 'box' | 'bubble'; portrait?: 'beside' | 'inside' | 'none'; names?: boolean }
 
 /** Extra sight for some unit types only (docs/ECONOMY.md "Fog of war"): unit type ids or tags, never empty in a good file. */
 export interface VisionLimit { amount: number; units: string[] }
@@ -484,7 +489,9 @@ export interface Stand extends Extra {
 /** A visual style's overrides; `null` = no picture in that style. */
 export interface StyleArt extends Extra { terrain?: Record<string, Look | null>; units?: Record<string, Look | null>; characters?: Record<string, Look | null>; structures?: Record<string, Look | null> }
 /** A dialogue portrait: one piece of an image (docs/EVENTS.md "Dialogue"). */
-export interface Portrait extends Extra { sheet: string; cell: CellRef; faces?: 'left' | 'right'; talk?: CellRef[]; blink?: CellRef[] }
+export interface Portrait extends Extra { sheet: string; cell: CellRef; faces?: 'left' | 'right'; talk?: CellRef[]; blink?: CellRef[]
+  /** Other faces a line's `face` N picks (1 to 15 cells of the same sheet; docs/EVENTS.md "Portrait expressions"). */
+  expressions?: CellRef[] }
 /** A full-screen picture of a story scene: the whole image of a sheet, or one piece of it (docs/GRAPHICS.md "Backgrounds"). */
 export interface SceneBackground extends Extra { sheet: string; cell?: CellRef }
 /** One animation of a battle set: cells of an image played in order (docs/BATTLE_SCENE.md). */

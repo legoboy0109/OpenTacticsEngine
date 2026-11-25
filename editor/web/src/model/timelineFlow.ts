@@ -16,6 +16,7 @@ function collect(ctx: SumCtx, list: Command[] | undefined, trail: string[], out:
       const label = clip(trail.join(' › '), LABEL_MAX + 14)
       if (!out.some((g) => g.to === c.goto && g.label === label)) out.push({ to: c.goto, label })
     }
+    collect(ctx, c.loop, [...trail, 'in a loop'], out)
     ;(c.answers ?? []).forEach((a) => collect(ctx, a.do, [...trail, `“${clip(String(a.text ?? ''), LABEL_MAX)}”`], out))
     if (c.then || c.else) {
       const cond = clip(`if ${lowerFirst(conditionsText(ctx, c.if))}`, LABEL_MAX)

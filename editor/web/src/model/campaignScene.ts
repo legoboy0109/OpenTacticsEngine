@@ -4,7 +4,9 @@
 import type { Command } from './storyTypes'
 import type { Extra } from './types'
 
-export interface SceneObject extends Extra { music?: string; commands?: Command[] }
+export interface SceneObject extends Extra { music?: string; commands?: Command[]
+  /** A background id (the scene starts on it), or null = the plain colour whatever the campaign's backdrop is (campaignBackdrop.ts). */
+  backdrop?: string | null }
 export type Scene = Command[] | SceneObject
 
 export const isSceneObject = (s: Scene | undefined): s is SceneObject => !!s && !Array.isArray(s) && typeof s === 'object'
@@ -36,3 +38,26 @@ export function withSceneMusic(s: Scene | undefined, music: string | undefined):
   if (keys.length === 1 && keys[0] === 'commands') return sceneCommands(rest as SceneObject).length ? (rest as SceneObject).commands : undefined
   return rest
 }
+
+/** A scene's say about its backdrop: not said (the campaign's), a picture, or "the plain colour" (null). */
+export type SceneBackdrop = string | null | undefined
+
+export const sceneBackdrop = (s: Scene | undefined): SceneBackdrop => {
+  if (!isSceneObject(s) || !('backdrop' in s)) return undefined
+  return typeof s.backdrop === 'string' ? s.backdrop : s.backdrop === null ? null : undefined
+}
+
+/** The scene with its `backdrop` set (the object form), or taken away (undefined) and back to the plain list when nothing else is left. */
+export function withSceneBackdrop(s: Scene | undefined, backdrop: SceneBackdrop): Scene | undefined {
+  if (backdrop !== undefined) {
+    if (isSceneObject(s)) return { ...s, backdrop }
+    return s && s.length ? { backdrop, commands: s } : { backdrop }
+  }
+  if (!isSceneObject(s)) return s
+  const { backdrop: _gone, ...rest } = s as SceneObject
+  const keys = Object.keys(rest)
+  if (keys.length === 0) return undefined
+  if (keys.length === 1 && keys[0] === 'commands') return Array.isArray(rest.commands) && rest.commands.length ? rest.commands : undefined
+  return rest
+}
+
