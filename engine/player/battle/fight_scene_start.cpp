@@ -238,8 +238,8 @@ void FightScene::initFighter(int s) {
     if (!env_.sprites || env_.sprites->texture(sheetOf(s, art.sets[(size_t)f.set].anims[BaStand])) == 0) f.set = -1;
   }
   if (f.set >= 0) f.times = timesOf(art.sets[(size_t)f.set]);
-  if (gset && (size_t)u.type < gset->units.size() && env_.sprites) {
-    const Look& look = gset->units[(size_t)u.type].forSide(b.sides[(size_t)u.side].id);
+  if (const UnitLook* ul = gset && env_.sprites ? gset->unitLook(u.type, u.character) : nullptr) {  // (a character's own look wins)
+    const Look& look = ul->forSide(b.sides[(size_t)u.side].id);
     if (env_.sprites->has(look)) f.look = &look;
   }
 }

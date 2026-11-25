@@ -32,6 +32,7 @@ struct PortraitArt {
   TextureId tex = 0;
   int sx = 0, sy = 0, sw = 0, sh = 0;
   int faces = 0;  // the way it naturally looks: 0 not said, 1 left, 2 right (docs/GRAPHICS.md "Portraits")
+  int plateW = 48, plateH = 48;  // the box's portrait plate at the 8 px font (graphics.json "portraitSize")
   // Other frames of the face (the "talk" and "blink" cells of the portrait): source corner in the texture, same size as the first.
   std::vector<std::pair<int, int>> talk, blink;
   bool any() const { return tex != 0 && sw > 0 && sh > 0; }
@@ -67,7 +68,7 @@ class DialogueBox {
   int page() const { return page_; }
   int linesPerPage() const { return linesPerPage_; }
   int top() const { return boxY_; }
-  int portraitSize() const { return art_.any() ? ps_ : 0; }
+  int portraitSize() const { return art_.any() ? psW_ : 0; }
   // The answers' panel and rows (valid once setAnswers ran), for tests and screenshots.
   struct Rows { int x, y, w, h; };
   Rows panel() const { return {panelX_, panelY_, panelW_, panelH_}; }
@@ -97,7 +98,7 @@ class DialogueBox {
   PortraitArt art_;
   int lh_ = 8, step_ = 10, pad_ = 4, linesPerPage_ = 3, headerH_ = 0;
   int boxX_ = 0, boxY_ = 0, boxW_ = 0, boxH_ = 0;
-  int ps_ = 0, portraitX_ = 0, portraitY_ = 0;
+  int psW_ = 0, psH_ = 0, portraitX_ = 0, portraitY_ = 0;
   int skipX_ = 0, skipY_ = 0, skipW_ = 0, skipH_ = 0;
   // Question: the answers, wrapped into rows, and where the panel stands (above the box).
   std::vector<std::string> answers_;

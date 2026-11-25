@@ -37,15 +37,30 @@ void DialogueBox::open(const Renderer& r, int screenW, int screenH, int bottom, 
   linesPerPage_ = std::max(1, std::min(3, room));
   boxH_ = 2 * pad_ + headerH_ + linesPerPage_ * step_;
 
-  // The portrait stands to the left of the box, at a fixed size that follows the font (48 px at the
-  // default 8 px font, so it scales with the UI scale), and never takes more than a third of the width.
-  ps_ = art.any() ? std::max(24, std::min(48 * lh_ / 8, screenW / 3)) : 0;
+  // The portrait stands to the left of the box, on a plate of a fixed size that follows the font (the game's "portraitSize", 48 x 48
+  // by default, at the default 8 px font, so it scales with the UI scale). The plate never takes more than a third of the width nor
+  // more than 60 percent of the height; a smaller plate keeps its proportions.
+  psW_ = psH_ = 0;
+  if (art.any()) {
+    int w = std::max(1, art.plateW * lh_ / 8), h = std::max(1, art.plateH * lh_ / 8);
+    const int maxW = std::max(1, screenW / 3), maxH = std::max(1, screenH * 3 / 5);
+    if (w > maxW) {  // (whole numbers, so the default square plate is exactly the old min(48 * lh / 8, screenW / 3))
+      h = std::max(1, h * maxW / w);
+      w = maxW;
+    }
+    if (h > maxH) {
+      w = std::max(1, w * maxH / h);
+      h = maxH;
+    }
+    psW_ = std::max(24, w);
+    psH_ = std::max(24, h);
+  }
   const int margin = 2;
   portraitX_ = margin;
-  boxX_ = margin + (art.any() ? ps_ + margin : 0);
+  boxX_ = margin + (art.any() ? psW_ + margin : 0);
   boxW_ = std::max(40, screenW - boxX_ - margin);
   boxY_ = std::max(0, bottom - boxH_ - margin);
-  portraitY_ = boxY_ + boxH_ - ps_;
+  portraitY_ = boxY_ + boxH_ - psH_;
 
   skipW_ = textW(r, kSkipLabel) + 8;
   skipH_ = lh_ + 4;
@@ -229,14 +244,17 @@ void DialogueBox::draw(Renderer& r) const {
   using namespace chrome;
   // Portrait: a dark plate, the picture fitted inside it keeping the cell's proportions, a frame.
   if (art_.any()) {
-    r.fillRect(portraitX_, portraitY_, ps_, ps_, Color(16, 20, 36, 240));
-    int dw = ps_, dh = ps_;
-    if (art_.sw >= art_.sh) dh = std::max(1, ps_ * art_.sh / art_.sw);
-    else dw = std::max(1, ps_ * art_.sw / art_.sh);
+    r.fillRect(portraitX_, portraitY_, psW_, psH_, Color(16, 20, 36, 240));
+    // Fitted inside the plate keeping the cell's proportions, standing on its bottom edge, centred across.
+    int dw = psW_, dh = std::max(1, psW_ * art_.sh / std::max(1, art_.sw));
+    if (dh > psH_) {
+      dh = psH_;
+      dw = std::max(1, psH_ * art_.sw / std::max(1, art_.sh));
+    }
     const PortraitArt face = portraitFrame(art_, revealing(), time_, name_);  // talk / blink frames, when the portrait has them
-    r.drawTexture(face.tex, face.sx, face.sy, face.sw, face.sh, portraitX_ + (ps_ - dw) / 2, portraitY_ + ps_ - dh,
+    r.drawTexture(face.tex, face.sx, face.sy, face.sw, face.sh, portraitX_ + (psW_ - dw) / 2, portraitY_ + psH_ - dh,
                   dw, dh);
-    r.drawRect(portraitX_, portraitY_, ps_, ps_, Color(200, 205, 230));
+    r.drawRect(portraitX_, portraitY_, psW_, psH_, Color(200, 205, 230));
   }
   r.fillRect(boxX_ + 2, boxY_ + 2, boxW_, boxH_, Color(0, 0, 0, 110));  // drop shadow
   r.fillRect(boxX_, boxY_, boxW_, boxH_, Color(16, 20, 36, 240));

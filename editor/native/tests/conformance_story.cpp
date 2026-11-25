@@ -44,6 +44,11 @@ void addStoryContexts(std::vector<Context>& c) {
                 {"graphics:terrain.*{picture}.join{animation (several blocks)}[]", "[0,2]"},
                 {"graphics:units.*{picture}", R"({"sheet":"units","cell":[0,0]})"},
                 {"graphics:units.*{picture}.walk", R"({"down":[[0,0]]})"},
+                // poses and facing (docs/GRAPHICS.md "Poses and facing"): like walk, at least one direction
+                {"graphics:units.*{picture}.facing", R"({"downLeft":[[0,0]]})"},
+                {"graphics:units.*{picture}.attack", R"({"downLeft":[[0,0]]})"},
+                {"graphics:units.*{picture}.hurt", R"({"downLeft":[[0,0]]})"},
+                {"graphics:units.*{picture}.ko", R"({"downLeft":[[0,0]]})"},
                 {"graphics:units.*{picture}.sides", R"({"blue":{"sheet":"units","cell":[0,0]}})"},
                 {"graphics:structures.*{picture}", R"({"sheet":"structures","cell":[0,0]})"},
                 {"graphics:structures.*{picture}.sides", R"({"blue":{"sheet":"structures","cell":[0,0]}})"},
@@ -69,9 +74,23 @@ void addStoryContexts(std::vector<Context>& c) {
   c.push_back({"gfx-style", "demo-srpg",
                {{"data/graphics.json", "styles",
                  R"({"isometric-3d":{"terrain":{"plain":{"sheet":"iso_tiles","cell":[0,0]}},"units":{"lord":{"sheet":"iso_units","cell":[0,0]}},)"
-                 R"("structures":{"fort":{"model":"models/fort.glb"}},"portraits":{"eirik":{"sheet":"units","cell":[0,0]}}}})"}},
+                 R"("structures":{"fort":{"model":"models/fort.glb"}},"portraits":{"eirik":{"sheet":"units","cell":[0,0]}},)"
+                 R"("characters":{"eirik":{"sheet":"iso_units","cell":[0,0]}}}})"}},
                {"graphics:styles"},
                {{"graphics:styles.*.terrain.*{picture}", R"({"sheet":"iso_tiles","cell":[0,0]})"},
+                {"graphics:styles.*.characters.*{picture}", R"({"sheet":"iso_units","cell":[0,0]})"},
+                {"graphics:styles.*.characters.*{3D model}", R"({"model":"models/fighter.glb"})"},
+                {"graphics:styles.*.characters.*{3D model}.model", "\"models/fighter.glb\""},
+                {"graphics:styles.*.characters.*{picture}.sides", R"({"blue":{"sheet":"iso_units","cell":[0,0]}})"},
+                {"graphics:styles.*.characters.*{picture}.walk", R"({"down":[[0,0]]})"},
+                {"graphics:styles.*.characters.*{picture}.facing", R"({"downLeft":[[0,0]]})"},
+                {"graphics:styles.*.characters.*{picture}.attack", R"({"downLeft":[[0,0]]})"},
+                {"graphics:styles.*.characters.*{picture}.hurt", R"({"downLeft":[[0,0]]})"},
+                {"graphics:styles.*.characters.*{picture}.ko", R"({"downLeft":[[0,0]]})"},
+                {"graphics:styles.*.units.*{picture}.facing", R"({"downLeft":[[0,0]]})"},
+                {"graphics:styles.*.units.*{picture}.attack", R"({"downLeft":[[0,0]]})"},
+                {"graphics:styles.*.units.*{picture}.hurt", R"({"downLeft":[[0,0]]})"},
+                {"graphics:styles.*.units.*{picture}.ko", R"({"downLeft":[[0,0]]})"},
 
                 {"graphics:styles.*.terrain.*{picture}.stand", R"({"sheet":"stand","cell":[0,0]})"},
                 {"graphics:styles.*.terrain.*{picture}.stand.variants{cells of the sheet}", "[[0,0]]"},
@@ -86,6 +105,18 @@ void addStoryContexts(std::vector<Context>& c) {
                 {"graphics:styles.*.structures.*{picture}.sides", R"({"blue":{"sheet":"structures","cell":[0,0]}})"},
                 {"graphics:styles.*.structures.*{3D model}", R"({"model":"models/fort.glb"})"},
                 {"graphics:styles.*.structures.*{3D model}.model", "\"models/fort.glb\""}}});
+
+  // A character's own picture (docs/GRAPHICS.md "Character looks": demo-srpg has the character eirik) and the portrait plate size.
+  c.push_back({"gfx-characters", "demo-srpg",
+               {{"data/graphics.json", "characters", R"({"eirik":{"sheet":"units","cell":[0,0]}})"}},
+               {"graphics:characters", "graphics:portraitSize"},
+               {{"graphics:characters.*{picture}", R"({"sheet":"units","cell":[0,0]})"},
+                {"graphics:characters.*{picture}.sides", R"({"blue":{"sheet":"units","cell":[0,0]}})"},
+                {"graphics:characters.*{picture}.walk", R"({"down":[[0,0]]})"},
+                {"graphics:characters.*{picture}.facing", R"({"downLeft":[[0,0]]})"},
+                {"graphics:characters.*{picture}.attack", R"({"downLeft":[[0,0]]})"},
+                {"graphics:characters.*{picture}.hurt", R"({"downLeft":[[0,0]]})"},
+                {"graphics:characters.*{picture}.ko", R"({"downLeft":[[0,0]]})"}}});
 
   // A standing thing is a picture (sheet, cell, width) or a model (model, height, turn); the two never mix.
   c.push_back({"gfx-style-stand-model", "demo-srpg",

@@ -5,6 +5,7 @@ export const P = {
   cardTitle: 'Picture',
   cardHelpTerrain: 'How this terrain is drawn on the map. Without a picture it stays a coloured square with its letter.',
   cardHelpUnit: 'How this unit is drawn on the map. Without a picture it stays a coloured block with its letter.',
+  cardHelpCharacter: 'How this character is drawn on the map, instead of its unit type’s picture. Without one it is drawn as its unit type is.',
   cardHelpStructure: 'How this structure is drawn on the map. The picture is drawn across the whole footprint, standing on its bottom edge, so a tall picture may stick out above. Without a picture it stays a coloured block with its letter.',
   choose: 'Choose picture…',
   change: 'Change picture…',

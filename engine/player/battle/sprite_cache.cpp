@@ -31,15 +31,18 @@ void Sprites::load(Renderer& r, const std::string& gameDir, const Graphics& g) {
   if (g.battle.stage.on)
     for (const BattlePlatform& p : g.battle.platforms) mirrorIt(p.sheet);
   // Walking frames of one side drawn as the other (docs/GRAPHICS.md "Walking").
+  // The same for the poses (docs/GRAPHICS.md "Poses and facing"), of unit types and of characters.
   for (const GraphicsSet& set : g.styles)
-    for (const UnitLook& ul : set.units) {
-      auto mark = [&](const Look& l) {
-        for (int d = 0; d < kWalkDirs; ++d)
-          if (l.walk.mirrored[d]) mirrorIt(l.walk.sheet);
-      };
-      mark(ul.base);
-      for (const auto& s : ul.sides) mark(s.second);
-    }
+    for (const std::vector<UnitLook>* looks : {&set.units, &set.characters})
+      for (const UnitLook& ul : *looks) {
+        auto mark = [&](const Look& l) {
+          l.forEachDirLook([&](const WalkLook& w) {
+            if (w.anyMirrored()) mirrorIt(w.sheet);
+          });
+        };
+        mark(ul.base);
+        for (const auto& s : ul.sides) mark(s.second);
+      }
   for (const TilesetDef& ts : g.tilesets)  // the isometric view samples tiles itself (tile_art.cpp)
     if (ts.sheet >= 0 && (size_t)ts.sheet < slots_.size()) slots_[(size_t)ts.sheet].keepPixels = true;
   // Only the headers are read here: the file is there, is a PNG, and is at least one cell big. The pixels follow when drawn.

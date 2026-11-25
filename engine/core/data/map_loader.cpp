@@ -399,7 +399,7 @@ bool loadMapFile(const Database& db, const std::string& mapId, MapDef& out, std:
   m.name = ref.name;
   if (!c.str(root, "name", "", m.name)) return false;
   std::vector<int> structureAt;
-  if (!loadGrid(c, db, root, m) || !loadTiles(c, db, root, m) || !readMapTileLayer(c, db, root, m) || !loadSides(c, db, root, m) ||
+  if (!loadGrid(c, db, root, m) || !loadTiles(c, db, root, m) || !readMapTileLayer(c, db, root, m) || !readMapBackdrop(c, db, root, m) || !loadSides(c, db, root, m) ||
       !readMapFog(c, root, m) || !readMapWeather(c, root, m) || !readMapExits(c, root, m) || !readMapAbilityPoints(c, db, root, m) || !readMapBattleBackground(c, db, root, m) || !readMapBattleTables(c, db, root, m) || !loadStructures(c, db, root, m, structureAt) ||
       !readMapChanges(c, db, root, m) || !readMapDifficulty(c, db, root, m) ||
       !loadUnits(c, db, root, m, structureAt) || !checkPlaceVisitors(c, db, m))
@@ -414,7 +414,7 @@ bool loadMapFile(const Database& db, const std::string& mapId, MapDef& out, std:
   // typo in a key the readers never look at is what is left to find here.
   // Every key a map may have. The audio loader (engine/player/sound/audio_data.cpp) reads "music", "playerTurnMusic", "enemyTurnMusic",
   // "prepMusic", "phaseMusic" and "fewEnemies"; "owners" is the old list that older editors wrote empty (loadStructures refuses a full one).
-  if (!c.onlyKeys(root, {"name", "grid", "legend", "tiles", "heights", "tileLayer", "sides", "structures", "units", "owners", "fog", "fogVision", "aiSeesAll",
+  if (!c.onlyKeys(root, {"name", "grid", "legend", "tiles", "heights", "tileLayer", "backdrop", "sides", "structures", "units", "owners", "fog", "fogVision", "aiSeesAll",
                          "weather", "exits", "abilityPoints", "battleBackground", "battleBackgrounds", "battlePlatforms", "changes", "difficulty", "events", "objectives", "prep",
                          "music", "playerTurnMusic", "enemyTurnMusic", "prepMusic", "phaseMusic", "fewEnemies"},
                   ""))

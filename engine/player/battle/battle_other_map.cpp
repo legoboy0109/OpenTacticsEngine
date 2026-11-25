@@ -88,7 +88,7 @@ void BattleScene::showOtherMap() {
   proj_.setViewport(layout_.vw, layout_.vh);
   proj_.init(battle_, &session_.db.styles[styleIdx_], layout_.tile);
   if (proj_.view3d()) map3d_.reset(new Map3D(host_.renderer3d(), host_.show3d(), session_.dir, session_.db.graphics));
-  if (host_.sprites() && !proj_.view3d()) preloadMapArt(*host_.sprites(), battle_, styleIdx_);
+  if (host_.sprites() && !proj_.view3d()) preloadMapArt(*host_.sprites(), battle_, styleIdx_, &shownMapDef());
   view_ = BattleView();
   view_.init(*sm.start, layout_.tile, autoplay_);  // the units as the map placed them; the entries bring them to the end state
   view_.setAudio(&host_.gameAudio());

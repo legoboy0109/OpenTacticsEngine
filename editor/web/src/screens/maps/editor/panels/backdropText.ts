@@ -1,0 +1,22 @@
+// Wording of the map's backdrop (docs/VIEWS.md "Backdrop"). All of it is placeholder wording (docs/EDITOR_UI.md "Owner decisions").
+export const BD = {
+  title: 'Backdrop',
+  help: 'A prerendered picture of the whole map that the 2D isometric view draws instead of its generated squares. The squares’ terrain and heights still decide everything in play; the picture is only what is shown.',
+  add: 'Add a backdrop',
+  needImage: 'Add an image on the Art screen first: the backdrop is one whole image.',
+  remove: 'Remove the backdrop',
+  image: 'Backdrop image',
+  imageHelp: 'The image drawn behind the units, whole.',
+  originX: 'Origin across (pixels)',
+  originY: 'Origin down (pixels)',
+  originHelp: 'The pixel of the image where the top corner of the square in the map’s top-left corner is, at height 0. Whole numbers from -8192 to 8192.',
+  over: 'Over image',
+  overHelp: 'An image with pieces (trees, roofs) drawn over the units that stand behind them. Optional.',
+  overNone: 'None',
+  pieces: (n: number) => (n === 0 ? 'No pieces are cut from the over image.' : n === 1 ? '1 piece is cut from the over image.' : `${n} pieces are cut from the over image.`),
+  piecesNote: 'Pieces (which part of the over image stands on which square) are written by converters and tools; this panel keeps them as they are and cannot edit them.',
+  styles: 'Drawn in these styles',
+  stylesHelp: 'Only styles of the 2D isometric kind draw a backdrop. None ticked = every such style.',
+  allStyles: 'Every 2D isometric style',
+  notHere: 'A backdrop is only for square games with a visual style of the 2D isometric kind (Game screen).',
+}

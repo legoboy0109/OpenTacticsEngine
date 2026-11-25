@@ -346,7 +346,7 @@ TEST(walk_refusals) {
 TEST(walk_direction_mapping_square_hex_iso) {
   WalkLook all;
   all.sheet = 0;
-  for (int d = 0; d < kWalkDirs; ++d) all.frames[d].push_back(SpriteCell());
+  for (int d = 0; d <= WalkLeft; ++d) all.frames[d].push_back(SpriteCell());  // (the four axis directions; the diagonals: test_iso_map_art.cpp)
   // Squares: the step on the screen is the step on the map (y grows downwards).
   CHECK_EQ(all.pick(0, 24), WalkDown);
   CHECK_EQ(all.pick(0, -24), WalkUp);

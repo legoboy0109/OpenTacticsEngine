@@ -180,6 +180,78 @@ row 3   12 S+W     13 N+S+W   14 E+S+W   15 all four
 So a road running left-right is piece 10, a dead end pointing up from a
 square is piece 4 (its only neighbour is to the south), a crossroads is 15.
 
+## Character looks
+
+```jsonc
+"characters": { "marche": { "sheet": "story_units", "cell": [0, 0], "walk": { ... },
+                            "sides": { "red": { "sheet": "story_units", "cell": [0, 1] } } } },
+"styles": { "iso": { "characters": { "marche": { "sheet": "story_iso", "frames": [[0, 0], [1, 0]] } } } }
+```
+
+A character (`data/characters.json`) can have its **own map picture**, drawn instead of its unit type's **whatever its class** (a
+promotion or a job change keeps it). The entry is exactly a unit entry (`cell` or `frames`, `sides`, `walk`, the poses below, a
+`model` in a 3D style) and follows the same per-style rules: the root `characters` serve the top-down styles, a style of another
+kind of view starts with none and gives its own. A unit that is no character, or a character without an entry, uses its type's
+look as before. It is used on the map in every kind of view and by the battle scene's fallback picture; the roster, promotion and
+unit-type lists keep showing the type. **Portraits** need nothing new: the dialogue box already looks a speaker's portrait up by
+the speaking unit's story id, which is its character's id. Refused: an id that is no character (`character "x": there is no
+character with this id`), and everything a unit entry refuses. Code: `GraphicsSet::characters`, `GraphicsSet::unitLook(type,
+character)`.
+
+## Poses and facing
+
+```jsonc
+"units": { "soldier": { "sheet": "men", "frames": [[0, 0], [1, 0]],          // standing: the look's own cell / frames, as always
+    "facing": { "downLeft": [[0, 0], [1, 0]], "upLeft": [[0, 1], [1, 1]] },  // standing seen from the front / from behind
+    "attack": { "downLeft": [[2, 0], [3, 0], [4, 0]], "upLeft": [[2, 1], [3, 1], [4, 1]], "frameMs": 100 },
+    "hurt":   { "downLeft": [[5, 0]], "upLeft": [[5, 1]] },
+    "ko":     { "down": [[6, 0]] },
+    "walk":   { "downLeft": [[0, 2], [1, 2]], "upLeft": [[0, 3], [1, 3]] } } }
+```
+
+- **The keys** `facing`, `attack`, `hurt` and `ko` (unit pictures only, also of a side, a style and a character) have exactly the shape
+  of `walk`: an optional `sheet` (default: the picture's own; another cell size is drawn at the same pixels per art pixel), `frameMs`
+  (20..60000, default 150) and frames per **direction on the screen**: `down`, `up`, `side` / `left` / `right` as for walking, and the
+  four **diagonals** `downLeft`, `downRight`, `upLeft`, `upRight` (the facings of the 2D isometric view: a step along the grid's x goes
+  down-right on that screen, along y down-left). A missing diagonal is its partner turned round (`downRight` from `downLeft`, `upRight`
+  from `upLeft`), so two drawn facings (front and back) give all four; `walk` takes the diagonals too.
+- **Which direction**: the one nearest the way the unit looks *on the screen* (the walk rule: largest dot product, ties in the order
+  down, up, right, left, downLeft, downRight, upLeft, upRight; a direction not given is replaced by the nearest given one). The way it
+  looks: the rules' facing when the game has facing (docs/SRPG.md "Facing"); else the last step it walked, turned to the target when it
+  strikes. In the 3D kinds the screen way follows the camera, as walking does.
+- **When**: `facing` while standing once a way is known (before its first move or strike, and always in a game without facing, a unit
+  shows the look's own cell / frames); it loops on the running time. While walking, `walk` (a look without `walk` but with `facing`
+  turns its standing frames with each step). `attack` from the start of its strike on the map (the lunge), `hurt` on the target from
+  the moment a hit lands until the strike ends, `ko` while a defeated unit fades out. The three poses play **once** from their start
+  (the last frame is held). **Fallbacks**: no `ko` = `hurt`; no `hurt` (or no `attack`) = the standing picture (per facing when given).
+  A downed state, when one exists, will use `ko`. The battle scene (side view) has its own animations (docs/BATTLE_SCENE.md); these
+  are the map's.
+- Strict, like `walk`: unknown keys (`attack has an unknown key "back"`), an unknown sheet, a cell outside the sheet, a list of 0 or
+  over 64 cells, `frameMs` out of range, `needs at least one of ...`; on terrain, structures or portraits: `only a unit picture can have
+  "attack" frames`; with a `model`: refused like `walk`.
+- Presentation only. Debug log: with `OTE_LOG_LEVEL=debug` the player prints `[debug] pose: NAME stand|attack|hurt|ko DIRECTION` once
+  per change (tests read it). Code: `UnitPoses` / `Look::poses` (`core/data/graphics.h`), `readUnitPoses` (`loader_unit_frames.cpp`),
+  `unitPic` (`player/battle/sprites.cpp`); `UnitView::pose`, `poseT`, `faceDx`, `faceDy` (set in `battle_view.cpp`).
+
+**Owner decisions (placeholders; any may change):** the key names (`facing`, `attack`, `hurt`, `ko`, the diagonal names); poses
+play once and hold their last frame; `hurt` only while the strike that hit plays (a miss shows none); without the rules' facing a
+unit keeps looking the way it last walked or struck, and shows its plain picture until then; no "dodge", "cast" or "victory" pose yet.
+
+## Unit offset
+
+```jsonc
+"sheets": [ { "id": "units", "file": "art/units.png", "cellWidth": 32, "cellHeight": 40, "unitOffset": [0, 4] } ]
+```
+
+A sheet's `unitOffset` `[x, y]` (whole numbers -256..256, in the **sheet's own pixels**, y down) moves every **unit picture** cut from it
+(standing, walking, poses; also a character's) by that much, scaled like the picture (at 1 art pixel per screen pixel it is that many
+pixels), in the top-down and 2D isometric views. The side marker, the HP bar, the badges and the other markers stay where they are.
+For art whose feet are not at the cell's bottom edge, or a converted game whose units stand a few pixels lower than the engine's
+foot point (FFTA: 4 px). Terrain, structures and portraits ignore it; the 3D kinds do not use it yet. Refused: `"unitOffset" must be
+[x, y]: whole numbers from -256 to 256 ...`. Code: `SheetDef::unitOffX/Y`, `unitPicOffset` (`sprites.cpp`).
+
+**Owner decisions (placeholders):** per sheet (not per unit type or per style); the picture moves alone.
+
 ## Portraits (dialogue)
 
 ```jsonc
@@ -202,7 +274,12 @@ replace or remove one). Errors read `data/graphics.json: portrait "eirik": …`
 The box draws a portrait 48 x 48 logical pixels with the 8 px font (more
 with larger fonts / UI scale), keeping the cell's proportions (fitted
 inside, standing on the box's bottom edge), so square cells or cells a bit
-taller than wide work best. The 2D renderer draws every sheet the same way,
+taller than wide work best. **Larger portraits:** the root key `"portraitSize"` sets that plate, a whole number (a square,
+`"portraitSize": 64`) or `[width, height]`, each 24..160 logical pixels at the 8 px font (scaled with the font and UI scale like
+the default). A 64 x 64 face with `"portraitSize": 64` is drawn whole at its own size; a 64 x 80 one with `[64, 80]` too. The plate
+never takes more than a third of the screen's width or 60 % of its height (it then shrinks, keeping its proportions). Without the
+key: 48 x 48, as always. Refused: `"portraitSize" must be a whole number or [width, height], each from 24 to 160 ...`. The scene stage
+(below) sizes its portraits by itself and is unchanged. **Owner decision (placeholder):** the key name and its range. The 2D renderer draws every sheet the same way,
 so the sheet's `smooth` key has no effect on portraits yet.
 
 In memory: `GraphicsSet::portraits` and `GraphicsSet::portrait(id)`;

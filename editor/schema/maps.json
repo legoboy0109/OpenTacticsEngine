@@ -48,6 +48,14 @@
       "changes": { "use": "_map#changes" },
       "abilityPoints": { "type": "object", "help": "This map's own ability points for a won battle (needs items that teach; docs/JOBS.md).", "fields": {
         "perBattle": { "type": "int", "required": true, "min": 0, "max": 9999, "help": "Points each unit of the winning human side gets (replaces rules.abilityPoints.perBattle here)." } } },
+      "backdrop": { "type": "object", "block": true, "enable": { "sheet": "" }, "help": "Square games: a prerendered picture the 2D isometric view draws instead of the squares (docs/VIEWS.md \"Backdrop\").", "fields": {
+        "sheet": { "type": "ref", "ref": "data/graphics.json#sheets", "required": true, "help": "The sheet whose whole image is the picture." },
+        "origin": { "type": "list", "length": 2, "sample": [0, 0], "of": { "type": "int", "min": -8192, "max": 8192 }, "help": "[x, y]: the picture pixel of the top corner of square 0,0 at height 0." },
+        "over": { "type": "ref", "ref": "data/graphics.json#sheets", "help": "A picture drawn over the units, placed the same way." },
+        "pieces": { "type": "list", "min": 1, "max": 4096, "help": "Cut the over picture into pieces, each sorted with one square (needs over).", "of": { "type": "object", "summary": "{square}", "fields": {
+          "rect": { "type": "list", "length": 4, "sample": [0, 0, 32, 32], "required": true, "of": { "type": "int", "min": 0 }, "help": "[x, y, width, height] in the over picture." },
+          "square": { "type": "list", "length": 2, "sample": [0, 0], "required": true, "of": { "type": "int", "min": 0, "max": 255 }, "help": "[x, y]: the square it sorts with." } } } },
+        "styles": { "type": "list", "of": { "type": "ref", "ref": "game.json#styles" }, "help": "The 2D isometric styles that draw it (default: all of them)." } } },
       "exits": { "type": "list", "min": 1, "max": 64, "of": { "use": "_map#square" }, "help": "The squares a computer unit in mode escape (or a looter with nothing left to take) walks to and leaves the map by; 1 to 64, none twice, all inside the map." },
       "prep": { "use": "_map#prep" },
       "objectives": { "use": "_map#objectives" },

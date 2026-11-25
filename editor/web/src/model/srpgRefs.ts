@@ -3,6 +3,7 @@
 // shapes of the contract hold is covered here; the story forms of later steps (teach / forget a skill, promote,
 // support points) add their own references to `storyRefs.ts` when they exist.
 import { dropBattleOf } from './battleArt'
+import { dropArtOf } from './graphicsClean'
 import { ids } from './doc'
 import { makeId } from './ids'
 import { dropTeach, teachUsers } from './teaches'
@@ -166,7 +167,7 @@ const removeFrom = <K extends 'characters' | 'skills' | 'abilities'>(doc: Projec
 }
 
 /** Deletes the item and every place that holds it, in one edit (so one Undo brings it all back). */
-export const deleteCharacter = (doc: ProjectDoc, id: string): ProjectDoc => removeFrom(cleanCharacter(doc, id), 'characters', id)
+export const deleteCharacter = (doc: ProjectDoc, id: string): ProjectDoc => removeFrom(dropArtOf(cleanCharacter(doc, id), 'characters', id), 'characters', id)
 export const deleteSkill = (doc: ProjectDoc, id: string): ProjectDoc => removeFrom(cleanSkill(doc, id), 'skills', id)
 export const deleteAbility = (doc: ProjectDoc, id: string): ProjectDoc => removeFrom(cleanAbility(doc, id), 'abilities', id)
 

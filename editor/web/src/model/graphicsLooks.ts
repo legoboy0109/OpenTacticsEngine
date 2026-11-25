@@ -136,3 +136,19 @@ export function pickFromLook(look: Look | null | undefined, fallbackSheet: strin
 export function stylesWithOverride(doc: ProjectDoc, kind: LookKind, id: string): string[] {
   return Object.entries(doc.graphics?.styles ?? {}).filter(([, st]) => st[kind] && Object.prototype.hasOwnProperty.call(st[kind], id)).map(([k]) => k)
 }
+
+/** What a character's picture preview needs: the unit sample is drawn from the unit TYPE's entry, so for a character the document gets
+ *  the character's own entries (base and every look) put in place of its type's, and the sample is of the type. A character without its own picture shows its type's (as in the game). Other kinds: unchanged. */
+export function previewAs(doc: ProjectDoc, kind: LookKind, id: string): { doc: ProjectDoc; id: string } {
+  if (kind !== 'characters') return { doc, id }
+  const type = doc.characters?.find((c) => c.id === id)?.type
+  const g = doc.graphics
+  if (!type || !g) return { doc, id: type ?? id }
+  const swap = (units: Record<string, Look | null> | undefined, own: Record<string, Look | null> | undefined) => {
+    const next = { ...(units ?? {}) }
+    if (own && Object.prototype.hasOwnProperty.call(own, id)) next[type] = own[id]
+    return next
+  }
+  const styles = Object.fromEntries(Object.entries(g.styles ?? {}).map(([k, st]) => [k, { ...st, units: swap(st.units, st.characters) }]))
+  return { doc: { ...doc, graphics: { ...g, units: swap(g.units, g.characters) as Graphics['units'], styles } }, id: type }
+}

@@ -3,7 +3,7 @@ import { useRef, useState } from 'react'
 import { prepareImage, type Prepared } from '../../art/importImage'
 import { useArtState } from '../../art/useArt'
 import { artBase } from '../../model/artFiles'
-import { findSheet, setSheetName, setSheetSmooth } from '../../model/graphics'
+import { findSheet, setSheetName, setSheetSmooth, setSheetUnitOffset } from '../../model/graphics'
 import { outsideUsers, sheetUsers } from '../../model/graphicsUsage'
 import { gridInfo } from '../../model/gridGuess'
 import { Link, projectPath } from '../../router'
@@ -12,6 +12,7 @@ import { Banner } from '../../ui/Banner'
 import { Advanced, Card } from '../../ui/Card'
 import { ConfirmDialog } from '../../ui/Dialog'
 import { Field } from '../../ui/Field'
+import { NumberInput } from '../../ui/NumberInput'
 import { Check } from '../../ui/Toggle'
 import { PieceGrid } from '../../ui/picture/PieceGrid'
 import { TextInput } from '../../ui/TextInput'
@@ -72,6 +73,16 @@ export function ImageDetails({ id, say }: Props) {
 
       <Card>
         <Check label={T.smooth} help={T.smoothHelp} checked={sheet.smooth === true} onChange={(v) => edit((d) => setSheetSmooth(d, id, v), `art:${id}:smooth`)} />
+        <div className="battle-fields" data-testid="unit-offset">
+          <Field label={T.unitOffsetX} help={T.unitOffsetHelp}>
+            <NumberInput aria-label={`${T.unitOffset}: ${T.unitOffsetX}`} min={-256} max={256} value={sheet.unitOffset?.[0] ?? 0}
+              onChange={(v) => v !== undefined && edit((d) => setSheetUnitOffset(d, id, v, sheet.unitOffset?.[1] ?? 0), `art:${id}:offx`)} />
+          </Field>
+          <Field label={T.unitOffsetY}>
+            <NumberInput aria-label={`${T.unitOffset}: ${T.unitOffsetY}`} min={-256} max={256} value={sheet.unitOffset?.[1] ?? 0}
+              onChange={(v) => v !== undefined && edit((d) => setSheetUnitOffset(d, id, sheet.unitOffset?.[0] ?? 0, v), `art:${id}:offy`)} />
+          </Field>
+        </div>
       </Card>
 
       {width > 0 && grid && (

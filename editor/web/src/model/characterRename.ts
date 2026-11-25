@@ -115,11 +115,16 @@ function renameInGraphics(doc: ProjectDoc, from: string, to: string): ProjectDoc
   let out = g
   const portraits = renamePortraitKey(g.portraits, from, to)
   if (portraits !== g.portraits) out = { ...out, portraits }
+  // A character's own picture (graphics `characters`, general and per style) is keyed by the id too.
+  const looks = renamePortraitKey(g.characters, from, to)
+  if (looks !== g.characters) out = { ...out, characters: looks }
   if (g.styles) {
     let styles = g.styles
     for (const [sid, st] of Object.entries(g.styles)) {
       const p = renamePortraitKey((st as { portraits?: Record<string, unknown> }).portraits, from, to)
       if (p !== (st as { portraits?: unknown }).portraits) styles = { ...styles, [sid]: { ...st, portraits: p } as typeof st }
+      const cl = renamePortraitKey(st.characters, from, to)
+      if (cl !== st.characters) styles = { ...styles, [sid]: { ...(styles[sid] ?? st), characters: cl } as typeof st }
     }
     if (styles !== g.styles) out = { ...out, styles }
   }

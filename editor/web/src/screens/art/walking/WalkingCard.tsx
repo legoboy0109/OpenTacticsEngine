@@ -17,6 +17,7 @@ import { WalkPreview } from './WalkPreview'
 import { W } from './text'
 
 interface Props { slot: Slot; entry: Look }
+const DIAGONALS: WalkDir[] = ['downLeft', 'downRight', 'upLeft', 'upRight']
 
 export function WalkingCard({ slot, entry }: Props) {
   const doc = useDoc()
@@ -80,6 +81,18 @@ export function WalkingCard({ slot, entry }: Props) {
           <p className="help">{own ? W.rowsHelp : `${W.rowsHelp} ${W.sideHelp}`}</p>
           <div className="battle-fields">
             {dirs.map((dir) => (
+              <Field key={dir} label={W.rowLabel(W.row[dir])}>
+                <NumberInput aria-label={`${W.title}: ${W.rowLabel(W.row[dir])}`} allowEmpty min={1} max={500}
+                  value={rowOfRun(walk[dir]) === undefined ? undefined : rowOfRun(walk[dir])! + 1}
+                  placeholder={walk[dir] && rowOfRun(walk[dir]) === undefined ? 'by hand' : undefined}
+                  onChange={(v) => edit((d) => setWalkRow(d, target, dir, v === undefined ? undefined : v - 1), `${key}:row:${dir}`)} />
+              </Field>
+            ))}
+          </div>
+          <h4>{W.diagonals}</h4>
+          <p className="help">{W.diagonalsHelp}</p>
+          <div className="battle-fields">
+            {DIAGONALS.map((dir) => (
               <Field key={dir} label={W.rowLabel(W.row[dir])}>
                 <NumberInput aria-label={`${W.title}: ${W.rowLabel(W.row[dir])}`} allowEmpty min={1} max={500}
                   value={rowOfRun(walk[dir]) === undefined ? undefined : rowOfRun(walk[dir])! + 1}

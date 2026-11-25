@@ -120,7 +120,11 @@ struct UnitPic {
   bool flip = false;
   float k = 1;
 };
+// While the unit strikes, is hit or falls and its look has that pose, the pose's frame; standing with a known facing and a look with
+// "facing" frames, the frame of that facing (docs/GRAPHICS.md "Poses and facing").
 UnitPic unitPic(const DrawCtx& c, const Look& look, const Unit& u);
+// Where `pic` drawn `drawnW` pixels wide moves by its sheet's "unitOffset" (docs/GRAPHICS.md "Unit offset"), in screen pixels.
+void unitPicOffset(const DrawCtx& c, const UnitPic& pic, int drawnW, int& ox, int& oy);
 // The texture and source rectangle for drawing `pic` with the 2D renderer (a turned-round picture comes from the sheet's mirrored copy).
 SpriteSrc drawSrc(const DrawCtx& c, const UnitPic& pic);
 

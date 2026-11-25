@@ -11,6 +11,7 @@ import { Check } from '../../../../ui/Toggle'
 import { T } from '../text'
 import type { MapViewState } from '../viewState'
 import { MapMusic } from '../../../sound/MapMusic'
+import { BackdropSettings } from './BackdropSettings'
 import { BattleSceneSettings } from './BattleSceneSettings'
 import { ExitsSettings } from './ExitsSettings'
 import { FogSettings } from './FogSettings'
@@ -36,6 +37,7 @@ export function SettingsPanel({ doc, map, mapId, vs }: { doc: ProjectDoc; map: M
         <button type="button" className="btn" onClick={() => setResizing(true)}>{T.resizeButton}</button>
       </div>
       <ExitsSettings doc={doc} map={map} mapId={mapId} />
+      <BackdropSettings doc={doc} map={map} mapId={mapId} />
       <FogSettings doc={doc} map={map} mapId={mapId} vs={vs} />
       <BattleSceneSettings doc={doc} map={map} mapId={mapId} />
       <MapMusic doc={doc} map={map} mapId={mapId} />

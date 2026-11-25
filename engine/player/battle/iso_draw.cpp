@@ -7,6 +7,7 @@
 
 #include "battle/battle_draw.h"
 #include "battle/facing_marker.h"
+#include "battle/iso_backdrop.h"
 #include "battle/iso_unit.h"
 #include "battle/tile_art.h"
 #include "ui/text.h"
@@ -169,14 +170,21 @@ void drawStructureIso(const Iso& I, int index, const Overlay& ov) {
     }
 }
 
+// Where a unit stands on the screen: its spot on the ground (cx, cy) and its feet.
+void unitSpotIso(const Iso& I, const UnitView& v, int& cx, int& cy, int& foot) {
+  const int t = I.p.tile();
+  // The unit's spot in squares (BattleView animates flat map pixels), lifted to the ground there.
+  float gx = (v.px + v.ox) / t + 0.5f, gy = (v.py + v.oy) / t + 0.5f;
+  I.at(gx, gy, I.p.elevationAt(gx, gy), cx, cy);
+  foot = cy + I.g.tileH / 4;  // the feet stand a little in front of the square's middle
+}
+
 void drawUnitIso(const Iso& I, const Unit& u, const UnitView& v, float fade) {
   const IsoGeometry& g = I.g;
   int t = I.p.tile(), uw = I.p.unitW();
-  // The unit's spot in squares (BattleView animates flat map pixels), lifted to the ground there.
   float gx = (v.px + v.ox) / t + 0.5f, gy = (v.py + v.oy) / t + 0.5f;
-  int cx, cy;
-  I.at(gx, gy, I.p.elevationAt(gx, gy), cx, cy);
-  int foot = cy + g.tileH / 4;  // the feet stand a little in front of the square's middle
+  int cx, cy, foot;
+  unitSpotIso(I, v, cx, cy, foot);
   if (I.offScreen(cx - uw, foot - uw * 3, uw * 2, uw * 3 + 8)) return;
   // The marker under the feet is a diamond (a shared figure drawer: iso_unit.cpp).
   auto marker = [&](int x, int y, int w, int h, Color col) {
@@ -227,6 +235,11 @@ void drawMapIso(Renderer& r, const DrawCtx& c, const Overlay& ov, Cell cursor, b
   const MapProj& p = *c.proj;
   Iso I{r, c, p, p.geo(), c.cam.ix(), c.cam.iy()};
   r.fillRect(0, 0, L.vw, L.vh, c.style && c.style->hasBackground ? Color::rgb(c.style->background) : Color(10, 10, 16));
+  // A prerendered picture of the map (docs/VIEWS.md "Backdrop") stands in for the generated squares; its over picture is drawn
+  // over the units, whole at the end or piece by piece in the order of the squares the pieces stand on.
+  const MapBackdrop* bd = isoBackdrop(c);
+  if (bd) drawIsoBackdrop(r, c, *bd, I.camX, I.camY);
+  const bool pieces = bd && bd->over >= 0 && !bd->pieces.empty();
   int gw = b.grid.width(), gh = b.grid.height();
   int pulse = 200 + (int)(55 * std::sin(c.time * 6.0f));
   bool cursorOn = showCursor && b.grid.valid(cursor);
@@ -234,12 +247,14 @@ void drawMapIso(Renderer& r, const DrawCtx& c, const Overlay& ov, Cell cursor, b
   // Structures and units, by the diagonal they are drawn after (structures
   // first on a tie). A structure goes after its nearest square; a unit on a
   // structure goes after that structure, so it is never hidden by it.
-  struct Item { int key, kind, index; };  // kind 0 = structure, 1 = unit
+  struct Item { int key, kind, index; };  // kind 0 = backdrop piece, 1 = structure, 2 = unit
   std::vector<Item> items;
+  if (pieces)
+    for (size_t i = 0; i < bd->pieces.size(); ++i) items.push_back({bd->pieces[i].gx + bd->pieces[i].gy, 0, (int)i});
   for (size_t i = 0; i < b.structures.size(); ++i) {
     const StructureState& st = b.structures[i];
     const StructureDef& def = b.defOf(st);
-    items.push_back({st.x + def.width - 1 + st.y + def.height - 1, 0, (int)i});
+    items.push_back({st.x + def.width - 1 + st.y + def.height - 1, 1, (int)i});
   }
   for (const Unit& u : b.units) {
     if (u.id >= (int)c.view.units.size() || !c.view.units[u.id].visible) continue;
@@ -250,7 +265,7 @@ void drawMapIso(Renderer& r, const DrawCtx& c, const Overlay& ov, Cell cursor, b
     int si = b.structureAt[b.grid.at(ux, uy)];
     if (si >= 0) key = std::max(key, b.structures[si].x + b.defOf(b.structures[si]).width - 1 + b.structures[si].y +
                                          b.defOf(b.structures[si]).height - 1);
-    items.push_back({std::min(key, gw + gh - 2), 1, u.id});
+    items.push_back({std::min(key, gw + gh - 2), 2, u.id});
   }
   std::stable_sort(items.begin(), items.end(), [](const Item& a, const Item& b2) {
     return a.key != b2.key ? a.key < b2.key : a.kind < b2.kind;
@@ -261,7 +276,8 @@ void drawMapIso(Renderer& r, const DrawCtx& c, const Overlay& ov, Cell cursor, b
     for (int x = std::max(0, d - gh + 1); x <= std::min(gw - 1, d); ++x) {
       int y = d - x;
       Cell cell = b.grid.at(x, y);
-      drawSquare(I, cell, x, y);
+      if (!bd) drawSquare(I, cell, x, y);
+      else if (c.view.dimmed(cell)) tint(I, x, y, Color(0, 0, 0, (uint8_t)(255 * (1 - kFogDim))));  // (the picture's square, darkened like a fogged block)
       overlayTint(I, ov, cell, x, y);
       if (cursorOn && cell == cursor) {
         tint(I, x, y, Color(255, 240, 120, (uint8_t)pulse), true);
@@ -269,19 +285,49 @@ void drawMapIso(Renderer& r, const DrawCtx& c, const Overlay& ov, Cell cursor, b
     }
     for (; next < items.size() && items[next].key <= d; ++next) {
       const Item& it = items[next];
-      if (it.kind == 0) drawStructureIso(I, it.index, ov);
-      else drawUnitIso(I, b.units[it.index], c.view.units[it.index], 1.0f);
+      if (it.kind == 0) {
+        const BackdropPiece& bp = bd->pieces[(size_t)it.index];
+        const bool dim = c.view.dimmed(b.grid.at(bp.gx, bp.gy));
+        drawIsoOverPiece(r, c, *bd, bp, I.camX, I.camY, dim ? shade(kFogDim) : Color(255, 255, 255));
+      } else if (it.kind == 1) {
+        drawStructureIso(I, it.index, ov);
+      } else {
+        drawUnitIso(I, b.units[it.index], c.view.units[it.index], 1.0f);
+      }
     }
   }
-  // Shown through: units standing behind raised ground, and the cursor.
+  if (bd && !pieces) drawIsoOverWhole(r, c, *bd, I.camX, I.camY);
+  // Shown through: units standing behind raised ground (with a backdrop: behind a piece of its over picture), and the cursor.
+  std::vector<int> unitKey(b.units.size(), 0);  // (the diagonal each unit is drawn after)
+  for (const Item& it : items)
+    if (it.kind == 2 && (size_t)it.index < unitKey.size()) unitKey[(size_t)it.index] = it.key;
   for (const Unit& u : b.units) {
     if (u.id >= (int)c.view.units.size() || !c.view.units[u.id].visible) continue;
+    const UnitView& v = c.view.units[(size_t)u.id];
     int ux, uy;
-    unitSquare(I, c.view.units[u.id], ux, uy);
-    if (p.geo().hidden(ux, uy, p.elevations())) drawUnitIso(I, u, c.view.units[u.id], 0.45f);
+    unitSquare(I, v, ux, uy);
+    bool hidden;
+    if (!bd) {
+      hidden = p.geo().hidden(ux, uy, p.elevations());
+    } else {
+      int cx, cy, foot, uw = p.unitW();
+      unitSpotIso(I, v, cx, cy, foot);
+      hidden = pieces && isoOverCovers(c, *bd, unitKey[(size_t)u.id], I.camX, I.camY, cx - uw / 2, foot - uw, uw, uw);
+    }
+    if (hidden) drawUnitIso(I, u, v, 0.45f);
   }
-  if (cursorOn && p.geo().hidden(b.grid.x(cursor), b.grid.y(cursor), p.elevations()))
-    tint(I, b.grid.x(cursor), b.grid.y(cursor), Color(255, 240, 120, (uint8_t)(pulse * 2 / 5)), true);
+  if (cursorOn) {
+    const int x = b.grid.x(cursor), y = b.grid.y(cursor);
+    bool hidden;
+    if (!bd) {
+      hidden = p.geo().hidden(x, y, p.elevations());
+    } else {
+      int nx, ny;
+      I.at((float)x, (float)y, (float)p.elevation(x, y), nx, ny);
+      hidden = pieces && isoOverCovers(c, *bd, x + y, I.camX, I.camY, nx - I.g.tileW / 2, ny, I.g.tileW, I.g.tileH);
+    }
+    if (hidden) tint(I, x, y, Color(255, 240, 120, (uint8_t)(pulse * 2 / 5)), true);
+  }
   for (const StructureState& st : b.structures) drawCaptureIso(I, st);
 }
 

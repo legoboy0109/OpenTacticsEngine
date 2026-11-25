@@ -21,6 +21,7 @@ void MapProj::init(const Battle& b, const StyleDef* style, int tile) {
     grid_ = b.grid;
   }
   elev_.assign((size_t)(gridW_ * gridH_), 0);
+  lowest_ = 0;
   if (!raised()) return;
   // Heights count from the lowest square; a wild value in a map file must not
   // push the map off the screen, so the range is capped.
@@ -30,6 +31,7 @@ void MapProj::init(const Battle& b, const StyleDef* style, int tile) {
     lo = i ? std::min(lo, h) : h;
     hi = i ? std::max(hi, h) : h;
   }
+  lowest_ = lo;
   const int kMaxLevels = 32;
   for (size_t i = 0; i < elev_.size(); ++i) elev_[i] = std::min(b.cells[i].height - lo, kMaxLevels);
   if (free3d_) {  // no measures to read: sizes are in squares, the camera decides the pixels

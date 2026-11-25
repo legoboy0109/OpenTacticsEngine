@@ -47,9 +47,17 @@ void BattleView::init(const Battle& b, int tileSize, bool autoplay) {
 }
 
 void BattleView::resync(const Battle& b) {
+  // The way each unit looks is the view's own memory (the rules keep none without facing rules): it survives the resync that
+  // follows every run of entries (docs/GRAPHICS.md "Poses and facing").
+  std::vector<std::pair<float, float>> faces;
+  for (const UnitView& v : units) faces.emplace_back(v.faceDx, v.faceDy);
   units.assign(b.units.size(), UnitView());
   for (const Unit& u : b.units) {
     UnitView& v = units[u.id];
+    if ((size_t)u.id < faces.size()) {
+      v.faceDx = faces[(size_t)u.id].first;
+      v.faceDy = faces[(size_t)u.id].second;
+    }
     v.visible = (u.alive || u.downed) && u.carriedBy < 0;  // a carried unit (rescue / pair up) is off the board: not drawn
     if (u.downed) lieDown(v);  // docs/SRPG.md "Downed units and revive"
     v.hp = u.hp;
@@ -148,6 +156,10 @@ void BattleView::beginAttack(const Battle& b) {
   float dx = d.px - a.px, dy = d.py - a.py, len = std::sqrt(dx * dx + dy * dy);
   cur_.dirX = len > 0 ? dx / len : 0;
   cur_.dirY = len > 0 ? dy / len : 0;
+  if (len > 0) {  // the attacker turns to its target (the picture per facing; docs/GRAPHICS.md "Poses and facing")
+    units[e.a].faceDx = dx;
+    units[e.a].faceDy = dy;
+  }
   cur_.dur = kAttackDur;
   if (e.flags & kMapWeapon) {  // fired from a structure: one log line, a floating note after the last shot
     OTE_INFO("%s", mapWeaponLogLine(b, e).c_str());
@@ -408,8 +420,8 @@ void BattleView::progress(const Battle& b) {
       cellPos(b, cur_.path[i], x0, y0);
       cellPos(b, cur_.path[j], x1, y1);
       if (j > i) {  // the way of the step now under way (at the very end it keeps the last one)
-        v.walkDx = x1 - x0;
-        v.walkDy = y1 - y0;
+        v.walkDx = v.faceDx = x1 - x0;  // (and it keeps looking that way when it stops: docs/GRAPHICS.md "Poses and facing")
+        v.walkDy = v.faceDy = y1 - y0;
       }
       v.walking = cur_.path.size() > 1;
       v.px = x0 + (x1 - x0) * t;
@@ -425,6 +437,12 @@ void BattleView::progress(const Battle& b) {
       float off = p < kImpactAt ? p / kImpactAt : std::max(0.0f, 1 - (p - kImpactAt) / 0.25f);
       a.ox = cur_.dirX * kLungePx * off;
       a.oy = cur_.dirY * kLungePx * off;
+      a.pose = PoseAttack;  // the attack / hurt frames (docs/GRAPHICS.md "Poses and facing"), from the start / from the hit
+      a.poseT = cur_.t;
+      if (p >= kImpactAt && (e.flags & kHit)) {
+        d.pose = PoseHurt;
+        d.poseT = cur_.t - kImpactAt * cur_.dur;
+      }
       if (p >= kImpactAt && !cur_.fired) impact(b);
       if (p >= kImpactAt) {
         float k = std::min(1.0f, (p - kImpactAt) / 0.55f);
@@ -444,6 +462,8 @@ void BattleView::progress(const Battle& b) {
     case EventType::UnitDied:  // a downed unit (docs/SRPG.md "Downed units and revive") stops half faded, lying
       units[e.a].alpha = 1 - p * ((e.flags & kDowned) ? 1 - kDownedAlpha : 1.0f);
       if (e.flags & kDowned) units[e.a].down = p;
+      units[e.a].pose = PoseKo;
+      units[e.a].poseT = cur_.t;
       break;
     case EventType::MoveBlocked:  // the camera goes to the revealed enemy
       hasFocus = true;
@@ -486,6 +506,7 @@ void BattleView::finish(const Battle& b) {
       if (!cur_.fired) impact(b);  // skipped before the hit landed
       units[e.a].ox = units[e.a].oy = 0;
       units[e.b].hp = cur_.hpTo;
+      units[e.a].pose = units[e.b].pose = PoseNone;
       break;
     }
     case EventType::UnitDied: {
@@ -497,6 +518,7 @@ void BattleView::finish(const Battle& b) {
       v.visible = false;
       v.hp = 0;
       v.alpha = 1;
+      v.pose = PoseNone;
       break;
     }
     case EventType::UnitBuilt:

@@ -11,6 +11,7 @@ import { mapDifficultyChecks } from './difficultyChecks'
 import { fogChecks } from './fogChecks'
 import { changeChecks } from './mapChangeChecks'
 import { tileChecks, type ImageSize } from './tileChecks'
+import { backdropChecks } from './backdropChecks'
 import { itemChecks } from './itemChecks'
 import { placeChecks } from './placeChecks'
 import { mapWeaponChecks } from './mapWeapon'
@@ -83,6 +84,8 @@ export function mapWarnings(doc: ProjectDoc, map: MapFile, imageSize?: ImageSize
   if (mapId !== undefined) changeChecks(doc, mapId).forEach((x, i) => out.push({ key: `changes:${i}`, text: x.text }))
   // The tile layer and the tiles changes and commands carry (model/tileChecks.ts).
   if (mapId !== undefined) tileChecks(doc, mapId, imageSize).forEach((x, i) => out.push({ key: `tiles:${i}`, text: x.text }))
+  // The backdrop of the 2D isometric view (model/backdropChecks.ts).
+  if (mapId !== undefined) backdropChecks(doc, mapId, imageSize).forEach((x, i) => out.push({ key: `backdrop:${i}`, text: x.text }))
   // What the player's sound loader would refuse about this map's music keys.
   audioChecks(doc).filter((x) => mapId !== undefined && x.mapId === mapId).forEach((x, i) => out.push({ key: `audio:${i}`, text: x.text }))
   // What the loader would refuse about this map's story events, objectives and unit story names.

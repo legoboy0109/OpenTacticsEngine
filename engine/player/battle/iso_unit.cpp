@@ -38,7 +38,9 @@ void drawIsoUnitFigure(Renderer& r, const DrawCtx& c, const Unit& u, const UnitV
     const SpriteSrc src = drawSrc(c, pic);
     int w = std::max(1, (int)(uw * v.scale * pic.k)), h = std::max(1, w * src.h / std::max(1, src.w));  // (a walking picture: pic.k wider)
     Color mod = shade(spent ? 0.55f : 1.0f, a);
-    r.drawTexture(src.tex, src.x, src.y, src.w, src.h, cx - w / 2, foot - h, w, h, mod);
+    int ox, oy;
+    unitPicOffset(c, pic, w, ox, oy);  // the sheet's "unitOffset" moves the picture only (docs/GRAPHICS.md "Unit offset")
+    r.drawTexture(src.tex, src.x, src.y, src.w, src.h, cx - w / 2 + ox, foot - h + oy, w, h, mod);
     bodyTop = foot - h;
   } else {
     // Placeholder: an upright block in the side's colour with the unit's letter.

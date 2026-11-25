@@ -353,6 +353,14 @@ export interface MapUnit extends Extra {
   /** On a side a person plays, but the computer moves it; it does not keep its side and never joins the party (model/guests.ts). */
   guest?: boolean
 }
+/** A map's backdrop: `sheet` (an image id), where square 0,0's top corner sits in it, an `over` picture drawn above the units cut into `pieces`. */
+export interface MapBackdrop extends Extra {
+  sheet: string
+  origin?: [number, number]
+  over?: string
+  pieces?: Array<{ rect: [number, number, number, number]; square: [number, number] }>
+  styles?: string[]
+}
 export interface MapFile extends Extra {
   name: string
   grid: { type?: string; width: number; height: number } & Extra
@@ -381,6 +389,8 @@ export interface MapFile extends Extra {
   changes?: Record<string, { cells?: Array<{ x: number; y: number; terrain: string; tile?: number | null; keepTile?: boolean }>; structures?: Array<{ id: string; kind: string }>; keepTile?: boolean }>
   /** The tile layer (docs/GRAPHICS.md "Tile layer"): one string per row, four hex digits per square ("...." = no tile); model/tiles.ts. */
   tileLayer?: TileLayer
+  /** The prerendered picture the 2D isometric view draws instead of its generated squares (docs/VIEWS.md "Backdrop"); model/backdrop.ts. */
+  backdrop?: MapBackdrop
   /** Music (docs/SOUND.md): a track id of data/audio.json, "" = none on this map; missing = the game's. */
   music?: string
   playerTurnMusic?: string
@@ -411,7 +421,9 @@ export type ChestLoot = string | { item: string; uses?: number } | { resource: s
 // --- art (docs/GRAPHICS.md, data/graphics.json) ---
 export type CellRef = [number, number]
 /** An image file and how it is cut into pieces (the file format calls this a "sheet"; the UI says "image"). */
-export interface Sheet extends Extra { id: string; file: string; cellWidth: number; cellHeight: number; name?: string; smooth?: boolean }
+export interface Sheet extends Extra { id: string; file: string; cellWidth: number; cellHeight: number; name?: string; smooth?: boolean
+  /** Moves every unit picture cut from this image, in the image's own pixels (whole numbers -256..256; docs/GRAPHICS.md "Unit offset"). */
+  unitOffset?: [number, number] }
 /** How one terrain or unit is drawn: `sheet` plus exactly one of cell / variants / frames / join. */
 export interface Look extends Extra {
   sheet: string
@@ -431,6 +443,11 @@ export interface Look extends Extra {
   stand?: Stand
   /** Units only: frames shown while the unit moves (docs/GRAPHICS.md "Walking"). */
   walk?: WalkDef
+  /** Units and characters only: the standing, striking, hurt and defeated pictures (docs/GRAPHICS.md "Poses and facing"); each has the shape of `walk`. */
+  facing?: WalkDef
+  attack?: WalkDef
+  hurt?: WalkDef
+  ko?: WalkDef
 }
 /** Walking frames of a unit picture: lists of cells of `sheet` (default: the picture's own image) per direction; `side` faces right and
  *  the opposite direction is it turned round unless `left` and `right` are both given. */
@@ -441,6 +458,11 @@ export interface WalkDef extends Extra {
   side?: CellRef[]
   left?: CellRef[]
   right?: CellRef[]
+  /** The facings of the 2D isometric view; a missing one of a pair is its partner turned round. */
+  downLeft?: CellRef[]
+  downRight?: CellRef[]
+  upLeft?: CellRef[]
+  upRight?: CellRef[]
   frameMs?: number
 }
 /** A terrain's standing part: an upright picture (`sheet` with cell / variants / frames) or 3D models (`model`, or `variants`
@@ -460,7 +482,7 @@ export interface Stand extends Extra {
   scatter?: boolean
 }
 /** A visual style's overrides; `null` = no picture in that style. */
-export interface StyleArt extends Extra { terrain?: Record<string, Look | null>; units?: Record<string, Look | null>; structures?: Record<string, Look | null> }
+export interface StyleArt extends Extra { terrain?: Record<string, Look | null>; units?: Record<string, Look | null>; characters?: Record<string, Look | null>; structures?: Record<string, Look | null> }
 /** A dialogue portrait: one piece of an image (docs/EVENTS.md "Dialogue"). */
 export interface Portrait extends Extra { sheet: string; cell: CellRef; faces?: 'left' | 'right'; talk?: CellRef[]; blink?: CellRef[] }
 /** A full-screen picture of a story scene: the whole image of a sheet, or one piece of it (docs/GRAPHICS.md "Backgrounds"). */
@@ -581,10 +603,14 @@ export interface Graphics extends Extra {
   unitMarker?: boolean
   terrain?: Record<string, Look>
   units?: Record<string, Look>
+  /** A character's own picture (docs/GRAPHICS.md "Character looks"): character id -> a unit picture, drawn instead of its unit type's. */
+  characters?: Record<string, Look>
+  /** The dialogue portrait plate: a whole number (square) or [width, height], each 24..160 (docs/GRAPHICS.md "Portraits"). */
+  portraitSize?: number | [number, number]
   structures?: Record<string, Look>
   styles?: Record<string, StyleArt>
 }
-export type LookKind = 'terrain' | 'units' | 'structures'
+export type LookKind = 'terrain' | 'units' | 'structures' | 'characters'
 
 /** The editable project: exactly the GET shape minus id/revision/problems. */
 export interface ProjectDoc {

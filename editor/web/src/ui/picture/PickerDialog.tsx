@@ -6,7 +6,7 @@ import { useArtState } from '../../art/useArt'
 import { standPreview } from '../../art/preview'
 import { artBase } from '../../model/artFiles'
 import { findSheet, sheetsOf } from '../../model/graphics'
-import { emptyPick, lookFromPick, MAX_BLOCKS, MAX_PIECES, pickFromLook, SPEEDS, type Pick, type PickKind } from '../../model/graphicsLooks'
+import { emptyPick, lookFromPick, MAX_BLOCKS, MAX_PIECES, pickFromLook, previewAs, SPEEDS, type Pick, type PickKind } from '../../model/graphicsLooks'
 import { gridInfo } from '../../model/gridGuess'
 import { gridOfGame, isHex, layoutOf } from '../../model/gridSpec'
 import { joinBlockSide } from '../../model/pickCell'
@@ -42,7 +42,7 @@ interface Props {
   onClose: () => void
 }
 
-const KINDS: Record<LookKind, PickKind[]> = { terrain: ['one', 'mix', 'animation', 'join'], units: ['one', 'animation'], structures: ['one', 'animation'] }
+const KINDS: Record<LookKind, PickKind[]> = { terrain: ['one', 'mix', 'animation', 'join'], units: ['one', 'animation'], characters: ['one', 'animation'], structures: ['one', 'animation'] }
 const STAND_KINDS: PickKind[] = ['one', 'mix', 'animation']
 const same = (a: CellRef, b: CellRef) => a[0] === b[0] && a[1] === b[1]
 
@@ -199,7 +199,7 @@ export function PickerDialog({ kind, thingId, what, current, apply, look, side, 
               ? <TerrainDraft id={thingId} look={look} doc={draftDoc} what={what} />
               : kind === 'structures'
                 ? <StructureDraft id={thingId} look={look} doc={draftDoc} what={what} side={side} />
-                : <UnitDraft id={thingId} look={look} doc={draftDoc} what={what} side={side} />}
+                : <UnitDraft kind={kind} id={thingId} look={look} doc={draftDoc} what={what} side={side} />}
           </section>
         </div>
       </div>
@@ -216,8 +216,9 @@ function StandDraft({ id, look, doc, what }: { id: string; look: LookChoice; doc
 function TerrainDraft({ id, look, doc, what }: { id: string; look: LookChoice; doc: ProjectDoc; what: string }) {
   return <ArtCanvas spec={useTerrainSample(id, look, doc)} label={P.previewTerrain(what)} />
 }
-function UnitDraft({ id, look, doc, what, side }: { id: string; look: LookChoice; doc: ProjectDoc; what: string; side?: string }) {
-  return <ArtCanvas spec={useUnitSample(id, look, doc, side ? [side] : undefined)} label={P.previewUnit(what)} />
+function UnitDraft({ kind, id, look, doc, what, side }: { kind: LookKind; id: string; look: LookChoice; doc: ProjectDoc; what: string; side?: string }) {
+  const as = useMemo(() => previewAs(doc, kind, id), [doc, kind, id])
+  return <ArtCanvas spec={useUnitSample(as.id, look, as.doc, side ? [side] : undefined)} label={P.previewUnit(what)} />
 }
 function StructureDraft({ id, look, doc, what, side }: { id: string; look: LookChoice; doc: ProjectDoc; what: string; side?: string }) {
   return <ArtCanvas spec={useStructureSample(id, look, doc, side ? [side] : undefined)} label={P.previewStructure(what)} />

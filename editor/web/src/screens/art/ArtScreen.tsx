@@ -11,6 +11,8 @@ import { Card } from '../../ui/Card'
 import { ConfirmDialog } from '../../ui/Dialog'
 import { MasterDetail } from '../../ui/MasterDetail'
 import { Toggle } from '../../ui/Toggle'
+import { ArtChecks } from './ArtChecks'
+import { CharactersCard } from './CharactersCard'
 import { ImageDetails } from './ImageDetails'
 import { BattleAnimsCard } from './battle/BattleAnimsCard'
 import { BackgroundsCard } from './BackgroundsCard'
@@ -101,7 +103,9 @@ function ArtBody({ itemId }: { itemId?: string }) {
         <Card title={T.settingsTitle}>
           <Toggle label={T.marker} help={T.markerHelp} checked={unitMarkerOn(doc)} onChange={(v) => edit((d) => setUnitMarker(d, v))} />
         </Card>
+        <ArtChecks />
         <PortraitsCard />
+        <CharactersCard />
         <BackgroundsCard />
         <BadgesCard />
         <MarkersCard />

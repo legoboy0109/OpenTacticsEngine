@@ -2,7 +2,7 @@
 // piece of one of the game's images. The story names of the units in the maps are offered as quick starts.
 import { useState } from 'react'
 import { addPortrait, framesText, movePortrait, parseFrames, portraitIdProblem, portraitList, portraitSuggestions, removePortrait, renamePortrait, setPortraitFacing, setPortraitFrames, setPortraitPicture, type PortraitFacing } from '../../model/portraits'
-import { sheetsOf } from '../../model/graphics'
+import { portraitSizeOf, setPortraitSize, sheetsOf } from '../../model/graphics'
 import { tidyId } from '../../model/storyIds'
 import { useDoc, useEdit } from '../../store/context'
 import { Card } from '../../ui/Card'
@@ -10,6 +10,7 @@ import { Icon } from '../../ui/Icon'
 import { RowButtons } from '../../ui/RowButtons'
 import { Field } from '../../ui/Field'
 import { IdInput } from '../../ui/IdInput'
+import { NumberInput } from '../../ui/NumberInput'
 import { Select } from '../../ui/Select'
 import { TextInput } from '../../ui/TextInput'
 import { PortraitPicker } from './PortraitPicker'
@@ -39,6 +40,7 @@ export function PortraitsCard() {
   const doc = useDoc()
   const edit = useEdit()
   const list = portraitList(doc)
+  const size = portraitSizeOf(doc)
   const hasImages = sheetsOf(doc).length > 0
   const [choosing, setChoosing] = useState<string | null>(null)
   const [text, setText] = useState('')
@@ -49,6 +51,16 @@ export function PortraitsCard() {
   return (
     <Card title={T.portraitsTitle} help={T.portraitsHelp} id="portraits">
       <div className="stack tight" data-testid="portraits">
+        <div className="battle-fields" data-testid="portrait-size">
+          <Field label={T.portraitWidth} help={T.portraitSizeHelp}>
+            <NumberInput aria-label={`${T.portraitSize}: ${T.portraitWidth}`} allowEmpty min={24} max={160} placeholder="48" value={size?.[0]}
+              onChange={(v) => edit((d) => setPortraitSize(d, v, v === undefined ? undefined : size?.[1] ?? 48), 'portrait:size:w')} />
+          </Field>
+          <Field label={T.portraitHeight}>
+            <NumberInput aria-label={`${T.portraitSize}: ${T.portraitHeight}`} allowEmpty min={24} max={160} placeholder="48" value={size?.[1]}
+              onChange={(v) => edit((d) => setPortraitSize(d, v === undefined ? undefined : size?.[0] ?? 48, v), 'portrait:size:h')} />
+          </Field>
+        </div>
         {!hasImages && <p className="help">{T.portraitsNeedImage}</p>}
         {hasImages && list.length === 0 && <p className="help">{T.portraitsNone}</p>}
         <ul className="portrait-list" aria-label={T.portraitsTitle}>

@@ -18,6 +18,7 @@
 #include "core/data/teaching.h"
 #include "core/data/unit_pools.h"
 #include "core/data/graphics.h"
+#include "core/data/map_backdrop.h"
 #include "core/data/map_change.h"
 #include "core/data/map_weapon.h"
 #include "core/data/places.h"
@@ -755,6 +756,7 @@ struct MapDef {
   bool aiSeesAll = false;    // fog: computer sides see everything (a side's own "aiSeesAll" overrides it)
   int tileset = -1;                // the tile layer's tileset (index into Graphics::tilesets), -1 = no tile layer (docs/GRAPHICS.md "Tile layer")
   std::vector<int> tileCells;      // per cell, row-major: tile number or -1 (empty when there is no tile layer)
+  MapBackdrop backdrop;            // "backdrop": the prerendered picture of the 2D isometric view (docs/VIEWS.md "Backdrop"); sheet -1 = none
   std::vector<MapChangeDef> changes;  // named map changes (docs/EVENTS.md "Changing the map"); empty = none
   int battleBackground = -1;  // the map's own background for the battle scene (index into Graphics::battle.backgrounds), -1 = by terrain
   // "battleBackgrounds" / "battlePlatforms" (docs/BATTLE_SCENE.md): the map's own table per terrain (size = terrain count when written, else empty)

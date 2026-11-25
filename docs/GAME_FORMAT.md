@@ -406,6 +406,9 @@ pick). A map side names one with `"commander": "<id>"` or `"commander": "choose"
   "tileLayer": { "tileset": "world",                       // optional, square games only: a hand-painted picture per square
                  "cells": [ "000c000f001200150018",        // (docs/GRAPHICS.md "Tile layer"): a tileset of data/graphics.json "tilesets"; one string per row,
                             "....0003000400050006" ] },    // four hex digits per square, "...." = no tile; the terrain still decides the rules
+  "backdrop": { "sheet": "snow_ground", "origin": [256, 256],  // optional, square games only: a prerendered picture the 2D isometric view draws in
+                "over": "snow_props",                      // place of its squares, and an over picture drawn over the units, whole or cut into
+                "pieces": [ { "rect": [96, 180, 32, 40], "square": [3, 1] } ] },   // pieces that sort with a square (docs/VIEWS.md "Backdrop")
   "weather": "rain",                                       // optional: "rain" | "snow" | "none": the weather the battle starts with (docs/ECONOMY.md "Weather and movement cost")
   "exits": [ { "x": 0, "y": 4 } ],                         // optional, 1..64 squares: where a computer unit in mode "escape" (or a looter that is done)
                                                            // leaves the map (docs/AI.md "Looting and escaping")
@@ -506,7 +509,9 @@ Files are `.ogg` (Vorbis) or `.wav` inside the game folder. The event keys, the 
 `playMusic` / `stopMusic` / `playSound` (and `setPhaseMusic`, docs/SOUND.md "Music by situation") and what each message looks like are in docs/SOUND.md "Step 2 as built".
 
 **Other presentation keys added to existing files** (all optional, none changes a rule or the data hash): `data/graphics.json` portraits `"faces"`, `"talk"`, `"blink"`
-(docs/GRAPHICS.md "Portraits"); battle scene animations `"sounds": { "<frame>": "<sound>" }` (docs/BATTLE_SCENE.md "Sounds"); story commands `enter`, `move`, `setPhaseMusic`,
+(docs/GRAPHICS.md "Portraits") and the root `"portraitSize"`; a sheet's `"unitOffset"` (docs/GRAPHICS.md "Unit offset"); `"characters"` looks (docs/GRAPHICS.md
+"Character looks"); unit pictures' `"facing"`, `"attack"`, `"hurt"`, `"ko"` (docs/GRAPHICS.md "Poses and facing"); a map's `"backdrop"` (docs/VIEWS.md "Backdrop");
+battle scene animations `"sounds": { "<frame>": "<sound>" }` (docs/BATTLE_SCENE.md "Sounds"); story commands `enter`, `move`, `setPhaseMusic`,
 the `transition` of `leave` / `clearStage`, `focus` `"speed"`, and the seven stage places of `say` (docs/EVENTS.md "Scene presentation")).
 
 ## data/campaign.json (optional)

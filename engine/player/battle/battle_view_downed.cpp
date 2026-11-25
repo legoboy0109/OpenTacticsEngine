@@ -75,6 +75,7 @@ void BattleView::standUp(UnitView& v, int hp) {
   v.down = 0;
   v.alpha = 1;
   v.hp = hp;
+  v.pose = PoseNone;  // out of the KO pose it fell into (docs/GRAPHICS.md "Poses and facing")
 }
 
 void BattleView::lieDown(UnitView& v) {
@@ -82,6 +83,7 @@ void BattleView::lieDown(UnitView& v) {
   v.down = 1;
   v.alpha = kDownedAlpha;
   v.hp = 0;
+  v.pose = PoseKo;  // a sheet with a "ko" pose shows it (held on its last frame); otherwise the standing picture, lying
   v.conds.clear();  // a downed unit has no conditions (they all ended when it fell)
 }
 
