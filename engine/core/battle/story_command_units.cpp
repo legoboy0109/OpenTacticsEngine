@@ -77,7 +77,7 @@ void Battle::storyAddUnit(const MapUnitDef& def, std::vector<Event>& events) {
   u.cell = cell;
   if (u.facing < 0) u.facing = defaultFacing(cell, teamOf(u));  // rules.facing: the story's own "facing", else the nearest foe (-1 without facing)
   occupant[(size_t)cell] = u.id;
-  sides[(size_t)u.side].everHadUnits = true;
+  if (!u.guest) sides[(size_t)u.side].everHadUnits = true;  // (a guest is not the side's own: docs/SRPG.md "Guests")
   units.push_back(u);
   Event added = makeEvent(EventType::UnitAdded, u.id, cell);
   added.c = u.hp;
@@ -173,7 +173,7 @@ void Battle::cmdSetBehaviour(const Command& c) {  // docs/AI.md
   const int unitCount = (int)units.size();
   for (int i = 0; i < unitCount; ++i) {
     Unit& u = units[(size_t)i];
-    if (!u.alive || !unitMatches(c.filter, u) || !sides[(size_t)u.side].ai) continue;
+    if (!u.alive || !unitMatches(c.filter, u) || !(sides[(size_t)u.side].ai || u.guest)) continue;  // the computer's units, guests included
     u.behaviour = c.behaviour;
     u.awake = false;  // a guard starts waiting afresh
     u.retreating = false, u.patrolAt = 0;  // the scripted-style state (docs/AI.md) starts afresh too

@@ -1,4 +1,5 @@
 #include "battle/battle_scene.h"
+#include "battle/guest_text.h"
 #include "battle/art_preload.h"
 #include "battle/unit_badge.h"
 #include "battle/battle_prep_ui.h"
@@ -56,8 +57,9 @@ void BattleScene::ensureLayout(const Renderer& r) {
   proj_.setViewport(layout_.vw, layout_.vh);
 }
 
+// A guest that is still to act (docs/SRPG.md "Guests") keeps the turn the computer's for that moment: it acts first, then the person plays.
 bool BattleScene::humanTurn() const {
-  return !other_ && !battle_.over && !autoplay_ && !battle_.sides[battle_.activeSide].ai;
+  return !other_ && !battle_.over && !autoplay_ && !battle_.sides[battle_.activeSide].ai && battle_.guestToAct() < 0;
 }
 
 Cell BattleScene::cellAt(int x, int y) const {
@@ -288,7 +290,11 @@ std::string BattleScene::hintBase() const {
     return chapterBattle() ? "{confirmTap}: continue"
            : session_.db.campaign ? "{confirmTap}: back to the game page" : "{confirmTap}: back to map select";
   if (view_.busy()) return "{confirmCancelTap}: skip animation";
-  if (!humanTurn()) return battle_.sides[battle_.activeSide].name + " is acting...";
+  if (!humanTurn()) {
+    const int guest = autoplay_ ? -1 : battle_.guestToAct();  // "Guest Ritz is acting..." (placeholder wording; docs/SRPG.md "Guests")
+    if (guest >= 0) return std::string(GuestWords::kGuest) + " " + battle_.units[(size_t)guest].name + " is acting...";
+    return battle_.sides[battle_.activeSide].name + " is acting...";
+  }
   switch (mode_) {
     case Mode::Idle:
       if (!humanHasOptions()) return "All units done.  {menuName}: end turn";

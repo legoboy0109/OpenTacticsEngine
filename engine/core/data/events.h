@@ -156,7 +156,9 @@ struct Command {
     Fight,          // docs/EVENTS.md "A staged fight": `fight`
     // docs/EVENTS.md "Showing another map": ShowMap shows map `index` (MapDef in `shownMap`) with its own temporary units; the camera starts at
     // unit `unit` or square (x, y) when `on`. ReturnMap goes back to the battle's own map (also implied at the end of the event).
-    ShowMap, ReturnMap
+    ShowMap, ReturnMap,
+    // docs/SRPG.md "Guests": every guest matching `filter` becomes an ordinary unit of its side (the person moves it; the party takes it in).
+    GuestJoins
   };
   Kind kind = Kind::Say;
   // Say, Choice

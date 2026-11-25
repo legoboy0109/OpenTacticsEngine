@@ -2,6 +2,7 @@
 // loader does not give, so a maker sees them in the editor before pressing Play. A difficulty that no map or unit refers to is fine
 // (it is just a choice for the player): no check says otherwise.
 import { MAX_DIFFICULTIES, MAX_FLAT_STAT, MAX_LEVEL_SHIFT, MAX_PERCENT, difficultyById, hasDifficulties } from './difficulty'
+import { computerMoves } from './guests'
 import type { DifficultyEnemy } from './difficultyTypes'
 import type { MapFile, ProjectDoc } from './types'
 import { coexistOn } from './unitVariants'
@@ -66,7 +67,7 @@ export function mapDifficultyChecks(doc: ProjectDoc, mapId: string, map: MapFile
     const who = `${u.name || u.id || u.type || 'A unit'} at ${u.x + 1},${u.y + 1}`
     const at = { x: u.x, y: u.y }
     if (none) { out.push({ level: 'error', mapId, cell: at, text: `${who} is limited to some difficulties, but the game has none (add them on the Rules screen, or clear the limit).` }); continue }
-    if (map.sides?.find((s) => s.id === u.side)?.controller !== 'ai') { out.push({ level: 'error', mapId, cell: at, text: `${who} is on a human side, which cannot come and go with a difficulty (the party belongs to the roster). Clear the limit, or make this a unit of a computer side.` }); continue }
+    if (!computerMoves(map, u)) { out.push({ level: 'error', mapId, cell: at, text: `${who} is on a human side, which cannot come and go with a difficulty (the party belongs to the roster). Clear the limit, make this a unit of a computer side, or make it a guest.` }); continue }
     if (!Array.isArray(u.difficulty) || u.difficulty.length === 0) { out.push({ level: 'error', mapId, cell: at, text: `${who}: “Only on” lists no difficulty. Tick some, or clear them all to appear on every difficulty.` }); continue }
     for (const id of u.difficulty)
       if (!difficultyById(doc, id)) out.push({ level: 'error', mapId, cell: at, text: `${who} is limited to the difficulty “${id}”, which does not exist (deleted?). Untick it.` })

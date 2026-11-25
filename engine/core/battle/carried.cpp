@@ -4,7 +4,8 @@
 namespace ote {
 
 int Battle::applyRoster(Unit& u) const {
-  if (!roster || u.storyId.empty() || u.side < 0 || u.side >= (int)sides.size() || sides[(size_t)u.side].ai) return -1;
+  // A guest is never dressed from the roster: it comes as the map says (docs/SRPG.md "Guests").
+  if (!roster || u.storyId.empty() || u.guest || u.side < 0 || u.side >= (int)sides.size() || sides[(size_t)u.side].ai) return -1;
   for (const RosterUnit& r : *roster) {
     if (r.id != u.storyId) continue;
     if (r.gone) return 0;

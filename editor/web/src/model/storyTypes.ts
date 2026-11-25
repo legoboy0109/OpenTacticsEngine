@@ -109,6 +109,8 @@ export interface Command extends Extra {
   portrait?: string
   addUnit?: MapUnit
   removeUnit?: Filter
+  /** The matching guests become the player's ordinary units and join the party (model/guests.ts); no other key. */
+  guestJoins?: Filter
   /** removeUnit: true = the unit leaves the map but is not lost (docs/EVENTS.md "Taking a unit off the map and bringing it back"). */
   hide?: boolean
   /** The hidden unit that comes back at (x, y). */
@@ -231,7 +233,7 @@ export type StagePosition = 'farLeft' | 'left' | 'midLeft' | 'center' | 'midRigh
 /** Left to right across the stage. */
 export const STAGE_POSITIONS: StagePosition[] = ['farLeft', 'left', 'midLeft', 'center', 'midRight', 'right', 'farRight']
 export type CommandKind =
-  | 'say' | 'choice' | 'addUnit' | 'removeUnit' | 'moveUnit' | 'changeSide' | 'promote' | 'teachSkill' | 'forgetSkill' | 'giveItem' | 'takeItem' | 'giveResource'
+  | 'say' | 'choice' | 'addUnit' | 'removeUnit' | 'moveUnit' | 'changeSide' | 'guestJoins' | 'promote' | 'teachSkill' | 'forgetSkill' | 'giveItem' | 'takeItem' | 'giveResource'
   | 'setSwitch' | 'setVariable' | 'addVariable' | 'objective' | 'win' | 'lose' | 'if' | 'endTurn' | 'focus' | 'goto' | 'grantResearch'
   | 'playMusic' | 'stopMusic' | 'playSound' | 'addSupport' | 'addCondition' | 'removeCondition'
   | 'openDoor' | 'closeDoor' | 'lockDoor' | 'unlockDoor' | 'openChest' | 'setBehaviour' | 'wakeGroup'
@@ -241,7 +243,7 @@ export type CommandKind =
   | 'storeItems' | 'switchParty' | 'mergeParties' | 'showUnit' | 'fight' | 'showMap' | 'returnMap'
 /** In the order the loader looks for them (`goto` is only ever found in a campaign scene). */
 export const COMMAND_KINDS: CommandKind[] = [
-  'say', 'choice', 'addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'promote', 'teachSkill', 'forgetSkill', 'giveItem', 'takeItem', 'giveResource',
+  'say', 'choice', 'addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'guestJoins', 'promote', 'teachSkill', 'forgetSkill', 'giveItem', 'takeItem', 'giveResource',
   'setSwitch', 'setVariable', 'addVariable', 'objective', 'win', 'lose', 'if', 'endTurn', 'showMap', 'returnMap', 'focus', 'goto', 'grantResearch',
   'playMusic', 'stopMusic', 'playSound', 'addSupport', 'addCondition', 'removeCondition',
   'openDoor', 'closeDoor', 'lockDoor', 'unlockDoor', 'openChest', 'setBehaviour', 'wakeGroup',

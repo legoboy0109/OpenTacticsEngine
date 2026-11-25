@@ -78,6 +78,8 @@ export interface AbilityEffect extends Extra {
   push?: number; pull?: boolean; swap?: boolean; moveBehind?: boolean; heal?: number | 'full' | { percent: number } | string; summon?: Summon
   /** The id of a weapon of weapons.json: the ability attacks with it (docs/SRPG.md "Abilities that strike"). */
   strike?: string
+  /** Only with strike, only "equipped": the reach of the weapon in the user's hand (docs/SRPG.md "Abilities that strike"). */
+  reach?: 'equipped'
   steal?: true | StealOptions; refresh?: true | { perTurn: number }; movePast?: boolean; cure?: CureValue
   /** Doors and chests (docs/SRPG.md section 10): true, ["door"], ["chest"] or { kinds, needs }. */
   unlock?: true | Array<'door' | 'chest'> | { kinds?: Array<'door' | 'chest'>; needs?: string }

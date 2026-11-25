@@ -78,11 +78,12 @@ void Battle::awardPoints(int unit, int amount, std::vector<Event>& events) {
 }
 
 void Battle::awardBattlePoints(int team, std::vector<Event>& events) {
-  if (!db->teachingOn() || team < 0 || db->rules.abilityPoints.perBattle <= 0) return;
+  const int perBattle = mapApPerBattle >= 0 ? mapApPerBattle : db->rules.abilityPoints.perBattle;  // the map's own value wins
+  if (!db->teachingOn() || team < 0 || perBattle <= 0) return;
   for (size_t i = 0; i < units.size(); ++i) {
     const Unit& u = units[i];
     if (!u.alive || u.cell == kNoCell || teamOf(u) != team) continue;
-    awardPoints((int)i, db->rules.abilityPoints.perBattle, events);
+    awardPoints((int)i, perBattle, events);
   }
 }
 

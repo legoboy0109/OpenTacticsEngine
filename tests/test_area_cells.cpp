@@ -151,7 +151,7 @@ TEST(area_weapons_loader_refuses_bad_data_naming_file_entry_and_key) {
     CHECK(saysIn(err, "weapons.json"));
     CHECK(saysIn(err, wanted));
   };
-  bad("area_b1", "\"shape\": \"burst\"", "\"shape\": \"cone\"", "\"area\".\"shape\" must be \"burst\", \"line\", \"radius\" or \"cross\" (not \"cone\")");
+  bad("area_b1", "\"shape\": \"burst\"", "\"shape\": \"cone\"", "\"area\".\"shape\" must be \"burst\", \"line\", \"radius\", \"cross\", \"ring\" or \"field\" (not \"cone\")");
   bad("area_b2", "\"shape\": \"radius\", \"radius\": 2", "\"shape\": \"radius\"", "needs a \"radius\"");
   bad("area_b3", "\"radius\": 2 }, \"props\": { \"might\": 4 } },\n  { \"id\": \"beam\"", "\"radius\": 9 }, \"props\": { \"might\": 4 } },\n  { \"id\": \"beam\"",
       "\"radius\" must be from 1 to 8");

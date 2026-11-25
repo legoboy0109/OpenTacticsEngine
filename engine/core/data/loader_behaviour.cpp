@@ -52,8 +52,8 @@ bool checkBehaviourUnits(const LoadCtx& c, const Database& db, const std::vector
 
 bool readUnitBehaviour(const LoadCtx& c, const Database& db, const MapDef& m, const Json& e, const std::string& where, MapUnitDef& u) {
   if (!e.has("behaviour")) return true;
-  if (u.side >= 0 && u.side < (int)m.sides.size() && !m.sides[(size_t)u.side].ai)
-    return c.fail(where, "\"behaviour\" tells the computer opponent what to do, but this unit is on a side a person plays (controller \"human\")");
+  if (u.side >= 0 && u.side < (int)m.sides.size() && !m.sides[(size_t)u.side].ai && !u.guest)  // a guest is the computer's to move (docs/SRPG.md "Guests")
+    return c.fail(where, "\"behaviour\" tells the computer opponent what to do, but this unit is on a side a person plays (controller \"human\"; a \"guest\" may have one)");
   std::string err;
   if (!parseBehaviour(e["behaviour"], db, u.behaviour, err)) return c.fail(where, err);
   // A looter with nothing to go for would only ever escape: say so instead (read after "goesFor", docs/AI.md "Looting and escaping").

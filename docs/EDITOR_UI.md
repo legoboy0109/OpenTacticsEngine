@@ -1641,3 +1641,24 @@ Wording is placeholder. Model checks mirror the loader (docs/EVENTS.md "Showing 
 - **Server / API**: nothing new (the keys pass through); `tests/editor_api_ability_area_checks.py`. **Native editor**: schema-driven (`editor/schema/abilities.json`: `area`, a range
   from 0, the "heal and cure" effect, `inflict` one object or a list); conformance contexts `ability-area*`, `ability-heal-cure` in `editor/native/tests/conformance_data.cpp`.
 - **Tests**: unit `tests/unit/abilityAreas.test.ts`.
+
+## Guests, an ability on its user, ring and field, reach in hand, arc, a map's AP (docs/SRPG.md, docs/JOBS.md; placeholder wording)
+
+- **Ring and field** (`model/abilityArea.ts`, `AbilityArea.tsx`): the Shape list adds **Ring (around the square, not on it)** (with a Radius) and **Whole map** (no size; the Height
+  reach box is hidden and a vertical key is dropped). Checks mirror the loader (`a field takes no radius / height reach`, the radius belongs to radius, cross and ring). The web editor
+  has no weapon area form, so weapon rings and fields are written by hand or in the native editor (schema).
+- **An ability on its user**: the range boxes allow 0 when `rangeMayStartAtZero` (an area, or a heal / cure / condition-only ability aimed at an ally or any unit); the "Up to" hint
+  says "0 = the unit itself may be picked too". The range check names where 0 is allowed.
+- **Reach of the weapon in hand** (`model/abilityStrikeReach.ts`, `AbilityEffectFields.tsx`): a checkbox on strike abilities, writes `"reach": "equipped"` (off removes it); check for a
+  reach without a strike or with another value.
+- **arc**: the inflict "Chance it takes hold" help explains `arc` (0 front, 1 side, 2 back; 0 without facing rules).
+- **A map's AP for a won battle** (`model/mapAbilityPoints.ts`, `panels/MapApSettings.tsx`): a number box on the Map tab, shown when the game has AP (or the key is there); empty
+  removes the key (the placeholder shows the game's value). Checks: unknown key, missing perBattle, out of 0 to 9999, no item that teaches.
+- **Guests** (`model/guests.ts`, `panels/GuestCheck.tsx`, `forms/AddUnitForm.tsx`): a **Guest** checkbox on the map unit panel and the Add-a-unit form (human-side units, or when the
+  key is there); a guest also gets the Behaviour and "Only on" difficulty controls. Checks: a guest on a computer side, a guest with action points. The story command **A guest joins the
+  party** (`guestJoins`, Units group, the unit filter picker of Remove a unit; renames follow).
+- **Server / API**: nothing new (the keys pass through); `tests/editor_api_rule_gaps_checks.py`. **Native editor**: schema-driven (`editor/schema`: shapes ring / field, a strike's
+  `reach`, the map's `abilityPoints`, a unit's `guest`, the `guestJoins` command).
+- **Tests**: unit `tests/unit/ruleGaps.test.ts` (and the updated `abilityAreas.test.ts`).
+- *Owner decisions (placeholders)*: every label above ("Ring (around the square, not on it)", "Whole map", "Reach of the weapon in hand", "AP for a won battle (this map)", "Guest",
+  "A guest joins the party"), the help and check sentences.

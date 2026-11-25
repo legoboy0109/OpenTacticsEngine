@@ -18,8 +18,8 @@
       "area": {
         "type": "object", "block": true, "help": "Area attack: also hits squares around the target (docs/SRPG.md Area attacks).",
         "fields": {
-          "shape": { "type": "enum", "required": true, "values": ["burst", "line", "radius", "cross"], "help": "burst = radius 1; line needs length; radius and cross need radius." },
-          "radius": { "type": "int", "min": 1, "max": 8, "help": "For radius and cross." },
+          "shape": { "type": "enum", "required": true, "values": ["burst", "line", "radius", "cross", "ring", "field"], "help": "burst = radius 1; line needs length; radius, cross and ring need radius (a ring leaves the aimed square out); field = the whole map (no radius, length or vertical)." },
+          "radius": { "type": "int", "min": 1, "max": 8, "help": "For radius, cross and ring." },
           "length": { "type": "int", "min": 1, "max": 8, "help": "For line." },
           "friendlyFire": { "type": "bool", "default": false, "help": "Also hurts the attacker's own side." },
           "apExtra": { "type": "int", "min": 0, "max": 99, "help": "Extra action points (needs rules.actionPoints)." },

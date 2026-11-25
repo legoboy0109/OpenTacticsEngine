@@ -66,7 +66,8 @@ def run_ability_area_checks(api, tmp, games, templates, check, get_project, put_
             "\"area\" needs \"target\" \"ally\", \"enemy\" or \"unit\"")
     refused("an area with friendlyFire", lambda b: b["cura"]["area"].__setitem__("friendlyFire", True), "\"friendlyFire\" is for weapons")
     refused("an area on a push", lambda b: b["first_aid"].update({"effect": {"push": 1}, "area": {"shape": "burst"}}), "\"area\" goes with")
-    refused("range 0 without an area", lambda b: b["first_aid"].__setitem__("range", [0, 1]), "whole numbers from 1 to 20")
+    refused("range 0 on an enemy ability without an area", lambda b: b["gaze"].pop("area") and b["gaze"].__setitem__("range", [0, 3]),
+            "\"range\" may start at 0 (the user itself) only on")
     refused("heal with push", lambda b: b["first_aid"]["effect"].__setitem__("push", 1), "only heal and cure may go together")
     refused("a condition twice in a list", lambda b: b["barrier"]["inflict"].append({"condition": "regen"}), "names \"regen\" twice")
     refused("an empty inflict list", lambda b: b["barrier"].__setitem__("inflict", []), "a list of 1 to 8")

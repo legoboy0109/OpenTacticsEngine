@@ -276,7 +276,7 @@ export function behaviourChecks(doc: ProjectDoc, mapId: string, map: MapFile): B
     const cell = { x: u.x, y: u.y }
     const say = (text: string, note?: boolean) => out.push({ mapId, cell, note, text: `${where}: ${text}` })
     const side = sides.get(u.side)
-    blockProblems(u.behaviour, doc, map, say, { human: side !== undefined && side.controller !== 'ai', goesFor: u.goesFor })
+    blockProblems(u.behaviour, doc, map, say, { human: u.guest !== true && side !== undefined && side.controller !== 'ai', goesFor: u.goesFor })
     const o = behaviourObj(u.behaviour)
     if (typeof o.group === 'string' && o.group && counts.get(o.group) === 1) say(`it is the only unit in the group “${o.group}”, so waking it wakes nobody else.`, true)
     if (modeOf(o) === 'hold' && !canAct(doc, u)) say('it holds its square but has no weapon, staff or ability, so it can never do anything.', true)

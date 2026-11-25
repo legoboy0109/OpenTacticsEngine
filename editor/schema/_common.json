@@ -60,7 +60,7 @@
       "type": "object", "sample": { "condition": "poison" },
       "fields": {
         "condition": { "type": "ref", "ref": "data/conditions.json", "required": true, "help": "The condition put on the target." },
-        "chance": { "type": "variant", "help": "Percent it takes hold on each target (1 to 100; 100 = always) or a formula (a = the user, b = the target).", "variants": [
+        "chance": { "type": "variant", "help": "Percent it takes hold on each target (1 to 100; 100 = always) or a formula (a = the user, b = the target, arc = 0 front / 1 side / 2 back of the target seen from the user, with rules.facing).", "variants": [
           { "name": "percent", "kind": "number", "node": { "type": "int", "min": 1, "max": 100 } },
           { "name": "formula", "kind": "string", "node": { "type": "string" }, "sample": "50" } ] },
         "turns": { "type": "int", "min": 1, "max": 99, "help": "Turns it lasts (only for conditions that count turns)." } }

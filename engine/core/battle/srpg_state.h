@@ -83,6 +83,7 @@ struct SkillCtx {
   int dealt = 0;             // a "recoil" amount: the strike's damage
   int healed = 0;            // "staffUse" blocks: the HP the staff just healed, all targets together
   const std::string* staffGroup = nullptr;  // a "staffUse" block: the group of the staff that was used (the "weapon" condition tests it)
+  int arc = 0;               // `arc` in the formula (0 front, 1 side, 2 back; rules.facing): set by an ability's inflict chance, 0 everywhere else
 };
 
 // A test-only source of combat modifiers (Battle::testMods; defined in core/battle/combat_mods.h, step F2).

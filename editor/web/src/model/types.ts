@@ -345,6 +345,8 @@ export interface MapUnit extends Extra {
   difficulty?: string[]
   /** false = never shifted by the difficulty's enemy numbers (a boss). */
   difficultyShift?: boolean
+  /** On a side a person plays, but the computer moves it; it does not keep its side and never joins the party (model/guests.ts). */
+  guest?: boolean
 }
 export interface MapFile extends Extra {
   name: string
@@ -368,6 +370,8 @@ export interface MapFile extends Extra {
   battleBackgrounds?: Record<string, string>
   battlePlatforms?: Record<string, string>
   weather?: 'rain' | 'snow'
+  /** Ability points for a won battle on this map (model/mapAbilityPoints.ts): replaces the game's rules.abilityPoints.perBattle. */
+  abilityPoints?: { perBattle?: number } & Extra
   /** Named map changes (docs/EVENTS.md "Changing the map"); model/mapChanges.ts. A cell may carry the new `tile` (-1 / null = none) of the tile layer. */
   changes?: Record<string, { cells?: Array<{ x: number; y: number; terrain: string; tile?: number | null; keepTile?: boolean }>; structures?: Array<{ id: string; kind: string }>; keepTile?: boolean }>
   /** The tile layer (docs/GRAPHICS.md "Tile layer"): one string per row, four hex digits per square ("...." = no tile); model/tiles.ts. */

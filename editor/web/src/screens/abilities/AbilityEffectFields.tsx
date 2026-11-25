@@ -1,6 +1,7 @@
 // The number an effect needs: how far a push goes, how much a heal gives.
 import { alsoCures, setAlsoCures } from '../../model/abilityHealCure'
 import { HEAL_MAX, PERCENT_MAX, PUSH_MAX, REFRESH_MAX, effectKind, healKind, refreshPerTurn, setEffectAmount, setHealKind, setHealValue, setRefreshPerTurn, setSteal, setStrikeWeapon, setUnlock, stealOf, strikeWeapon, unlockOf, type HealKind, type UnlockKinds } from '../../model/abilities'
+import { setStrikeReach, strikeReachEquipped } from '../../model/abilityStrikeReach'
 import { useDoc } from '../../store/context'
 import { Select } from '../../ui/Select'
 import { TextInput } from '../../ui/TextInput'
@@ -75,6 +76,7 @@ export function AbilityEffectFields({ ability, change }: FormProps) {
         <Field label={T.strikeWeapon} help={weapons.length === 0 ? T.strikeNoWeapons : T.strikeWeaponHelp}>
           <Select value={cur} placeholder="—" options={options} onChange={(v) => change((a) => setStrikeWeapon(a, v))} />
         </Field>
+        <Check label={T.strikeReach} help={T.strikeReachHelp} checked={strikeReachEquipped(ability)} onChange={(v) => change((a) => setStrikeReach(a, v))} />
         <p className="help">{T.strikeCost}</p>
       </div>
     )

@@ -27,6 +27,9 @@ int Battle::abilityInflictChance(int user, int ability, int target, Cell from, i
   ctx.cell = from;
   ctx.weapon = restingWeapon(units[(size_t)user]);
   ctx.foe = target;
+  // `arc` (docs/SRPG.md "Facing"): where the user stands (`from`) seen from the target, by the target's own facing; the same arcOfAttack a strike's
+  // formulas read. The target never turns for an ability, and the user itself (range 0) is always "front". 0 in a game without facing.
+  if (target != user) ctx.arc = arcOfAttack(units[(size_t)target], from);
   double v = skillExpr(in.chanceExpr, ctx, 0);
   if (v != v) return 0;  // not a number
   v = std::floor(v);

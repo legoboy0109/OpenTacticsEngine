@@ -45,8 +45,7 @@ bool Battle::versusValue(int weapon, const Unit& target, double& vs) const {
 }
 
 bool Battle::weaponInRange(int weapon, int dist) const {
-  const WeaponDef& w = db->weapons[weapon];
-  return dist >= w.minRange && dist <= w.maxRange;
+  return dist >= weaponMinRange(weapon) && dist <= weaponMaxRange(weapon);  // (a "reach": "equipped" strike: the weapon in hand's)
 }
 
 void Battle::attackOptions(int unit, Cell from, std::vector<AttackOption>& out) const {

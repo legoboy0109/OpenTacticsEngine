@@ -54,7 +54,7 @@ describe('the area', () => {
     expect(setAreaShape(a, 'burst').area).toEqual({ shape: 'burst' })
     expect(setAreaSize(setArea(heal(), true), 3).area).toEqual({ shape: 'burst' })  // a burst has no size
     expect(areaOf(a)).toEqual({ shape: 'line', size: 3, vertical: undefined })
-    expect(AREA_SHAPES).toHaveLength(4)
+    expect(AREA_SHAPES).toHaveLength(6)
   })
   it('vertical: empty = no key (no limit), 0 is written (same level only)', () => {
     let a = setArea(heal(), true)
@@ -99,14 +99,16 @@ describe('the area', () => {
     expect(setTarget(a, 'unit').target).toBe('unit')
   })
   it('the range may start at 0 only with an area, and goes back to 1 without', () => {
-    const plain = setRange(heal(), 0, 3)
+    // A condition on an enemy: 0 (the user itself) is only for a heal, cure or condition on an ally or unit (see ruleGaps.test.ts), or with an area.
+    const foe: Ability = { id: 'hex', name: 'Hex', target: 'enemy', inflict: { condition: 'a' } }
+    const plain = setRange(foe, 0, 3)
     expect(plain.range).toEqual([1, 3])
-    let a = setRange(setArea(heal(), true), 0, 0)
+    let a = setRange(setArea(foe, true), 0, 0)
     expect(a.range).toEqual([0, 0])
     a = setRange(a, 0, 3)
     expect(a.range).toEqual([0, 3])
     expect(setArea(a, false).range).toEqual([1, 3])
-    expect(setArea(setRange(setArea(heal(), true), 0, 1), false).range).toBeUndefined()  // [1, 1] is the default: not written
+    expect(setArea(setRange(setArea(foe, true), 0, 1), false).range).toBeUndefined()  // [1, 1] is the default: not written
     expect(setRange(setArea(heal(), true), 1, 1).range).toBeUndefined()
   })
 })
@@ -217,11 +219,11 @@ describe('the area checks (each says what the loader refuses)', () => {
     expect(one(heal())).toEqual([])
   })
   it('shape, radius and length', () => {
-    expect(one(area({}))).toEqual(['Mend: the area needs a shape (burst, radius, cross or line).'])
-    expect(one(area({ shape: 'blob' }))).toEqual(['Mend: the shape of the area must be burst, radius, cross or line.'])
+    expect(one(area({}))).toEqual(['Mend: the area needs a shape (burst, line, radius, cross, ring or field).'])
+    expect(one(area({ shape: 'blob' }))).toEqual(['Mend: the shape of the area must be burst, line, radius, cross, ring or field.'])
     expect(one(area({ shape: 'radius' }))).toEqual(['Mend: an area of shape “radius” needs a radius from 1 to 8.'])
     expect(one(area({ shape: 'cross', radius: 9 }))).toEqual(['Mend: the radius of the area must be a whole number from 1 to 8.'])
-    expect(one(area({ shape: 'burst', radius: 2 }))).toEqual(['Mend: a radius goes only with the shapes “radius” and “cross”.'])
+    expect(one(area({ shape: 'burst', radius: 2 }))).toEqual(['Mend: a radius goes only with the shapes “radius”, “cross” and “ring”.'])
     expect(one(area({ shape: 'line' }))).toEqual(['Mend: an area of shape “line” needs a length from 1 to 8.'])
     expect(one(area({ shape: 'line', length: 0 }))).toEqual(['Mend: the length of the area must be a whole number from 1 to 8.'])
     expect(one(area({ shape: 'radius', radius: 2, length: 2 }))).toEqual(['Mend: a length goes only with the shape “line”.'])
@@ -247,9 +249,10 @@ describe('the area checks (each says what the loader refuses)', () => {
     expect(one({ id: 'i', name: 'I', target: 'enemy', inflict: [{ condition: 'a' }], area: { shape: 'burst' } })).toEqual([])
   })
   it('the reach: from 1 without an area, from 0 with one', () => {
-    expect(one(heal({ range: [0, 2] }))).toEqual(['Mend: the reach must be two whole numbers from 1 to 20, the first not above the second.'])
+    expect(one(heal({ range: [0, 2] }))).toEqual([])  // a heal on an ally may reach the user itself
+    expect(one(heal({ range: [0, 21] }))).toHaveLength(1)
     expect(one(area({ shape: 'burst' }, { range: [0, 2] }))).toEqual([])
-    expect(one(area({ shape: 'burst' }, { range: [3, 2] }))).toEqual(['Mend: the reach must be two whole numbers from 0 to 20 (0 is the unit’s own square), the first not above the second.'])
+    expect(one(area({ shape: 'burst' }, { range: [3, 2] }))).toEqual(['Mend: the reach must be two whole numbers from 0 to 20 (0 is the unit itself), the first not above the second.'])
     expect(one(heal({ range: [1, 21] }))).toHaveLength(1)
   })
   it('a charged ability keeps the square; an "only if" about the target is refused', () => {
@@ -279,7 +282,7 @@ describe('an ability with none of the new keys is as before', () => {
     const a = heal({ range: [1, 3] })
     expect(probs(d, a)).toEqual([])
     expect(setRange(a, 2, 4).range).toEqual([2, 4])
-    expect(setRange(a, 0, 4).range).toEqual([1, 4])
+    expect(setRange(a, 0, 4).range).toEqual([0, 4])  // a heal on an ally may start at 0
     expect(setEffectKind(d, a, 'cure').area).toBeUndefined()
     expect(Object.keys(setEffectKind(d, a, 'cure'))).not.toContain('area')
     expect(probs(d, { id: 'p', name: 'P', target: 'unit', effect: { push: 1 } })).toEqual([])

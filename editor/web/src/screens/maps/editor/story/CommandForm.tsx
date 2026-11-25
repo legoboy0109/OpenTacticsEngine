@@ -22,6 +22,7 @@ import { AddConditionForm, RemoveConditionForm } from './forms/ConditionForms'
 import { SetBehaviourForm, WakeGroupForm } from './forms/BehaviourForms'
 import { FightForm } from './forms/FightForm'
 import { ReturnMapForm, ShowMapForm } from './forms/ShowMapForm'
+import { GuestJoinsForm } from './forms/GuestJoinsForm'
 import { ChangeSideForm, MoveUnitForm, RemoveUnitForm, ShowUnitForm } from './forms/UnitForms'
 import { useCommandEdit, type CommandRef } from './forms/useCommandEdit'
 import { ConditionList } from './ConditionList'
@@ -39,6 +40,7 @@ export function CommandForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
     case 'fight': return <FightForm cmd={cmd} at={at} />
     case 'showMap': return <ShowMapForm cmd={cmd} at={at} />
     case 'returnMap': return <ReturnMapForm />
+    case 'guestJoins': return <GuestJoinsForm cmd={cmd} at={at} />
     case 'changeSide': return <ChangeSideForm cmd={cmd} at={at} />
     case 'promote': return <PromoteForm cmd={cmd} at={at} />
     case 'addSupport': return <AddSupportForm cmd={cmd} at={at} />

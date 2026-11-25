@@ -15,7 +15,8 @@ std::string quoted(const std::string& s) { return "\"" + s + "\""; }
 
 constexpr const char* kCommandKeys[] = {"say",       "addUnit",     "removeUnit", "moveUnit",   "changeSide", "giveItem",
                                         "giveResource", "setSwitch", "setVariable", "addVariable", "objective", "win",
-                                        "lose",      "if",          "endTurn",    "focus",      "grantResearch", "playMusic", "stopMusic", "playSound", "takeItem"};
+                                        "lose",      "if",          "endTurn",    "focus",      "grantResearch", "playMusic", "stopMusic", "playSound", "takeItem",
+                                        "guestJoins"};
 // The commands of the strategy-RPG features (docs/SRPG.md), read by their own areas (loader_promotion.cpp,
 // loader_skills.cpp, loader_supports.cpp). A list of their own so that the "is not a command" message keeps naming
 // only what every game can use until those areas exist.
@@ -58,7 +59,7 @@ constexpr const char* kShowMapCommandKeys[] = {"showMap", "returnMap"};
 // The commands that act on the battle itself (its sides, items, turns, objectives, the computer's units): refused while another map is shown.
 constexpr const char* kNotOnShownMap[] = {"win", "lose", "endTurn", "choice", "objective", "giveItem", "takeItem", "storeItems", "giveResource",
                                           "grantResearch", "promote", "teachSkill", "forgetSkill", "addSupport", "setBehaviour", "wakeGroup",
-                                          "setFog", "setVision", "showUnit"};
+                                          "setFog", "setVision", "showUnit", "guestJoins"};
 
 }  // namespace
 
@@ -66,7 +67,7 @@ bool StoryLoader::addUnitCommand(const Json& e, const std::string& where, Comman
   const Json& u = e["addUnit"];
   if (!u.isObject()) return fail(where, "\"addUnit\" must be a unit: { \"type\": ..., \"side\": ..., \"x\": ..., \"y\": ... }");
   if (!onlyKeys(e, {"addUnit"}, where) ||
-      !onlyKeys(u, {"id", "character", "type", "side", "x", "y", "name", "level", "xp", "merit", "leader", "stats", "items", "ranks", "goesFor", "skills", "behaviour", "difficulty", "difficultyShift", "job", "jobs", "equipped", "learned"}, where + ": \"addUnit\""))
+      !onlyKeys(u, {"id", "character", "type", "side", "x", "y", "name", "level", "xp", "merit", "leader", "stats", "items", "ranks", "goesFor", "skills", "behaviour", "difficulty", "difficultyShift", "job", "jobs", "equipped", "learned", "guest"}, where + ": \"addUnit\""))
     return false;
   std::string at = where;
   if (!readUnitHead(c_, db_, *map_, u, at, out.newUnit)) return false;
@@ -206,6 +207,10 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
     if (out.x < 0 || out.y < 0 || out.x >= map_->width || out.y >= map_->height)
       return fail(at, "the square " + std::to_string(out.x) + "," + std::to_string(out.y) + " is outside the map");
     return true;
+  }
+  if (k == "guestJoins") {  // docs/SRPG.md "Guests": the matching guests become ordinary units of their side
+    out.kind = K::GuestJoins;
+    return onlyKeys(e, {"guestJoins"}, at) && filter(v, at, "\"guestJoins\"", out.filter);
   }
   if (k == "changeSide") {
     out.kind = K::ChangeSide;

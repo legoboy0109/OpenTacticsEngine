@@ -21,7 +21,7 @@ bool contains(const std::vector<std::string>& v, const std::string& id) { return
 
 // A placed unit the player chooses about: named, on the prep side, not fixed.
 bool prepIsCandidate(const PrepDef& prep, const MapUnitDef& u) {
-  return u.side == prep.side && !u.id.empty() && !contains(prep.fixed, u.id);
+  return u.side == prep.side && !u.id.empty() && !contains(prep.fixed, u.id) && !u.guest;  // a guest stays where it is placed (docs/SRPG.md "Guests")
 }
 
 int prepStructureAt(const Database& db, const MapDef& map, int cell) {

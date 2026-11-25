@@ -125,7 +125,7 @@ TEST(abilities_loader_target_and_range) {
   REFUSE("abilities_target",
          {R"("target": "ground", "effect": { "heal": 5 })", R"("target" must be "self", "ally", "enemy", "unit" or "cell")"},
          {R"("effect": { "heal": 5 })", "missing required \"target\""},
-         {R"("target": "unit", "range": [0, 1], "effect": { "push": 1 })", R"("range" must be [min, max])"},
+         {R"("target": "unit", "range": [0, 1], "effect": { "push": 1 })", R"("push" moves a neighbour: "range" must be [1, 1])"},
          {R"("target": "unit", "range": [2, 1], "effect": { "push": 1 })", R"("range" must be [min, max])"},
          {R"("target": "unit", "range": 1, "effect": { "push": 1 })", R"("range" must be [min, max])"},
          {R"("target": "self", "range": [1, 1], "effect": { "heal": 5 })", R"("range" cannot be used with "target": "self")"});

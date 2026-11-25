@@ -99,6 +99,10 @@ bool readUnit(Reader& rd, const Battle& b, const Json& j, int index, Unit& u) {
     if (!rd.boolean(j, "hidden", where, u.hidden)) return false;
     if (u.hidden && u.alive) return rd.fail(where + ".hidden", "a unit on the map is not hidden");
   }
+  if (j.has("guest")) {  // docs/SRPG.md "Guests"
+    if (!rd.boolean(j, "guest", where, u.guest)) return false;
+    if (u.guest && b.sides[(size_t)u.side].ai) return rd.fail(where + ".guest", "a guest belongs to a side a person plays");
+  }
   if (!j["name"].isString()) return rd.fail(where + ".name", "missing or not text");
   u.name = j["name"].asString();
   if (u.name.size() > 200) return rd.fail(where + ".name", "unreasonably long");
@@ -205,6 +209,7 @@ void saveBattleState(const Battle& b, Json& out) {
     j.set("done", boolean(u.done));
     j.set("alive", boolean(u.alive));
     if (u.hidden) j.set("hidden", boolean(true));  // docs/SAVES.md: only a hidden unit has the key
+    if (u.guest) j.set("guest", boolean(true));    // docs/SRPG.md "Guests": only a guest has the key
     j.set("leader", boolean(u.leader));
     if (!u.items.empty()) j.set("items", itemsJson(u.items));
     savejson::writeUnitSupply(*b.db, u, j);

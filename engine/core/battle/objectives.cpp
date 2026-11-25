@@ -55,7 +55,8 @@ bool Battle::objectiveHolds(const ObjectiveRule& r, bool win) const {
       for (const Unit& u : units) {
         if (!u.alive || !grid.valid(u.cell)) continue;
         // Without "by": winning is for the human team to do, losing for everybody else.
-        bool who = r.hasBy ? unitMatches(r.filter, u) : (win ? teamOf(u) == human : teamOf(u) != human);
+        // (a guest reaching the square wins only when "by" names it: docs/SRPG.md "Guests")
+        bool who = r.hasBy ? unitMatches(r.filter, u) : (win ? teamOf(u) == human && !u.guest : teamOf(u) != human);
         int x = grid.x(u.cell), y = grid.y(u.cell);
         if (who && x >= r.rect.x && y >= r.rect.y && x < r.rect.x + r.rect.w && y < r.rect.y + r.rect.h) return true;
       }

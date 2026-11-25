@@ -42,7 +42,7 @@ interface Props {
 
 const GROUPS: Array<{ group: string; kinds: CommandKind[] }> = [
   { group: S.commandGroups.dialogue, kinds: ['say', 'choice'] },
-  { group: S.commandGroups.units, kinds: ['addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'promote', 'teachSkill', 'forgetSkill', 'addCondition', 'removeCondition', 'addSupport', 'setBehaviour', 'wakeGroup', 'showUnit', 'fight'] },
+  { group: S.commandGroups.units, kinds: ['addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'guestJoins', 'promote', 'teachSkill', 'forgetSkill', 'addCondition', 'removeCondition', 'addSupport', 'setBehaviour', 'wakeGroup', 'showUnit', 'fight'] },
   { group: S.commandGroups.give, kinds: ['giveItem', 'takeItem', 'giveResource', 'grantResearch'] },
   { group: S.commandGroups.story, kinds: ['setSwitch', 'setVariable', 'addVariable', 'objective', 'win', 'lose'] },
   { group: S.commandGroups.flow, kinds: ['if', 'endTurn', 'focus', 'goto'] },

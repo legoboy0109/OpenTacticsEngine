@@ -119,6 +119,13 @@ bool readEffect(const LoadCtx& c, Database& db, const Json& e, const std::string
   static const char* const keys[] = {"push", "pull", "swap", "moveBehind", "heal", "summon", "unlock", "steal", "refresh", "movePast", "cure", "strike"};
   int count = 0;
   for (const Json::Member& m : e.members()) {
+    if (m.first == "reach") {  // an option of "strike", not an effect of its own
+      if (!e.has("strike")) return c.fail(where, "\"effect\": \"reach\" goes with \"strike\" (how far the strike reaches)");
+      if (!m.second.isString() || m.second.asString() != "equipped")
+        return c.fail(where, "\"effect\": \"reach\" must be \"equipped\" (the range of the weapon in the user's hand) or left out (the strike weapon's own range)");
+      a.strikeReachEquipped = true;
+      continue;
+    }
     bool known = false;
     for (const char* k : keys) known = known || m.first == k;
     if (!known) return c.fail(where, "\"effect\": unknown key " + q(m.first) + " (expected push, pull, swap, moveBehind, heal, summon, unlock, steal, refresh, movePast, cure, strike)");
@@ -215,12 +222,11 @@ bool readAbility(const LoadCtx& c, Database& db, const Json& e, const std::strin
   if (e.has("range")) {
     const Json& r = e["range"];
     if (a.target == AbilityTarget::Self) return c.fail(where, "\"range\" cannot be used with \"target\": \"self\"");
-    // With an "area" the user's own square may be aimed at: min 0 (docs/SRPG.md "Areas and several effects for abilities").
-    const int lowest = e.has("area") ? 0 : 1;
-    if (!r.isArray() || r.size() != 2 || !LoadCtx::isWhole(r[0]) || !LoadCtx::isWhole(r[1]) || r[0].asInt() < lowest ||
+    // The minimum may be 0, the user's own square: with an "area" (docs/SRPG.md "Areas and several effects for abilities"), or on a single-target
+    // heal / cure / condition ability that may then be used on the user itself ("An ability on its user", checked once the effect is known below).
+    if (!r.isArray() || r.size() != 2 || !LoadCtx::isWhole(r[0]) || !LoadCtx::isWhole(r[1]) || r[0].asInt() < 0 ||
         r[1].asInt() < r[0].asInt() || r[1].asInt() > 20)
-      return c.fail(where, lowest == 0 ? "\"range\" must be [min, max]: whole numbers from 0 to 20 (0 = the user's own square), min not above max"
-                                       : "\"range\" must be [min, max]: whole numbers from 1 to 20, min not above max");
+      return c.fail(where, "\"range\" must be [min, max]: whole numbers from 0 to 20 (0 = the user's own square), min not above max");
     a.minRange = r[0].asInt();
     a.maxRange = r[1].asInt();
   }
@@ -270,6 +276,15 @@ bool readAbility(const LoadCtx& c, Database& db, const Json& e, const std::strin
       if (a.target != AbilityTarget::Cell) return c.fail(where, "\"unlock\" needs \"target\": \"cell\" (a square of the door or chest)");
       break;
     case AbilityEffect::Strike: break;  // the target kind follows the weapon (resolveAbilityStrike)
+  }
+
+  // "range" from 0 without an area: the user itself is one of the units it may pick (Barrier on yourself). Only where that means something: a heal,
+  // a cure or an ability with only "inflict", aimed at "ally" or "unit" (the user is neither an enemy nor a square).
+  if (a.minRange == 0 && !e.has("area")) {
+    const bool selfEffect = a.effect == AbilityEffect::Heal || a.effect == AbilityEffect::Cure || a.effect == AbilityEffect::None;
+    if (!selfEffect || (a.target != AbilityTarget::Ally && a.target != AbilityTarget::Unit))
+      return c.fail(where, "\"range\" may start at 0 (the user itself) only on a heal, cure or condition ability with \"target\" \"ally\" or \"unit\", "
+                           "or with an \"area\"; otherwise it starts at 1");
   }
 
   if (e.has("cost")) {

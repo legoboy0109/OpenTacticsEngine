@@ -91,7 +91,8 @@
         "goesFor": { "type": "list", "min": 1, "of": { "type": "enum", "values": ["chests", "villages", "doors", "steal", "walls", "weapons"] }, "help": "What a computer unit walks to (computer sides only)." },
         "behaviour": { "use": "behaviour", "help": "What a computer unit does (computer sides only; docs/AI.md)." },
         "difficulty": { "type": "list", "min": 1, "of": { "type": "ref", "ref": "game.json#difficulties.list" }, "help": "Only on these difficulties (computer sides only; leave out for all)." },
-        "difficultyShift": { "type": "bool", "help": "The difficulty setting changes this unit." } }
+        "difficultyShift": { "type": "bool", "help": "The difficulty setting changes this unit." },
+        "guest": { "type": "bool", "help": "A guest: on a side a person plays, but the computer moves it; it does not keep its side in the battle and never joins the party (unless a story guestJoins says so). Not on computer sides, not with rules.actionPoints." } }
     },
     "storageGrants": {
       "type": "list",

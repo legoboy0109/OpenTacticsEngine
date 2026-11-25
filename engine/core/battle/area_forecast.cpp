@@ -75,7 +75,9 @@ void Battle::areaOptions(int unit, Cell from, int weapon, bool mapWeapon, std::v
     if (!enemy) continue;
     AttackOption opt;
     const int there = occupant[(size_t)c];
-    opt.target = there >= 0 && areaHits(u, weapon, units[(size_t)there]) ? there : -1;
+    // The unit on the aimed square is the target only when the area covers that square (a "ring" leaves it out).
+    const bool coversAim = std::binary_search(covered.begin(), covered.end(), c);
+    opt.target = there >= 0 && coversAim && areaHits(u, weapon, units[(size_t)there]) ? there : -1;
     opt.weapon = weapon;
     opt.cell = c;
     opt.area = true;

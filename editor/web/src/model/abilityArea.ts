@@ -6,12 +6,14 @@ import { patchObj } from './util'
 import type { Ability } from './srpgTypes'
 import type { Extra } from './types'
 
-export type AreaShape = 'burst' | 'radius' | 'cross' | 'line'
-export const AREA_SHAPES: AreaShape[] = ['burst', 'radius', 'cross', 'line']
+export type AreaShape = 'burst' | 'line' | 'radius' | 'cross' | 'ring' | 'field'
+export const AREA_SHAPES: AreaShape[] = ['burst', 'line', 'radius', 'cross', 'ring', 'field']
+/** The shapes with a radius (ring = the squares at that distance, not the aimed square); a field is the whole map and has no size. */
+export const hasRadius = (s: string): boolean => s === 'radius' || s === 'cross' || s === 'ring'
 export const AREA_MAX = 8
 export const VERTICAL_MAX = 999
 /** Where a new shape starts (burst has no size: it is radius 1). */
-const START_SIZE: Record<AreaShape, number> = { burst: 1, radius: 2, cross: 2, line: 3 }
+const START_SIZE: Record<AreaShape, number> = { burst: 1, radius: 2, cross: 2, ring: 2, field: 1, line: 3 }
 
 export const hasArea = (a: Ability): boolean => a.area !== undefined
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, Math.round(n)))
@@ -24,7 +26,7 @@ export function areaOf(a: Ability): AreaView | undefined {
   if (a.area === undefined) return undefined
   const o = obj(a)
   const shape = AREA_SHAPES.includes(o.shape as AreaShape) ? (o.shape as AreaShape) : ''
-  const size = shape === 'line' ? o.length : shape === 'radius' || shape === 'cross' ? o.radius : undefined
+  const size = shape === 'line' ? o.length : hasRadius(shape) ? o.radius : undefined
   return { shape, size: typeof size === 'number' ? size : undefined, vertical: typeof o.vertical === 'number' ? o.vertical : undefined }
 }
 
@@ -36,11 +38,12 @@ export function setAreaShape(a: Ability, shape: AreaShape): Ability {
   if (a.area === undefined) return a
   const o = { ...obj(a) }
   const was = areaOf(a)
-  const keep = was && (was.shape === 'radius' || was.shape === 'cross') && (shape === 'radius' || shape === 'cross') ? was.size : undefined
+  const keep = was && hasRadius(was.shape) && hasRadius(shape) ? was.size : undefined
   delete o.radius
   delete o.length
   o.shape = shape
-  if (shape === 'radius' || shape === 'cross') o.radius = keep ?? START_SIZE[shape]
+  if (shape === 'field') delete o.vertical  // a field covers the whole map at every height
+  if (hasRadius(shape)) o.radius = keep ?? START_SIZE[shape]
   if (shape === 'line') o.length = START_SIZE.line
   return patchObj(a, { area: o })
 }
@@ -49,7 +52,7 @@ export function setAreaShape(a: Ability, shape: AreaShape): Ability {
 export function setAreaSize(a: Ability, n: number): Ability {
   const shape = areaOf(a)?.shape
   const o = { ...obj(a) }
-  if (shape === 'radius' || shape === 'cross') o.radius = clamp(n, 1, AREA_MAX)
+  if (hasRadius(shape ?? '')) o.radius = clamp(n, 1, AREA_MAX)
   else if (shape === 'line') o.length = clamp(n, 1, AREA_MAX)
   else return a
   return patchObj(a, { area: o })
@@ -58,9 +61,15 @@ export function setAreaSize(a: Ability, n: number): Ability {
 /** How many levels up and down the area reaches. undefined (an empty box) removes the key = no limit (the loader's default);
  *  0 means "the same level only" and is written. */
 export function setAreaVertical(a: Ability, n: number | undefined): Ability {
-  if (a.area === undefined) return a
+  if (a.area === undefined || areaOf(a)?.shape === 'field') return a
   const o = { ...obj(a) }
   if (n === undefined) delete o.vertical
   else o.vertical = clamp(n, 0, VERTICAL_MAX)
   return patchObj(a, { area: o })
+}
+
+/** May the range start at 0 (the user itself) without an area? Only a heal, cure or condition-only ability aimed at an ally or any unit
+ *  (loader: abilities.json "range"). With an area it always may. */
+export function rangeMayStartAtZero(a: Ability, kind: string | null, target: string): boolean {
+  return hasArea(a) || (kindAllowsArea(kind) && (target === 'ally' || target === 'unit'))
 }

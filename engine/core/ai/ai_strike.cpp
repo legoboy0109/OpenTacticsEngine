@@ -39,7 +39,7 @@ void strikeOptionsFor(const Battle& b, const Unit& u, int ability, Cell s, std::
 }
 
 double scoreStrike(const Battle& b, const Unit& u, int ability, const AttackOption& o, Cell s) {
-  Battle::StrikeScope scope(b, b.abilityStrikeWeapon(ability));
+  Battle::StrikeScope scope(b, u.id, ability);
   double sc = o.area ? scoreAreaAttack(b, u, o.weapon, o.cell, s) : scoreAttack(b, u, b.units[(size_t)o.target], o.weapon, s);
   if (sc > 0 && b.db->abilities[(size_t)ability].inflictCond >= 0) sc += strikeInflictWorth(b, u, ability, o, s);  // its own "inflict" (ai_conditions.cpp)
   if (!b.db->abilities[(size_t)ability].spend.empty()) sc *= kPricedFactor;

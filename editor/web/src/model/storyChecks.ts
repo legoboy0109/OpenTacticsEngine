@@ -9,6 +9,7 @@ import { audioRefProblem } from './audioChecks'
 import { mapChangeChecks } from './mapChangeStory'
 import { ACTOR_FILTER_ELSEWHERE, ACTOR_FILTER_NOBODY, ACTOR_NOBODY, BEFORE_PREP_REFUSED, actorWithoutActor, storeItemsProblems, triggerHasActor, usesActorFilter } from './storyExtras'
 import { blockProblems, groupNames } from './behaviour'
+import { guestJoinsChecks } from './guests'
 import { choiceChecks, storeCounts } from './choiceChecks'
 import { inventorySize } from './itemRules'
 import { readingProblems } from './readingChecks'
@@ -128,7 +129,7 @@ function commandChecks(doc: ProjectDoc, battleMap: MapFile, e: StoryEvent, c: Co
       else if (u.id && (ids.get(u.id) ?? 0) > 1) say(where, `the story name “${u.id}” is used by more than one unit of the map.`)
       if (Array.isArray(u.items) && u.items.length > inventorySize(doc)) say(where, `${u.items.length} items, but a unit can carry only ${inventorySize(doc)}.`)
       if (typeof u.level === 'number' && u.level < 1) say(where, 'the level must be at least 1.')
-      if (u.behaviour !== undefined) blockProblems(u.behaviour, doc, map, (t) => say(where, t), { human: map.sides?.some((s) => s.id === u.side && s.controller !== 'ai'), goesFor: u.goesFor })
+      if (u.behaviour !== undefined) blockProblems(u.behaviour, doc, map, (t) => say(where, t), { human: u.guest !== true && map.sides?.some((s) => s.id === u.side && s.controller !== 'ai'), goesFor: u.goesFor })
       break
     }
     case 'fight':
@@ -136,6 +137,9 @@ function commandChecks(doc: ProjectDoc, battleMap: MapFile, e: StoryEvent, c: Co
       break
     case 'showUnit':
       if (typeof c.x !== 'number' || typeof c.y !== 'number' || outside(map, { x: c.x, y: c.y, w: 1, h: 1 })) say(where, 'the square is outside the map.')
+      break
+    case 'guestJoins':
+      for (const t of guestJoinsChecks(c)) say(where, t)
       break
     case 'removeUnit':
       if (c.hide !== undefined && typeof c.hide !== 'boolean') say(where, '“Only hide it” must be on or off.')

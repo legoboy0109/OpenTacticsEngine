@@ -538,6 +538,9 @@ strike replaces the unit's planned order only when it scores higher than the bes
 considered. In a speed game a strike ability with `chargeSpeed` is judged with the charged weapons (ai_speed.cpp: it must land before the target can walk out of reach). **Tests.**
 `tests/test_strike_abilities.cpp` (`the_ai_uses_a_strike_ability_when_it_beats_its_own_attack`). Code: `ai/ai_strike.cpp`, `ai/ai_speed.cpp`.
 
+A strike with `"reach": "equipped"` is weighed from the range of the weapon in the unit's hand: every forecast and square list the scoring asks is made inside
+the same `Battle::StrikeScope(battle, unit, ability)` the rules use, so the computer never plans a strike the rules would refuse (`tests/test_strike_reach.cpp`).
+
 The computer earns no ability points (docs/JOBS.md "Learning from equipment") and never chooses equipment for what it teaches.
 
 ### Status abilities
@@ -579,6 +582,21 @@ used as a heal and also weighed as a cure; an `inflict` list is the sum of its e
 
 **Tests.** `tests/test_ability_areas_ai.cpp` (heals the hurt in an area, never wastes one, waits rather than help foes, the Barrier list, the same game twice,
 charged areas). Code: `ai/ai_ability_area.cpp`, `ai/ai_conditions.cpp` (`inflictsWorth`, the cure part).
+
+The shapes `ring` and `field` need nothing of their own: the scoring asks the same area squares as the rules. A `field` heal or status ability is therefore
+weighed over every unit on the map its side sees, and used only when the sum is above 0. An ability whose `"range"` starts at 0 without an area lists the user
+among its targets, so a hurt healer may heal itself when that scores best.
+
+### Guests
+
+A guest (docs/SRPG.md "Guests") is played by the computer although its side is a person's. Side by side: `aiGuestStep(battle, events)` plays one decision of
+the guests of the side whose turn it is (`Battle::guestToAct()`): it wakes groups and builds its context as for a computer side, picks the best order over the
+guests that have not acted (the usual scoring: `behaviour`, attacks, staves, abilities, strikes, healing), and plays it **without ever ending the turn**: a
+guest with nothing better waits. Speed turn order: the guest's own turn is played as a computer unit's turn (`aiSpeedUnitStep`). It sees what its team sees
+(fog as for its side). It treats the person's units as its allies (it heals them, never strikes them) and counts its own value as a unit of its side. The player
+calls it before the person gets control (with `--autoplay` the computer plays the whole side, guests included, as usual); it never runs on a computer side. **Tests.**
+`tests/test_guests.cpp` (acts first, never ends the turn, `hold`, the speed turn order, the same battle twice). Code: `ai/ai_guests.cpp`, `ai/ai_speed.cpp`.
+*Owner decisions (placeholders):* guests act before the person each turn, lowest unit id first; no turn end; the computer's usual choices.
 
 ### Tests
 

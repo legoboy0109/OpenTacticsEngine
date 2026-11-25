@@ -400,7 +400,7 @@ std::vector<ote_editor::Problem> ConformanceTest::place(const Context& c, const 
         const std::string shape = value->asString();
         Json area = Json::makeObject();
         area.set("shape", *value);
-        if (shape == "radius" || shape == "cross") area.set("radius", Json::makeNumber(2));
+        if (shape == "radius" || shape == "cross" || shape == "ring") area.set("radius", Json::makeNumber(2));
         if (shape == "line") area.set("length", Json::makeNumber(2));
         *node = area;
         *placed = true;

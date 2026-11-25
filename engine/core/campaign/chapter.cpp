@@ -76,6 +76,7 @@ void putUnit(Roster& roster, const RosterUnit& r) {
 void takeUnits(const Database& db, Playthrough& pt, const Battle& b) {
   for (const Unit& u : b.units) {
     if (u.storyId.empty()) continue;  // extras are never carried
+    if (u.guest) continue;  // a guest leaves after the battle; the roster is left as it was (docs/SRPG.md "Guests")
     bool human = !b.sides[(size_t)u.side].ai;
     if (!human) {
       // Recruited away (changeSide to a computer side) or an enemy that was never ours.

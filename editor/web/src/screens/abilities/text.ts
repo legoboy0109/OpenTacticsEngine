@@ -113,6 +113,10 @@ export const T = {
   unlockNeedsNoItems: 'No item with a limited number of uses exists yet to be a lockpick. Make one on the Items screen.',
   range: 'How far away',
   rangeHelp: 'Within this many squares (1 means next to it).',
+  // Placeholders (the owner reviews): a heal, cure or condition on an ally or any unit may reach the user itself.
+  rangeZeroHelp: 'Within this many squares (1 means next to it; 0 = the unit itself may be picked too).',
+  strikeReach: 'Reach of the weapon in hand',
+  strikeReachHelp: 'Strikes with the damage of this weapon but from as far as the weapon the unit holds reaches. A unit holding no weapon uses the reach of this one.',
   rangeFrom: 'From',
   rangeTo: 'Up to',
 
@@ -211,7 +215,7 @@ export const T = {
   areaOn: 'Acts on an area',
   areaOnHelp: 'Off = one unit. On = the square it is aimed at and the squares around it.',
   areaShape: 'Shape',
-  areaShapes: { burst: 'Burst (the square and its neighbours)', radius: 'Diamond (radius)', cross: 'Cross', line: 'Line' },
+  areaShapes: { burst: 'Burst (the square and its neighbours)', line: 'Line', radius: 'Diamond (radius)', cross: 'Cross', ring: 'Ring (around the square, not on it)', field: 'Whole map' },
   areaRadius: 'Radius',
   areaLength: 'Length',
   areaSizeHelp: 'In squares, 1 to 8.',
@@ -231,7 +235,7 @@ export const T = {
   inflictTurnsHelp: 'How long it lasts. Empty = the condition\'s own duration.',
   inflictOwn: 'its own',
   inflictChance: 'Chance it takes hold',
-  inflictChanceHelp: 'A percent from 1 to 100, or a formula (a = the user, b = the target, e.g. a.mag + 40 - b.res). Rolled once for each target. Empty = always.',
+  inflictChanceHelp: 'A percent from 1 to 100, or a formula (a = the user, b = the target, e.g. a.mag + 40 - b.res). It can also read arc: 0 when the target is struck from the front, 1 from the side, 2 from behind (always 0 when the game has no facing rules). Rolled once for each target. Empty = always.',
   summaryTitle: 'In short',
 
   // The Abilities card on a unit type

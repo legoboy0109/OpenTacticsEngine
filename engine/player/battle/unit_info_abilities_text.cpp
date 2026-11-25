@@ -40,13 +40,15 @@ std::string cureText(const Database& db, const AbilityDef& def) {
   return "Cures " + t;
 }
 
-// "radius 2", "a burst", "a cross of 2", "a line of 3": the shape of an ability's area (placeholder wording).
+// "radius 2", "a burst", "a cross of 2", "a line of 3", "a ring of 1", "the whole map": the shape of an ability's area (placeholder wording).
 std::string areaShapeText(const AreaDef& a) {
   switch (a.shape) {
     case AreaShape::Burst: return "a burst";
     case AreaShape::Radius: return "radius " + num(a.radius);
     case AreaShape::Cross: return "a cross of " + num(a.radius);
     case AreaShape::Line: return "a line of " + num(a.length);
+    case AreaShape::Ring: return "a ring of " + num(a.radius);
+    case AreaShape::Field: return "the whole map";
     case AreaShape::None: break;
   }
   return "";

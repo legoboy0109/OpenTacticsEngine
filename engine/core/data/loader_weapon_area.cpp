@@ -14,20 +14,26 @@ std::string q(const std::string& s) { return "\"" + s + "\""; }
 bool readAreaShape(const LoadCtx& c, const Json& a, const std::string& where, AreaDef& d) {
   const std::string range = "a whole number from 1 to " + std::to_string(kMaxAreaSize);
   const std::string at = where + ", \"area\"";
-  if (!a.has("shape")) return c.fail(where, "\"area\" needs a \"shape\": \"burst\", \"line\", \"radius\" or \"cross\"");
+  const char* shapes = "\"burst\", \"line\", \"radius\", \"cross\", \"ring\" or \"field\"";
+  if (!a.has("shape")) return c.fail(where, std::string("\"area\" needs a \"shape\": ") + shapes);
   std::string shape;
   if (!c.str(a, "shape", at, shape)) return false;
   if (shape == "burst") d.shape = AreaShape::Burst;
   else if (shape == "line") d.shape = AreaShape::Line;
   else if (shape == "radius") d.shape = AreaShape::Radius;
   else if (shape == "cross") d.shape = AreaShape::Cross;
-  else return c.fail(where, "\"area\".\"shape\" must be \"burst\", \"line\", \"radius\" or \"cross\" (not " + q(shape) + ")");
+  else if (shape == "ring") d.shape = AreaShape::Ring;    // the squares around the aimed one, not the aimed one
+  else if (shape == "field") d.shape = AreaShape::Field;  // the whole map
+  else return c.fail(where, std::string("\"area\".\"shape\" must be ") + shapes + " (not " + q(shape) + ")");
 
-  const bool wantsRadius = d.shape == AreaShape::Radius || d.shape == AreaShape::Cross;
+  const bool wantsRadius = d.shape == AreaShape::Radius || d.shape == AreaShape::Cross || d.shape == AreaShape::Ring;
   const bool wantsLength = d.shape == AreaShape::Line;
   if (a.has("radius") && !wantsRadius)
-    return c.fail(where, "\"area\".\"radius\" belongs to the shapes \"radius\" and \"cross\" (a burst is always radius 1; a line has a \"length\")");
+    return c.fail(where, d.shape == AreaShape::Field ? "\"area\".\"radius\": a \"field\" covers the whole map and takes no \"radius\""
+                                                     : "\"area\".\"radius\" belongs to the shapes \"radius\", \"cross\" and \"ring\" (a burst is always radius 1; a line has a \"length\")");
   if (a.has("length") && !wantsLength) return c.fail(where, "\"area\".\"length\" belongs to the shape \"line\" only");
+  if (d.shape == AreaShape::Field && a.has("vertical"))
+    return c.fail(where, "\"area\".\"vertical\": a \"field\" covers the whole map at every height (leave out \"vertical\")");
   if (wantsRadius) {
     if (!a.has("radius")) return c.fail(where, "\"area\" of shape " + q(shape) + " needs a \"radius\" (" + range + ")");
     if (!c.integerFrom(a, "radius", at, 1, kMaxAreaSize, d.radius)) return false;

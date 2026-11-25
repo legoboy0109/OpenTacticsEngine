@@ -42,7 +42,7 @@ void Battle::aimCells(int weapon, Cell from, int ignoreUnit, std::vector<Cell>& 
   if (!grid.valid(from)) return;
   const WeaponDef& w = db->weapons[(size_t)weapon];
   if (!db->straightWeapons || !w.aimsStraight()) {
-    grid.within(from, w.maxRange + rangeBonusMost(weapon), out);  // (the height rules may raise the reach from high ground)
+    grid.within(from, weaponMaxRange(weapon) + rangeBonusMost(weapon), out);  // (the height rules may raise the reach from high ground)
     out.erase(std::remove_if(out.begin(), out.end(), [&](Cell c) { return !weaponReaches(weapon, from, c); }), out.end());
     return;
   }
@@ -50,12 +50,12 @@ void Battle::aimCells(int weapon, Cell from, int ignoreUnit, std::vector<Cell>& 
   for (int dir = 0; dir < grid.directionCount(); ++dir) {
     Cell c = from;
     int ridge = -kNoHeightLimit;  // the highest square before this one
-    for (int k = 1; k <= w.maxRange + rangeBonusMost(weapon); ++k) {
+    for (int k = 1; k <= weaponMaxRange(weapon) + rangeBonusMost(weapon); ++k) {
       c = grid.neighbor(c, dir);
       if (c == kNoCell) break;
       const bool unit = occupant[(size_t)c] >= 0 && occupant[(size_t)c] != ignoreUnit;
       if (w.fire == FireMode::Line && shotBlockedAt(c) && !unit) break;  // a wall stops the shot before the square
-      if (k >= w.minRange && weaponReaches(weapon, from, c) && !(ridges && ridge > std::max(heightAt(from), heightAt(c)))) out.push_back(c);
+      if (k >= weaponMinRange(weapon) && weaponReaches(weapon, from, c) && !(ridges && ridge > std::max(heightAt(from), heightAt(c)))) out.push_back(c);
       if (w.fire == FireMode::Line && unit) break;  // the first unit stops it (it is the last square that can be aimed at)
       if (ridges) ridge = std::max(ridge, heightAt(c));
     }

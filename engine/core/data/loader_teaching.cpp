@@ -75,6 +75,18 @@ bool loadAbilityPointRules(const LoadCtx& c, const Json& rules, Database& db) {
          c.integerIn(*blk, "perDefeat", at, 0, kMaxTeachPoints, r.perDefeat);
 }
 
+bool readMapAbilityPoints(const LoadCtx& c, const Database& db, const Json& root, MapDef& m) {
+  m.apPerBattle = -1;
+  if (!root.has("abilityPoints")) return true;
+  if (!db.teachingOn())
+    return c.fail("", "\"abilityPoints\" needs items that teach (data/items.json \"teaches\"): without them nobody earns " + db.rules.abilityPoints.name);
+  const Json* blk;
+  if (!c.object(root, "abilityPoints", "", blk)) return false;
+  if (!c.onlyKeys(*blk, {"perBattle"}, "abilityPoints")) return false;
+  if (!blk->has("perBattle")) return c.fail("abilityPoints", "needs \"perBattle\": the points each unit of the winning human side gets on this map");
+  return c.integerIn(*blk, "perBattle", "abilityPoints", 0, kMaxTeachPoints, m.apPerBattle);
+}
+
 bool resolveTeaching(const std::string& root, Database& db, std::string& err) {
   const LoadCtx game(err, root + "/game.json");
   const LoadCtx items(err, root + "/data/items.json");

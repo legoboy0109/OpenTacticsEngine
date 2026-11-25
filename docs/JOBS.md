@@ -265,9 +265,15 @@ without jobs.
 |---|---|
 | item `"teaches"` | 1 to 8 entries `{ "ability": id }` or `{ "skill": id }` (exactly one) with `"points"` (1 to 9999): what it costs to master. Only on items of kind `weapon` and `accessory`. A skill that is a condition's hidden skill cannot be named. |
 | `rules.abilityPoints.name` | the short word the player shows (1 to 8 characters, default `"AP"`). |
-| `perBattle` | points every unit of a human side gets when its side **wins** the battle (default 10). Only units alive and on the board. |
+| `perBattle` | points every unit of a human side gets when its side **wins** the battle (default 10). Only units alive and on the board. A map may set its own (below). |
 | `perAction` | points at every moment experience is awarded (as JP: a fight it took part in, a staff it used; default 0). |
 | `perDefeat` | extra points for defeating a unit of another side (default 0). |
+
+**A map's own points for a win.** `maps/*.json` may say `"abilityPoints": { "perBattle": 40 }` (a whole number 0 to 9999): a battle on that map gives that
+many for the win instead of the game's `perBattle` (0 = none for the win); `perAction` and `perDefeat` stay the game's. Refused: `"abilityPoints" needs items that
+teach (data/items.json "teaches"): without them nobody earns AP`, a missing `perBattle` (`needs "perBattle": ...`), any other key, a number out of range. Not saved
+(map data; `Battle::mapApPerBattle`). *Owner decisions (placeholders):* the key `"abilityPoints": { "perBattle" }` on the map (only the win amount), 0 allowed. Tests:
+`tests/test_map_ability_points.cpp`.
 
 **Equipped** means: the weapon in hand (a weapon item in its inventory's equipped slot) and every accessory it carries (accessories work while carried,
 docs/ITEMS.md). A weapon that is not an item (a unit type's own weapon) teaches nothing.

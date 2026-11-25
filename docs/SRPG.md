@@ -742,6 +742,8 @@ the computer opponent, the player's highlight and the enemy-range display all ca
 | `burst` | the aimed square and its direct neighbours (4 / 6): a named shorthand for `radius` 1 | none |
 | `cross` | the aimed square plus `radius` squares in each direction of the grid (4 / 6) | `radius` |
 | `line` | `length` squares along the straight line from the attacker through the aimed square, **the aimed square first** and then the squares behind it; the beam pierces (nothing stops it but the map edge); the squares between the attacker and the aimed square are not hit | `length` |
+| `ring` | every square within `radius` steps of the aimed square **except the aimed square itself** (a `radius` with a hole in the middle). With `"range": [0, 0]` it is aimed at the attacker's own square: everything around the attacker (a "Wild Swing") | `radius` |
+| `field` | **every square of the map**, wherever it is aimed (aiming still follows `range`; `[0, 0]` = the user's own square). Who is hit is the usual rule: foes, or everyone with `friendlyFire` (an ability: its `target`) | none (no `radius`, `length` or `vertical`) |
 
 A `line` area (with or without `"fire": "line"`) can only be aimed along the straight lines of the grid (it needs a direction). Squares off the map
 edge are simply left out. `friendlyFire` (default `false`): with `false` only units that are foes of the attacker are hit; with `true` every unit in the area
@@ -799,9 +801,15 @@ by the first unit or wall as the board stands now), and area weapons also mark e
 **Computer opponent.** See docs/AI.md "Area attacks".
 
 **Errors** (each names the file, the weapon and the key): `weapon "x": "fire" must be "direct" or "line" (not "arc")`, `"area".shape must be "burst",
-"line", "radius" or "cross"`, `"area" of shape "radius" needs a "radius" (a whole number from 1 to 8)`, `"area"."radius" must be from 1 to 8`,
-`"area"."length" belongs to the shape "line" only`, `"area"."radius" belongs to the shapes "radius" and "cross"`, `"area" has an unknown key "colour"`,
-`"area" needs a "shape"`.
+"line", "radius", "cross", "ring" or "field"`, `"area" of shape "radius" needs a "radius" (a whole number from 1 to 8)`, `"area"."radius" must be from 1 to 8`,
+`"area"."length" belongs to the shape "line" only`, `"area"."radius" belongs to the shapes "radius", "cross" and "ring"`, `"area" has an unknown key "colour"`,
+`"area" needs a "shape"`, `"area"."radius": a "field" covers the whole map and takes no "radius"`, `"area"."vertical": a "field" covers the whole map at
+every height (leave out "vertical")`.
+
+**Ring and field: owner decisions (placeholders).** The names `"ring"` and `"field"`; a ring never covers the aimed square (also when a unit stands there:
+that unit is not hit and, for a weapon, cannot answer as the "primary"); a field is aimed like any area (its `range`; the square aimed at does not change who
+is hit) and has no height limit; the attacker is never hit by either (as with every area); the player words "a ring of N" / "the whole map". Tests:
+`tests/test_area_ring_field.cpp`.
 
 **Not done / known limits.** Strikes of one area attack are not shown in the side-view battle scene (they play on the map). The picture of an attack
 on empty ground has no target to look at: the attacker lunges toward each victim in turn. Staves keep their own area forms (single / radius / all).
@@ -966,7 +974,8 @@ as before: every rule below is behind `Database::rules.facing.on`, units have no
   next to it** are the **front** (three of six), the opposite direction the **back** (one), the remaining two the **sides**. **Ties:** an attacker exactly on a line between
   two directions (a true diagonal on squares; a line exactly between two hexagon directions) counts as the **milder of the two arcs** (front before side before
   back), so a diagonal is never a back attack on squares. The same square, and a unit with no facing, are front.
-- **Formulas and skills.** The strike formulas (damage, hit, crit, strikes) read `arc` (0 front, 1 side, 2 back; a counter strike meets the front, 0); it is 0 everywhere else.
+- **Formulas and skills.** The strike formulas (damage, hit, crit, strikes) read `arc` (0 front, 1 side, 2 back; a counter strike meets the front, 0), and so does an ability's `"inflict"` `"chance"` formula (the target's arc as
+  seen from the square the user acts from: section 9 "Ability conditions"); it is 0 everywhere else.
   The skill condition `{ "arc": "front" | "side" | "back" }` (combat, strike and struck blocks; needs the rules, refused elsewhere) is true when **the owner stands in that arc of
   the foe** (the owner attacks the foe's back); with `"who": "foe"` it is true when **the foe stands in that arc of the owner** (the owner is hit from behind). The fighter that started
   the fight has turned to its opponent, so the starter always has the other in front of it: `{ "arc": "back" }` can only be true for an owner that attacks, and
@@ -2916,7 +2925,10 @@ target unit`). With `"cure": "helpful"` on an enemy it is a dispel. A target mus
 `inflict` (a status ability with no effect of its own, a strike, a heal that also curses ...).
 
 - A number from 1 to 100 (100 = always, no roll) or a formula (a = the user, b = the target, `dist` = the distance, judged from where the user stands; rounded
-  down, kept within 0..100). Refused: `"inflict": "chance" must be a percent from 1 to 100 or a formula such as "a.mag + 40 - b.res"`; a formula that does not
+  down, kept within 0..100). **`arc`** in the formula is the target's arc as seen from the user's square (0 front, 1 side, 2 back: `Battle::arcOfAttack`, the
+  same function as a strike's; 0 in a game without `rules.facing`, and 0 (front) on the user itself): `"chance": "40 + arc * 20"` is a status spell that lands
+  more often from behind. The forecast and the pick hint use the square the user would act from. *Owner decisions (placeholders):* the name `arc` (the strike
+  formulas' own), the user itself counts as front, an area ability's units each get their own arc from the user's square. Tests: `tests/test_inflict_arc.cpp`. Refused: `"inflict": "chance" must be a percent from 1 to 100 or a formula such as "a.mag + 40 - b.res"`; a formula that does not
   compile, with the Lua message.
 - **When it rolls**: once per target, after the ability's effect (a strike: for each unit it hit that still stands, in the order struck), with `Battle::rng`, and
   **only where the condition could take hold**: an immune target gets `ConditionResisted` as before and no roll; a target that has it for as long already is
@@ -3339,6 +3351,14 @@ squares, the battle scene, the computer's scoring and the formulas' `w` all see 
 
 - **Targets and reach come from the weapon**: a single-target weapon picks an enemy unit (as Attack), an area weapon a square. `"target"` and `"range"` are
   refused (`"strike" takes its targets and reach from the weapon: leave out "target" and "range"`).
+- **Reach of the weapon in hand** (`"effect": { "strike": "w", "reach": "equipped" }`): the strike keeps everything of `w` (damage, hit, area, damage type ...)
+  but its **range is the range of the weapon the user holds** (`Battle::restingWeapon`: the equipped one, else the first it can use), so a "Rend Power" from a
+  bow reaches as far as the bow and from a sword only next to the user. A unit holding no weapon uses `w`'s own range. Only the range moves (min and max;
+  `fire`, height reach rules and the area stay `w`'s). The forecast, the square pick, the action check, the computer and a charged strike all ask the same
+  `Battle::StrikeScope` (`strikeReachOf`). Refused: `"effect": "reach" goes with "strike" (how far the strike reaches)`, `"effect": "reach" must be "equipped" (the
+  range of the weapon in the user's hand) or left out (the strike weapon's own range)`. Saves: nothing new. *Owner decisions (placeholders):* the key `"reach":
+  "equipped"`; the weapon in hand is the resting one (the equipped weapon, else the first usable); a unit with none uses the strike weapon's range; only the range
+  follows the weapon. Tests: `tests/test_strike_reach.cpp`.
 - **Differences from an attack**: the target **never strikes back**; nothing is worn or spent from an inventory (no uses, no ammunition), no weapon rank
   or weapon experience, no "pick a weapon" list. Experience (and JP) are paid as for a fight. The weapon's `afterMove` is not asked: the ability's own is.
 - `"inflict"` (the ability's): after the strike, every unit it **hit** that is still standing gets the condition (immunity and the usual rules apply).
@@ -3380,7 +3400,7 @@ saves and hashes exactly as before. Harmful status spells with an area are still
 ```
 
 **An area (`"area"`).** On an ability whose effect is `heal`, `cure`, heal and cure together, or none (only `inflict`). The object has a weapon area's
-shape keys (`shape`: `burst`, `radius`, `cross`, `line`; `radius` / `length` 1 to 8; the squares come from the same `areaCells()`, so a radius is a diamond on
+shape keys (`shape`: `burst`, `radius`, `cross`, `line`, `ring`, `field` (section "Area attacks and line fire"); `radius` / `length` 1 to 8; the squares come from the same `areaCells()`, so a radius is a diamond on
 squares and a hexagon on hexagons) and `vertical` (height rules only: squares more than that many levels above or below the aimed one are left out). There is
 no `friendlyFire` and no `apExtra`: the ability's `target` says who in the area is acted on.
 
@@ -3427,7 +3447,7 @@ push, pull, swap, summon, unlock, steal or refresh`; `"strike" takes its area fr
 (who in the area is affected); "range": [0, 0] centres it on the user`; `"area"."friendlyFire" is for weapons: ...`; `"area"."apExtra" is for weapons ...`;
 `"area" has an unknown key "x" (an ability's area takes shape, radius, length, vertical)`; the weapon area's shape, radius and length messages;
 `"area"."vertical" needs "rules": { "height": ... } in game.json`; `"range" must be [min, max]: whole numbers from 0 to 20 (0 = the user's own square), min
-not above max` (with an area; without one the minimum stays 1); an `if` condition with `"who": "foe"` (the message ends `in an ability with an "area" (it has no one target unit)`); `an ability with an "area" keeps the
+not above max` (0 without an area: "An ability on its user" below); an `if` condition with `"who": "foe"` (the message ends `in an ability with an "area" (it has no one target unit)`); `an ability with an "area" keeps the
 square it aims at: "chargeTargets" must be "cell"`; `"effect" needs exactly one of ... (only heal and cure may go together)`; `"inflict" must be one condition
 entry or a list of 1 to 8 ...`; `"inflict" names "x" twice (one entry per condition)`; an entry's own errors start `entry 2: "inflict" ...`.
 
@@ -3444,6 +3464,62 @@ key; the loader names the refusals).
 full-HP unit is left out of a Cura); order = unit id, then heal, cure, conditions; `xp` once per use; a charged area keeps its square; the player's words
 `Cura: 3 units (...)`, `(area: radius 1)`, `a square (allies in the area)`, `Heals 10 HP and cures ...`, `Inflicts A and B`, `that unit needs neither healing nor a
 cure`, `that unit already has them`, `nobody there would be affected`.
+
+### An ability on its user
+
+A single-target heal, cure (or both) or condition-only ability aimed at `"ally"` or `"unit"` may have a `"range"` that **starts at 0**: the user is then one of
+the units it may be used on, next to the others in range (Barrier, Protect, a potion skill "on yourself or a neighbour"). `"target": "self"` stays the way to
+write an ability that is used **only** on the user.
+
+```jsonc
+{ "id": "barrier", "name": "Barrier", "target": "ally", "range": [0, 3], "inflict": [ { "condition": "protect" }, { "condition": "shell" } ] }
+```
+
+- **Rules.** `Battle::abilityTargets` lists the user when the minimum is 0; the distance to itself is 0 and the user's facing is not changed. With a minimum of 1
+  the user is refused as before (`a unit cannot use that on itself`). The other rules are those of the target kind: a heal needs the user hurt, a cure something to
+  cure, an inflict a condition that could take hold.
+- **Loader.** `"range"` is `[min, max]`, whole numbers 0 to 20. Without an `"area"` a minimum of 0 is refused unless the effect is heal, cure, both, or none (only
+  `inflict`) and the target `"ally"` or `"unit"`: `"range" may start at 0 (the user itself) only on a heal, cure or condition ability with "target" "ally" or "unit",
+  or with an "area"; otherwise it starts at 1`. Push, pull, swap and the like (`must be [1, 1]`) keep their own message.
+- **Computer opponent.** Nothing new: it already scores every unit `abilityTargets` lists, the user included (a hurt healer heals itself when that is the best
+  use). **Player**: the user's own square is offered in the unit pick. Saves: nothing new.
+- *Owner decisions (placeholders):* which effects may start at 0 (heal, cure, condition only), `"enemy"` and `"cell"` never; this widens the earlier decision
+  "range 0 only with an area". Tests: `tests/test_ability_on_self.cpp`.
+
+### Guests
+
+A map unit (or a story `addUnit`) may say `"guest": true`: it stands on a **side a person plays** (it is that side's unit for teams, allies, fog, healing,
+supports, objectives by name) but **the computer moves it**, and it **leaves after the battle**. A game that writes no `"guest"` plays, rolls, saves and hashes
+exactly as before.
+
+```jsonc
+{ "id": "ritz", "type": "fencer", "side": "blue", "x": 2, "y": 5, "guest": true, "behaviour": "advance" }
+// a story command: the guest becomes the player's own (moved by the person, joins the party)
+{ "guestJoins": "ritz" }
+```
+
+- **Who moves it.** Side by side: at the start of its side's turn, **before the person gets control**, every guest of the side acts (lowest unit id first, each
+  until done), chosen by the computer opponent exactly as a computer unit (`behaviour`, `goesFor`-free; docs/AI.md "Guests"); a guest never ends the side's turn.
+  Speed turn order: a guest's own turn is played by the computer. `Battle::guestToAct()` names the guest to play (-1: the person's turn); the player calls
+  `aiGuestStep` (with `--autoplay` the computer plays the whole side anyway). The person cannot select a guest to act (it is shown, with its forecast and details, like any unit).
+- **Defeat and objectives.** A guest **does not keep its side in the battle**: `noUnits` is judged on the side's own units (a side with only guests left has lost),
+  and a side defeated takes its guests with it. A guest falling does not lose the battle by itself. Objective and story filters by `side`, `team` or `any` do not
+  see guests (as they do not see summons); a filter that **names** the guest does (`"lose": [ { "defeated": { "unit": "ritz" } } ]`). A guest `leader` follows the
+  leader rule as written.
+- **Campaign.** A guest is **never dressed from the roster** (it comes as the map says) and **never written to it** after the battle (a unit of the same id already
+  in the roster is left as it was); preparation does not offer it (it stays where the map places it). `{ "guestJoins": <unit filter> }` turns the matching guests
+  into ordinary units of their side: the person moves them from then on and they join the party when the battle is won.
+- **Progress.** A guest gains experience, JP and ability points like the side's other units (they are not kept after the battle unless it joins).
+- **Saves.** The unit's `"guest": true`, written only for a guest (docs/SAVES.md).
+- **Loader refusals.** `"guest" is for a unit on a side a person plays; side "red" is the computer's, so its units are the computer's already`; `"guest" cannot
+  be used with "rules": { "actionPoints" } (the side's shared points pay for the player's own units)`; a guest may have `"behaviour"` and `"difficulty"`, which
+  stay refused on the person's own units; `guestJoins` takes only the filter (`unknown key ...`).
+- **Player.** While a guest acts the hint reads `Guest Ritz is acting...`; the unit panel has a `Guest  moves itself` row (words: `engine/player/battle/guest_text.h`).
+- *Owner decisions (placeholders):* the key names `guest` and `guestJoins`; guests act first in their side's turn; a guest does not keep its side alive nor lose
+  the battle by falling (unless an objective names it); side / team / any filters ignore guests; guests never in the roster, preparation or a party until they
+  join; they earn experience like the others; refused with action points; the words `Guest`, `moves itself`, `Guest <name> is acting...`.
+- Code: `data/loader_guests.cpp`, `battle/guests.cpp` (`guestToAct`, `guestJoins`), `ai/ai_guests.cpp`. Tests: `tests/test_guests.cpp`, `tests/test_guests_campaign.cpp`,
+  `tests/editor_api_rule_gaps_checks.py`.
 
 ### Unit resources (MP and the like)
 

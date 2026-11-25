@@ -16,4 +16,11 @@ namespace ote {
 // shown; headless tools just loop on it.
 bool aiTakeStep(Battle& battle, std::vector<Event>& events);
 
+// Guests (docs/SRPG.md "Guests"): ONE decision for the guest Battle::guestToAct() names (side by side: the best order among the side's guests
+// that have not acted; speed turn order: the guest whose turn it is), applied. Never ends the person's turn, never uses the side's power,
+// research or money. Returns true while a guest is still to act (call again), false when none is (the person plays on). The player calls
+// it while guestToAct() >= 0 on a turn a person plays; aiTakeStep needs nothing of it (a computer side has no guests, and on --autoplay it plays
+// the whole side, guests included).
+bool aiGuestStep(Battle& battle, std::vector<Event>& events);
+
 }  // namespace ote

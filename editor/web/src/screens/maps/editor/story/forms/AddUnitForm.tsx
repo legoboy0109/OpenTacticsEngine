@@ -16,6 +16,8 @@ import { TextInput } from '../../../../../ui/TextInput'
 import { Check, Toggle } from '../../../../../ui/Toggle'
 import { DifficultyOnly } from '../../panels/DifficultyOnly'
 import { GoesFor } from '../../panels/GoesFor'
+import { GuestCheck } from '../../panels/GuestCheck'
+import { computerMoves } from '../../../../../model/guests'
 import { UnitSkills } from '../../panels/UnitSkills'
 import { StartingRanksField } from '../../../../ranks/StartingRanksField'
 import { GOES_FOR } from '../../../../../model/mapPlaces'
@@ -59,13 +61,14 @@ export function AddUnitForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
       <UnitSkills doc={doc} value={u.skills} onChange={(v) => set({ skills: v }, 'skills')} />
       <StartingRanksField type={u.type ?? ''} character={u.character} value={u.ranks} testId="add-unit-ranks" onChange={(ranks, k) => set({ ranks }, k)} />
       <GoesFor map={map} side={u.side} value={u.goesFor} onChange={(goals) => set({ goesFor: goals.length ? GOES_FOR.filter((g) => goals.includes(g)) : undefined })} />
-      <DifficultyOnly doc={doc} unit={u} ai={map.sides?.find((s) => s.id === u.side)?.controller === 'ai'} onChange={(p) => set(p)} />
+      <DifficultyOnly doc={doc} unit={u} ai={computerMoves(map, u)} onChange={(p) => set(p)} />
       <Check checked={!!u.leader} label={S.unitLeader} onChange={(v) => set({ leader: v ? true : undefined })} />
       <Field label={S.storyName} help={S.storyNameHelp}>
         <IdInput value={u.id ?? ''} validate={validate} onChange={setId} placeholder={S.unitStoryPlaceholder} />
       </Field>
       <button type="button" className="btn sm" onClick={() => setId(suggestUnitId(doc, map, u))}>{S.fillFromName}</button>
-      {map.sides?.find((s) => s.id === u.side)?.controller === 'ai' && (
+      <GuestCheck map={map} unit={u} onChange={(on) => set({ guest: on ? true : undefined })} />
+      {computerMoves(map, u) && (
         <fieldset className="fieldset" data-testid="add-unit-behaviour">
           <legend>{B.title}</legend>
           <BehaviourEditor value={u.behaviour} doc={doc} map={map} id="add-unit-behaviour-fields" onChange={(next, k) => set({ behaviour: next }, k && `behaviour:${k}`)} />

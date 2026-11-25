@@ -293,6 +293,7 @@ void addDataExtraSkips(std::map<QString, QString>& s) {
   s.insert({
       {"abilities:area.shape = \"burst\"", "the probe's area has a radius, which belongs to radius and cross only (cross-key rule); burst is tried by the area samples"},
       {"abilities:area.shape = \"line\"", "a line takes a length, not the probe's radius (cross-key rule); tried in the ability-area-line context"},
+      {"abilities:area.shape = \"field\"", "a field covers the whole map and takes no radius, which the probe's area has (cross-key rule); covered by tests/test_area_ring_field.cpp"},
       {"abilities:target = \"self\"", "which targets an ability may have depends on its effect (cross-key rule); heal is tried with the others"},
       {"abilities:target = \"ally\"", "which targets an ability may have depends on its effect (cross-key rule)"},
       {"abilities:target = \"enemy\"", "which targets an ability may have depends on its effect (cross-key rule)"},
