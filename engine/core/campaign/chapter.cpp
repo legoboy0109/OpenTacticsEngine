@@ -124,6 +124,7 @@ bool prepareChapterBattle(const Database& db, const Playthrough& pt, Formulas& f
   // Carried technologies first: the roster dresses units at full hit points, bonuses included.
   takeCarried(pt, battle);
   battle.setStartingRoster(std::make_shared<const Roster>(pt.roster));
+  if (!pt.names.empty()) battle.setHeroNames(std::make_shared<const Battle::HeroNames>(pt.names));  // typed names (docs/EVENTS.md)
   if (!pt.parked.empty()) {  // the other parties' rosters, for the roster conditions' `party: any`
     std::vector<Roster> others;
     for (const ParkedParty& p : pt.parked) others.push_back(p.roster);

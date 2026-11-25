@@ -48,6 +48,7 @@ int readUnitNumber(const Battle& b, const UnitReading& r) {
 void Battle::runCommands(const std::vector<Command>& list, std::vector<Event>& events) {
   for (const Command& c : list) {
     if (choice_.halted) return;  // a question is waiting behind us (story_choice.cpp): nothing after it counts
+    if (storyRun_.breaking) return;  // a "break" ran: the rest of the loop's block (at every depth) is skipped (story_loop.cpp)
     runCommand(c, events);
   }
 }
@@ -55,7 +56,8 @@ void Battle::runCommands(const std::vector<Command>& list, std::vector<Event>& e
 void Battle::cmdSay(const Command& c, std::vector<Event>& events) {
   Event e = makeEvent(EventType::Dialogue, c.unit.empty() ? -1 : unitByStoryId(c.unit), c.text, c.speakerName, c.portrait);
   // The presentation keys ride along: position and narrate in the flags, "auto" in data (docs/EVENTS.md "Scene presentation").
-  e.flags = (c.fx.position & kDialoguePosMask) | (c.fx.narrate ? kDialogueNarrate : 0);
+  e.flags = (c.fx.position & kDialoguePosMask) | (c.fx.narrate ? kDialogueNarrate : 0) | (c.fx.notice ? kDialogueNotice : 0) |
+            ((c.fx.face << kDialogueFaceShift) & kDialogueFaceMask);  // a notice and a face (docs/EVENTS.md "Notices", "Portrait expressions")
   if (c.fx.ms > 0) e.data.push_back(c.fx.ms);
   events.push_back(e);
 }
@@ -201,6 +203,8 @@ void Battle::runCommand(const Command& c, std::vector<Event>& events) {
     case K::Focus: cmdFocus(c, events); break;
     case K::Scene: storyScene(c, events); break;  // docs/EVENTS.md "Scene presentation" (story_scene_fx.cpp)
     case K::SetPhaseMusic: storyPhaseMusic(c, events); break;  // story_music.cpp
+    case K::Loop: storyLoop(c, events); break;                 // story_loop.cpp
+    case K::Break: storyRun_.breaking = true; break;
   }
 }
 

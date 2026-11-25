@@ -297,6 +297,7 @@ void savePlaythrough(const Database& db, const Playthrough& pt, Json& out) {
   writePrep(pt.prep, pt.lastDeployed, out);
   writeParties(db, pt, out);
   savejson::writePlaythroughDifficulty(db, pt, out);  // docs/DIFFICULTY.md: only in a game with difficulties
+  savejson::writePlaythroughNames(pt, out);  // docs/EVENTS.md "Naming a character": only once a name was typed
 }
 
 bool restorePlaythrough(const Database& db, const Json& saved, Playthrough& out, std::string& err) {
@@ -332,6 +333,7 @@ bool restorePlaythrough(const Database& db, const Json& saved, Playthrough& out,
   if (!savejson::readPlaythroughDifficulty(rd, db, saved, pt)) return false;
   if (pt.prep.any() && pt.phase != Phase::Battle) return rd.fail("playthrough.prep", "a preparation only exists in the battle phase");
   if (!readParties(rd, db, saved, pt)) return false;
+  if (!savejson::readPlaythroughNames(rd, saved, pt)) return false;
   out = pt;
   return true;
 }

@@ -63,6 +63,7 @@ struct StoryRun {
   int ran = 0;       // events run in this go (the chain limit counts these)
   int talker = -1;   // the unit of the Talk event that is running (for endTurn)
   int actor = -1;    // the unit that set the running event off, for the `actor` condition (docs/EVENTS.md); -1 = none
+  bool breaking = false;  // a { "break": true } ran: the command lists stop until the loop around it is left (docs/EVENTS.md "Loops")
 };
 
 struct ChoiceWait;  // story_choice.cpp
