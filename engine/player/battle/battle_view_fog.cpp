@@ -67,11 +67,20 @@ void BattleView::applyUnseen(const Battle& b, const Event& e) {
       break;
     case EventType::UnitDied:
     case EventType::UnitRemoved:
-      if (v) {
+      if (v && e.type == EventType::UnitDied && (e.flags & kDowned)) {  // a body is always known (docs/SRPG.md "Downed units and revive")
+        cellPos(b, e.b, v->px, v->py);
+        v->visible = true;
+        lieDown(*v);
+      } else if (v) {
         v->visible = false;
         v->hp = 0;
         v->alpha = 1;
+        v->downed = false;
+        v->down = 0;
       }
+      break;
+    case EventType::UnitRevived:
+      if (v) standUp(*v, e.b);
       break;
     case EventType::Attack:
       if (UnitView* d = unit(e.b)) d->hp = std::max(0, d->hp - e.d);
@@ -144,7 +153,7 @@ void BattleView::updateShown(const Battle& b) {
     shown_.assign(n, 0);
     for (size_t c = 0; c < n; ++c) shown_[c] = b.visibleTo(viewerTeam_, (Cell)c) ? 1 : 0;
     for (const Unit& u : b.units)
-      if ((size_t)u.id < units.size()) units[(size_t)u.id].visible = u.alive && b.unitVisibleTo(viewerTeam_, u);
+      if ((size_t)u.id < units.size()) units[(size_t)u.id].visible = (u.alive && b.unitVisibleTo(viewerTeam_, u)) || u.downed;  // (a body is always known)
     shownKey_.clear();
     return;
   }

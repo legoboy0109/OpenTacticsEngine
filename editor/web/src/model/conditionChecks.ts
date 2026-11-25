@@ -5,6 +5,7 @@
 import { inflictList } from './abilityInflicts'
 import { blocksOfCondition, CONDITION_TURNS_MAX, CONDITION_WEAROFF_MAX, hasScalableEffect, MAX_CONDITIONS_LISTED, TAG_MAX } from './conditions'
 import { isControlBlock } from './conditionBehaviour'
+import { autoReviveChecks } from './downedChecks'
 import { cureOf } from './staffConditions'
 import { fxList, fxKind } from './staffFx'
 import { MAX_BLOCKS } from './skillRules'
@@ -90,7 +91,8 @@ function shapeIssues(doc: ProjectDoc, c: Condition): string[] {
     else if (!doc.conditions?.some((x) => x.id === r)) out.push(`it replaces “${r}”, which is not a condition of this game.`)
   }
   const blocks = blocksOfCondition(c)
-  if (blocks.length === 0) out.push('it needs at least one rule (something it does).')
+  if (blocks.length === 0 && c.autoRevive === undefined) out.push('it needs at least one rule (something it does).')  // an autoRevive is something it does
+  out.push(...autoReviveChecks(doc, c))
   if (blocks.length > MAX_BLOCKS) out.push(`it has more than ${MAX_BLOCKS} rules.`)
   return out
 }

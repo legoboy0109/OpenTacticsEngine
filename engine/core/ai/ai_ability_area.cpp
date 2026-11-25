@@ -3,6 +3,7 @@
 // Each square the ability may be aimed at from a square the unit may stand on is scored by the SUM over the units it would act on that the unit's
 // team sees (Battle::abilityAreaForecast; units in fog are acted on by luck, never counted):
 //  - HP restored: the share of the unit's maximum times its value (ai_score.cpp unitValue), as a staff's heal (ai_staves.cpp);
+//  - a revive: reviveWorth (ai_revive.cpp; docs/SRPG.md "Downed units and revive");
 //  - a cure: a share (kConditionShare) of the unit's value once when it frees its own team of a harmful condition or strips a foe of a helpful one;
 //  - each "inflict" entry: conditionWorth (the condition's kind decides the side, times its chance).
 // Whatever helps a foe or harms its own team counts AGAINST the use with the same weight (a "unit" heal that also heals two foes, a "unit" curse that
@@ -30,6 +31,7 @@ double leaderFactor(const Battle& b, const Unit& t) { return t.leader && b.db->r
 double healCureWorth(const Battle& b, const Unit& user, const Unit& t, const AbilityDef& d, const AbilityAreaHit& h) {
   const bool foe = b.isEnemy(user, t);
   double v = 0;
+  if (h.revive > 0) v += reviveWorth(b, user, t, h.revive);  // signed already (ai_revive.cpp)
   if (h.heal > 0) {
     const double w = h.heal / (double)std::max(1, b.maxHp(t)) * unitValue(b, t) * leaderFactor(b, t);
     v += foe ? -w : w;

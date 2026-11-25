@@ -42,6 +42,11 @@ struct Opts {
       "{\"id\":\"scorch\",\"name\":\"Scorch\",\"effect\":{\"strike\":\"fire_spell\"},\"inflict\":{\"condition\":\"burn\",\"chance\":50}}";
   // Abilities of each unit type (JSON lists).
   std::string mageAbilities = "[\"hex\",\"lull\",\"sure\",\"plain\",\"quicken\",\"esuna\",\"dispel\",\"scorch\"]";
+  // More items of data/items.json (each starting with ","), what a mage wields and carries (JSON lists): the downed-unit tests add a revive item
+  // and a staff (test_downed*.cpp).
+  std::string moreItems;
+  std::string mageWields = "[\"blade\"]";
+  std::string mageItems = "[\"iron_sword\"]";
   std::string brigandAbilities = "[]";
   std::string units = "{\"type\":\"mage\",\"id\":\"hero\",\"side\":\"blue\",\"x\":1,\"y\":1},"
                       "{\"type\":\"knight\",\"id\":\"pal\",\"side\":\"blue\",\"x\":0,\"y\":1},"
@@ -71,12 +76,12 @@ inline std::string make(const char* name, const Opts& o = Opts()) {
                       "{\"id\":\"fire_spell\",\"name\":\"Fire\",\"group\":\"spell\",\"damageKind\":\"magic\",\"range\":[1,3],\"damage\":\"a.mag - b.res\"}" +
                       o.weaponsExtra + "] }"));
   CHECK(writeTextFile(root + "/data/items.json",
-                      "{ \"items\": [{\"id\":\"iron_sword\",\"name\":\"Iron Sword\",\"kind\":\"weapon\",\"weapon\":\"sword\"}] }"));
+                      "{ \"items\": [{\"id\":\"iron_sword\",\"name\":\"Iron Sword\",\"kind\":\"weapon\",\"weapon\":\"sword\"}" + o.moreItems + "] }"));
   CHECK(writeTextFile(root + "/data/conditions.json", "{ \"conditions\": [" + o.conditions + "] }"));
   CHECK(writeTextFile(root + "/data/abilities.json", "{ \"abilities\": [" + o.abilities + "] }"));
   CHECK(writeTextFile(root + "/data/units.json",
                       "{ \"units\": [{\"id\":\"mage\",\"name\":\"Mage\",\"moveType\":\"foot\",\"stats\":{\"hp\":30,\"atk\":6,\"def\":1,\"mag\":5,\"res\":0,\"mov\":4},"
-                      "\"wields\":[\"blade\"],\"items\":[\"iron_sword\"],\"abilities\":" + o.mageAbilities + "},"
+                      "\"wields\":" + o.mageWields + ",\"items\":" + o.mageItems + ",\"abilities\":" + o.mageAbilities + "},"
                       "{\"id\":\"knight\",\"name\":\"Knight\",\"moveType\":\"foot\",\"stats\":{\"hp\":30,\"atk\":8,\"def\":2,\"mag\":0,\"res\":0,\"mov\":4},"
                       "\"wields\":[\"blade\"],\"items\":[\"iron_sword\"]},"
                       "{\"id\":\"brigand\",\"name\":\"Brigand\",\"moveType\":\"foot\",\"stats\":{\"hp\":20,\"atk\":5,\"def\":1,\"mag\":0,\"res\":0,\"mov\":3},"

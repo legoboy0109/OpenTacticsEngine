@@ -3,6 +3,7 @@
 import { typeIdOf } from './characterUnits'
 import { entryId, entryUses } from './itemGrants'
 import { carriedWeapons, inventorySize, storageMode } from './itemRules'
+import { reviveItemChecks } from './downedChecks'
 import { siteChecks } from './conditionChecks'
 import { staffChecks } from './staffChecks'
 import { sellChecks } from './sell'
@@ -20,7 +21,7 @@ function itemListChecks(doc: ProjectDoc): ItemCheck[] {
   const stats = new Set((doc.game?.stats ?? []).map((s) => s.id))
   const say = (i: Item, text: string) => out.push({ section: 'items', text: `${i.name}: ${text}` })
   for (const i of doc.items ?? []) {
-    if (i.kind === 'usable' && i.heal === undefined && !nonZero(i.raise) && !i.promotes && i.cure === undefined && i.inflict === undefined && i.opens === undefined && i.light === undefined) say(i, 'a usable item needs to heal or raise something, or cure or inflict a condition, or open doors and chests, or give light (or be a promotion item).')
+    if (i.kind === 'usable' && i.heal === undefined && i.revive === undefined && !nonZero(i.raise) && !i.promotes && i.cure === undefined && i.inflict === undefined && i.opens === undefined && i.light === undefined) say(i, 'a usable item needs to heal or raise something, or cure or inflict a condition, or open doors and chests, or give light (or be a promotion item).')
     if (i.kind === 'accessory' && !nonZero(i.bonus) && !i.skills?.length) say(i, 'an accessory needs a bonus to at least one stat, or at least one skill.')
     if (i.kind === 'weapon') {
       if (!carried) say(i, 'weapon items need weapons to be “Carried as items” on the Rules screen.')
@@ -60,6 +61,7 @@ export function itemChecks(doc: ProjectDoc): ItemCheck[] {
   // A staff the loader would refuse (the "nobody can use it yet" note is not one: it shows on the staff's own form).
   for (const c of staffChecks(doc)) if (c.blocks) out.push({ section: c.section, text: c.text })
   for (const c of siteChecks(doc)) if (c.section === 'items') out.push({ section: c.section, text: c.text })
+  out.push(...reviveItemChecks(doc))
   const max = inventorySize(doc)
   for (const u of doc.units ?? [])
     out.push(...grantChecks(doc, u.items, { section: 'units', who: `${u.name} starts with`, max }))

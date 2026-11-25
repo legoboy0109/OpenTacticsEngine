@@ -5,6 +5,7 @@
 #include "core/data/ability_grants.h"
 #include "core/data/loader_ability_area.h"
 #include "core/data/loader_conditions.h"
+#include "core/data/loader_downed.h"
 #include "core/data/loader_content.h"
 #include "core/data/loader_events.h"
 #include "core/data/loader_places.h"
@@ -116,7 +117,7 @@ bool readCure(const LoadCtx& c, const Json& v, const std::string& where, Ability
 // The one effect of an ability: exactly one of push, pull, swap, moveBehind, heal, summon.
 bool readEffect(const LoadCtx& c, Database& db, const Json& e, const std::string& where, AbilityDef& a) {
   if (!e.isObject()) return c.fail(where, "\"effect\" must be an object such as { \"push\": 1 }");
-  static const char* const keys[] = {"push", "pull", "swap", "moveBehind", "heal", "summon", "unlock", "steal", "refresh", "movePast", "cure", "strike"};
+  static const char* const keys[] = {"push", "pull", "swap", "moveBehind", "heal", "summon", "unlock", "steal", "refresh", "movePast", "cure", "strike", "revive"};
   int count = 0;
   for (const Json::Member& m : e.members()) {
     if (m.first == "reach") {  // an option of "strike", not an effect of its own
@@ -128,13 +129,13 @@ bool readEffect(const LoadCtx& c, Database& db, const Json& e, const std::string
     }
     bool known = false;
     for (const char* k : keys) known = known || m.first == k;
-    if (!known) return c.fail(where, "\"effect\": unknown key " + q(m.first) + " (expected push, pull, swap, moveBehind, heal, summon, unlock, steal, refresh, movePast, cure, strike)");
+    if (!known) return c.fail(where, "\"effect\": unknown key " + q(m.first) + " (expected push, pull, swap, moveBehind, heal, summon, unlock, steal, refresh, movePast, cure, strike, revive)");
     ++count;
   }
   // The one pair that may go together: heal, then cure (docs/SRPG.md "Areas and several effects for abilities").
   const bool healCure = count == 2 && e.has("heal") && e.has("cure");
   if (count != 1 && !healCure)
-    return c.fail(where, "\"effect\" needs exactly one of push, pull, swap, moveBehind, heal, summon, unlock, steal, refresh, movePast, cure, strike" +
+    return c.fail(where, "\"effect\" needs exactly one of push, pull, swap, moveBehind, heal, summon, unlock, steal, refresh, movePast, cure, strike, revive" +
                              std::string(count > 1 ? " (only heal and cure may go together)" : ""));
   if (healCure) {
     if (!readAbilityHeal(c, db, e["heal"], where, a)) return false;
@@ -153,6 +154,8 @@ bool readEffect(const LoadCtx& c, Database& db, const Json& e, const std::string
     if (!e[key].isBool() || !e[key].asBool()) return c.fail(where, q(key) + " must be true");
   } else if (e.has("heal")) {
     if (!readAbilityHeal(c, db, e["heal"], where, a)) return false;  // a number, "full", { "percent" } or a formula (docs/SRPG.md "Healing by formula")
+  } else if (e.has("revive")) {
+    if (!readAbilityRevive(c, db, e["revive"], where, a)) return false;  // docs/SRPG.md "Downed units and revive"
   } else if (e.has("strike")) {
     // Attacks with a weapon of data/weapons.json (docs/SRPG.md "Abilities that strike"); the weapon is resolved once weapons are loaded.
     a.effect = AbilityEffect::Strike;
@@ -276,6 +279,7 @@ bool readAbility(const LoadCtx& c, Database& db, const Json& e, const std::strin
       if (a.target != AbilityTarget::Cell) return c.fail(where, "\"unlock\" needs \"target\": \"cell\" (a square of the door or chest)");
       break;
     case AbilityEffect::Strike: break;  // the target kind follows the weapon (resolveAbilityStrike)
+    case AbilityEffect::Revive: break;  // checked once "inflict", "area" and the charge are read (checkAbilityRevive)
   }
 
   // "range" from 0 without an area: the user itself is one of the units it may pick (Barrier on yourself). Only where that means something: a heal,
@@ -311,6 +315,7 @@ bool readAbility(const LoadCtx& c, Database& db, const Json& e, const std::strin
   }
   if (!readAbilityExtras(c, db, e, where, a)) return false;  // "xp", "inflict" (loader_fidelity.cpp)
   if (!readAbilityArea(c, db, e, where, a)) return false;    // "area" (loader_ability_area.cpp)
+  if (!checkAbilityRevive(c, e, where, a)) return false;     // a "revive" (loader_downed.cpp)
   if (e.has("if")) {
     // A condition may judge the target unit ("who": "foe"), but not where there is none (a square, or an area of several). There is no
     // combat, so "initiating" and "distance" are refused; a formula is fine.

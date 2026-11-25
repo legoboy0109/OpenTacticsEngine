@@ -3,6 +3,7 @@
 
 #include <algorithm>
 
+#include "core/data/loader_downed.h"
 #include "core/data/loader_srpg.h"
 #include "core/data/loader_util.h"
 
@@ -88,7 +89,7 @@ bool loadConditions(const std::string& path, Database& db, std::string& err) {
     where = "condition " + q(d.id);
     for (const ConditionDef& o : db.conditions)
       if (o.id == d.id) return c.fail(where, "duplicate id");
-    if (!onlyKeys(c, e, {"id", "name", "description", "tag", "turns", "until", "wearOff", "endsWhenStruck", "replaces", "blocks", "scale", "kind"}, where))
+    if (!onlyKeys(c, e, {"id", "name", "description", "tag", "turns", "until", "wearOff", "endsWhenStruck", "replaces", "blocks", "scale", "kind", "autoRevive"}, where))
       return false;
     d.name = d.id;
     if (!c.str(e, "name", where, d.name) || !c.str(e, "description", where, d.description) || !c.str(e, "tag", where, d.tag)) return false;
@@ -133,9 +134,12 @@ bool loadConditions(const std::string& path, Database& db, std::string& err) {
       d.scale = true;
       db.scaledConditions = true;
     }
-    const Json* blocks;
-    if (!c.array(e, "blocks", where, blocks, true)) return false;
-    if (blocks->size() == 0) return c.fail(where, "\"blocks\" needs at least one block");
+    if (!readConditionAutoRevive(c, db, e, where, d)) return false;  // docs/SRPG.md "Downed units and revive" (loader_downed.cpp)
+    // A condition that only revives (Auto-Life) may leave out "blocks"; any other needs at least one.
+    static const Json kNoBlocks = Json::makeArray();
+    const Json* blocks = &kNoBlocks;
+    if ((!d.autoRevive.on() || e.has("blocks")) && !c.array(e, "blocks", where, blocks, true)) return false;
+    if (blocks->size() == 0 && !d.autoRevive.on()) return c.fail(where, "\"blocks\" needs at least one block");
     if ((int)blocks->size() > kMaxSkillBlocks) return c.fail(where, "too many blocks (at most " + std::to_string(kMaxSkillBlocks) + ")");
     std::vector<SkillBlock> read;
     for (size_t b = 0; b < blocks->size(); ++b) {

@@ -16,6 +16,7 @@ import { MenuOptionsCard } from './MenuOptionsCard'
 import { DifficultyCard } from './DifficultyCard'
 import { SavingCard } from './SavingCard'
 import { FogRuleCard } from './FogRuleCard'
+import { DownedRulesCard } from './DownedRulesCard'
 import { FidelityCard } from './FidelityCard'
 import { PlacesRuleCard } from './PlacesRuleCard'
 import { AiRuleCard } from './AiRuleCard'
@@ -57,6 +58,7 @@ function RulesForm() {
       <SupplyCard />
       <ResearchRuleCard />
       <FogRuleCard />
+      <DownedRulesCard />
       <AiRuleCard />
       <FidelityCard />
       <ItemsCard />

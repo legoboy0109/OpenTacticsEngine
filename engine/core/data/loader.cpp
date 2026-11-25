@@ -7,6 +7,7 @@
 #include "core/data/campaign.h"
 #include "core/data/events.h"
 #include "core/data/loader_action_points.h"
+#include "core/data/loader_downed.h"
 #include "core/data/loader_facing.h"
 #include "core/data/loader_height.h"
 #include "core/data/loader_jobs.h"
@@ -79,7 +80,7 @@ static bool loadRules(const LoadCtx& c, const Json& root, Database& db) {
   if (!c.object(root, "rules", "", rules)) return false;
   if (!c.onlyKeys(*rules, {"counterAttacks", "defeat", "economy", "production", "capture", "items", "supply", "research", "fog", "display",
                            "hitRoll", "rescue", "promotion", "places", "actionPoints", "turnOrder", "facing", "jobs", "height",
-                           "progression", "ranks", "ai", "abilityPoints"},
+                           "progression", "ranks", "ai", "abilityPoints", "downed"},
                   "rules"))
     return false;
 
@@ -139,6 +140,7 @@ static bool loadRules(const LoadCtx& c, const Json& root, Database& db) {
   if (!loadPlaceRules(c, *rules, db)) return false;  // "rules.places" (docs/SRPG.md section 10)
   if (!loadActionPointRules(c, *rules, db)) return false;  // "rules.actionPoints" (docs/SRPG.md "Action points")
   if (!loadSpeedRules(c, *rules, db)) return false;  // "rules.turnOrder" (docs/TURN_ORDER.md); after actionPoints and production, which it cannot be combined with
+  if (!loadDownedRules(c, *rules, db)) return false;  // "rules.downed" (docs/SRPG.md "Downed units and revive"); before the data files that revive
   if (!loadFacingRules(c, *rules, db)) return false;  // "rules.facing" (docs/SRPG.md "Facing"); before the maps whose units may say a "facing"
   if (!loadJobRules(c, *rules, db)) return false;  // "rules.jobs" (docs/JOBS.md); data/jobs.json is read after the unit types
   if (!loadAbilityPointRules(c, *rules, db)) return false;  // "rules.abilityPoints" (docs/JOBS.md "Learning from equipment")

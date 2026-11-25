@@ -19,7 +19,7 @@ bool Battle::squareFreeFor(Cell c, int moveType, int viewTeam, int ignore) const
   if (!grid.valid(c) || enterCost(c, moveType) <= 0) return false;  // heights do not matter
   const int occ = occupant[(size_t)c];
   if (occ < 0 || occ == ignore) return true;
-  return viewTeam >= 0 && !unitVisibleTo(viewTeam, occ);
+  return viewTeam >= 0 && !occupantSeen(viewTeam, occ);  // (a downed unit's square is never free: docs/SRPG.md "Downed units and revive")
 }
 
 int Battle::summonCount(int summoner, int ability) const {
@@ -87,13 +87,17 @@ bool Battle::abilityTargetOk(const Unit& u, int ability, Cell from, int target, 
   }
 
   const Unit* t = &u;
+  // A revive acts on downed units only, and on nothing else (docs/SRPG.md "Downed units and revive"); a body is always seen.
+  const bool revive = d.effect == AbilityEffect::Revive;
   if (d.target != AbilityTarget::Self) {
-    if (target < 0 || target >= (int)units.size() || !units[(size_t)target].alive) return refuse(why, "that is not a unit on the board");
+    if (target < 0 || target >= (int)units.size()) return refuse(why, "that is not a unit on the board");
+    if (revive && !revivable(units[(size_t)target])) return refuse(why, units[(size_t)target].alive ? "that unit is not downed" : "that is not a unit on the board");
+    if (!revive && !units[(size_t)target].alive) return refuse(why, units[(size_t)target].downed ? "that unit is downed" : "that is not a unit on the board");
     t = &units[(size_t)target];
     // A "range" from 0 lets it pick the user itself (docs/SRPG.md "An ability on its user"); the user stands on `from`, wherever it is now.
     const bool self = t->id == u.id;
     if (self && d.minRange > 0) return refuse(why, "a unit cannot use that on itself");
-    if (!unitVisibleTo(team, *t)) return refuse(why, "you cannot see that unit");
+    if (!occupantSeen(team, t->id)) return refuse(why, "you cannot see that unit");
     const bool ally = teamOf(*t) == team;
     if (d.target == AbilityTarget::Ally && !ally) return refuse(why, "that ability works on an ally");
     if (d.target == AbilityTarget::Enemy && ally) return refuse(why, "that ability works on an enemy");
@@ -133,6 +137,7 @@ bool Battle::abilityTargetOk(const Unit& u, int ability, Cell from, int target, 
       if (!abilityActsOn(u, d, from, *t, why)) return false;  // ability_area.cpp
       break;
     case AbilityEffect::Summon: break;
+    case AbilityEffect::Revive: break;  // downed (above) is all it needs
     case AbilityEffect::Unlock: break;  // handled above (a square, not a unit)
     case AbilityEffect::Strike: break;  // handled above
   }

@@ -139,6 +139,8 @@ struct StaffHit {
   // the unit is immune or has it already) with the own turns it would last (-1 = no count), and the conditions it would remove.
   int inflict = -1, inflictTurns = -1;
   std::vector<int> cures;
+  // A revive staff (docs/SRPG.md "Downed units and revive"): the downed unit stands up with hpAfter (hpBefore 0).
+  bool revives = false;
 };
 // A forecast of one use (Battle::staffForecast): no randomness is consumed.
 struct StaffForecast {

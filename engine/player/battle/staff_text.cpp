@@ -44,6 +44,11 @@ std::string staffEffectText(const Database& db, const ItemDef& item) {
         for (size_t i = 0; i < fx.conds.size(); ++i) names += (i ? ", " : "") + conditionName(db, fx.conds[i]);
         return "Cures " + names;
       }
+      case StaffEffect::Kind::Revive:  // docs/SRPG.md "Downed units and revive" (placeholder words)
+        return fx.amount == StaffEffect::Amount::Full      ? "Revives a downed unit with all its HP"
+               : fx.amount == StaffEffect::Amount::Percent ? "Revives a downed unit with " + intStr(fx.value) + "% of its HP"
+               : fx.amount == StaffEffect::Amount::Formula ? "Revives a downed unit"
+                                                          : "Revives a downed unit with " + intStr(fx.value) + " HP";
       case StaffEffect::Kind::Heal: break;
     }
     switch (fx.amount) {

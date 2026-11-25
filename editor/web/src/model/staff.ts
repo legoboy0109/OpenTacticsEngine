@@ -115,6 +115,7 @@ export function setStaffTarget(doc: ProjectDoc, id: string, target: ItemTarget):
   if (isSquareStaff(cur)) return doc // a light or an unlock picks a square: it has no target
   if (target === 'self' && hasFx(cur, ['pull', 'swap'])) return doc
   if (target === 'foe' && hasFx(cur, ['heal'])) return doc
+  if ((target === 'foe' || target === 'self') && hasFx(cur, ['revive'])) return doc // a revive is used on a downed ally, the team or anyone
   return updateItem(doc, id, target === 'self' ? { target, range: undefined, area: undefined } : { target: target === 'ally' ? undefined : target })
 }
 

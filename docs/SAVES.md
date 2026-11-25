@@ -169,6 +169,11 @@ byte for byte as before. A fading condition (`"scale": "turnsLeft"`) is saved as
 from `left` when the save is loaded (`scale` is a rule, so it counts for the data hash like the rest of `data/conditions.json`). A **mark** lives for one fight
 (one attack action) and is never saved: a save is made between actions. The `actor` is only known while an event runs; nothing is kept.
 
+Downed units (docs/SRPG.md "Downed units and revive") add two optional keys to a battle save's units: `"downed": true` for a unit lying downed (it
+keeps its `x` / `y`, its `hp` is 0 and `alive` is false) and `"downedTurns"` (1 to 99, the turns it has lain there, only above 0). Both are written only for
+such a unit, so a game without `rules.downed` saves byte for byte as before; a restore refuses them in a game without the rule, on a living unit, without a
+cell or with HP above 0. Nothing is added to a campaign save: after the battle a downed unit is either a survivor or a fallen unit (`rules.downed.afterBattle`).
+
 Status conditions (docs/SRPG.md section 9) add one optional key, `conditions` (`[ { "condition": index, "left": turns } ]`, oldest first, `left` only
 for a counted condition), to a battle save's units, written only for a unit that has some and refused in a game without `data/conditions.json`. The
 data hash covers `data/conditions.json` only when it holds something (name, description and tag are cosmetic). Conditions are not part of a campaign

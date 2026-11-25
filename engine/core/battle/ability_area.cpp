@@ -61,10 +61,11 @@ void Battle::abilityAreaUnits(const Unit& u, const AbilityDef& d, Cell from, Cel
     if (id == u.id && c != from) id = -1;
     if (id < 0) continue;
     const Unit& t = units[(size_t)id];
-    if (!t.alive) continue;
+    // A revive acts on the downed units in the area and on nobody else (docs/SRPG.md "Downed units and revive"); a body is always seen.
+    if (d.effect == AbilityEffect::Revive ? !revivable(t) : !t.alive) continue;
     const bool ally = teamOf(t) == team;
     if ((d.target == AbilityTarget::Ally && !ally) || (d.target == AbilityTarget::Enemy && ally)) continue;
-    if (seenOnly && !unitVisibleTo(team, t)) continue;
+    if (seenOnly && !occupantSeen(team, id)) continue;
     if (!abilityActsOn(u, d, from, t, nullptr)) continue;
     out.push_back(id);
   }
@@ -96,7 +97,8 @@ bool Battle::abilityAreaForecast(int user, int ability, Cell from, Cell target, 
     const Unit& t = units[(size_t)id];
     AbilityAreaHit h;
     h.unit = id;
-    h.seen = unitVisibleTo(team, t);
+    h.seen = occupantSeen(team, id);
+    if (d.effect == AbilityEffect::Revive) h.revive = abilityReviveHp(d, user, t);
     if (d.effect == AbilityEffect::Heal) h.heal = std::max(0, std::min(abilityHealAmount(d, user, id), maxHp(t) - t.hp));
     if (d.effect == AbilityEffect::Cure || d.healCures)
       for (const ConditionState& cs : t.conditions)
@@ -109,6 +111,10 @@ bool Battle::abilityAreaForecast(int user, int ability, Cell from, Cell target, 
 
 void Battle::abilityHealCure(const AbilityDef& d, int user, int target, std::vector<Event>& events) {
   Unit& t = units[(size_t)target];
+  if (d.effect == AbilityEffect::Revive) {  // docs/SRPG.md "Downed units and revive"
+    reviveUnit(target, abilityReviveHp(d, user, t), user, (int)(&d - db->abilities.data()), 0, events);
+    return;
+  }
   if (d.effect == AbilityEffect::Heal) {
     const int amount = std::min(abilityHealAmount(d, user, target), maxHp(t) - t.hp);  // a number, "full", a percent or a formula
     if (amount > 0) {
@@ -141,7 +147,7 @@ void Battle::applyAreaAbility(const Action& action, std::vector<Event>& events, 
   used.data = who;
   events.push_back(used);
   for (int t : who) {
-    if (!units[(size_t)t].alive) continue;
+    if (def.effect == AbilityEffect::Revive ? !revivable(units[(size_t)t]) : !units[(size_t)t].alive) continue;
     abilityHealCure(def, uid, t, events);
     if (!def.inflicts.empty()) abilityInflict(def, uid, t, events);  // each entry in list order, each with its own roll
   }

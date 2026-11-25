@@ -30,8 +30,10 @@ void Battle::burnFuel(std::vector<Event>& events) {
   if (dry.empty()) return;
   // A normal death: UnitDied, then the story's "defeated" events (nobody killed it), then the win checks. As in
   // checkDefeat the story runs after the sweep, because events may add or move units.
-  for (int id : dry) killUnit(id, events);
-  for (int id : dry) unitDefeated(id, -1, events);
+  std::vector<int> fell;  // (an "autoRevive" condition may catch a fall: docs/SRPG.md "Downed units and revive")
+  for (int id : dry)
+    if (killUnit(id, events)) fell.push_back(id);
+  for (int id : fell) unitDefeated(id, -1, events);
   settle(events);
 }
 

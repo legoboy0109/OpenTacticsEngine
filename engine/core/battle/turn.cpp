@@ -57,6 +57,7 @@ void Battle::sideTurnEffects(std::vector<Event>& events) {
     for (size_t r = 0; r < income.size(); ++r) changeResource(activeSide, (int)r, resourceGain(activeSide, income[r]), events);  // docs/DIFFICULTY.md
   }
   researchTurn(events);
+  downedTurnStart(events);  // docs/SRPG.md "Downed units and revive": "removeAfter" (nothing without the rule)
 }
 
 void Battle::beginTurn(std::vector<Event>& events) {
@@ -152,9 +153,10 @@ void Battle::checkDefeat(std::vector<Event>& events) {
       }
     for (size_t i = 0; i < units.size(); ++i)
       if (units[i].alive && units[i].side == s) {
-        killUnit((int)i, events);
+        killUnit((int)i, events, -1, false);  // a defeated side leaves: none of its units is downed (docs/SRPG.md "Downed units and revive")
         fallen.push_back((int)i);
       }
+    removeDownedOfSide(s, events);  // ... and the bodies of the ones that were go with it
     // Its structures become neutral (and any capture in progress stops). SideDefeated is public, so every team
     // learns that they are neutral now, seen or not.
     markSight();

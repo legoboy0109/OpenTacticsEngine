@@ -6,6 +6,7 @@ struct AbilityAreaHit {
   int unit = -1;
   bool seen = true;    // the user's team can see it (a unit hidden by fog is affected all the same, but never listed or counted)
   int heal = 0;        // HP it would get back (heal, capped at its maximum); 0 = none
+  int revive = 0;      // HP it would stand up with (a revive: docs/SRPG.md "Downed units and revive"); 0 = none
   int cures = 0;       // conditions it would lose (cure); 0 = none
   int inflicts = 0;    // "inflict" entries that could take hold on it (not immune, not had already); each may still roll
 };

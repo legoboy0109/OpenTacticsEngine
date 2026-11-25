@@ -48,6 +48,21 @@ void addDataContexts(std::vector<Context>& c) {
   c.push_back({"unit-items", "srpg-chars", {}, {"units:items"}, {}});
 
   // --- items by kind ---
+  // Downed units and revive (docs/SRPG.md "Downed units and revive"): every revive key needs rules.downed, so each has a context that turns it on
+  // (listed first: the general item / staff contexts below claim "items:effects" too).
+  const Op downedOn = {"game.json", "rules.downed", "{}"};
+  c.push_back({"downed-rules", "srpg-conditions", {downedOn}, {"game:rules.downed"}, {}});
+  c.push_back({"item-revive", "srpg-conditions",
+               {downedOn, {"data/items.json", "items[+]", R"({"id":"probe","name":"Probe","kind":"usable","target":"ally","revive":5})"}}, {"items:revive"}, {}});
+  c.push_back({"item-staff-revive", "srpg-conditions",
+               {downedOn, {"data/items.json", "items[+]", R"({"id":"probe","name":"Probe","kind":"staff","group":"heal","effects":[{"revive":5}]})"}},
+               {"items:effects[]{revive}"}, {}});
+  c.push_back({"ability-revive", "srpg-abilities",
+               {downedOn, {"data/abilities.json", "abilities[+]", R"({"id":"probe","name":"Probe","target":"ally","range":[1,1],"effect":{"revive":5}})"}},
+               {"abilities:effect{revive}"}, {}});
+  c.push_back({"condition-auto-revive", "srpg-conditions",
+               {downedOn, {"data/conditions.json", "conditions[+]", R"({"id":"probe","name":"Probe","until":"cured","autoRevive":5,"blocks":[]})"}},
+               {"conditions:autoRevive"}, {}});
 const Op probeUsable = {"data/items.json", "items[+]", R"({"id":"probe","name":"Probe","kind":"usable","heal":5})"};
   c.push_back({"item-usable", "srpg-conditions", {probeUsable}, {"items:heal", "items:raise", "items:promotes", "items:cure", "items:inflict"}, {}});
   c.push_back({"item-opens", "srpg-doors", {probeUsable}, {"items:opens"}, {}});

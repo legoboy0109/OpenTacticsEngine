@@ -11,6 +11,7 @@ std::string hitText(const Battle& b, int user, int ability, const AbilityAreaHit
   const Unit& t = b.units[(size_t)h.unit];
   std::string s;
   auto add = [&](const std::string& part) { s += (s.empty() ? "" : " ") + part; };
+  if (h.revive > 0) add("revived +" + std::to_string(h.revive) + " HP");  // docs/SRPG.md "Downed units and revive"
   if (h.heal > 0) add("+" + std::to_string(h.heal) + " HP");
   if (h.cures > 0) add("cured");
   for (size_t k = 0; k < d.inflicts.size(); ++k) {

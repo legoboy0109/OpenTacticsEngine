@@ -113,6 +113,7 @@ void Map3D::animateUnit(const DrawCtx& c, const Unit& u, const UnitView& v, cons
     case Die:  // the fall follows the fade, however long the view takes over it
       clip = clipOf(AnimDie);
       time = (1.0f - v.alpha) * lengthOf(AnimDie);
+      if (v.down > 0) time = std::min(v.down, 0.999f) * lengthOf(AnimDie);  // a downed unit lies in its fall's last frame (docs/SRPG.md "Downed units and revive")
       loop = false;
       break;
     default: clip = clipOf(AnimIdle); break;

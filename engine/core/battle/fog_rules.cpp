@@ -20,7 +20,7 @@ int Battle::pathStop(int unit, const std::vector<Cell>& path, int& blocker, Cell
   const bool pass = passesEnemies(u);  // "pass": enemies (docs/SRPG.md): only the square it ends on can stop it
   for (size_t i = 1; i < path.size(); ++i) {
     int occ = occupant[(size_t)path[i]];
-    if (occ == -1 || occ == unit || !isEnemy(u, units[(size_t)occ])) continue;
+    if (occ == -1 || occ == unit || !isEnemy(u, units[(size_t)occ]) || units[(size_t)occ].downed) continue;  // a downed unit is walked past
     if (pass && i + 1 < path.size()) continue;
     blocker = occ;
     blockedAt = path[i];

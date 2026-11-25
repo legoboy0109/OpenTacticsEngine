@@ -46,7 +46,10 @@ export interface AbilityPointRules extends Extra { name?: string; perBattle?: nu
 /** An item's `teaches` entry: exactly one of `ability` and `skill`, and the points that master it. */
 export interface Teach extends Extra { ability?: string; skill?: string; points: number }
 
+/** rules.downed (docs/SRPG.md "Downed units and revive"): present = on. afterBattle "return" is the default; removeAfter 0 = never. */
+export interface DownedRules extends Extra { afterBattle?: 'return' | 'fallen'; removeAfter?: number }
 export interface Rules extends Extra {
+  downed?: DownedRules
   abilityPoints?: AbilityPointRules
   ai?: AiRulesBlock  // docs/AI.md "Scripted-style computer players" (model/aiRules.ts)
   places?: PlaceRules
@@ -278,6 +281,8 @@ export interface Item extends Named {
   price?: NumMap
   target?: ItemTarget
   heal?: number | 'full'
+  /** Usable items only (needs rules.downed): stands a downed neighbour up with this much HP (1 to 999, "full" or { percent }). */
+  revive?: number | 'full' | { percent: number }
   raise?: NumMap
   weapon?: string
   bonus?: NumMap

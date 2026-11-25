@@ -64,8 +64,9 @@ bool readAbilityArea(const LoadCtx& c, const Database& db, const Json& e, const 
   a.area = AreaDef();
   if (!e.has("area")) return true;
   if (a.effect == AbilityEffect::Strike) return c.fail(where, "\"strike\" takes its area from the weapon: leave out \"area\"");
-  if (a.effect != AbilityEffect::Heal && a.effect != AbilityEffect::Cure && a.effect != AbilityEffect::None)
-    return c.fail(where, "\"area\" goes with \"heal\", \"cure\" (or both) or an ability with only \"inflict\"; it cannot push, pull, swap, summon, unlock, steal or refresh");
+  // (A revive may have an area too: docs/SRPG.md "Downed units and revive".)
+  if (a.effect != AbilityEffect::Heal && a.effect != AbilityEffect::Cure && a.effect != AbilityEffect::None && a.effect != AbilityEffect::Revive)
+    return c.fail(where, "\"area\" goes with \"heal\", \"cure\" (or both), \"revive\" or an ability with only \"inflict\"; it cannot push, pull, swap, summon, unlock, steal or refresh");
   if (a.target == AbilityTarget::Self || a.target == AbilityTarget::Cell)
     return c.fail(where, "\"area\" needs \"target\" \"ally\", \"enemy\" or \"unit\" (who in the area is affected); \"range\": [0, 0] centres it on the user");
   const Json* o;

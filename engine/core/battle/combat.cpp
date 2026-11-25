@@ -283,8 +283,7 @@ void Battle::doStrike(const CombatSetup& setup, bool counter, bool extra, std::v
   if (wielderDown && units[atk].alive) {  // the weapon finished its own wielder: a normal defeat, with no one to credit
     if (fightArea_) {
       pendingKills_.push_back({atk, -1, true});
-    } else {
-      killUnit(atk, events);
+    } else if (killUnit(atk, events)) {  // (false: an "autoRevive" condition caught the fall)
       defeatQuote(atk, events);
       unitDefeated(atk, -1, events);
     }
@@ -298,7 +297,7 @@ void Battle::doStrike(const CombatSetup& setup, bool counter, bool extra, std::v
 void Battle::defeatStruck(int def, int killer, std::vector<Event>& events) {
   std::vector<ItemStack> drops;
   dropsOf(units[(size_t)def], drops);  // docs/ITEMS.md "Drops"
-  killUnit(def, events, killer);
+  if (!killUnit(def, events, killer)) return;  // caught by an "autoRevive" condition: no drops, no last words, no "defeated" events
   for (const ItemStack& s : drops) giveTo(killer, s, kDropped, events);
   defeatQuote(def, events);  // the fallen unit's last words come before the story's "defeated" events
   unitDefeated(def, killer, events);  // may run story events
@@ -397,21 +396,31 @@ void Battle::fightExperience(int a, int d, int hpA, int hpD, std::vector<Event>&
   }
 }
 
-void Battle::killUnit(int unit, std::vector<Event>& events, int killer) {
+bool Battle::killUnit(int unit, std::vector<Event>& events, int killer, bool mayDown) {
   Unit& u = units[unit];
-  if (!u.alive) return;
+  if (!u.alive) return true;
+  // docs/SRPG.md "Downed units and revive": a unit standing on its own square is downed there instead of leaving (never one put back on a
+  // square only to fall, such as a carried unit whose carrier fell, nor the units of a defeated side).
+  const bool down = mayDown && downedGame() && grid.valid(u.cell) && occupant[(size_t)u.cell] == unit;
+  if (down && fallCaught(unit, events)) return false;  // an "autoRevive" condition: it stands up again at once
   releaseCapture(unit, kNoCell);  // a dead capturer abandons the capture
   Event e;
   e.type = EventType::UnitDied;
   e.a = unit;
   e.b = u.cell;
+  if (down) e.flags = kDowned;
   events.push_back(e);
   markSight();  // pushed events are stamped while the unit is still there
-  if (u.cell != kNoCell) occupant[u.cell] = -1;
+  if (u.cell != kNoCell && !down) occupant[u.cell] = -1;
   u.alive = false;
   u.hp = 0;
-  u.cell = kNoCell;
-  u.conditions.clear();  // a defeated unit has none (docs/SRPG.md section 9)
+  if (down) {
+    u.downed = true;  // keeps its square (and `occupant`) until revived or removed
+    u.downedTurns = 0;
+  } else {
+    u.cell = kNoCell;
+  }
+  u.conditions.clear();  // a defeated unit has none (docs/SRPG.md section 9); neither has a downed one
   if (u.leader) sides[u.side].leaderLost = true;
   if (killer >= 0 && killer != unit && units[(size_t)killer].side != u.side) {
     awardDefeatJp(killer, events);  // docs/JOBS.md
@@ -420,6 +429,7 @@ void Battle::killUnit(int unit, std::vector<Event>& events, int killer) {
   }
   // Last, and `u` is not used after it: its summons vanish, a unit it carried is put down (docs/SRPG.md).
   srpgUnitGone(unit, killer, events);
+  return true;
 }
 
 }  // namespace ote

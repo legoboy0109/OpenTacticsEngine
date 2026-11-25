@@ -82,6 +82,10 @@ std::string effectOnly(const Database& db, const AbilityDef& def, bool withChanc
       c[0] = (char)std::tolower((unsigned char)c[0]);
       return t + " and " + c;
     }
+    case AbilityEffect::Revive:  // docs/SRPG.md "Downed units and revive" (placeholder words)
+      return def.healPercent > 0 ? "Revives a downed unit with " + num(def.healPercent) + "% of its HP"
+             : def.healExpr >= 0 ? "Revives a downed unit"
+             : def.amount >= kHealFull ? "Revives a downed unit with all its HP" : "Revives a downed unit with " + num(def.amount) + " HP";
     case AbilityEffect::Strike: {  // docs/SRPG.md "Abilities that strike"
       const WeaponDef* w = def.strike >= 0 && (size_t)def.strike < db.weapons.size() ? &db.weapons[(size_t)def.strike] : nullptr;
       if (!w) return "Strikes";

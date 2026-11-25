@@ -50,11 +50,12 @@ void BattleView::resync(const Battle& b) {
   units.assign(b.units.size(), UnitView());
   for (const Unit& u : b.units) {
     UnitView& v = units[u.id];
-    v.visible = u.alive && u.carriedBy < 0;  // a carried unit (rescue / pair up) is off the board: not drawn
+    v.visible = (u.alive || u.downed) && u.carriedBy < 0;  // a carried unit (rescue / pair up) is off the board: not drawn
+    if (u.downed) lieDown(v);  // docs/SRPG.md "Downed units and revive"
     v.hp = u.hp;
     v.facing = u.facing;
     for (const ConditionState& cs : u.conditions) v.conds.push_back(cs.condition);
-    if (u.alive) cellPos(b, u.cell, v.px, v.py);
+    if (u.alive || u.downed) cellPos(b, u.cell, v.px, v.py);
   }
   queue_.clear();
   cur_.active = false;
@@ -260,7 +261,7 @@ void BattleView::begin(const Battle& b) {
   cur_.dur = 0;
   cur_.fired = false;
   cur_.hideAtEnd = false;
-  if (beginOtherMap() || beginPlaces(b) || beginStory(b) || beginEconomy(b) || beginCommander(b) || beginFog(b) || beginSpeed(b) || beginSrpg(b) || beginMapChange(b)) return;
+  if (beginOtherMap() || beginDowned(b) || beginPlaces(b) || beginStory(b) || beginEconomy(b) || beginCommander(b) || beginFog(b) || beginSpeed(b) || beginSrpg(b) || beginMapChange(b)) return;
   const float cx = tile_ / 2.0f;
   switch (e.type) {
     case EventType::TurnStarted: beginTurnStarted(b); break;
@@ -306,6 +307,7 @@ void BattleView::begin(const Battle& b) {
     case EventType::SoundRequested:
     case EventType::MapShown:     // beginOtherMap took these above
     case EventType::MapReturned:
+    case EventType::UnitRevived:  // beginDowned took it above
     case EventType::BattleEnded: break;
     // Story entries are handled by beginStory() above (battle_view_story.cpp).
     case EventType::Dialogue:
@@ -394,7 +396,7 @@ void BattleView::progress(const Battle& b) {
   const Event& e = cur_.ev;
   float p = cur_.dur > 0 ? std::min(1.0f, cur_.t / cur_.dur) : 1.0f;
   hasFocus = false;
-  if (progressPlaces(b) || progressStory(b) || progressEconomy(b) || progressSpeed(b) || progressSrpg(b) || progressMapChange(b)) return;
+  if (progressPlaces(b) || progressStory(b) || progressEconomy(b) || progressSpeed(b) || progressSrpg(b) || progressMapChange(b) || progressDowned(b)) return;
   switch (e.type) {
     case EventType::UnitMoved: {
       UnitView& v = units[e.a];
@@ -439,7 +441,10 @@ void BattleView::progress(const Battle& b) {
       focusX = units[e.a].px + tile_ / 2.0f;
       focusY = units[e.a].py + tile_ / 2.0f;
       break;
-    case EventType::UnitDied: units[e.a].alpha = 1 - p; break;
+    case EventType::UnitDied:  // a downed unit (docs/SRPG.md "Downed units and revive") stops half faded, lying
+      units[e.a].alpha = 1 - p * ((e.flags & kDowned) ? 1 - kDownedAlpha : 1.0f);
+      if (e.flags & kDowned) units[e.a].down = p;
+      break;
     case EventType::MoveBlocked:  // the camera goes to the revealed enemy
       hasFocus = true;
       focusX = units[(size_t)e.b].px + tile_ / 2.0f;
@@ -457,7 +462,7 @@ void BattleView::progress(const Battle& b) {
 
 void BattleView::finish(const Battle& b) {
   const Event& e = cur_.ev;
-  if (finishPlaces(b) || finishStory(b) || finishEconomy(b) || finishSrpg(b) || finishMapChange(b)) {
+  if (finishPlaces(b) || finishStory(b) || finishEconomy(b) || finishSrpg(b) || finishMapChange(b) || finishDowned(b)) {
     cur_.active = false;
     return;
   }
@@ -485,6 +490,10 @@ void BattleView::finish(const Battle& b) {
     }
     case EventType::UnitDied: {
       UnitView& v = units[e.a];
+      if (e.flags & kDowned) {  // it stays on its square (docs/SRPG.md "Downed units and revive")
+        lieDown(v);
+        break;
+      }
       v.visible = false;
       v.hp = 0;
       v.alpha = 1;

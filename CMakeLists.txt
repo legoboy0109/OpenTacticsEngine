@@ -393,6 +393,10 @@ if(OTE_BUILD_PLAYER AND OTE_BUILD_TESTS AND NOT EMSCRIPTEN AND TARGET ote-player
     add_test(NAME guest_player
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/guest_player_test.py
                      $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
+    # Downed units and revive (docs/SRPG.md "Downed units and revive"): the fall, the body on its square, Raise.
+    add_test(NAME downed_player
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/downed_player_test.py
+                     $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
     # Doors, keys, chests and visiting (docs/SRPG.md section 10): menu, key choice, break door, unlock ability and staff, auto setting, fog.
     add_test(NAME srpg_player_doors
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/srpg_player_doors_test.py

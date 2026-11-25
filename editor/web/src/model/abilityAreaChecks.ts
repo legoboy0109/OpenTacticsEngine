@@ -18,7 +18,7 @@ export const gameHasHeight = (doc: ProjectDoc): boolean => {
 /** An "effect" holds one thing, except heal and cure together. */
 export function effectPairChecks(a: Ability): string[] {
   if (!a.effect || typeof a.effect !== 'object') return []
-  const keys = EFFECT_KINDS.filter((k) => Object.prototype.hasOwnProperty.call(a.effect, k))
+  const keys = EFFECT_KINDS.filter((k) => k !== 'revive' && Object.prototype.hasOwnProperty.call(a.effect, k))  // a revive's own check says it must be alone
   const pair = keys.length === 2 && keys.includes('heal') && keys.includes('cure')
   return keys.length > 1 && !pair ? [`${a.name}: it can do only one thing. Only healing and curing may go together.`] : []
 }
@@ -39,7 +39,7 @@ export function areaChecks(doc: ProjectDoc, a: Ability): string[] {
   const out: string[] = []
   const kind = effectKind(a)
   if (kind === 'strike') return [`${a.name}: a strike takes its area from the weapon. Leave out the area.`]
-  if (kind !== null && !kindAllowsArea(kind)) out.push(`${a.name}: an area goes with healing, curing (or both) or an ability that only gives a condition. It cannot push, pull, swap, summon, unlock, steal or refresh.`)
+  if (kind !== null && !kindAllowsArea(kind)) out.push(`${a.name}: an area goes with healing, curing (or both), reviving or an ability that only gives a condition. It cannot push, pull, swap, summon, unlock, steal or refresh.`)
   const target = targetOf(a)
   if (target === 'self' || target === 'cell') out.push(`${a.name}: an area needs the target to be an ally, an enemy or any unit (who in the area is affected). A reach of 0 to 0 centres it on the unit.`)
   out.push(...rangeChecks(a, true))

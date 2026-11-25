@@ -17,6 +17,9 @@
       "heal": { "type": "variant", "when": { "kind": ["usable"] }, "help": "Hit points restored: a number of 1 or more, or full.", "variants": [
         { "name": "amount", "kind": "number", "node": { "type": "int", "min": 1, "max": 1000000 } }, { "name": "full", "value": "full" } ] },
       "raise": { "type": "map", "ref": "game.json#stats", "of": { "type": "int", "sample": 1 }, "when": { "kind": ["usable"] }, "help": "Permanent stat gains." },
+      "revive": { "type": "variant", "when": { "kind": ["usable"] }, "help": "Stands a downed neighbour up with this many HP (needs rules.downed and target ally; the item's only effect).", "variants": [
+        { "name": "amount", "kind": "number", "node": { "type": "int", "min": 1, "max": 999 } }, { "name": "full", "value": "full" },
+            { "name": "percent", "key": "percent", "node": { "type": "object", "fields": { "percent": { "type": "int", "required": true, "min": 1, "max": 100, "help": "Percent of the maximum (at least 1 point)." } } } } ] },
       "promotes": { "type": "bool", "when": { "kind": ["usable"] }, "help": "Promotes the unit (a promotion item)." },
       "cure": { "use": "_common#cureList", "when": { "kind": ["usable"] }, "help": "Conditions it removes." },
       "inflict": { "use": "_common#inflictPlain", "when": { "kind": ["usable"] }, "help": "A condition it puts on the user." },
@@ -47,6 +50,10 @@
       "effects": { "type": "list", "required": true, "when": { "kind": ["staff"] }, "help": "What the staff does (1 to 4 effects, each exactly one of these).", "of": {
         "type": "variant", "variants": [
           { "name": "heal", "key": "heal", "node": { "type": "object", "fields": { "heal": { "type": "variant", "required": true, "help": "Hit points restored.", "variants": [
+            { "name": "amount", "kind": "number", "node": { "type": "int", "min": 1, "max": 1000000 } }, { "name": "full", "value": "full" },
+            { "name": "formula", "kind": "string", "node": { "type": "string" }, "sample": "5" },
+            { "name": "percent", "key": "percent", "node": { "type": "object", "fields": { "percent": { "type": "int", "required": true, "min": 1, "max": 100, "help": "Percent of the maximum." } } } } ] } } } },
+          { "name": "revive", "key": "revive", "sample": { "revive": 10 }, "node": { "type": "object", "fields": { "revive": { "type": "variant", "required": true, "help": "Stands a downed unit up with this many HP (needs rules.downed; the staff's only effect; target ally, team or any).", "variants": [
             { "name": "amount", "kind": "number", "node": { "type": "int", "min": 1, "max": 1000000 } }, { "name": "full", "value": "full" },
             { "name": "formula", "kind": "string", "node": { "type": "string" }, "sample": "5" },
             { "name": "percent", "key": "percent", "node": { "type": "object", "fields": { "percent": { "type": "int", "required": true, "min": 1, "max": 100, "help": "Percent of the maximum." } } } } ] } } } },

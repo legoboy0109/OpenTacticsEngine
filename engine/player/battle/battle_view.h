@@ -20,6 +20,14 @@ namespace ote {
 
 class GameAudio;
 
+// Downed units (docs/SRPG.md "Downed units and revive"): how see-through a downed unit is drawn, and the words of the player (placeholders).
+constexpr float kDownedAlpha = 0.45f;
+struct DownedWords {
+  static constexpr const char* kTag = "Down";        // the map marker of a downed unit (where the condition marker goes)
+  static constexpr const char* kRevived = "Revived";  // floats over a unit that stood up: "Revived +12"
+  static constexpr const char* kState = "Downed";    // the unit details / side panel instead of its HP line
+};
+
 constexpr int kRankOwn = -2;  // UnitView::rank: show the rank the unit really has (-1 = none is a real value)
 
 struct UnitView {
@@ -39,6 +47,10 @@ struct UnitView {
   int rank = kRankOwn;    // the rank its map badge shows (docs/SRPG.md "Unit ranks"), as the events have played so far; kRankOwn = the unit's own
   int facing = -1;         // the direction its facing marker shows (docs/SRPG.md "Facing"), as the events have played so far; -1 = the unit's own
   std::vector<int> conds;  // the conditions its map marker shows, as the events have played so far (docs/SRPG.md section 9)
+  // Downed (docs/SRPG.md "Downed units and revive"): it lies on its square, drawn at kDownedAlpha with the "Down" marker. `down` 0..1 = how far
+  // it has fallen (the 3D views pose a model's fall clip by it); 1 while downed.
+  bool downed = false;
+  float down = 0;
 };
 
 struct FloatText {
@@ -270,6 +282,11 @@ class BattleView {
   bool placeTop(const Battle& b, int structure, float& x, float& y) const;  // the middle of the structure's top edge, map pixels
   bool progressSpeed(const Battle& b);
   bool beginSpeed(const Battle& b);        // battle_view_speed.cpp   UnitTurnBegan, RoundStarted, ActionCharging, ChargeResolved, ChargeCancelled (docs/TURN_ORDER.md)
+  bool beginDowned(const Battle& b);       // battle_view_downed.cpp     UnitRevived (docs/SRPG.md "Downed units and revive")
+  bool progressDowned(const Battle& b);
+  bool finishDowned(const Battle& b);
+  static void standUp(UnitView& v, int hp);  // the view of a downed unit that stood up with `hp`
+  static void lieDown(UnitView& v);          // ... and of one that lies downed (its fall has played)
   bool beginConditions(const Battle& b);   // battle_view_conditions.cpp ConditionApplied, ConditionEnded, ConditionResisted, ConditionTick (section 9)
   bool progressConditions(const Battle& b);
   bool finishConditions(const Battle& b);

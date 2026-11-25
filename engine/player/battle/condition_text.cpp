@@ -47,7 +47,7 @@ std::string conditionChanceText(const Database& db, int condition, int chance) {
 
 std::string conditionEndedText(const Database& db, int condition, int why) {
   if (why == kConditionCured) return conditionCuredText(db, condition);
-  if (why == kConditionReplaced) return "";  // the new condition says it all
+  if (why == kConditionReplaced || why == kConditionRevived) return "";  // the new condition (the revive) says it all
   return conditionName(db, condition) + " ended";  // ran out, wore off early, or the strike woke the unit
 }
 

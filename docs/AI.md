@@ -598,6 +598,24 @@ calls it before the person gets control (with `--autoplay` the computer plays th
 `tests/test_guests.cpp` (acts first, never ends the turn, `hold`, the speed turn order, the same battle twice). Code: `ai/ai_guests.cpp`, `ai/ai_speed.cpp`.
 *Owner decisions (placeholders):* guests act before the person each turn, lowest unit id first; no turn end; the computer's usual choices.
 
+### Reviving downed units
+
+With `rules.downed` (docs/SRPG.md "Downed units and revive") the computer weighs revives at every square the unit can stand on, after its attacks and
+other abilities: each single-target revive ability (from the ability's own target list) and each revive item it carries (on a downed unit of its team next to
+the square). A revive is worth `(0.5 + the share of the maximum it stands up with) x the unit's value`, so between half and one and a half of the unit's value
+(about what finishing a foe is worth, much more than a plain heal); a leader whose defeat ends the game counts double, a priced ability 10 % less. The best use
+beats the order already chosen by that worth, minus the walk and the danger of the square, plus the base an attack gets; on an equal score the earlier order
+stays. Area revives are scored with the other area abilities (each downed unit of its team in the area adds its revive worth) and revive staves with the
+staves (`reviveValue` beside the heal value).
+
+- **It never revives a foe** (the worth is negative) and never wastes a revive: with nobody of its team downed nothing is tried (a quick check before the
+  squares are walked).
+- **It ignores downed foes**: they are no targets for attacks or anything else; it may walk past them but never stops on their square.
+- A game without downed units plays move for move as before.
+
+**Tests.** `tests/test_downed_revive.cpp` (revives a downed ally, keeps its revives when nobody is down, leaves a downed foe alone). Code: `ai/ai_revive.cpp`,
+`ai/ai_ability_area.cpp` (`healCureWorth`), `ai/ai_staves.cpp` (`reviveValue`).
+
 ### Tests
 
 `tests/test_ai_behaviour.cpp` (rules, square and hex), `tests/test_ai_behaviour_data.cpp` (loader, commands, saves; fixture `tests/ai_behaviour_fixture.h`),

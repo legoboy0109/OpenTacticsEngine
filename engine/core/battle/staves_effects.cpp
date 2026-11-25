@@ -50,7 +50,7 @@ void Battle::staffWarpCells(int unit, int slot, int target, Cell from, std::vect
   for (Cell c : near) {
     if (c == from || c == t.cell || grid.distance(from, c) < minR || !staffCanStand(t, c)) continue;
     const int occ = occupant[(size_t)c];
-    if (occ >= 0 && occ != unit && unitVisibleTo(team, occ)) continue;
+    if (occ >= 0 && occ != unit && occupantSeen(team, occ)) continue;  // (a downed unit's square too)
     if (!visibleTo(team, c)) continue;
     out.push_back(c);
   }
@@ -146,6 +146,8 @@ const char* Battle::staffEffectWhy(const Unit& user, const StaffDef& d, const St
     }
     case StaffEffect::Kind::Cure:
       return cureWould(t, fx.conds, fx.cureAll) ? nullptr : "that unit has nothing it cures";
+    case StaffEffect::Kind::Revive:
+      return revivable(t) ? nullptr : "that unit is not downed";
   }
   return "nobody in reach needs that";
 }
@@ -156,10 +158,13 @@ std::string Battle::staffTargetWhy(int unit, int slot, int target, Cell from) co
   if (slot < 0 || slot >= (int)u.items.size()) return "the unit does not carry that item";
   const StaffDef* d = staffDefOf(*db, u.items[(size_t)slot].item);
   if (!d) return "that item is not a staff";
-  if (target < 0 || target >= (int)units.size() || !units[(size_t)target].alive || units[(size_t)target].cell == kNoCell)
-    return "that is not a unit on the board";
+  if (target < 0 || target >= (int)units.size()) return "that is not a unit on the board";
+  if (!staffActsOn(*d, units[(size_t)target]))  // (a revive staff: downed units only; docs/SRPG.md "Downed units and revive")
+    return d->has(StaffEffect::Kind::Revive) && units[(size_t)target].alive ? "that unit is not downed"
+           : units[(size_t)target].downed                                    ? "that unit is downed"
+                                                                             : "that is not a unit on the board";
   const Unit& t = units[(size_t)target];
-  if (t.id != u.id && !unitVisibleTo(teamOf(u), t)) return "you cannot see that unit";
+  if (t.id != u.id && !occupantSeen(teamOf(u), t.id)) return "you cannot see that unit";
   const bool mine = teamOf(t) == teamOf(u);
   if ((d->target == StaffTarget::Ally && (!mine || t.id == u.id)) || (d->target == StaffTarget::Team && !mine) ||
       (d->target == StaffTarget::Foe && mine) || (d->target == StaffTarget::Any && t.id == u.id) ||

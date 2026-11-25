@@ -47,6 +47,7 @@ export const T = {
     cure: 'Cure conditions',
     unlock: 'Unlock a door or chest',
     strike: 'Strike with a weapon',
+    revive: 'Revive a downed unit',  // placeholder wording
     none: 'No other effect',
   } satisfies Record<EffectKind, string>,
   effectHelp: {
@@ -62,6 +63,7 @@ export const T = {
     cure: 'Removes conditions from the target (itself, an ally, or a foe to take its blessings away): only a unit that has one of them can be picked.',
     unlock: 'Opens a locked door or chest on a square within reach, without a key. This is the thief’s trick: give it to a unit type or a character.',
     strike: 'Attacks with a weapon of the Weapons screen, such as a spell or a breath. The weapon decides whom it can hit, how far it reaches and how much it hurts. The target never strikes back.',
+    revive: 'Stands a downed unit up with some of its hit points. Needs “Downed units” on the Rules screen. With an area it acts on the downed units in it.',
     none: 'Only gives the target a condition (set under “Experience and conditions”), and perhaps pays experience. It does nothing else.',
   } satisfies Record<EffectKind, string>,
   pushBy: 'Push how many squares',

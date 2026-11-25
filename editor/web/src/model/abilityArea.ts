@@ -1,5 +1,5 @@
 // An ability's "area" (loader: data/abilities.json): the ability is aimed at a square in range and acts on every unit in the area
-// that its "target" accepts (ally = the user's side, enemy = the other sides, unit = everyone). Only heal, cure, heal + cure and
+// that its "target" accepts (ally = the user's side, enemy = the other sides, unit = everyone). Only heal, cure, heal + cure, revive and
 // inflict-only abilities may have one. With an area the range may start at 0 (0 = the user's own square). Defaults are not written;
 // keys the editor does not know stay.
 import { patchObj } from './util'
@@ -30,8 +30,8 @@ export function areaOf(a: Ability): AreaView | undefined {
   return { shape, size: typeof size === 'number' ? size : undefined, vertical: typeof o.vertical === 'number' ? o.vertical : undefined }
 }
 
-/** Does the effect allow an area? (heal, cure, heal + cure -- all read as 'heal'/'cure' -- or no effect at all.) Takes the kind to stay free of abilities.ts. */
-export const kindAllowsArea = (k: string | null): boolean => k === 'heal' || k === 'cure' || k === 'none'
+/** Does the effect allow an area? (heal, cure, heal + cure -- all read as 'heal'/'cure' --, revive or no effect at all.) Takes the kind to stay free of abilities.ts. */
+export const kindAllowsArea = (k: string | null): boolean => k === 'heal' || k === 'cure' || k === 'revive' || k === 'none'
 
 /** The area key with the shape changed: a size of the old shape that fits the new one is kept (radius <-> cross), vertical and unknown keys stay. */
 export function setAreaShape(a: Ability, shape: AreaShape): Ability {
