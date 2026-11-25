@@ -288,9 +288,15 @@ bool runSceneWith(const Database& db, Playthrough& pt, SceneKind which, std::vec
   if (pt.phase != (which == SceneKind::Before ? Phase::Before : Phase::After)) return false;
   const ChapterDef& ch = cd->chapters[(size_t)pt.chapter];
   SceneRun r{db, pt, lines, std::string(), picks, 0, false, false, false, false, MapDef()};
+  // Typed names (docs/EVENTS.md "Naming a character") also reach units that joined the party after the name was asked.
+  const auto keepNames = [&pt] {
+    const std::vector<std::pair<std::string, std::string>> names = pt.names;
+    for (const auto& n : names) setTypedName(pt, n.first, n.second);
+  };
   if (which == SceneKind::Before) {
     if (!ch.party.empty()) switchParty(db, pt, ch.party);  // the chapter's "party": active from the start of its scene
     r.run(ch.before);
+    keepNames();
     if (r.halted) return true;
     // A "goto" in a before scene skips this chapter's battle: the chapter it names is next, starting with its own before scene.
     if (!r.gotoChapter.empty() && cd->findChapter(r.gotoChapter) >= 0) {
@@ -302,6 +308,7 @@ bool runSceneWith(const Database& db, Playthrough& pt, SceneKind which, std::vec
     return true;
   }
   r.run(ch.after);
+  keepNames();
   if (r.halted) return true;  // a question waits: the chapter has not been left
   // The next chapter: the last "goto" that ran, else the chapter's "next", else the following one.
   int next = pt.chapter + 1;
