@@ -1133,7 +1133,7 @@ Built for the Final Fantasy Tactics Advance port (its story shows each line in a
 window for system questions such as "Repeat lesson?" with the cursor on "No", asks for the hero's name, and loops a lesson until the
 player says no). **All of it is optional**: a game that uses none of the keys looks, plays, logs, saves and hashes exactly as before.
 
-**Owner decisions (placeholders; any may change):** the key names (`dialogue` with `style` / `portrait` / `names`, `notice`, `cursor`,
+**Owner decisions (kept by the owner 2026-11-24):** the key names (`dialogue` with `style` / `portrait` / `names`, `notice`, `cursor`,
 `face` and `expressions`, `askName` with `default` / `max` / `prompt`, `{name:<id>}`, `loop` / `max` / `break`, `backdrop`); the defaults
 (box; bubble portrait beside; names shown; name length 12, at most 24; a loop's `max` 10, at most 100); the bubble's look (light fill,
 dark outline and text, rounded corners, a tail), where it goes (above the speaker when there is room, else below), the Skip tab in the

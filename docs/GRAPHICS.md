@@ -302,7 +302,7 @@ player: `BattleScene::portraitFor` (battle_story.cpp).
 - `"expressions": [[col,row], ...]` (1 to 15 cells of the **same sheet**, optional): other faces a line can pick with `"face": N`
   (docs/EVENTS.md "Portrait expressions"). Face N shows the N-th cell, still (no talk or blink frames), beside the box, in a bubble and on
   the stage. A line's `face` larger than every portrait's list is refused by the loader; a speaker whose own portrait has fewer shows its
-  usual cell (and the player logs a warning). Presentation only: not in the data hash. Owner decisions (placeholders): the key name, the
+  usual cell (and the player logs a warning). Presentation only: not in the data hash. Owner decisions (kept by the owner 2026-11-24): the key name, the
   limit of 15, and that an expression does not animate.
 
 A portrait also stands on the scene **stage** when a line has a `position` (docs/EVENTS.md "Scene presentation": "Standing portraits"):

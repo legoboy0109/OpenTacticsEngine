@@ -1741,7 +1741,7 @@ All wording is placeholder (`screens/rules/dialogueStyleText.ts`, `screens/maps/
   `askName` command's own id does follow); no live preview of a bubble or the name entry (the player shows them); no unknown-key refusal on a question (the other commands have it).
 - **Tests**: unit `tests/unit/dialogueExtras.test.ts`.
 
-**Owner decisions (placeholders):** the card and field names *Dialogue style*, *Look of a line*, *A box at the bottom*, *A speech bubble*, *Portrait in a bubble*, *Face (expression)*, *Show it as a
+**Owner decisions (kept by the owner 2026-11-24):** the card and field names *Dialogue style*, *Look of a line*, *A box at the bottom*, *A speech bubble*, *Portrait in a bubble*, *Face (expression)*, *Show it as a
 notice*, *Starts on answer*, *Show a notice*, *Repeat these commands*, *Leave the repeat*, *Most rounds*, *Ask for a character's name*, *Starting name*, *Most letters*, *Words above the name*,
 *Expressions*, *Backdrop for the scenes*, *Backdrop for this scene*; the Dialogue style card sitting on the Rules screen; the loop's commands shown as a nested list; the name command offered
 only in campaign scenes.
