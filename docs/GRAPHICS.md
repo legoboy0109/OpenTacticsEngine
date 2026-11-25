@@ -299,6 +299,11 @@ player: `BattleScene::portraitFor` (battle_story.cpp).
   `"blink": [[col,row], ...]`: frames shown for 130 ms (split evenly among them) every 2.8 to 5.4 seconds; the moments are worked out from the clock and the speaker's
   name, so they are the same on every machine and never random. A cell outside the sheet or a list that is empty or longer than 8 is refused (`"talk" must list between 1 and 8 cells of the portrait's sheet`).
   There is no reduced-motion setting in the player; a face with neither key never changes.
+- `"expressions": [[col,row], ...]` (1 to 15 cells of the **same sheet**, optional): other faces a line can pick with `"face": N`
+  (docs/EVENTS.md "Portrait expressions"). Face N shows the N-th cell, still (no talk or blink frames), beside the box, in a bubble and on
+  the stage. A line's `face` larger than every portrait's list is refused by the loader; a speaker whose own portrait has fewer shows its
+  usual cell (and the player logs a warning). Presentation only: not in the data hash. Owner decisions (placeholders): the key name, the
+  limit of 15, and that an expression does not animate.
 
 A portrait also stands on the scene **stage** when a line has a `position` (docs/EVENTS.md "Scene presentation": "Standing portraits"):
 there it is drawn bigger (the largest whole-number scale that fits 55 percent of the screen's height and 45 percent of its width, 3 times
