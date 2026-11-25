@@ -4,6 +4,7 @@
 #include "core/data/loader_command_kind.h"
 #include "core/data/loader_content.h"
 #include "core/data/loader_difficulty.h"
+#include "core/data/loader_dialogue.h"
 #include "core/data/loader_events.h"
 #include "core/data/loader_scene_fx.h"
 
@@ -43,6 +44,7 @@ bool sceneFxCommand(StoryLoader& L, const Json& e, const std::string& key, const
     out.kind = Command::Kind::Say;
     if (!r.onlyKeys(e, {"narrate", "auto"}, at)) return false;
     if (!e["narrate"].isString()) return L.fail(at, "\"narrate\" must be the text to show");
+    if (!checkNameTokens(L.ctx(), e["narrate"].asString(), at)) return false;
     out.text = L.text(e["narrate"].asString());
     out.fx.narrate = true;
     return r.sayExtras(e, at, out.fx);
@@ -50,6 +52,9 @@ bool sceneFxCommand(StoryLoader& L, const Json& e, const std::string& key, const
   out.kind = Command::Kind::Scene;
   return r.command(e, key, at, out.fx);
 }
+// Notices and loops (docs/EVENTS.md "Notices", "Loops"), read with loader_dialogue.cpp; askName is listed so that a map event says
+// why it cannot use it.
+constexpr const char* kDialogueCommandKeys[] = {"notice", "loop", "break", "askName"};
 // Music by situation (docs/SOUND.md), read in loader_story_music.cpp.
 constexpr const char* kMusicCommandKeys[] = {"setPhaseMusic"};
 // Small extras (docs/EVENTS.md "Sending a unit's items to storage"), read in loader_story_extras.cpp.
@@ -103,6 +108,7 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
   if (!pickCommandKind(c_, e, where, kMusicCommandKeys, kind)) return false;
   if (!pickCommandKind(c_, e, where, kExtrasCommandKeys, kind)) return false;
   if (!pickCommandKind(c_, e, where, kShowMapCommandKeys, kind)) return false;
+  if (!pickCommandKind(c_, where, kDialogueCommandKeys, [&e](const char* k) { return isDialogueCommandIn(e, k); }, kind)) return false;
   const auto isSceneFx = [&e](const char* k) { return SceneFxReader::isCommandIn(e, k); };
   if (!pickCommandKind(c_, where, kSceneCommandKeys, isSceneFx, kind)) return false;
   if (shown_ && kind)  // docs/EVENTS.md "Showing another map": the shown map's units are temporary; the battle's own state waits for the return
@@ -118,6 +124,29 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
         return fail(where, std::string("\"") + kind + "\" makes no sense in a \"beforePrep\" event (it runs before the preparation screen: no "
                            "party is deployed, no turn has started, the battle cannot be decided, and the screen's choices change the map it "
                            "runs on again and again, so it must not ask or fight)");
+  }
+  if (kind && std::string(kind) == "askName")
+    return fail(where + " (askName)", "\"askName\" is for campaign scenes only (a chapter's \"before\" or \"after\"): the name is kept by the "
+                                       "campaign, and a map event cannot stop the battle for typing");
+  if (kind && std::string(kind) == "notice") {
+    out.kind = Command::Kind::Say;
+    std::string t;
+    if (!readNotice(c_, db_, true, e, where + " (notice)", t, out.fx)) return false;
+    out.text = text(t);
+    return true;
+  }
+  if (kind && std::string(kind) == "loop") {  // docs/EVENTS.md "Loops"
+    out.kind = Command::Kind::Loop;
+    const std::string at = where + " (loop)";
+    if (!readLoopHead(c_, e, at, out.value)) return false;
+    ++loopDepth_;
+    const bool ok = commands(e["loop"], at + ": \"loop\"", talk, out.thenDo, usesEndTurn);
+    --loopDepth_;
+    return ok;
+  }
+  if (kind && std::string(kind) == "break") {
+    out.kind = Command::Kind::Break;
+    return readBreak(c_, e, where + " (break)", loopDepth_ > 0);
   }
   if (kind && std::string(kind) == "showMap") return showMapCommand(e, where + " (showMap)", out);
   if (kind && std::string(kind) == "returnMap") return returnMapCommand(e, where + " (returnMap)", out);
@@ -171,9 +200,10 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
   }
   if (k == "say") {
     out.kind = K::Say;
-    if (!onlyKeys(e, {"say", "speaker", "speakerName", "portrait", "position", "auto"}, at)) return false;
-    if (!readerFor(*this).sayExtras(e, at, out.fx)) return false;
+    if (!onlyKeys(e, {"say", "speaker", "speakerName", "portrait", "position", "auto", "face"}, at)) return false;
+    if (!readerFor(*this).sayExtras(e, at, out.fx) || !readFace(c_, db_, e, at, out.fx)) return false;
     if (!v.isString()) return fail(at, "\"say\" must be the text to show");
+    if (!checkNameTokens(c_, v.asString(), at)) return false;
     out.text = text(v.asString());
     if (e.has("speaker") && e.has("speakerName")) return fail(at, "give \"speaker\" or \"speakerName\", not both");
     if (e.has("speaker") && !unitId(e["speaker"], at, "\"speaker\"", out.unit)) return false;

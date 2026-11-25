@@ -41,7 +41,11 @@ struct SceneCommand {
                     Fx,          // Fx: scene presentation (docs/EVENTS.md "Scene presentation"): `fx`
                     StoreItems,  // StoreItems: `unit` = the roster unit, `keep` = item indices that stay
                     SwitchParty,   // SwitchParty: `party` = the party id that becomes the active one (docs/EVENTS.md "Parties")
-                    MergeParties };  // MergeParties: `parties` = the party ids that join `party` (the "into" one)
+                    MergeParties,  // MergeParties: `parties` = the party ids that join `party` (the "into" one)
+                    // docs/EVENTS.md "Naming a character": AskName asks the player for the name of `unit` (`text` = the prompt, -1 = none;
+                    // `speakerName` = the default name, -1 = the character's own; `value` = the most letters).
+                    AskName,
+                    Loop, Break };  // docs/EVENTS.md "Loops": Loop runs `thenDo` at most `value` times until a Break inside it
   Kind kind = Kind::Say;
   // Say, Choice: indices into CampaignDef::texts (-1 = none); `unit` is the speaker's roster id ("" = none)
   int text = -1, speakerName = -1, portrait = -1;
@@ -58,7 +62,7 @@ struct SceneCommand {
   std::string side;              // GiveResource: the side id the amounts go to
   std::vector<Amount> amounts;   // GiveResource
   std::vector<SceneCondition> cond;           // If
-  std::vector<SceneCommand> thenDo, elseDo;   // If
+  std::vector<SceneCommand> thenDo, elseDo;   // If; Loop: thenDo is the block
   std::string chapter;                        // Goto: a chapter id
   std::vector<SceneAnswer> answers;           // Choice: two to four
   SceneFx fx;                                 // Fx; also the presentation keys of Say (position, auto, narrate)
@@ -94,6 +98,10 @@ struct CampaignDef {
   std::vector<std::string> texts;
   // The parties, the first being the one the campaign starts with. Empty = the campaign has no parties (one roster).
   std::vector<PartyDef> parties;
+  // campaign.json "backdrop" (docs/EVENTS.md "Scene backdrops"): the background id every chapter scene with commands starts on ("" =
+  // none, the plain colour); a scene object's own "backdrop" overrides it. The loader puts it into each scene as a first `background`
+  // command, so nothing else needs to know.
+  std::string backdrop;
 
   int findParty(const std::string& id) const {
     for (size_t i = 0; i < parties.size(); ++i)

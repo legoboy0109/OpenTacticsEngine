@@ -50,10 +50,13 @@ class CampaignLoader {
   bool choiceCommand(const Json& e, const std::string& at, bool allowGoto, SceneCommand& out);  // loader_campaign_choice.cpp
   bool partyCommand(const Json& e, const std::string& at, SceneCommand& out);                   // loader_campaign_parties.cpp
   bool storeItemsCommand(const Json& e, const std::string& at, SceneCommand& out);              // loader_campaign_extras.cpp
+  bool askNameCommand(const Json& e, const std::string& at, SceneCommand& out);                  // loader_campaign_scene.cpp
+  void addBackdrop(const std::string& id, size_t first, std::vector<SceneCommand>& out);         // the scene's backdrop in front
 
   const Database& db_;
   LoadCtx c_;
   CampaignDef& def_;
+  int loopDepth_ = 0;  // inside how many "loop" blocks the command being read is ("break" needs one)
   std::vector<int> choiceStores_;  // variables the choices of the scene being read write (one choice each; loader_campaign_choice.cpp)
 
  public:

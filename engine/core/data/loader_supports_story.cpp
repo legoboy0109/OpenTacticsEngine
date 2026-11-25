@@ -128,6 +128,10 @@ bool checkScene(const LoadCtx& c, const Database& db, const std::vector<SceneCom
       }
       continue;
     }
+    if (cmd.kind == SceneCommand::Kind::Loop) {  // a loop's block (docs/EVENTS.md "Loops")
+      if (!checkScene(c, db, cmd.thenDo, at + " (loop)")) return false;
+      continue;
+    }
     if (cmd.kind != SceneCommand::Kind::If) continue;
     for (size_t k = 0; k < cmd.cond.size(); ++k)
       if (cmd.cond[k].kind == SceneCondition::Kind::Support && !isPair(cmd.cond[k].unit, cmd.cond[k].with))

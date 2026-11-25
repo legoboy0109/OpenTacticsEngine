@@ -41,7 +41,9 @@ bool cosmeticKey(const std::string& k) {
          // Sound (docs/SOUND.md) is presentation, like graphics.json: which sound or track plays never changes a rule.
          k == "sounds" || k == "music" || k == "playerTurnMusic" || k == "enemyTurnMusic" ||
          // Music by situation (docs/SOUND.md): a map's side-by-side phase music, its few-enemies track and its preparation music.
-         k == "phaseMusic" || k == "fewEnemies" || k == "prepMusic";
+         k == "phaseMusic" || k == "fewEnemies" || k == "prepMusic" ||
+         // How lines are shown (game.json "dialogue": speech bubbles; docs/EVENTS.md) and the face a line picks are presentation.
+         k == "dialogue" || k == "face";
 }
 
 // Wording of story events (docs/EVENTS.md): what is said and how things are labelled. Like names,
@@ -50,7 +52,9 @@ bool cosmeticKey(const std::string& k) {
 bool wordingKey(const std::string& k) {
   return k == "say" || k == "choice" || k == "speakerName" || k == "label" || k == "text" || k == "playMusic" || k == "playSound" ||
          // Scene presentation (docs/EVENTS.md): which picture, who leaves the stage, what weather and what a narrator says is wording.
-         k == "narrate" || k == "background" || k == "leave" || k == "weather";
+         k == "narrate" || k == "background" || k == "leave" || k == "weather" ||
+         // A notice's text and the prompt of a name entry are wording too (docs/EVENTS.md "Notices", "Naming a character").
+         k == "notice" || k == "prompt";
 }
 
 // A copy without cosmetic keys, at any depth. Formula numbers ("props",
@@ -65,7 +69,9 @@ Json rulesOnly(const Json& j, bool mapFile, bool numbersTable = false) {
   if (j.isObject()) {
     // A campaign scene written as { "music": "id", "commands": [...] } (docs/SOUND.md) counts as the plain list of
     // its commands: adding music to a scene must not change the hash of the story.
-    if (mapFile && j.size() <= 2 && j.has("commands") && j["commands"].isArray() && (j.size() == 1 || j.has("music")))
+    // Its "backdrop" (docs/EVENTS.md "Scene backdrops") is only a picture too.
+    if (mapFile && j.size() <= 3 && j.has("commands") && j["commands"].isArray() &&
+        (size_t)(1 + (j.has("music") ? 1 : 0) + (j.has("backdrop") ? 1 : 0)) == j.size())
       return rulesOnly(j["commands"], mapFile);
     Json out = Json::makeObject();
     for (const Json::Member& m : j.members()) {
