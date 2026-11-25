@@ -14,6 +14,7 @@ import { Field, FieldGroup } from '../../ui/Field'
 import { Icon } from '../../ui/Icon'
 import { Select } from '../../ui/Select'
 import { TextInput } from '../../ui/TextInput'
+import { CampaignBackdropField } from './BackdropFields'
 import { C } from './text'
 
 export function SettingsCard() {
@@ -38,6 +39,7 @@ export function SettingsCard() {
           <Select value={defeatRule(c)} onChange={(v) => edit((d) => setDefeatRule(d, v as DefeatRule))}
             options={(['retry', 'end'] as DefeatRule[]).map((v) => ({ value: v, label: C.defeatChoices[v] }))} />
         </Field>
+        <CampaignBackdropField />
         <Field label={C.freeTitle} help={C.freeHelp}>
           <Select value={mode} onChange={(v) => edit((d) => setFreeMode(d, v as FreeMode))}
             options={(['none', 'all', 'chosen'] as FreeMode[]).map((v) => ({ value: v, label: C.freeChoices[v] }))} />

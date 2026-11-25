@@ -1,5 +1,6 @@
 // All wording of the story panels (Events and Objectives) and their forms. Placeholder wording: the owner decides.
 import { MC } from './forms/mapChangeText'
+import { DX } from './forms/dialogueText'
 import { EX } from './forms/extrasText'
 import { PT } from './forms/partyText'
 import type { CommandKind, CompareOp, ConditionKind, FilterKind, RuleKind, TriggerKind } from '../../../../model/storyTypes'
@@ -238,6 +239,7 @@ export const S = {
     move: 'Move a speaker on stage',
     setPhaseMusic: 'Change a side’s music',
     ...EX.kinds,
+    ...DX.kinds,
     ...PT.kinds,
   } as Record<CommandKind, string>,
   endTurnTalkOnly: 'only in a “Two units talk” event',
