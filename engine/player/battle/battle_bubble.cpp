@@ -36,7 +36,7 @@ DialogueFrame BattleScene::dialogueFrame(const DialogueState& d) const {
   if (d.line.notice) {  // the middle of the map's part of the screen, or of the whole screen when something covers the map
     f.shape = DialogueFrame::Shape::Notice;
     if (!mapCovered) {
-      f.areaW = layout_.vw;
+      f.areaW = layout_.vw < 24 * layout_.lh ? layout_.W : layout_.vw;  // (a narrow map: over the panel too, as a bubble)
       f.areaH = layout_.vh;
     }
     return f;
@@ -44,7 +44,9 @@ DialogueFrame BattleScene::dialogueFrame(const DialogueState& d) const {
   if (!look.bubbles || d.line.narrate || d.staged || mapCovered) return f;
   if (!speakerAnchor(d.line.unit, f.anchor)) return f;
   f.shape = DialogueFrame::Shape::Bubble;
-  f.areaW = layout_.vw;
+  // A narrow map (a phone held upright: the panel takes half the screen) would squeeze the bubble to a few words a row; there it may
+  // reach over the panel, which shows nothing the line needs.
+  f.areaW = layout_.vw < 24 * layout_.lh ? layout_.W : layout_.vw;
   f.areaH = layout_.vh;
   return f;
 }
