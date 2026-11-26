@@ -6,6 +6,11 @@ Read docs/PLAN.md (roadmap + owner decisions), docs/ARCHITECTURE.md
 
 ## Latest (2026-11-24) — START HERE
 
+**Sessions run from T3 Code since 2026-11-25** (the terminal lead session ended with the state below). `AGENTS.md` is loaded by every
+session and points here. The T3 project has actions (Build, Engine tests, Full check, Editor, Player) and a worktree setup that links the
+main checkout's two `node_modules` folders (listed in `.git/info/exclude`, so they cannot be committed); T3's worktrees live in
+`~/.t3/worktrees`, no longer under `.claude/worktrees`. The two private ports are T3 projects of their own.
+
 **origin/main = local main (4902f52e), worktrees all removed.** Full check on the merged engine: sdl3/sdl2 2912 (2940 with the dialogue
 branch, whose own full check passed), editor API 1640/1669, ctest 92/93, sims identical, webtest 280+59, vitest 1832/1864, e2e 632, native 25/25.
 Pushed since 2026-11-22 (all optional keys; games without them are byte-identical; the owner KEPT every name, docs say "kept by the owner"):
